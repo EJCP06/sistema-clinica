@@ -1,0 +1,84 @@
+<header class="w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-5 flex items-center justify-between shrink-0 shadow-sm z-40 transition-colors duration-300">
+  <div class="flex items-center gap-6">
+    <!-- Hamburger Button -->
+    <button
+      *ngIf="showMenuButton"
+      (click)="toggleSidebar.emit()"
+      class="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors lg:hidden"
+    >
+      <lucide-icon [name]="Menu" class="w-6 h-6 text-slate-600 dark:text-slate-400"></lucide-icon>
+    </button>
+
+    <div *ngIf="showLogo" class="flex items-center gap-4">
+      <div class="w-10 h-10 bg-white p-1.5 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/10 border border-slate-100 dark:border-slate-800">
+        <img
+          src="/logo-cnc.png"
+          alt="CNC Logo"
+          class="w-full h-full object-contain"
+          onerror="this.src = 'https://ui-avatars.com/api/?name=CNC&background=0D9488&color=fff'"
+        />
+      </div>
+      <div class="flex flex-col">
+        <span class="font-black text-slate-900 dark:text-white tracking-tight leading-none">SisCol</span>
+        <span class="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mt-1">Clínica Central</span>
+      </div>
+    </div>
+
+    <!-- Page Title (If no logo) -->
+    <div *ngIf="!showLogo && title" class="flex flex-col min-w-0">
+      <h1 class="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-tight truncate">{{ title }}</h1>
+      <p *ngIf="subtitle" class="text-slate-500 dark:text-slate-400 text-xs md:text-xs font-medium mt-0.5 truncate">{{ subtitle }}</p>
+    </div>
+  </div>
+
+    <!-- Right Side: User, Toggle, Icon -->
+    <div *ngIf="usuario" class="flex items-center gap-6">
+      <!-- User Profile -->
+      <div class="hidden md:flex items-center gap-6">
+        <!-- Etiqueta de Sede -->
+        <span class="px-3 py-1.5 bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-blue-500/20">
+          {{ sedeNombre }}
+        </span>
+
+        <div class="flex flex-col items-center">
+          <span class="text-sm font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tight">{{ usuario.nombre }}</span>
+          <span 
+            [ngClass]="{
+              'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20': usuario.rol === 'admin',
+              'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20': usuario.rol === 'recepcionista',
+              'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20': usuario.rol === 'medico'
+            }"
+            class="px-2 py-0.5 border rounded-lg text-[9px] font-black uppercase tracking-widest mt-1">
+            {{ usuario.rol }}
+          </span>
+        </div>
+        
+        <!-- Separator -->
+        <div class="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
+      </div>
+
+      <!-- Theme Toggle -->
+      <div class="hidden md:flex items-center gap-3">
+        <lucide-icon [name]="Sun" class="w-4 h-4 text-amber-500"></lucide-icon>
+        <label class="relative inline-flex items-center cursor-pointer group">
+          <input type="checkbox" [checked]="isDarkMode" (change)="toggleDarkMode()" class="sr-only peer" />
+          <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-800 shadow-inner"></div>
+        </label>
+        <lucide-icon [name]="Moon" class="w-4 h-4 text-slate-300 dark:text-blue-400"></lucide-icon>
+      </div>
+
+      <!-- Role Icon Box -->
+      <div 
+        [ngClass]="{
+          'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20 shadow-blue-500/5': usuario.rol === 'admin',
+          'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 shadow-emerald-500/5': usuario.rol === 'recepcionista',
+          'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20 shadow-indigo-500/5': usuario.rol === 'medico'
+        }"
+        class="hidden md:flex w-12 h-12 rounded-2xl items-center justify-center border shadow-sm transition-transform hover:scale-105">
+        <lucide-icon 
+          [name]="usuario.rol === 'admin' ? Users : (usuario.rol === 'recepcionista' ? Ticket : Activity)" 
+          class="w-6 h-6">
+        </lucide-icon>
+      </div>
+    </div>
+</header>
