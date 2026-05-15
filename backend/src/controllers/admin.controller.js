@@ -440,8 +440,8 @@ const crearMedico = async (req, res) => {
     const password_hash = await bcrypt.hash(password, salt);
 
     const result = await pool.query(
-      `INSERT INTO "Usuarios" (password_hash, rol, nombre, apellido, cedula, telefono, email, status, id_consultorio, id_servicio, piso, id_sede) 
-       VALUES ($1, 'medico', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id_usuario as id, cedula`,
+      `INSERT INTO "Usuarios" (password_hash, rol, nombre, apellido, cedula, telefono, email, status, id_consultorio, id_servicio, piso, id_sede, username) 
+       VALUES ($1, 'medico', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id_usuario as id, cedula, username`,
       [
         password_hash,
         (nombre || '').toUpperCase().trim(),
@@ -454,6 +454,7 @@ const crearMedico = async (req, res) => {
         servicio_id || null,
         piso || null,
         req.usuario.id_sede,
+        (username || cedula || Date.now().toString()).toLowerCase().trim()
       ],
     );
     res.status(201).json(result.rows[0]);
@@ -552,8 +553,8 @@ const crearRecepcionista = async (req, res) => {
     const password_hash = await bcrypt.hash(password, salt);
 
     const result = await pool.query(
-      `INSERT INTO "Usuarios" (password_hash, rol, nombre, apellido, cedula, telefono, email, status, piso, id_consultorio, id_servicio, id_sede) 
-       VALUES ($1, 'recepcionista', $2, $3, $4, $5, $6, $7, $8, NULL, NULL, $9) RETURNING id_usuario as id, cedula`,
+      `INSERT INTO "Usuarios" (password_hash, rol, nombre, apellido, cedula, telefono, email, status, piso, id_consultorio, id_servicio, id_sede, username) 
+       VALUES ($1, 'recepcionista', $2, $3, $4, $5, $6, $7, $8, NULL, NULL, $9, $10) RETURNING id_usuario as id, cedula, username`,
       [
         password_hash,
         (nombre || '').toUpperCase().trim(),
@@ -564,6 +565,7 @@ const crearRecepcionista = async (req, res) => {
         activo ?? true,
         piso || null,
         req.usuario.id_sede,
+        (username || cedula || Date.now().toString()).toLowerCase().trim()
       ],
     );
     res.status(201).json(result.rows[0]);
@@ -674,8 +676,8 @@ const crearUsuario = async (req, res) => {
     const sedeId = req.body.id_sede || req.usuario.id_sede;
 
     const result = await pool.query(
-      `INSERT INTO "Usuarios" (password_hash, rol, nombre, apellido, cedula, telefono, email, status, id_consultorio, id_servicio, piso, id_sede) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id_usuario as id, cedula, rol`,
+      `INSERT INTO "Usuarios" (password_hash, rol, nombre, apellido, cedula, telefono, email, status, id_consultorio, id_servicio, piso, id_sede, username) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id_usuario as id, cedula, rol, username`,
       [
         password_hash,
         rol || 'admin',
@@ -689,16 +691,19 @@ const crearUsuario = async (req, res) => {
         servicio_id || null,
         piso || null,
         sedeId,
+        (req.body.username || cedula || Date.now().toString()).toLowerCase().trim()
       ],
     );
     res.status(201).json(result.rows[0]);
   } catch (error) {
-    console.error('Error al crear usuario:', error);
-    console.error('Datos recibidos:', req.body);
-    console.error('Usuario autenticado:', req.usuario);
-    let mensaje = 'Error al registrar personal: ' + error.message;
-    if (error.code === '23505') mensaje = 'La cédula ya está registrada en el sistema';
-    res.status(500).json({ mensaje });
+    console.error('--- ERROR AL CREAR USUARIO ---');
+    console.error('Error:', error);
+    console.error('Body:', req.body);
+    res.status(500).json({ 
+      mensaje: 'Error al registrar personal', 
+      error: error.message,
+      detalle: error.detail 
+    });
   }
 };
 
@@ -736,7 +741,7 @@ const actualizarUsuario = async (req, res) => {
     const cleanConsultorio = rol === 'medico' ? id_consultorio || null : null;
     const cleanServicio = rol === 'medico' ? servicio_id || null : null;
 
-    let query = `UPDATE "Usuarios" SET rol = $1, nombre = $2, apellido = $3, cedula = $4, telefono = $5, email = $6, status = $7, id_consultorio = $8, id_servicio = $9, piso = $10`;
+    let query = `UPDATE "Usuarios" SET rol = $1, nombre = $2, apellido = $3, cedula = $4, telefono = $5, email = $6, status = $7, id_consultorio = $8, id_servicio = $9, piso = $10, username = $11, id_sede = $12`;
     const params = [
       rol,
       nombreMayus,
@@ -748,6 +753,8 @@ const actualizarUsuario = async (req, res) => {
       cleanConsultorio,
       cleanServicio,
       cleanPiso,
+      (req.body.username || cedulaLimpia).toLowerCase().trim(),
+      req.body.id_sede || req.usuario.id_sede
     ];
 
     if (password && password.trim() !== '') {
@@ -764,8 +771,14 @@ const actualizarUsuario = async (req, res) => {
     if (result.rows.length === 0) return res.status(404).json({ mensaje: 'Usuario no encontrado' });
     res.json(result.rows[0]);
   } catch (error) {
-    console.error('Error al actualizar usuario:', error);
-    res.status(500).json({ mensaje: 'Error al actualizar datos del personal' });
+    console.error('--- ERROR AL ACTUALIZAR USUARIO ---');
+    console.error('Error:', error);
+    console.error('Body:', req.body);
+    res.status(500).json({ 
+      mensaje: 'Error al actualizar personal', 
+      error: error.message,
+      detalle: error.detail 
+    });
   }
 };
 

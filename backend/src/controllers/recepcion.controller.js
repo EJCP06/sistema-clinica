@@ -41,8 +41,14 @@ const crearPaciente = async (req, res) => {
     );
     res.status(201).json(result.rows[0]);
   } catch (error) {
-    console.error('Error al crear paciente:', error);
-    res.status(500).json({ mensaje: 'Error al registrar paciente' });
+    console.error('--- ERROR AL CREAR PACIENTE ---');
+    console.error('Error:', error);
+    console.error('Body:', req.body);
+    res.status(500).json({ 
+      mensaje: 'Error al registrar paciente', 
+      error: error.message,
+      detalle: error.detail 
+    });
   }
 };
 
@@ -85,9 +91,15 @@ const registrarAtencion = async (req, res) => {
     await client.query('COMMIT');
     res.status(201).json({ mensaje: 'Atención registrada correctamente', id_atencion });
   } catch (error) {
-    await client.query('ROLLBACK');
-    console.error('Error al registrar atención:', error);
-    res.status(500).json({ mensaje: 'Error al procesar la atención' });
+    if (client) await client.query('ROLLBACK');
+    console.error('--- ERROR AL REGISTRAR ATENCION ---');
+    console.error('Error:', error);
+    console.error('Body:', req.body);
+    res.status(500).json({ 
+      mensaje: 'Error al procesar la atención o conexión de DB', 
+      error: error.message,
+      detalle: error.detail 
+    });
   } finally {
     client.release();
   }
