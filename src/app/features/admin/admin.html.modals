@@ -1,0 +1,310 @@
+<!-- MODALS -->
+
+<!-- MODAL: PERSONAL (ADMIN, MEDICO, RECEPCIONISTA) -->
+<div *ngIf="showModalPersonal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div
+    class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-300"
+    (click)="showModalPersonal = false"
+  ></div>
+  <div
+    class="bg-white rounded-[32px] shadow-2xl w-full max-w-4xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200"
+  >
+    <!-- Header -->
+    <div class="bg-blue-600 p-6 text-white flex items-center justify-between border-b border-blue-500/50">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+          <lucide-icon [name]="UserCog" class="w-5 h-5 text-white"></lucide-icon>
+        </div>
+        <div>
+          <h2 class="text-xl font-black tracking-tight text-white">
+            {{ isEditing ? 'Editar Personal' : 'Nuevo Personal' }}
+          </h2>
+          <p class="text-blue-100 text-[10px] uppercase font-bold tracking-widest mt-0.5">
+            Gestión de Acceso y Roles
+          </p>
+        </div>
+      </div>
+      <button
+        (click)="showModalPersonal = false"
+        class="p-2 hover:bg-white/10 rounded-lg transition-colors"
+      >
+        <lucide-icon [name]="XCircle" class="w-5 h-5 text-white"></lucide-icon>
+      </button>
+    </div>
+
+    <div class="p-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-6">
+        
+        <!-- ROL SELECTOR -->
+        <div class="lg:col-span-1 space-y-1.5">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Rol en Clínica</label>
+          <div class="relative rol-dropdown-container">
+            <button
+              type="button"
+              (click)="toggleRolDropdown()"
+              class="w-full px-4 py-2.5 bg-blue-50/50 border border-blue-100 rounded-xl text-sm font-black text-blue-600 text-left flex justify-between items-center shadow-sm"
+            >
+              <span>{{ getRolLabel(formPersonal.rol) }}</span>
+              <lucide-icon [name]="ChevronDown" class="w-4 h-4 transition-transform" [class.rotate-180]="showRolDropdown"></lucide-icon>
+            </button>
+            <div *ngIf="showRolDropdown" class="absolute z-[110] w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600">
+              <div class="p-1">
+                <div *ngFor="let r of ['admin', 'medico', 'recepcionista']" (click)="selectRol(r)"
+                  class="px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 cursor-pointer transition-colors rounded-lg flex items-center justify-between"
+                  [class.bg-blue-50]="formPersonal.rol === r" [class.text-blue-600]="formPersonal.rol === r">
+                  <span>{{ getRolLabel(r) }}</span>
+                  <lucide-icon *ngIf="formPersonal.rol === r" [name]="CheckCircle2" class="w-3 h-3"></lucide-icon>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DATOS PERSONALES -->
+        <div class="lg:col-span-1 space-y-1.5">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Nombre</label>
+          <input [(ngModel)]="formPersonal.nombre" placeholder="Ej: Juan"
+            class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
+        </div>
+        <div class="lg:col-span-1 space-y-1.5">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Apellido</label>
+          <input [(ngModel)]="formPersonal.apellido" placeholder="Ej: Peréz"
+            class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
+        </div>
+        <div class="lg:col-span-1 space-y-1.5">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Cédula</label>
+          <input [(ngModel)]="formPersonal.cedula" placeholder="Ej: 31899777"
+            class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
+        </div>
+
+        <div class="lg:col-span-2 space-y-1.5">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Teléfono</label>
+          <input [(ngModel)]="formPersonal.telefono" placeholder="Ej: +58 4142303366"
+            class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
+        </div>
+        <div class="lg:col-span-2 space-y-1.5">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Correo Electrónico</label>
+          <input [(ngModel)]="formPersonal.email" type="email" placeholder="Ej: clinicanuevacaracas@gmail.com"
+            class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
+        </div>
+
+        <!-- CAMPOS ESPECÍFICOS PARA MÉDICOS -->
+        <ng-container *ngIf="formPersonal.rol === 'medico'">
+          <div class="lg:col-span-2 space-y-1.5">
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Especialidad</label>
+            <div class="relative medico-esp-container">
+              <button type="button" (click)="toggleMedicoEspDropdown()"
+                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-left flex justify-between items-center shadow-sm">
+                <span [class.text-slate-400]="!formPersonal.servicio_id">{{ getNombreEsp(formPersonal.servicio_id) }}</span>
+                <lucide-icon [name]="ChevronDown" class="w-4 h-4 text-slate-400" [class.rotate-180]="showMedicoEspDropdown"></lucide-icon>
+              </button>
+              <div *ngIf="showMedicoEspDropdown" class="absolute z-[100] w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600">
+                <div class="max-h-48 overflow-y-auto custom-scrollbar p-1">
+                  <div *ngFor="let s of especialidades" (click)="selectMedicoEsp(s)"
+                    class="px-4 py-2 text-sm hover:bg-slate-50 cursor-pointer transition-colors rounded-lg flex items-center justify-between"
+                    [class.bg-blue-50]="formPersonal.servicio_id === s.id">
+                    <span class="font-bold">{{ s.nombre }}</span>
+                    <lucide-icon *ngIf="formPersonal.servicio_id === s.id" [name]="CheckCircle2" class="w-3.5 h-3.5 text-blue-600"></lucide-icon>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="lg:col-span-2 space-y-1.5">
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Consultorio</label>
+            <div class="relative medico-con-container">
+              <button type="button" (click)="toggleMedicoConDropdown()"
+                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-left flex justify-between items-center shadow-sm">
+                <span [class.text-slate-400]="!formPersonal.consultorio_id">{{ getNombreCon(formPersonal.consultorio_id) }}</span>
+                <lucide-icon [name]="ChevronDown" class="w-4 h-4 text-slate-400" [class.rotate-180]="showMedicoConDropdown"></lucide-icon>
+              </button>
+              <div *ngIf="showMedicoConDropdown" class="absolute z-[100] w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600">
+                <div class="max-h-48 overflow-y-auto custom-scrollbar p-1">
+                  <div *ngFor="let c of consultorios" (click)="selectMedicoCon(c)"
+                    class="px-4 py-2 text-sm hover:bg-slate-50 cursor-pointer transition-colors rounded-lg flex items-center justify-between"
+                    [class.bg-blue-50]="formPersonal.consultorio_id === c.id">
+                    <span class="font-bold">{{ c.nombre }} - Piso {{ c.piso }}</span>
+                    <lucide-icon *ngIf="formPersonal.consultorio_id === c.id" [name]="CheckCircle2" class="w-3.5 h-3.5 text-blue-600"></lucide-icon>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- CREDENCIALES -->
+        <div class="lg:col-span-2 space-y-1.5">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Usuario de Acceso</label>
+          <input [(ngModel)]="formPersonal.username" placeholder="Ej: JuanPerez"
+            class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all" />
+        </div>
+        <div class="lg:col-span-1 space-y-1.5">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">{{ isEditing ? 'Contraseña (Opcional)' : 'Contraseña' }}</label>
+          <div class="relative">
+            <input [type]="showPassword ? 'text' : 'password'" [(ngModel)]="formPersonal.password" placeholder="••••••••"
+              class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all pr-10" />
+            <button type="button" (click)="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+              <lucide-icon [name]="showPassword ? EyeOff : Eye" class="w-4 h-4"></lucide-icon>
+            </button>
+          </div>
+        </div>
+        <div class="lg:col-span-1 space-y-1.5">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1 mb-1">Estado</label>
+          <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-4 py-2.5 w-fit">
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" [(ngModel)]="formPersonal.activo" class="sr-only peer" />
+              <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
+            </label>
+            <span class="text-[10px] font-bold uppercase tracking-wider" [ngClass]="formPersonal.activo ? 'text-teal-600' : 'text-slate-400'">
+              {{ formPersonal.activo ? 'Si' : 'No' }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+      <button type="button" [disabled]="isSaving" (click)="showModalPersonal = false"
+        class="px-6 py-2.5 bg-slate-200 text-slate-700 font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-300 transition-all">
+        Cancelar
+      </button>
+      <button type="button" [disabled]="isSaving" (click)="guardarPersonal()"
+        class="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl shadow-lg shadow-blue-600/20 transition-all flex items-center gap-2">
+        <span *ngIf="isSaving" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+        {{ isSaving ? 'Guardando...' : (isEditing ? 'Actualizar Personal' : 'Crear Personal') }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ESPECIALIDAD -->
+<div *ngIf="showModalEspecialidad" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div
+    class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-300"
+    (click)="showModalEspecialidad = false"
+  ></div>
+  <div
+    class="bg-white rounded-[32px] shadow-2xl w-full max-w-lg relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200"
+  >
+    <!-- Header -->
+    <div class="bg-blue-600 p-6 text-white flex items-center justify-between border-b border-blue-500/50">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+          <lucide-icon [name]="Stethoscope" class="w-5 h-5 text-white"></lucide-icon>
+        </div>
+        <div>
+          <h2 class="text-xl font-black tracking-tight text-white">
+            {{ isEditing ? 'Editar Especialidad' : 'Nueva Especialidad' }}
+          </h2>
+          <p class="text-blue-100 text-[10px] uppercase font-bold tracking-widest mt-0.5">
+            Configuración de Servicios
+          </p>
+        </div>
+      </div>
+      <button
+        (click)="showModalEspecialidad = false"
+        class="p-2 hover:bg-white/10 rounded-lg transition-colors"
+      >
+        <lucide-icon [name]="XCircle" class="w-5 h-5 text-white"></lucide-icon>
+      </button>
+    </div>
+
+    <div class="p-8 space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="md:col-span-2 space-y-1.5">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Nombre</label>
+          <input [(ngModel)]="formEsp.nombre" placeholder="Ej: Cardiología"
+            class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Prefijo</label>
+          <input [(ngModel)]="formEsp.prefijo" placeholder="Ej: PED"
+            class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium uppercase" />
+        </div>
+      </div>
+      <div class="space-y-1.5 flex flex-col">
+        <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1 mb-1">Estado</label>
+        <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-4 py-2.5 w-fit">
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" [(ngModel)]="formEsp.activo" class="sr-only peer" />
+            <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
+          </label>
+          <span class="text-[10px] font-bold uppercase tracking-wider" [ngClass]="formEsp.activo ? 'text-teal-600' : 'text-slate-400'">
+            {{ formEsp.activo ? 'Activo' : 'Inactivo' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+      <button type="button" [disabled]="isSaving" (click)="showModalEspecialidad = false"
+        class="px-6 py-2.5 bg-slate-200 text-slate-700 font-bold text-[10px] uppercase tracking-widest rounded-xl hover:bg-slate-300 transition-all">
+        Cancelar
+      </button>
+      <button type="button" [disabled]="isSaving" (click)="guardarEsp()"
+        class="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] uppercase tracking-widest rounded-xl shadow-lg shadow-blue-600/20 transition-all flex items-center gap-2">
+        <span *ngIf="isSaving" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+        {{ isSaving ? 'Guardando...' : 'Guardar Especialidad' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CONSULTORIO -->
+<div *ngIf="showModalConsultorio" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div
+    class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
+    (click)="showModalConsultorio = false"
+  ></div>
+  <div
+    class="bg-white rounded-[40px] shadow-2xl w-full max-w-lg relative z-10 overflow-hidden animate-in zoom-in-95 duration-300"
+  >
+    <div class="bg-blue-600 p-8 text-white">
+      <div class="flex items-center gap-4 mb-2">
+        <div class="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
+          <lucide-icon [name]="DoorOpen" class="w-6 h-6 text-white"></lucide-icon>
+        </div>
+        <h2 class="text-3xl font-black tracking-tight">
+          {{ isEditing ? 'Editar Consultorio' : 'Nuevo Consultorio' }}
+        </h2>
+      </div>
+      <p class="text-blue-100 font-medium">Asignación de espacios físicos</p>
+    </div>
+
+    <div class="p-10 space-y-6">
+      <div class="space-y-2">
+        <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Nombre / Número</label>
+        <input [(ngModel)]="formCon.nombre" placeholder="EJ: Consultorio 101"
+          class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="space-y-2">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Piso</label>
+          <input [(ngModel)]="formCon.piso" placeholder="EJ: 1"
+            class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
+        </div>
+        <div class="space-y-2">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Servicio Asignado</label>
+          <select [(ngModel)]="formCon.servicio_id"
+            class="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium">
+            <option value="" disabled>Seleccione...</option>
+            <option *ngFor="let s of especialidades" [value]="s.id">{{ s.nombre }}</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="p-8 bg-slate-50 flex gap-4">
+      <button type="button" [disabled]="isSaving" (click)="showModalConsultorio = false"
+        class="flex-1 px-8 py-4 bg-slate-200 text-slate-700 font-black rounded-2xl transition-all uppercase tracking-widest text-xs hover:bg-slate-300">
+        Cerrar
+      </button>
+      <button type="button" [disabled]="isSaving" (click)="guardarCon()"
+        class="flex-[2] px-8 py-4 bg-teal-500 hover:bg-teal-600 text-white font-black rounded-2xl shadow-xl shadow-teal-500/20 transition-all uppercase tracking-widest text-xs">
+        <span *ngIf="isSaving" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block mr-2"></span>
+        {{ isSaving ? 'Guardando...' : 'Guardar Consultorio' }}
+      </button>
+    </div>
+  </div>
+</div>

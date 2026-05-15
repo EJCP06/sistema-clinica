@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply antialiased bg-slate-50 text-slate-900 transition-colors duration-300;
+  }
+
+  .dark body {
+    @apply bg-[#0f172a] text-slate-100;
+  }
+
+  /* Global Dark Mode Overrides */
+  .dark .bg-white {
+    @apply bg-slate-900 border-slate-800 text-slate-100;
+  }
+
+  .dark .bg-slate-50 {
+    @apply bg-[#0f172a];
+  }
+
+  .dark .border-slate-200, 
+  .dark .border-slate-100 {
+    @apply border-slate-800;
+  }
+
+  .dark .text-slate-900,
+  .dark .text-slate-800 {
+    @apply text-white;
+  }
+
+  .dark .text-slate-600,
+  .dark .text-slate-500 {
+    @apply text-slate-400;
+  }
+
+  .dark aside {
+    @apply bg-slate-950 border-slate-900;
+  }
+
+  .dark header {
+    @apply bg-slate-900/80 border-slate-800;
+  }
+
+  .dark input, 
+  .dark select, 
+  .dark textarea {
+    @apply bg-slate-800 border-slate-700 text-white placeholder-slate-500;
+  }
+
+  .dark .bg-slate-50\/50 {
+    @apply bg-slate-800/50;
+  }
+
+  /* Icon Containers Overrides for Dark Mode */
+  .dark .bg-blue-50 { @apply bg-blue-500/10 text-blue-400; }
+  .dark .bg-rose-50 { @apply bg-rose-500/10 text-rose-400; }
+  .dark .bg-emerald-50 { @apply bg-emerald-500/10 text-emerald-400; }
+  .dark .bg-amber-50 { @apply bg-amber-500/10 text-amber-400; }
+  .dark .bg-teal-50 { @apply bg-teal-500/10 text-teal-400; }
+  .dark .bg-indigo-50 { @apply bg-indigo-500/10 text-indigo-400; }
+  
+  .dark .text-blue-600 { @apply text-blue-400; }
+  .dark .text-rose-600 { @apply text-rose-400; }
+  .dark .text-emerald-600 { @apply text-emerald-400; }
+  .dark .text-amber-600 { @apply text-amber-400; }
+  .dark .text-teal-600 { @apply text-teal-400; }
+  .dark .text-indigo-600 { @apply text-indigo-400; }
+
+  .dark .border-blue-100,
+  .dark .border-emerald-100,
+  .dark .border-rose-100 {
+    @apply border-transparent;
+  }
+
+  /* White Shadows for Dark Mode */
+  .dark .shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(255, 255, 255, 0.05);
+  }
+  
+  .dark .shadow-md,
+  .dark .hover\:shadow-md:hover {
+    box-shadow: 0 4px 6px -1px rgba(255, 255, 255, 0.1), 0 2px 4px -1px rgba(255, 255, 255, 0.06);
+  }
+
+  .dark .shadow-lg {
+    box-shadow: 0 10px 15px -3px rgba(255, 255, 255, 0.1), 0 4px 6px -2px rgba(255, 255, 255, 0.05);
+  }
+
+  .dark .shadow-xl {
+    box-shadow: 0 20px 25px -5px rgba(255, 255, 255, 0.1), 0 10px 10px -5px rgba(255, 255, 255, 0.04);
+  }
+}
+
+@keyframes ticker {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
+}

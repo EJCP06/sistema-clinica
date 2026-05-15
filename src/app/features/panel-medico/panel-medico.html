@@ -1,0 +1,127 @@
+<div class="h-screen bg-slate-50 dark:bg-slate-950 flex overflow-hidden w-full">
+  <!-- SIDEBAR -->
+  <div class="shrink-0 z-20">
+    <app-sidebar 
+      [activeTab]="'panel-medico'" 
+      [sidebarOpen]="sidebarOpen"
+      (tabChange)="onTabChange($event)"
+      (closeSidebar)="sidebarOpen = false">
+    </app-sidebar>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1 flex flex-col min-w-0 overflow-hidden relative bg-slate-50 dark:bg-slate-950 lg:pl-80">
+    <app-header 
+      title="Atención Médica"
+      [subtitle]="medicoInfo.servicio_nombre + ' • Gestión de pacientes en espera'"
+      [showLogo]="false"
+      [showMenuButton]="true"
+      (toggleSidebar)="sidebarOpen = !sidebarOpen">
+    </app-header>
+
+    <!-- Content Area -->
+    <div class="flex-1 overflow-y-auto custom-scrollbar p-8">
+      <div class="max-w-6xl mx-auto space-y-10">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          
+          <!-- COLUMNA IZQUIERDA: LISTA DE ESPERA -->
+          <div class="lg:col-span-4 space-y-6">
+            <div class="flex items-center justify-between px-4">
+              <h2 class="text-lg font-black text-slate-800 dark:text-white flex items-center gap-2">
+                <lucide-icon [name]="Clock" class="w-4 h-4 text-slate-400"></lucide-icon>
+                Lista de Espera
+              </h2>
+              <button (click)="cargarPacientes()" class="text-blue-600 font-black text-[10px] uppercase tracking-widest hover:underline">Refrescar</button>
+            </div>
+
+            <div class="space-y-3">
+              <div *ngIf="pacientesEspera.length === 0" class="p-10 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[40px] text-center">
+                <p class="text-slate-400 font-bold text-sm italic">No hay pacientes esperando</p>
+              </div>
+
+              <div 
+                *ngFor="let p of pacientesEspera; let i = index"
+                class="bg-white dark:bg-slate-900 p-6 rounded-[32px] border border-slate-200 dark:border-slate-800 flex items-center justify-between group hover:border-blue-500 transition-all cursor-default shadow-sm"
+              >
+                <div class="flex items-center gap-4">
+                  <div class="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center font-black text-slate-500 text-sm">
+                    {{ i + 1 }}
+                  </div>
+                  <div>
+                    <h4 class="font-black text-slate-900 dark:text-white text-sm">{{ p.nombre }} {{ p.apellido }}</h4>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Espera: {{ getTiempoEspera(p.hora_llegada) }}</p>
+                  </div>
+                </div>
+                <div *ngIf="i === 0 && !pacienteActual" class="animate-pulse">
+                  <lucide-icon [name]="ArrowRight" class="w-4 h-4 text-blue-600"></lucide-icon>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- COLUMNA DERECHA: ATENCIÓN ACTUAL -->
+          <div class="lg:col-span-8">
+            
+            <!-- CARD ESTADO: SIN PACIENTE -->
+            <div *ngIf="!pacienteActual" class="bg-white dark:bg-slate-900 h-full rounded-[40px] border-2 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center p-20 space-y-8 shadow-sm">
+              <div class="w-24 h-24 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center">
+                <lucide-icon [name]="UserCheck" class="w-10 h-10 text-slate-300"></lucide-icon>
+              </div>
+              <div class="text-center">
+                <h3 class="text-2xl font-black text-slate-900 dark:text-white">Listo para atender</h3>
+                <p class="text-slate-500 font-bold max-w-xs mx-auto mt-2">Pulse el botón para llamar al siguiente paciente en la lista de espera.</p>
+              </div>
+              <button 
+                (click)="llamarSiguiente()"
+                [disabled]="pacientesEspera.length === 0"
+                class="px-16 py-6 bg-blue-600 hover:bg-blue-700 text-white rounded-[32px] font-black uppercase text-sm tracking-[3px] shadow-2xl shadow-blue-600/30 transition-all active:scale-95 disabled:bg-slate-200"
+              >
+                Llamar Siguiente
+              </button>
+            </div>
+
+            <!-- CARD ESTADO: EN ATENCIÓN -->
+            <div *ngIf="pacienteActual" class="bg-white dark:bg-slate-900 h-full rounded-[40px] border-2 border-teal-600 p-12 space-y-10 shadow-2xl shadow-teal-600/10">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                  <span class="w-4 h-4 bg-teal-500 rounded-full animate-ping"></span>
+                  <h3 class="text-[10px] font-black uppercase tracking-[3px] text-teal-600">Atención en Curso</h3>
+                </div>
+                <div class="flex items-center gap-2 text-slate-400 font-bold text-xs">
+                  <lucide-icon [name]="Clock" class="w-4 h-4"></lucide-icon>
+                  Desde: {{ pacienteActual.hora_llegada | date:'shortTime' }}
+                </div>
+              </div>
+
+              <div class="flex items-center gap-10 py-6 border-y border-slate-100 dark:border-slate-800">
+                <div class="w-32 h-32 rounded-[40px] bg-teal-50 dark:bg-teal-600/10 flex items-center justify-center text-teal-600 font-black text-5xl">
+                  {{ pacienteActual.nombre[0] }}{{ pacienteActual.apellido[0] }}
+                </div>
+                <div class="space-y-2">
+                  <h2 class="text-5xl font-black text-slate-900 dark:text-white tracking-tight">{{ pacienteActual.nombre }} {{ pacienteActual.apellido }}</h2>
+                  <p class="text-xl font-bold text-slate-400 tracking-tight">CI: {{ pacienteActual.cedula }}</p>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-6">
+                <button 
+                  class="py-6 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-[32px] font-black uppercase text-xs tracking-widest hover:bg-slate-200 transition-all"
+                >
+                  Ver Historial
+                </button>
+                <button 
+                  (click)="finalizarAtencion()"
+                  class="py-6 bg-teal-600 hover:bg-teal-700 text-white rounded-[32px] font-black uppercase text-xs tracking-widest shadow-xl shadow-teal-600/20 transition-all flex items-center justify-center gap-3"
+                >
+                  <lucide-icon [name]="CheckCircle" class="w-5 h-5"></lucide-icon>
+                  Finalizar Atención
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
