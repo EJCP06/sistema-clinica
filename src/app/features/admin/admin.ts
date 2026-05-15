@@ -312,15 +312,17 @@ export class Admin implements OnInit, OnDestroy {
     
     call.subscribe({
       next: () => {
-        this.showModalPersonal = false
-        this.isSaving = false
-        this.cdr.detectChanges()
-        this.cargarDatos()
+        this.showModalPersonal = false;
+        this.isSaving = false;
+        this.cdr.detectChanges();
+        // Recargar en segundo plano
+        this.cargarDatos();
       },
-      error: () => {
-        this.isSaving = false
-        this.cdr.detectChanges()
-        alert('Error al guardar personal')
+      error: (err) => {
+        this.isSaving = false;
+        this.cdr.detectChanges();
+        console.error('Error al guardar:', err);
+        alert(err.error?.mensaje || 'Error al guardar personal');
       }
     })
   }
@@ -665,12 +667,19 @@ export class Admin implements OnInit, OnDestroy {
 
   getSedeLabel(id: any, forDropdown = false): string {
     if (id === undefined || id === null || id === '') return forDropdown ? 'Seleccione...' : 'SIN ASIGNAR';
-    
     const finalId = Number(id);
     if (isNaN(finalId)) return forDropdown ? 'Seleccione...' : 'SIN ASIGNAR';
     
     const sede = this.sedes.find((s) => Number(s.id_sede) === finalId || Number(s.id) === finalId)
-    return sede ? sede.nombre.toUpperCase() : (forDropdown ? 'Seleccione...' : 'SIN ASIGNAR')
+    if (!sede) return forDropdown ? 'Seleccione...' : 'SIN ASIGNAR';
+    
+    // Si es para el select/input, mostrar bonito. Si es para la tabla, mostrar en mayúsculas.
+    return forDropdown ? this.toTitleCase(sede.nombre) : sede.nombre.toUpperCase();
+  }
+
+  toTitleCase(str: string): string {
+    if (!str) return '';
+    return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   }
 
   toggleSedeDropdown() {

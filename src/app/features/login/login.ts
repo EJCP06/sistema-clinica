@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -25,6 +25,7 @@ export class Login {
   readonly XCircle = XCircle;
 
   private auth = inject(AuthService);
+  private cdr = inject(ChangeDetectorRef);
   private themeService = inject(ThemeService);
   private router = inject(Router);
 
@@ -41,31 +42,27 @@ export class Login {
     this.themeService.toggleTheme();
   }
 
-  readonly cuentasDemo = [
-    { label: 'Administrador', user: 'admin', icon: '⚙️' },
-    { label: 'Recepcionista', user: 'recepcion1', icon: '🧑‍💼' },
-    { label: 'Médico Pediatría', user: 'medico_ped', icon: '🩺' },
-    { label: 'Médico Ginecología', user: 'medico_gin', icon: '🩺' },
-    { label: 'Pantalla Pública (TV)', user: 'tv', icon: '📺' },
-  ];
-
-  usarCuenta(user: string) {
-    this.username = user;
-    this.password = '123'; // Contraseña real en la BD
-    this.error = '';
+  onInputChange() {
+    if (this.error) {
+      this.error = '';
+      this.cdr.detectChanges();
+    }
   }
 
   iniciarSesion() {
     if (!this.username || !this.password) {
       this.error = 'Por favor ingrese usuario y contraseña.';
+      this.cdr.detectChanges();
       return;
     }
     this.cargando = true;
     this.error = '';
+    this.cdr.detectChanges();
 
     this.auth.login(this.username, this.password).subscribe({
       next: (response) => {
         this.cargando = false;
+        this.cdr.detectChanges();
         // Forzamos la navegación desde el componente para asegurar el cambio de vista
         const usuario = this.auth.usuarioActual;
         if (usuario) {
@@ -76,9 +73,10 @@ export class Login {
           else this.router.navigate(['/atencion']); // Fallback para médicos si el rol viene distinto
         }
       },
-      error: (err: Error) => {
-        this.error = err.message || 'Usuario o contraseña incorrectos.';
+      error: (err: any) => {
+        this.error = err.error?.mensaje || err.message || 'Error de autenticación';
         this.cargando = false;
+        this.cdr.detectChanges();
       }
     });
   }

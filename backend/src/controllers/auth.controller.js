@@ -13,16 +13,16 @@ const login = async (req, res) => {
   try {
     console.log('Intento de login con cédula:', cedula);
     
-    // 1. Buscar al usuario estrictamente por cédula
+    // 1. Buscar al usuario por cédula o username
     const result = await pool.query(`
-      SELECT id_usuario as id, cedula, password_hash, rol, nombre, apellido, id_servicio as servicio_id, id_consultorio as consultorio_id, id_sede 
+      SELECT id_usuario as id, cedula, username, password_hash, rol, nombre, apellido, id_servicio as servicio_id, id_consultorio as consultorio_id, id_sede 
       FROM "Usuarios" 
-      WHERE cedula = $1
+      WHERE cedula = $1 OR username = $1
     `, [cedula]);
 
     if (result.rows.length === 0) {
-      console.log('Usuario no encontrado en DB con cédula:', cedula);
-      return res.status(401).json({ mensaje: 'Credenciales inválidas' });
+      console.log('Usuario no encontrado en DB:', cedula);
+      return res.status(401).json({ mensaje: 'Usuario inválido' });
     }
 
     const usuario = result.rows[0];
@@ -30,7 +30,7 @@ const login = async (req, res) => {
     // 2. Verificar password
     const esPasswordValido = await bcrypt.compare(password, usuario.password_hash);
     if (!esPasswordValido) {
-      return res.status(401).json({ mensaje: 'Credenciales inválidas' });
+      return res.status(401).json({ mensaje: 'Contraseña inválida' });
     }
 
     // 3. Crear Token

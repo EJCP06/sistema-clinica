@@ -273,15 +273,20 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
     this.api.post('recepcion/generar-turno', bodyTurno).subscribe({
       next: (res: any) => {
-        alert('Ticket generado con éxito: ' + (res.numero || 'Listo'));
         this.isSaving = false;
         this.mostrarRegistro = false;
-        this.cedulaBusqueda = ''; // Limpiar barra
-        this.cargarUltimasAdmisiones(); // Refrescar
+        this.pacienteEncontrado = null;
+        this.cedulaBusqueda = ''; 
+        this.cdr.detectChanges();
+        
+        alert('Ticket generado con éxito: ' + (res.numero || 'Listo'));
+        this.cargarUltimasAdmisiones(); 
       },
-      error: () => {
+      error: (err) => {
+        console.error('Error al generar turno directo:', err);
         alert('Error al asignar el servicio / generar turno.');
         this.isSaving = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -301,15 +306,21 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
     this.api.post('recepcion/generar-turno', bodyTurno).subscribe({
       next: (res: any) => {
-        alert('Turno / Servicio asignado con éxito: ' + (res.numero || ''));
         this.isSaving = false;
-        this.pacienteEncontrado = null; // Cerrar modal
+        this.pacienteEncontrado = null; // Cerrar modal al instante
+        this.mostrarRegistro = false;
         this.cedulaBusqueda = ''; 
-        this.cargarUltimasAdmisiones(); // Refrescar lista
+        this.cdr.detectChanges();
+        
+        // El alert viene después de cerrar visualmente
+        alert('Turno / Servicio asignado con éxito: ' + (res.numero || 'Listo'));
+        this.cargarUltimasAdmisiones(); 
       },
-      error: () => {
+      error: (err) => {
+        console.error('Error al asignar servicio:', err);
         alert('Error al asignar el servicio');
         this.isSaving = false;
+        this.cdr.detectChanges();
       }
     });
   }

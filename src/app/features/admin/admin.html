@@ -842,18 +842,18 @@
         <!-- REMOVED SEDE FROM HERE -->
         <div class="lg:col-span-1 space-y-1.5">
           <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Apellido</label>
-          <input [(ngModel)]="formPersonal.apellido" (keypress)="soloLetras($event)" placeholder="Ej: PEREZ"
+          <input [(ngModel)]="formPersonal.apellido" (keypress)="soloLetras($event)" placeholder="Ej: Perez"
             class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
         </div>
         <div class="lg:col-span-1 space-y-1.5">
           <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Cédula</label>
-          <input [(ngModel)]="formPersonal.cedula" (keypress)="soloNumeros($event)" placeholder="Ej: 31899777"
+          <input [(ngModel)]="formPersonal.cedula" (keypress)="soloNumeros($event)" placeholder="Ej: 13894759"
             class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
         </div>
 
         <div class="lg:col-span-1 space-y-1.5">
           <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Teléfono</label>
-          <input [(ngModel)]="formPersonal.telefono" (keypress)="soloNumeros($event)" placeholder="Ej: 4142303366"
+          <input [(ngModel)]="formPersonal.telefono" (keypress)="soloNumeros($event)" placeholder="Ej: 04141118228"
             class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
         </div>
         <div class="lg:col-span-2 space-y-1.5">
@@ -876,7 +876,7 @@
                 <div *ngFor="let s of sedes" (click)="selectSede(s.id_sede)"
                   class="px-4 py-2 text-sm hover:bg-slate-50 cursor-pointer transition-colors rounded-lg flex items-center justify-between"
                   [class.bg-blue-50]="formPersonal.id_sede == s.id_sede">
-                  <span class="font-bold">{{ s.nombre }}</span>
+                  <span class="font-bold">{{ toTitleCase(s.nombre) }}</span>
                   <lucide-icon *ngIf="formPersonal.id_sede == s.id_sede" [name]="CheckCircle2" class="w-3.5 h-3.5 text-blue-600"></lucide-icon>
                 </div>
               </div>
@@ -1048,7 +1048,7 @@
                 <div *ngFor="let s of sedes" (click)="formEsp.id_sede = s.id_sede; showSedeDropdown = false"
                   class="px-4 py-2 text-sm hover:bg-slate-50 cursor-pointer transition-colors rounded-lg flex items-center justify-between"
                   [class.bg-blue-50]="formEsp.id_sede == s.id_sede">
-                  <span class="font-bold">{{ s.nombre }}</span>
+                  <span class="font-bold">{{ toTitleCase(s.nombre) }}</span>
                   <lucide-icon *ngIf="formEsp.id_sede == s.id_sede" [name]="CheckCircle2" class="w-3.5 h-3.5 text-blue-600"></lucide-icon>
                 </div>
               </div>
