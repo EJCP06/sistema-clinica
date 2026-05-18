@@ -440,8 +440,8 @@ const crearMedico = async (req, res) => {
     const password_hash = await bcrypt.hash(password, salt);
 
     const result = await pool.query(
-      `INSERT INTO "Usuarios" (password_hash, rol, nombre, apellido, cedula, telefono, email, status, id_consultorio, id_servicio, piso, id_sede, username) 
-       VALUES ($1, 'medico', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id_usuario as id, cedula, username`,
+      `INSERT INTO "Usuarios" (password_hash, rol, nombre, apellido, cedula, telefono, email, status, id_consultorio, id_servicio, piso, id_sede) 
+       VALUES ($1, 'medico', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id_usuario as id, cedula`,
       [
         password_hash,
         (nombre || '').toUpperCase().trim(),
@@ -453,8 +453,7 @@ const crearMedico = async (req, res) => {
         id_consultorio || null,
         servicio_id || null,
         piso || null,
-        req.usuario.id_sede,
-        (username || cedula || Date.now().toString()).toLowerCase().trim()
+        req.usuario.id_sede
       ],
     );
     res.status(201).json(result.rows[0]);
@@ -553,8 +552,8 @@ const crearRecepcionista = async (req, res) => {
     const password_hash = await bcrypt.hash(password, salt);
 
     const result = await pool.query(
-      `INSERT INTO "Usuarios" (password_hash, rol, nombre, apellido, cedula, telefono, email, status, piso, id_consultorio, id_servicio, id_sede, username) 
-       VALUES ($1, 'recepcionista', $2, $3, $4, $5, $6, $7, $8, NULL, NULL, $9, $10) RETURNING id_usuario as id, cedula, username`,
+      `INSERT INTO "Usuarios" (password_hash, rol, nombre, apellido, cedula, telefono, email, status, piso, id_consultorio, id_servicio, id_sede) 
+       VALUES ($1, 'recepcionista', $2, $3, $4, $5, $6, $7, $8, NULL, NULL, $9) RETURNING id_usuario as id, cedula`,
       [
         password_hash,
         (nombre || '').toUpperCase().trim(),
@@ -564,8 +563,7 @@ const crearRecepcionista = async (req, res) => {
         email ? email.toLowerCase().trim() : null,
         activo ?? true,
         piso || null,
-        req.usuario.id_sede,
-        (username || cedula || Date.now().toString()).toLowerCase().trim()
+        req.usuario.id_sede
       ],
     );
     res.status(201).json(result.rows[0]);
@@ -676,8 +674,8 @@ const crearUsuario = async (req, res) => {
     const sedeId = req.body.id_sede || req.usuario.id_sede;
 
     const result = await pool.query(
-      `INSERT INTO "Usuarios" (password_hash, rol, nombre, apellido, cedula, telefono, email, status, id_consultorio, id_servicio, piso, id_sede, username) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id_usuario as id, cedula, rol, username`,
+      `INSERT INTO "Usuarios" (password_hash, rol, nombre, apellido, cedula, telefono, email, status, id_consultorio, id_servicio, piso, id_sede) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id_usuario as id, cedula, rol`,
       [
         password_hash,
         rol || 'admin',
@@ -690,8 +688,7 @@ const crearUsuario = async (req, res) => {
         id_consultorio || null,
         servicio_id || null,
         piso || null,
-        sedeId,
-        (req.body.username || cedula || Date.now().toString()).toLowerCase().trim()
+        sedeId
       ],
     );
     res.status(201).json(result.rows[0]);
@@ -741,7 +738,7 @@ const actualizarUsuario = async (req, res) => {
     const cleanConsultorio = rol === 'medico' ? id_consultorio || null : null;
     const cleanServicio = rol === 'medico' ? servicio_id || null : null;
 
-    let query = `UPDATE "Usuarios" SET rol = $1, nombre = $2, apellido = $3, cedula = $4, telefono = $5, email = $6, status = $7, id_consultorio = $8, id_servicio = $9, piso = $10, username = $11, id_sede = $12`;
+    let query = `UPDATE "Usuarios" SET rol = $1, nombre = $2, apellido = $3, cedula = $4, telefono = $5, email = $6, status = $7, id_consultorio = $8, id_servicio = $9, piso = $10, id_sede = $11`;
     const params = [
       rol,
       nombreMayus,
@@ -753,7 +750,6 @@ const actualizarUsuario = async (req, res) => {
       cleanConsultorio,
       cleanServicio,
       cleanPiso,
-      (req.body.username || cedulaLimpia).toLowerCase().trim(),
       req.body.id_sede || req.usuario.id_sede
     ];
 

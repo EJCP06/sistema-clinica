@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
 
 const login = async (req, res) => {
-  const { username, password } = req.body; // El campo del input se llama username pero contiene la cedula
+  const { username, password } = req.body; // El campo del input se llama username en el payload de Angular pero contiene la cedula
   const cedula = username; 
 
   if (!cedula || !password) {
@@ -13,11 +13,11 @@ const login = async (req, res) => {
   try {
     console.log('Intento de login con cédula:', cedula);
     
-    // 1. Buscar al usuario por cédula o username
+    // 1. Buscar al usuario por cédula
     const result = await pool.query(`
-      SELECT id_usuario as id, cedula, username, password_hash, rol, nombre, apellido, id_servicio as servicio_id, id_consultorio as consultorio_id, id_sede 
+      SELECT id_usuario as id, cedula, password_hash, rol, nombre, apellido, id_servicio as servicio_id, id_consultorio as consultorio_id, id_sede 
       FROM "Usuarios" 
-      WHERE cedula = $1 OR username = $1
+      WHERE cedula = $1
     `, [cedula]);
 
     if (result.rows.length === 0) {
@@ -64,13 +64,13 @@ const superSeed = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash('123456', salt);
     
-    await pool.query('DELETE FROM "Usuarios" WHERE username = $1', ['admin']);
+    await pool.query('DELETE FROM "Usuarios" WHERE cedula = $1', ['00000000']);
     await pool.query(
-      'INSERT INTO "Usuarios" (username, password_hash, rol, nombre, apellido, cedula, status) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-      ['admin', hash, 'admin', 'Admin', 'Sistema', '00000000', true]
+      'INSERT INTO "Usuarios" (password_hash, rol, nombre, apellido, cedula, status) VALUES ($1, $2, $3, $4, $5, $6)',
+      [hash, 'admin', 'Admin', 'Sistema', '00000000', true]
     );
     
-    res.json({ mensaje: 'Admin restaurado. User: admin, Pass: 123456' });
+    res.json({ mensaje: 'Admin restaurado. Cédula: 00000000, Pass: 123456' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

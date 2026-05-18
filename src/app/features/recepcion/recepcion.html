@@ -180,10 +180,10 @@
             (click)="mostrarRegistro = false"
           ></div>
           <div
-            class="bg-white dark:bg-slate-900 rounded-[32px] shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]"
+            class="bg-white dark:bg-slate-900 rounded-[32px] shadow-2xl w-full max-w-2xl relative z-10 animate-in zoom-in-95 duration-300 border border-slate-200 dark:border-slate-800 flex flex-col"
           >
             <!-- HEADER -->
-            <div class="bg-blue-600 p-6 text-white flex items-center justify-between">
+            <div class="bg-blue-600 p-6 text-white flex items-center justify-between rounded-t-[30px]">
               <div class="flex items-center gap-3">
                 <div
                   class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shadow-inner"
@@ -209,7 +209,7 @@
               </button>
             </div>
 
-            <div class="p-6 md:p-8 flex-1 overflow-y-auto custom-scrollbar">
+            <div class="p-6 md:p-8 flex-1 overflow-visible">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
                 <!-- FILA 1: NOMBRE | APELLIDO -->
                 <div class="space-y-1.5">
@@ -355,12 +355,12 @@
 
             <!-- FOOTER (Basado en imagen) -->
             <div
-              class="p-8 bg-slate-50/80 dark:bg-slate-800/50 border-t border-slate-50 dark:border-slate-800 flex justify-end gap-5"
+              class="p-8 bg-slate-50/80 dark:bg-slate-800/50 border-t border-slate-50 dark:border-slate-800 flex justify-end gap-5 rounded-b-[30px]"
             >
               <button
                 type="button"
                 (click)="mostrarRegistro = false"
-                class="px-10 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-[12px] uppercase tracking-[2px] rounded-[22px] transition-all shadow-sm"
+                class="px-10 py-4 bg-slate-500 hover:bg-slate-600 text-white font-black text-[12px] uppercase tracking-[2px] rounded-[22px] transition-all shadow-lg shadow-slate-500/20"
               >
                 CANCELAR
               </button>
