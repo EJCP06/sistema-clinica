@@ -11,6 +11,7 @@ const RUTA_POR_ROL: Record<Rol, string> = {
   admin: '/admin',
   recepcionista: '/recepcion',
   medico: '/atencion',
+  aps: '/aps',
 };
 
 @Injectable({ providedIn: 'root' })

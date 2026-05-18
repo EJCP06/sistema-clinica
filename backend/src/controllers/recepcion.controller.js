@@ -12,9 +12,12 @@ const buscarPaciente = async (req, res) => {
     } else if (filtro === 'apellido') {
       result = await pool.query('SELECT * FROM "Pacientes" WHERE apellido ILIKE $1 AND id_sede = $2', [`%${cedula}%`, req.usuario.id_sede]);
     } else if (filtro === 'cedula') {
-      result = await pool.query('SELECT * FROM "Pacientes" WHERE cedula = $1 AND id_sede = $2', [cedula, req.usuario.id_sede]);
+      result = await pool.query('SELECT * FROM "Pacientes" WHERE cedula ILIKE $1 AND id_sede = $2', [`%${cedula}%`, req.usuario.id_sede]);
     } else {
-      result = await pool.query('SELECT * FROM "Pacientes" WHERE (cedula = $1 OR nombre ILIKE $2 OR apellido ILIKE $2) AND id_sede = $3', [cedula, `%${cedula}%`, req.usuario.id_sede]);
+      result = await pool.query(
+        'SELECT * FROM "Pacientes" WHERE (cedula ILIKE $1 OR nombre ILIKE $1 OR apellido ILIKE $1 OR CONCAT(nombre, \' \', apellido) ILIKE $1) AND id_sede = $2',
+        [`%${cedula}%`, req.usuario.id_sede]
+      );
     }
     
     if (result.rows.length === 0) return res.status(404).json({ mensaje: 'Pacientes no encontrados' });
@@ -141,7 +144,8 @@ const getUltimasAdmisiones = async (req, res) => {
         COALESCE(s.nombre_servicio, 'SIN ASIGNAR') as nombre_servicio, 
         COALESCE(a.hora_llegada, p.fecha_creacion) as fecha_creacion, 
         COALESCE(rp.nombre, 'PENDIENTE') as modalidad_pago,
-        a.id_atencion
+        a.id_atencion,
+        p.id_paciente
       FROM "Pacientes" p
       LEFT JOIN "Atencion" a ON p.id_paciente = a.id_paciente
       LEFT JOIN "Servicio" s ON a.id_servicio = s.id_servicio

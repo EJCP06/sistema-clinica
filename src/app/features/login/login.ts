@@ -70,6 +70,7 @@ export class Login {
           if (rol === 'admin') this.router.navigate(['/admin']);
           else if (rol === 'recepcionista') this.router.navigate(['/recepcion']);
           else if (rol === 'medico') this.router.navigate(['/atencion']);
+          else if (rol === 'aps') this.router.navigate(['/aps']);
           else this.router.navigate(['/atencion']); // Fallback para médicos si el rol viene distinto
         }
       },
