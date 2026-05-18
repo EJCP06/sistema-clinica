@@ -19,7 +19,8 @@ import {
   ChevronDown,
   Ticket,
   Sun,
-  Moon
+  Moon,
+  ClipboardList
 } from 'lucide-angular';
 
 @Component({
@@ -55,6 +56,7 @@ export class Sidebar {
   readonly Ticket = Ticket;
   readonly Sun = Sun;
   readonly Moon = Moon;
+  readonly ClipboardList = ClipboardList;
 
   // Collapsible states
   expandedPanel = false;

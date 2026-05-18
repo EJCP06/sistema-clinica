@@ -22,6 +22,13 @@ export const routes: Routes = [
     canActivate: [authGuard, roleGuard(['recepcionista', 'admin'])]
   },
 
+  // Módulo de APS (Atención Primaria en Salud)
+  {
+    path: 'aps',
+    loadComponent: () => import('./features/aps/aps').then(m => m.ApsComponent),
+    canActivate: [authGuard, roleGuard(['aps', 'admin'])]
+  },
+
   // Panel Médico de Atención (Solo Médico)
   {
     path: 'atencion',

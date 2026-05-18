@@ -64,6 +64,27 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   responsables: any[] = [];
   ultimasAdmisiones: any[] = [];
 
+  get admisionesFiltradas() {
+    return this.ultimasAdmisiones.filter(a => {
+      const query = (this.cedulaBusqueda || '').trim().toLowerCase();
+      if (!query) return true;
+
+      const matchNombre = (a.nombre || '').toLowerCase().includes(query);
+      const matchApellido = (a.apellido || '').toLowerCase().includes(query);
+      const matchCedula = (a.cedula || '').toLowerCase().includes(query);
+
+      if (this.searchFilter === 'nombre') {
+        return matchNombre;
+      } else if (this.searchFilter === 'apellido') {
+        return matchApellido;
+      } else if (this.searchFilter === 'cedula') {
+        return matchCedula;
+      } else {
+        return matchNombre || matchApellido || matchCedula;
+      }
+    });
+  }
+
   seleccion: any = {
     id_servicio: null,
     id_responsable: null
@@ -77,6 +98,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   mostrarRegistro: boolean = false;
 
   esRegistroDirecto: boolean = false;
+  pacienteExistenteCargado: boolean = false;
 
   private el = inject(ElementRef);
   private cdr = inject(ChangeDetectorRef);
@@ -170,7 +192,10 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   }
 
   onSearchChange(value: string) {
-    this.searchSubject.next(value);
+    if (!value || !value.trim()) {
+      this.resetSearchOnly();
+    }
+    this.cdr.detectChanges();
   }
 
   ejecutarBusqueda(value: string) {
@@ -213,9 +238,11 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   }
 
   prepararNuevoPaciente() {
+    this.pacienteExistenteCargado = false;
     this.esRegistroDirecto = true;
     this.mostrarRegistro = true;
     this.nuevoPaciente = {
+      id_paciente: null,
       cedula: '',
       nombre: '',
       apellido: '',
@@ -224,11 +251,75 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       notificaciones_sms: true
     };
     this.seleccion = { id_servicio: null, id_responsable: null };
+    this.categoriaServicio = '';
+
+    // Precargar datos del buscador si existen
+    if (this.cedulaBusqueda && this.cedulaBusqueda.trim().length > 0) {
+      const val = this.cedulaBusqueda.trim();
+      if (this.searchFilter === 'cedula' || (!isNaN(Number(val)) && this.searchFilter === 'todo')) {
+        this.nuevoPaciente.cedula = val;
+        // Hacer la consulta automática a la BD
+        this.onCedulaFormChange(val);
+      } else if (this.searchFilter === 'nombre') {
+        this.nuevoPaciente.nombre = val.toUpperCase();
+      } else if (this.searchFilter === 'apellido') {
+        this.nuevoPaciente.apellido = val.toUpperCase();
+      }
+    }
+  }
+
+  onCedulaFormChange(cedula: string) {
+    if (!cedula || cedula.trim().length < 2) {
+      this.pacienteExistenteCargado = false;
+      this.nuevoPaciente.id_paciente = null;
+      return;
+    }
+    // Buscamos si existe la cédula de forma exacta
+    this.api.get(`recepcion/pacientes/${cedula}?filtro=cedula`).subscribe({
+      next: (data: any[]) => {
+        // Encontrar coincidencia exacta de cédula, ya que el backend usa ILIKE %cedula%
+        const p = data ? data.find((paciente: any) => paciente.cedula === cedula) : null;
+        
+        if (p) {
+          this.pacienteExistenteCargado = true;
+          this.nuevoPaciente.id_paciente = p.id_paciente || p.id;
+          this.nuevoPaciente.cedula = p.cedula;
+          this.nuevoPaciente.nombre = p.nombre;
+          this.nuevoPaciente.apellido = p.apellido;
+          this.nuevoPaciente.telefono = p.telefono;
+        } else {
+          // Si ya no existe, limpiar los datos autocompletados
+          if (this.nuevoPaciente.id_paciente) {
+            this.nuevoPaciente.nombre = '';
+            this.nuevoPaciente.apellido = '';
+            this.nuevoPaciente.telefono = '';
+          }
+          this.pacienteExistenteCargado = false;
+          this.nuevoPaciente.id_paciente = null;
+        }
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.pacienteExistenteCargado = false;
+        this.nuevoPaciente.id_paciente = null;
+      }
+    });
   }
 
   seleccionarPaciente(paciente: any) {
-    this.pacienteEncontrado = paciente;
+    this.pacienteExistenteCargado = true;
+    this.mostrarRegistro = true;
+    this.nuevoPaciente = {
+      id_paciente: paciente.id_paciente || paciente.id,
+      cedula: paciente.cedula,
+      nombre: paciente.nombre,
+      apellido: paciente.apellido,
+      telefono: paciente.telefono,
+      status: true,
+      notificaciones_sms: paciente.notificaciones_sms ?? true
+    };
     this.seleccion = { id_servicio: null, id_responsable: null };
+    this.categoriaServicio = '';
     this.pacientesEncontrados = []; // Ocultar la lista
   }
 
@@ -239,29 +330,33 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     }
 
     this.isSaving = true;
-    
-    // Convertir a mayúsculas y limpiar antes de enviar
-    const datosPaciente = {
-      cedula: (this.nuevoPaciente.cedula || '').toString().replace(/\D/g, ''),
-      nombre: (this.nuevoPaciente.nombre || '').toUpperCase().trim(),
-      apellido: (this.nuevoPaciente.apellido || '').toUpperCase().trim(),
-      telefono: (this.nuevoPaciente.telefono || '').toString().replace(/\D/g, ''),
-      status: true,
-      notificaciones_sms: this.nuevoPaciente.notificaciones_sms
-    };
 
-    this.api.post('recepcion/pacientes', datosPaciente).subscribe({
-      next: (paciente) => {
-        const id_paciente = paciente.id_paciente || paciente.id;
-        this.pacienteEncontrado = paciente; // Setear para la atención
-        this.generarAtencionDirecta(id_paciente);
-      },
-      error: (err) => {
-        console.error('Error registrando:', err);
-        this.isSaving = false;
-        alert('Error al registrar paciente');
-      }
-    });
+    if (this.pacienteExistenteCargado && this.nuevoPaciente.id_paciente) {
+      // Si el paciente ya existe, pasamos directo a generar la atención
+      this.generarAtencionDirecta(this.nuevoPaciente.id_paciente);
+    } else {
+      // Convertir a mayúsculas y limpiar antes de enviar
+      const datosPaciente = {
+        cedula: (this.nuevoPaciente.cedula || '').toString().replace(/\D/g, ''),
+        nombre: (this.nuevoPaciente.nombre || '').toUpperCase().trim(),
+        apellido: (this.nuevoPaciente.apellido || '').toUpperCase().trim(),
+        telefono: (this.nuevoPaciente.telefono || '').toString().replace(/\D/g, ''),
+        status: true,
+        notificaciones_sms: this.nuevoPaciente.notificaciones_sms
+      };
+
+      this.api.post('recepcion/pacientes', datosPaciente).subscribe({
+        next: (paciente) => {
+          const id_paciente = paciente.id_paciente || paciente.id;
+          this.generarAtencionDirecta(id_paciente);
+        },
+        error: (err) => {
+          console.error('Error registrando:', err);
+          this.isSaving = false;
+          alert('Error al registrar paciente');
+        }
+      });
+    }
   }
 
   generarAtencionDirecta(id_paciente: number) {
