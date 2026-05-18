@@ -29,7 +29,7 @@ export class Login {
   private themeService = inject(ThemeService);
   private router = inject(Router);
 
-  username = '';
+  cedula = '';
   password = '';
   mostrarPassword = false;
   error = '';
@@ -50,8 +50,8 @@ export class Login {
   }
 
   iniciarSesion() {
-    if (!this.username || !this.password) {
-      this.error = 'Por favor ingrese usuario y contraseña.';
+    if (!this.cedula || !this.password) {
+      this.error = 'Por favor ingrese su cédula y contraseña.';
       this.cdr.detectChanges();
       return;
     }
@@ -59,7 +59,7 @@ export class Login {
     this.error = '';
     this.cdr.detectChanges();
 
-    this.auth.login(this.username, this.password).subscribe({
+    this.auth.login(this.cedula, this.password).subscribe({
       next: (response) => {
         this.cargando = false;
         this.cdr.detectChanges();

@@ -22,13 +22,14 @@ const getPacientesEnEspera = async (req, res) => {
       INNER JOIN "Estado" e ON a.id_estado_actual = e.id_estado
       INNER JOIN "Servicio" s ON a.id_servicio = s.id_servicio
       WHERE a.id_servicio = $1 
+      AND a.id_sede = $2
       AND a.hora_salida IS NULL
       AND e.nombre_estado IN ('Registro', 'Sala de Espera', 'Llamado', 'En Atención')
       ORDER BY 
         CASE WHEN e.nombre_estado = 'En Atención' THEN 0 ELSE 1 END,
         a.hora_llegada ASC
     `,
-      [id_servicio],
+      [id_servicio, req.usuario.id_sede],
     );
     res.json(result.rows);
   } catch (error) {

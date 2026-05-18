@@ -12,6 +12,13 @@ DROP TABLE IF EXISTS "Responsable_Pago" CASCADE;
 DROP TABLE IF EXISTS "Estado" CASCADE;
 DROP TABLE IF EXISTS "Sedes" CASCADE;
 DROP TABLE IF EXISTS "turnos" CASCADE;
+DROP TABLE IF EXISTS "configuraciones" CASCADE;
+
+-- TABLA DE CONFIGURACIONES
+CREATE TABLE "configuraciones" (
+  "clave" varchar PRIMARY KEY,
+  "valor" varchar NOT NULL
+);
 
 -- TABLA DE SEDES
 CREATE TABLE "Sedes" (
@@ -77,6 +84,7 @@ CREATE TABLE "Pacientes" (
   "email" varchar,
   "notificaciones_sms" boolean DEFAULT true,
   "status" boolean DEFAULT true,
+  "id_sede" integer REFERENCES "Sedes"("id_sede"),
   "fecha_creacion" timestamp DEFAULT (now())
 );
 

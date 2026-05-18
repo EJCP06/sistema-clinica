@@ -83,9 +83,9 @@ const registrarAtencion = async (req, res) => {
 
     // 3. Crear el primer hito en Historial_Atencion
     await client.query(
-      `INSERT INTO "Historial_Atencion" (id_atencion, id_estado, id_sede) 
-       VALUES ($1, $2, $3)`,
-      [id_atencion, id_estado_inicial, req.usuario.id_sede]
+      `INSERT INTO "Historial_Atencion" (id_atencion, id_estado) 
+       VALUES ($1, $2)`,
+      [id_atencion, id_estado_inicial]
     );
 
     await client.query('COMMIT');
