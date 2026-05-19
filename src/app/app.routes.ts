@@ -29,6 +29,18 @@ export const routes: Routes = [
     canActivate: [authGuard, roleGuard(['aps', 'admin'])]
   },
 
+  // Pantalla de Aseguradoras (APS y Admin)
+  {
+    path: 'aseguradoras',
+    loadComponent: () => import('./features/recepcion/recepcion').then(m => m.RecepcionComponent),
+    canActivate: [authGuard, roleGuard(['aps', 'admin'])],
+    data: {
+      pageTitle: 'ASEGURADORAS',
+      pageSubtitle: 'Gestión de aseguradoras',
+      aseguradorasMode: true
+    }
+  },
+
   // Panel Médico de Atención (Solo Médico)
   {
     path: 'atencion',

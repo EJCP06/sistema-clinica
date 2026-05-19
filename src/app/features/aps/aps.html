@@ -1,4 +1,4 @@
-<div class="flex h-screen bg-slate-50 dark:bg-slate-950 font-sans overflow-hidden">
+﻿<div class="flex h-screen bg-slate-50 dark:bg-slate-950 font-sans overflow-hidden">
   <!-- SIDEBAR COMPONENT -->
   <app-sidebar [sidebarOpen]="sidebarOpen" (closeSidebar)="sidebarOpen = false"></app-sidebar>
 
@@ -230,7 +230,7 @@
                             >
                               <div class="flex items-center gap-3">
                                 <span class="font-bold text-slate-700 dark:text-slate-200"
-                                  >Seguro</span
+                                  >Aseguradora</span
                                 >
                               </div>
                               <lucide-icon
@@ -427,7 +427,6 @@
                   <th class="px-8 py-6 text-center">Responsable</th>
                   <th class="px-8 py-6 text-center">Teléfono</th>
                   <th class="px-8 py-6 text-center">Servicio</th>
-                  <th class="px-8 py-6 text-center">Especialidad</th>
                   <th class="px-8 py-6 text-center">Hora</th>
                   <th class="px-8 py-6 text-center">Acciones</th>
                 </tr>
@@ -437,102 +436,28 @@
                   *ngFor="let a of admisionesFiltradas"
                   class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group"
                 >
-                  <td
-                    class="px-8 py-6 font-bold text-slate-800 dark:text-white uppercase text-center"
-                  >
-                    {{ a.nombre }}
-                  </td>
-                  <td
-                    class="px-8 py-6 font-bold text-slate-800 dark:text-white uppercase text-center"
-                  >
-                    {{ a.apellido }}
-                  </td>
-                  <td
-                    class="px-8 py-6 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tight text-center"
-                  >
-                    {{ a.cedula }}
-                  </td>
+                  <td class="px-8 py-6 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.nombre }}</td>
+                  <td class="px-8 py-6 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.apellido }}</td>
+                  <td class="px-8 py-6 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tight text-center">{{ a.cedula }}</td>
                   <td class="px-8 py-6 text-center">
-                    <span
-                      *ngIf="a.modalidad_pago !== 'PENDIENTE'"
-                      class="px-2.5 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-500 rounded-lg text-[10px] font-black uppercase tracking-wider"
-                    >
-                      {{ a.modalidad_pago }}
+                    <span *ngIf="getResponsableLabel(a.modalidad_pago) !== 'SIN ASIGNAR'" class="px-2.5 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-500 rounded-lg text-[10px] font-black uppercase tracking-wider">
+                      {{ getResponsableLabel(a.modalidad_pago) }}
                     </span>
-                    <span
-                      *ngIf="a.modalidad_pago === 'PENDIENTE'"
-                      class="text-slate-600 dark:text-slate-400 font-bold uppercase"
-                    >
+                    <span *ngIf="getResponsableLabel(a.modalidad_pago) === 'SIN ASIGNAR'" class="text-slate-600 dark:text-slate-400 font-bold uppercase">
                       SIN ASIGNAR
                     </span>
                   </td>
-                  <td
-                    class="px-8 py-6 text-slate-600 dark:text-slate-400 font-bold uppercase text-center"
-                  >
-                    {{ a.telefono | uppercase }}
-                  </td>
+                  <td class="px-8 py-6 text-slate-600 dark:text-slate-400 font-bold uppercase text-center">{{ a.telefono }}</td>
+                  <td class="px-8 py-6 font-bold text-slate-800 dark:text-white uppercase text-center">{{ getServicioCategoria(a.nombre_servicio) }}</td>
+                  <td class="px-8 py-6 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.fecha_creacion | date: 'shortTime' }}</td>
                   <td class="px-8 py-6 text-center">
-                    <span
-                      *ngIf="
-                        a.nombre_servicio.toLowerCase().includes('laboratorio') ||
-                        a.nombre_servicio.toLowerCase().includes('imágenes') ||
-                        a.nombre_servicio.toLowerCase().includes('imagenes')
-                      "
-                      class="text-[10px] text-blue-600 dark:text-blue-400 font-black uppercase tracking-tighter"
-                    >
-                      {{ a.nombre_servicio }}
-                    </span>
-                    <span
-                      *ngIf="
-                        !a.nombre_servicio.toLowerCase().includes('laboratorio') &&
-                        !a.nombre_servicio.toLowerCase().includes('imágenes') &&
-                        !a.nombre_servicio.toLowerCase().includes('imagenes')
-                      "
-                      class="text-[10px] text-slate-600 dark:text-slate-400 font-black uppercase tracking-tighter"
-                    >
-                      CONSULTA
-                    </span>
-                  </td>
-                  <td class="px-8 py-6 text-center">
-                    <span
-                      *ngIf="
-                        !a.nombre_servicio.toLowerCase().includes('laboratorio') &&
-                        !a.nombre_servicio.toLowerCase().includes('imágenes') &&
-                        !a.nombre_servicio.toLowerCase().includes('imagenes')
-                      "
-                      class="text-[10px] text-blue-600 dark:text-blue-400 font-black uppercase tracking-widest"
-                    >
-                      {{ a.nombre_servicio }}
-                    </span>
-                    <span
-                      *ngIf="
-                        a.nombre_servicio.toLowerCase().includes('laboratorio') ||
-                        a.nombre_servicio.toLowerCase().includes('imágenes') ||
-                        a.nombre_servicio.toLowerCase().includes('imagenes')
-                      "
-                      class="text-slate-400 font-bold"
-                    >
-                      -
-                    </span>
-                  </td>
-                  <td class="px-8 py-6 text-center">
-                    <span class="text-slate-600 dark:text-slate-400 font-bold">
-                      {{ a.fecha_creacion | date: 'shortTime' }}
-                    </span>
-                  </td>
-                  <td class="px-8 py-6 text-center">
-                    <button
-                      type="button"
-                      (click)="seleccionarPaciente(a)"
-                      class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all"
-                      title="Editar"
-                    >
-                      <lucide-icon [name]="Edit2" class="w-4 h-4"></lucide-icon>
+                    <button (click)="enviarASalaEspera(a.id)" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all">
+                      <lucide-icon [name]="ArrowRightLeft" class="w-4 h-4"></lucide-icon>
                     </button>
                   </td>
                 </tr>
                 <tr *ngIf="admisionesFiltradas.length === 0">
-                  <td colspan="9" class="px-8 py-24 text-center">
+                  <td colspan="8" class="px-8 py-24 text-center">
                     <div class="flex flex-col items-center justify-center">
                       <div
                         class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4"
@@ -556,3 +481,4 @@
     </div>
   </main>
 </div>
+

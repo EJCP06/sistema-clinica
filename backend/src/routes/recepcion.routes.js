@@ -15,6 +15,7 @@ router.get('/responsables-pago', recepcionController.getResponsablesPago);
 // Registro de Atención
 router.post('/atencion', recepcionController.registrarAtencion);
 router.post('/generar-turno', recepcionController.registrarAtencion); // Alias for frontend
+router.put('/atencion/:id_atencion/estado', recepcionController.actualizarEstadoAtencion);
 
 // Últimas Admisiones
 router.get('/ultimas-admisiones', recepcionController.getUltimasAdmisiones);

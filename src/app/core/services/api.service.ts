@@ -46,6 +46,10 @@ export class ApiService {
     return this.http.post(`${this.base}/turnos`, body);
   }
 
+  actualizarEstadoAtencion(idAtencion: number, idEstadoNuevo: number): Observable<any> {
+    return this.http.put(`${this.base}/recepcion/atencion/${idAtencion}/estado`, { id_estado_nuevo: idEstadoNuevo });
+  }
+
   // --- PANEL MÉDICO (consultorios) ---
   getMiEstado(): Observable<any> {
     return this.http.get<any>(`${this.base}/consultorios/mi-estado`);

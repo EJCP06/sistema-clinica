@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, HostListener, ElementRef, inject, ChangeDetectorRef } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule, Search, UserPlus, Plus, FileText, CheckCircle2, ChevronRight, User, Phone, CreditCard, Stethoscope, ChevronDown, XCircle, ShieldCheck, ClipboardList } from 'lucide-angular';
@@ -65,7 +65,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   ultimasAdmisiones: any[] = [];
 
   get admisionesFiltradas() {
-    return this.ultimasAdmisiones.filter(a => {
+    const baseFiltered = this.ultimasAdmisiones.filter(a => {
       const query = (this.cedulaBusqueda || '').trim().toLowerCase();
       if (!query) return true;
 
@@ -83,6 +83,12 @@ export class RecepcionComponent implements OnInit, OnDestroy {
         return matchNombre || matchApellido || matchCedula;
       }
     });
+
+    if (this.isAseguradorasView) {
+      return baseFiltered.filter(a => this.getResponsableLabel(a.modalidad_pago) === 'Aseguradora');
+    }
+
+    return baseFiltered;
   }
 
   seleccion: any = {
@@ -100,8 +106,13 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   esRegistroDirecto: boolean = false;
   pacienteExistenteCargado: boolean = false;
 
+  pageTitle: string = 'Admisión de Pacientes';
+  pageSubtitle: string = 'Gestión de entrada y asignación de turnos médicos';
+  isAseguradorasView: boolean = false;
+
   private el = inject(ElementRef);
   private cdr = inject(ChangeDetectorRef);
+  private route = inject(ActivatedRoute);
   
   constructor(private api: ApiService, private router: Router) {}
 
@@ -123,6 +134,11 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    const data = this.route.snapshot.data;
+    this.pageTitle = data['pageTitle'] || this.pageTitle;
+    this.pageSubtitle = data['pageSubtitle'] || this.pageSubtitle;
+    this.isAseguradorasView = !!data['aseguradorasMode'];
+
     this.cargarDatosMaestros();
     this.cargarUltimasAdmisiones();
 
@@ -433,8 +449,34 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   getNombreResponsable(id: any): string {
     if (!id) return 'Seleccione...';
     const rp = this.responsables.find(r => r.id === id);
-    if (!rp) return id === 1 ? 'Particular' : (id === 2 ? 'Seguro' : 'Seleccione...');
-    return rp.nombre;
+    const nombre = rp?.nombre || (id === 1 ? 'Particular' : (id === 2 ? 'Seguro' : 'Seleccione...'));
+    return this.getResponsableLabel(nombre);
+  }
+
+  getAseguradoraNombre(admision: any): string {
+    if (!admision || !admision.modalidad_pago) return 'SIN NOMBRE';
+    return admision.modalidad_pago;
+  }
+
+  getResponsableLabel(value: any): string {
+    const modalidad = (value || '').toString().trim().toLowerCase();
+    if (modalidad.includes('particular')) return 'Particular';
+    if (modalidad.includes('seguro') || modalidad.includes('asegur')) return 'Aseguradora';
+    return 'SIN ASIGNAR';
+  }
+
+  getResponsableClass(value: any): string {
+    const modalidad = (value || '').toString().trim().toLowerCase();
+    if (modalidad.includes('particular')) return 'text-blue-600';
+    if (modalidad.includes('seguro') || modalidad.includes('asegur')) return 'text-green-600';
+    return 'text-slate-600 dark:text-slate-400';
+  }
+
+  getServicioCategoria(value: any): string {
+    const servicio = (value || '').toString().trim().toLowerCase();
+    if (servicio.includes('laboratorio')) return 'Laboratorio';
+    if (servicio.includes('imágenes') || servicio.includes('imagenes') || servicio.includes('imagen')) return 'Imágenes';
+    return 'Consulta';
   }
 
   // --- DROPDOWN SERVICIOS (CATEGORÍAS) ---

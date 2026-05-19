@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 async function seed() {
   try {
     console.log('--- Iniciando limpieza de base de datos ---');
-    await pool.query('TRUNCATE TABLE "Sedes", "Usuarios", "Servicio", "Consultorios", "Pacientes", turnos, "Atencion", "Historial_Atencion", "Estado", "Responsable_Pago" RESTART IDENTITY CASCADE');
+    await pool.query('TRUNCATE TABLE "Sedes", "Usuarios", "Servicio", "Consultorios", "Pacientes", "Atencion", "Historial_Atencion", "Estado", "Responsable_Pago" RESTART IDENTITY CASCADE');
 
     console.log('--- Insertando Sedes ---');
     await pool.query(`INSERT INTO "Sedes" (id_sede, nombre) VALUES (1, 'Santa Mónica'), (2, 'Plaza Sucre')`);
@@ -61,20 +61,8 @@ async function seed() {
     console.log('--- Insertando Datos de Prueba para el Dashboard ---');
     
     // Sede Santa Mónica (ID 1)
-    await pool.query(`INSERT INTO turnos (nombre_paciente, documento_paciente, telefono_paciente, servicio_id, id_sede, estado, numero, hora_llegada, hora_inicio, hora_fin) 
-      VALUES ('ANA GARCIA', '12345678', '04121111111', $1, 1, 'ATENDIDO', 'MG-001', NOW() - interval '2 hours', NOW() - interval '1 hour', NOW() - interval '30 minutes')`, [idSerMG_SM]);
-    await pool.query(`INSERT INTO turnos (nombre_paciente, documento_paciente, telefono_paciente, servicio_id, id_sede, estado, numero, hora_llegada, hora_fin) 
-      VALUES ('LUIS LOPEZ', '87654321', '04142222222', $1, 1, 'AUSENTE', 'MG-002', NOW() - interval '1.5 hours', NOW() - interval '1 hour')`, [idSerMG_SM]);
-    await pool.query(`INSERT INTO turnos (nombre_paciente, documento_paciente, telefono_paciente, servicio_id, id_sede, estado, numero, hora_llegada) 
-      VALUES ('JOSE PEREZ', '11223344', '04163333333', $1, 1, 'EN_ESPERA', 'MG-003', NOW() - interval '15 minutes')`, [idSerMG_SM]);
-    await pool.query(`INSERT INTO turnos (nombre_paciente, documento_paciente, telefono_paciente, servicio_id, id_sede, estado, numero, hora_llegada) 
-      VALUES ('ELENA MARTINEZ', '55667788', '04244444444', $1, 1, 'EN_ESPERA', 'MG-004', NOW() - interval '5 minutes')`, [idSerMG_SM]);
-
-    // Sede Plaza Sucre (ID 2)
-    await pool.query(`INSERT INTO turnos (nombre_paciente, documento_paciente, telefono_paciente, servicio_id, id_sede, estado, numero, hora_llegada, hora_inicio, hora_fin) 
-      VALUES ('PEDRITO PEREZ', '99887766', '04120000000', $1, 2, 'ATENDIDO', 'PED-001', NOW() - interval '1 hour', NOW() - interval '45 minutes', NOW() - interval '20 minutes')`, [idSerPED_PS]);
-    await pool.query(`INSERT INTO turnos (nombre_paciente, documento_paciente, telefono_paciente, servicio_id, id_sede, estado, numero, hora_llegada) 
-      VALUES ('MARIA SOSA', '77665544', '04140000000', $1, 2, 'EN_ESPERA', 'PED-002', NOW() - interval '10 minutes')`, [idSerPED_PS]);
+    // Los datos legacy de la tabla turnos fueron removidos.
+    // La nueva semilla debe usar Atencion + Historial_Atencion si se quiere precargar casos de ejemplo.
 
     console.log('--- SEED COMPLETADO EXITOSAMENTE ---');
     console.log('Credenciales sugeridas:');

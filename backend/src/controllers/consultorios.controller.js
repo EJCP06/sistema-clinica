@@ -13,17 +13,23 @@ const obtenerMiEstado = async (req, res) => {
         c.id_servicio as servicio_id, 
         c.nombre, 
         s.nombre_servicio as servicio_nombre,
-        t.id as turno_id,
-        t.numero as turno_numero,
-        t.estado as turno_estado,
-        t.nombre_paciente,
-        t.documento_paciente,
-        t.hora_llegada as turno_hora_llegada
+        a.id_atencion as turno_id,
+        'N/A' as turno_numero,
+        CASE 
+          WHEN e.nombre_estado = 'En Atención' THEN 'EN_ATENCION'
+          WHEN e.nombre_estado = 'Llamado' THEN 'LLAMADO'
+          ELSE UPPER(e.nombre_estado)
+        END as turno_estado,
+        p.nombre as nombre_paciente,
+        p.cedula as documento_paciente,
+        a.hora_llegada as turno_hora_llegada
       FROM "Consultorios" c
       LEFT JOIN "Servicio" s ON c.id_servicio = s.id_servicio
-      LEFT JOIN turnos t ON t.consultorio_id = c.id_consultorio AND t.estado IN ('LLAMADO', 'EN_ATENCION', 'EN_PAUSA')
+      LEFT JOIN "Atencion" a ON a.id_consultorio = c.id_consultorio AND a.id_estado_actual IN (3, 4)
+      LEFT JOIN "Estado" e ON a.id_estado_actual = e.id_estado
+      LEFT JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
       WHERE c.id_consultorio = $1
-      ORDER BY t.id DESC
+      ORDER BY a.id_atencion DESC
       LIMIT 1
     `, [consultorioId]);
     
@@ -46,7 +52,7 @@ const llamarSiguiente = async (req, res) => {
   try {
     await client.query('BEGIN');
     
-    // 1. Obtener consultorio y BLOQUEARLO para evitar llamados duplicados
+    // 1. Obtener consultorio y BLOQUEARLO
     const consultorioRes = await client.query('SELECT estado_fisico as estado, id_servicio as servicio_id, nombre FROM "Consultorios" WHERE id_consultorio = $1 FOR UPDATE', [consultorioId]);
     if (consultorioRes.rows.length === 0) throw new Error('Consultorio no encontrado');
     
@@ -56,12 +62,14 @@ const llamarSiguiente = async (req, res) => {
       return res.status(400).json({ mensaje: 'El consultorio debe estar LIBRE para llamar' });
     }
 
-    // 2. Buscar paciente en espera usando SKIP LOCKED para alta concurrencia
+    // 2. Buscar paciente en espera (estado_actual = 2)
     const turnoRes = await client.query(`
-      SELECT id, numero, estado, nombre_paciente, documento_paciente, telefono_paciente, hora_llegada
-      FROM turnos
-      WHERE servicio_id = $1 AND estado = 'EN_ESPERA' AND id_sede = $2
-      ORDER BY hora_llegada ASC
+      SELECT a.id_atencion as id, 'N/A' as numero, e.nombre_estado as estado, p.nombre as nombre_paciente, p.cedula as documento_paciente, p.telefono as telefono_paciente, a.hora_llegada
+      FROM "Atencion" a
+      JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
+      JOIN "Estado" e ON a.id_estado_actual = e.id_estado
+      WHERE a.id_servicio = $1 AND a.id_estado_actual = 2 AND a.id_sede = $2
+      ORDER BY a.hora_llegada ASC
       LIMIT 1
       FOR UPDATE SKIP LOCKED
     `, [consultorio.servicio_id, req.usuario.id_sede]);
@@ -73,10 +81,15 @@ const llamarSiguiente = async (req, res) => {
 
     const turno = turnoRes.rows[0];
 
-    // 3. Actualizar turno y consultorio
+    // 3. Actualizar Atencion (estado 3 = Llamado)
     await client.query(
-      "UPDATE turnos SET estado = 'LLAMADO', consultorio_id = $1, hora_llamado = NOW() WHERE id = $2",
+      "UPDATE \"Atencion\" SET id_estado_actual = 3, id_consultorio = $1 WHERE id_atencion = $2",
       [consultorioId, turno.id]
+    );
+
+    await client.query(
+      "INSERT INTO \"Historial_Atencion\" (id_atencion, id_estado) VALUES ($1, 3)",
+      [turno.id]
     );
 
     await client.query(
@@ -122,18 +135,31 @@ const llamarSiguiente = async (req, res) => {
 
 const iniciarAtencion = async (req, res) => {
   const consultorioId = req.usuario.consultorio_id;
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
     const result = await pool.query(
-      "UPDATE turnos SET estado = 'EN_ATENCION', hora_inicio = NOW() WHERE consultorio_id = $1 AND estado = 'LLAMADO' RETURNING *",
+      "UPDATE \"Atencion\" SET id_estado_actual = 4 WHERE id_consultorio = $1 AND id_estado_actual = 3 RETURNING *",
       [consultorioId]
     );
     if (result.rows.length === 0) {
-      return res.status(404).json({ mensaje: 'No hay turno llamado esperando para iniciar atención' });
+      await client.query('ROLLBACK');
+      return res.status(404).json({ mensaje: 'No hay paciente llamado esperando para iniciar atención' });
     }
-    res.json({ mensaje: 'Atención iniciada correctamente', turno: result.rows[0].numero });
+    
+    await client.query(
+      "INSERT INTO \"Historial_Atencion\" (id_atencion, id_estado) VALUES ($1, 4)",
+      [result.rows[0].id_atencion]
+    );
+    
+    await client.query('COMMIT');
+    res.json({ mensaje: 'Atención iniciada correctamente', turno: 'N/A' });
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Error en iniciarAtencion:', error);
     res.status(500).json({ mensaje: 'Error al iniciar atención' });
+  } finally {
+    client.release();
   }
 };
 
@@ -143,16 +169,21 @@ const finalizarAtencion = async (req, res) => {
   try {
     await client.query('BEGIN');
     
-    // Finalizar turno
+    // Finalizar Atencion (estado 5 = Atendido)
     const turnoRes = await client.query(
-      "UPDATE turnos SET estado = 'ATENDIDO', hora_fin = NOW() WHERE consultorio_id = $1 AND estado = 'EN_ATENCION' RETURNING id",
+      "UPDATE \"Atencion\" SET id_estado_actual = 5, hora_salida = NOW() WHERE id_consultorio = $1 AND id_estado_actual = 4 RETURNING id_atencion",
       [consultorioId]
     );
     
     if (turnoRes.rows.length === 0) {
       await client.query('ROLLBACK');
-      return res.status(404).json({ mensaje: 'No hay ningún turno activo en atención para finalizar' });
+      return res.status(404).json({ mensaje: 'No hay ninguna atención activa para finalizar' });
     }
+
+    await client.query(
+      "INSERT INTO \"Historial_Atencion\" (id_atencion, id_estado) VALUES ($1, 5)",
+      [turnoRes.rows[0].id_atencion]
+    );
 
     // Liberar consultorio
     await client.query("UPDATE \"Consultorios\" SET estado_fisico = 'LIBRE' WHERE id_consultorio = $1", [consultorioId]);

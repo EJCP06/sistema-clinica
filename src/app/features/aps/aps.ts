@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, HostListener, ElementRef, inject, ChangeD
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LucideAngularModule, Search, UserPlus, Plus, FileText, CheckCircle2, ChevronRight, User, Phone, CreditCard, Stethoscope, ChevronDown, XCircle, ShieldCheck, ClipboardList, Edit2 } from 'lucide-angular';
+import { LucideAngularModule, Search, UserPlus, Plus, FileText, CheckCircle2, ChevronRight, User, Phone, CreditCard, Stethoscope, ChevronDown, XCircle, ShieldCheck, ClipboardList, Edit2, ArrowRightLeft } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
@@ -33,6 +33,7 @@ export class ApsComponent implements OnInit, OnDestroy {
   readonly ShieldCheck = ShieldCheck;
   readonly ClipboardList = ClipboardList;
   readonly Edit2 = Edit2;
+  readonly ArrowRightLeft = ArrowRightLeft;
 
   // Estados
   sidebarOpen: boolean = false;
@@ -268,6 +269,18 @@ export class ApsComponent implements OnInit, OnDestroy {
     });
   }
 
+  enviarASalaEspera(id_atencion: number) {
+    if (!confirm('¿Deseas enviar este paciente a la Sala de Espera?')) return;
+    this.api.actualizarEstadoAtencion(id_atencion, 2).subscribe({
+      next: () => {
+        this.cargarUltimasAdmisiones();
+      },
+      error: (err: any) => {
+        alert(err.error?.mensaje || 'Error al cambiar estado');
+      }
+    });
+  }
+
   // --- DROPDOWN RESPONSABLE ---
   togglePayerDropdown() {
     this.showPayerDropdown = !this.showPayerDropdown;
@@ -281,8 +294,29 @@ export class ApsComponent implements OnInit, OnDestroy {
   getNombreResponsable(id: any): string {
     if (!id) return 'Seleccione...';
     const rp = this.responsables.find(r => r.id === id);
-    if (!rp) return id === 1 ? 'Particular' : (id === 2 ? 'Seguro' : 'Seleccione...');
-    return rp.nombre;
+    const nombre = rp?.nombre || (id === 1 ? 'Particular' : (id === 2 ? 'Seguro' : 'Seleccione...'));
+    return this.getResponsableLabel(nombre);
+  }
+
+  getResponsableLabel(value: any): string {
+    const modalidad = (value || '').toString().trim().toLowerCase();
+    if (modalidad.includes('particular')) return 'Particular';
+    if (modalidad.includes('seguro') || modalidad.includes('asegur')) return 'Aseguradora';
+    return 'SIN ASIGNAR';
+  }
+
+  getResponsableClass(value: any): string {
+    const modalidad = (value || '').toString().trim().toLowerCase();
+    if (modalidad.includes('particular')) return 'text-blue-600';
+    if (modalidad.includes('seguro') || modalidad.includes('asegur')) return 'text-green-600';
+    return 'text-slate-600 dark:text-slate-400';
+  }
+
+  getServicioCategoria(value: any): string {
+    const servicio = (value || '').toString().trim().toLowerCase();
+    if (servicio.includes('laboratorio')) return 'Laboratorio';
+    if (servicio.includes('imágenes') || servicio.includes('imagenes') || servicio.includes('imagen')) return 'Imágenes';
+    return 'Consulta';
   }
 
   // --- DROPDOWN SERVICIOS (CATEGORÍAS) ---

@@ -24,7 +24,7 @@ const getPacientesEnEspera = async (req, res) => {
       WHERE a.id_servicio = $1 
       AND a.id_sede = $2
       AND a.hora_salida IS NULL
-      AND e.nombre_estado IN ('Registro', 'Sala de Espera', 'Llamado', 'En Atención')
+      AND e.nombre_estado IN ('Sala de Espera', 'Llamado', 'En Atención')
       ORDER BY 
         CASE WHEN e.nombre_estado = 'En Atención' THEN 0 ELSE 1 END,
         a.hora_llegada ASC

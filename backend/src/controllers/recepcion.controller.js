@@ -112,11 +112,12 @@ const getTurnosSalaEspera = async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT a.id_atencion, p.nombre, p.apellido, s.nombre_servicio, e.nombre_estado,
-             (SELECT nombre FROM "Consultorios" WHERE id_servicio = a.id_servicio LIMIT 1) as consultorio_nombre
+             c.nombre as consultorio_nombre
       FROM "Atencion" a
       JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
       JOIN "Servicio" s ON a.id_servicio = s.id_servicio
       JOIN "Estado" e ON a.id_estado_actual = e.id_estado
+      LEFT JOIN "Consultorios" c ON a.id_consultorio = c.id_consultorio
       WHERE e.nombre_estado IN ('Llamado', 'En Atención')
       AND a.hora_salida IS NULL
       AND a.id_sede = $1
@@ -150,7 +151,7 @@ const getUltimasAdmisiones = async (req, res) => {
       LEFT JOIN "Atencion" a ON p.id_paciente = a.id_paciente
       LEFT JOIN "Servicio" s ON a.id_servicio = s.id_servicio
       LEFT JOIN "Responsable_Pago" rp ON a.id_responsable = rp.id_responsable
-      WHERE p.id_sede = $1
+      WHERE p.id_sede = $1 AND (a.id_estado_actual = 1 OR a.id_estado_actual IS NULL)
       ORDER BY 6 DESC
       LIMIT 15
     `, [req.usuario.id_sede]);
@@ -161,11 +162,51 @@ const getUltimasAdmisiones = async (req, res) => {
   }
 };
 
+const actualizarEstadoAtencion = async (req, res) => {
+  const { id_atencion } = req.params;
+  const { id_estado_nuevo } = req.body;
+  const client = await pool.connect();
+  
+  try {
+    await client.query('BEGIN');
+    
+    // 1. Actualizar el estado en Atencion
+    const atencionResult = await client.query(
+      `UPDATE "Atencion" 
+       SET id_estado_actual = $1 
+       WHERE id_atencion = $2 AND id_sede = $3 
+       RETURNING *`,
+      [id_estado_nuevo, id_atencion, req.usuario.id_sede]
+    );
+
+    if (atencionResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ mensaje: 'Atención no encontrada' });
+    }
+
+    // 2. Registrar el cambio en Historial_Atencion
+    await client.query(
+      `INSERT INTO "Historial_Atencion" (id_atencion, id_estado) VALUES ($1, $2)`,
+      [id_atencion, id_estado_nuevo]
+    );
+
+    await client.query('COMMIT');
+    res.json({ mensaje: 'Estado actualizado correctamente', atencion: atencionResult.rows[0] });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error al actualizar estado:', error);
+    res.status(500).json({ mensaje: 'Error al actualizar estado', error: error.message });
+  } finally {
+    client.release();
+  }
+};
+
 module.exports = {
   buscarPaciente,
   crearPaciente,
   getResponsablesPago,
   registrarAtencion,
   getTurnosSalaEspera,
-  getUltimasAdmisiones
+  getUltimasAdmisiones,
+  actualizarEstadoAtencion
 };
