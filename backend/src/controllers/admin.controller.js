@@ -351,6 +351,44 @@ const getConsultorios = async (req, res) => {
   }
 };
 
+const getAseguradoras = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `
+      SELECT c.nombre as aseguradora, t.nombre as tipo
+      FROM "cliente" c
+      JOIN "tipo_cliente" t ON c.id_tipo_cliente = t.id_tipo_cliente
+      WHERE c.id_tipo_cliente = 2
+      ORDER BY c.nombre ASC
+    `,
+      [],
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error en getAseguradoras:', error);
+    res.status(500).json({ mensaje: 'Error al obtener aseguradoras' });
+  }
+};
+
+const crearAseguradora = async (req, res) => {
+  const { nombre } = req.body;
+
+  if (!nombre || !nombre.toString().trim()) {
+    return res.status(400).json({ mensaje: 'El nombre de la aseguradora es obligatorio' });
+  }
+
+  try {
+    const result = await pool.query(
+      'INSERT INTO "cliente" (id_tipo_cliente, nombre) VALUES ($1, $2) RETURNING id_cliente as id, nombre',
+      [2, nombre.toString().trim()]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error en crearAseguradora:', error);
+    res.status(500).json({ mensaje: 'Error al crear aseguradora', error: error.message });
+  }
+};
+
 const crearConsultorio = async (req, res) => {
   const { nombre, servicio_id, piso } = req.body;
   try {
@@ -828,6 +866,8 @@ module.exports = {
   crearConsultorio,
   actualizarConsultorio,
   eliminarConsultorio,
+  getAseguradoras,
+  crearAseguradora,
   getMedicos,
   crearMedico,
   actualizarMedico,
