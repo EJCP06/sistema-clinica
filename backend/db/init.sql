@@ -124,7 +124,7 @@ INSERT INTO "tipo_cliente" ("id_tipo_cliente", "nombre") VALUES
 ON CONFLICT ("id_tipo_cliente") DO UPDATE SET
   "nombre" = EXCLUDED."nombre";
 
-CREATE VIEW IF NOT EXISTS "vista_aseguradoras" AS
+CREATE OR REPLACE VIEW "vista_aseguradoras" AS
   SELECT
     c."id_cliente",
     c."nombre" AS aseguradora,

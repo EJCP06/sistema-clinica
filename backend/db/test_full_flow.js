@@ -1,6 +1,6 @@
-const pool = require('../../../../Desktop/sistema clinica/backend/src/config/db');
+const pool = require('../src/config/db');
 
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = process.env.API_BASE || 'http://localhost:3000/api';
 
 async function resetDB() {
   console.log('=== [TEST] Resetting Database ===');

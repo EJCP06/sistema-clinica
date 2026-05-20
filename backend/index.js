@@ -27,7 +27,7 @@ const io = new Server(server, {
 
 // Middlewares
 app.use(cors({
-  origin: ['http://localhost:4200', 'http://localhost:4201'],
+  origin: ['http://localhost:4200', 'http://localhost:4201', 'http://localhost'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true

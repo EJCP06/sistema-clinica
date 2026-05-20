@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: clinica_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: clinica_colas
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./backend/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d clinica_colas"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: clinica_api
+    environment:
+      PORT: 3000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_NAME: clinica_colas
+      JWT_SECRET: supersecretjwtkey_cambiar_en_produccion
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: clinica_web
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+
+  integration_test:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: clinica_integration_test
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_NAME: clinica_colas
+      JWT_SECRET: supersecretjwtkey_cambiar_en_produccion
+      API_BASE: http://api:3000/api
+    depends_on:
+      api:
+        condition: service_started
+    command: >
+      sh -c "
+        sleep 5 &&
+        node backend/db/test_full_flow.js
+      "
+
+volumes:
+  pg_data:
