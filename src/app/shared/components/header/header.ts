@@ -14,6 +14,7 @@ import {
   User,
   Users,
   Ticket,
+  ClipboardList
 } from 'lucide-angular';
 
 @Component({
@@ -32,6 +33,7 @@ export class Header {
   readonly Menu = Menu;
   readonly Users = Users;
   readonly Ticket = Ticket;
+  readonly ClipboardList = ClipboardList;
 
   @Input() title: string = '';
   @Input() subtitle: string = '';

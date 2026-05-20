@@ -5,7 +5,7 @@ const authMiddleware = require('../middleware/auth');
 const roleMiddleware = require('../middleware/roles');
 
 router.use(authMiddleware);
-router.use(roleMiddleware(['medico', 'admin'])); // Permitimos admin para pruebas
+router.use(roleMiddleware('medico', 'admin')); // Permitimos admin para pruebas
 
 router.get('/espera', medicoController.getPacientesEnEspera);
 router.post('/llamar', medicoController.llamarPaciente);

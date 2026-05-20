@@ -50,6 +50,14 @@ export class ApiService {
     return this.http.put(`${this.base}/recepcion/atencion/${idAtencion}/estado`, { id_estado_nuevo: idEstadoNuevo });
   }
 
+  getAseguradoras(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.base}/shared/aseguradoras`);
+  }
+
+  crearAseguradora(body: { nombre: string }): Observable<any> {
+    return this.http.post(`${this.base}/shared/aseguradoras`, body);
+  }
+
   // --- PANEL MÉDICO (consultorios) ---
   getMiEstado(): Observable<any> {
     return this.http.get<any>(`${this.base}/consultorios/mi-estado`);

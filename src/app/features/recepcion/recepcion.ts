@@ -63,8 +63,17 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   servicios: any[] = [];
   responsables: any[] = [];
   ultimasAdmisiones: any[] = [];
+  aseguradoras: any[] = [];
 
   get admisionesFiltradas() {
+    if (this.isAseguradorasView) {
+      const query = (this.cedulaBusqueda || '').trim().toLowerCase();
+      return this.aseguradoras.filter(a => {
+        if (!query) return true;
+        return (a.aseguradora || '').toLowerCase().includes(query);
+      });
+    }
+
     const baseFiltered = this.ultimasAdmisiones.filter(a => {
       const query = (this.cedulaBusqueda || '').trim().toLowerCase();
       if (!query) return true;
@@ -83,10 +92,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
         return matchNombre || matchApellido || matchCedula;
       }
     });
-
-    if (this.isAseguradorasView) {
-      return baseFiltered.filter(a => this.getResponsableLabel(a.modalidad_pago) === 'Aseguradora');
-    }
 
     return baseFiltered;
   }
@@ -140,7 +145,11 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     this.isAseguradorasView = !!data['aseguradorasMode'];
 
     this.cargarDatosMaestros();
-    this.cargarUltimasAdmisiones();
+    if (this.isAseguradorasView) {
+      this.cargarAseguradoras();
+    } else {
+      this.cargarUltimasAdmisiones();
+    }
 
     // Setup live search
     this.searchSubscription = this.searchSubject.pipe(
@@ -207,6 +216,16 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     });
   }
 
+  cargarAseguradoras() {
+    this.api.getAseguradoras().subscribe({
+      next: (data: any[]) => {
+        this.aseguradoras = data;
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Error cargando aseguradoras:', err)
+    });
+  }
+
   onSearchChange(value: string) {
     if (!value || !value.trim()) {
       this.resetSearchOnly();
@@ -266,7 +285,10 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       status: true,
       notificaciones_sms: true
     };
-    this.seleccion = { id_servicio: null, id_responsable: null };
+    this.seleccion = {
+      id_servicio: null,
+      id_responsable: this.isAseguradorasView ? 2 : null
+    };
     this.categoriaServicio = '';
 
     // Precargar datos del buscador si existen
@@ -340,12 +362,42 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   }
 
   registrarYContinuar() {
-    if (!this.seleccion.id_servicio || !this.seleccion.id_responsable) {
+    if (!this.isAseguradorasView && (!this.seleccion.id_servicio || !this.seleccion.id_responsable)) {
       alert('Debe seleccionar Especialidad y Responsable de Pago');
       return;
     }
 
     this.isSaving = true;
+
+    const cerrarModal = () => {
+      this.isSaving = false;
+      this.mostrarRegistro = false;
+      this.pacienteEncontrado = null;
+      this.cedulaBusqueda = '';
+      this.cdr.detectChanges();
+    };
+
+    if (this.isAseguradorasView) {
+      const nombreAseguradora = (this.nuevoPaciente.nombre || '').toString().trim();
+      if (!nombreAseguradora) {
+        alert('Debe ingresar el nombre de la aseguradora');
+        this.isSaving = false;
+        return;
+      }
+
+      this.api.crearAseguradora({ nombre: nombreAseguradora }).subscribe({
+        next: () => {
+          this.cargarAseguradoras();
+          cerrarModal();
+        },
+        error: (err) => {
+          console.error('Error registrando aseguradora:', err);
+          this.isSaving = false;
+          alert('Error al registrar aseguradora');
+        }
+      });
+      return;
+    }
 
     if (this.pacienteExistenteCargado && this.nuevoPaciente.id_paciente) {
       // Si el paciente ya existe, pasamos directo a generar la atención

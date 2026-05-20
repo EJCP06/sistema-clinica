@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 async function seed() {
   try {
     console.log('--- Iniciando limpieza de base de datos ---');
-    await pool.query('TRUNCATE TABLE "Sedes", "Usuarios", "Servicio", "Consultorios", "Pacientes", "Atencion", "Historial_Atencion", "Estado", "Responsable_Pago" RESTART IDENTITY CASCADE');
+    await pool.query('TRUNCATE TABLE "Sedes", "Usuarios", "Servicio", "Consultorios", "Pacientes", "Atencion", "Historial_Atencion", "Estado", "Responsable_Pago", "cliente", "tipo_cliente", "configuraciones" RESTART IDENTITY CASCADE');
 
     console.log('--- Insertando Sedes ---');
     await pool.query(`INSERT INTO "Sedes" (id_sede, nombre) VALUES (1, 'Santa Mónica'), (2, 'Plaza Sucre')`);
@@ -14,6 +14,13 @@ async function seed() {
 
     console.log('--- Insertando Responsables de Pago ---');
     await pool.query(`INSERT INTO "Responsable_Pago" (nombre) VALUES ('Particular'), ('Seguro'), ('Cortesía')`);
+
+    console.log('--- Insertando tipo_cliente y aseguradoras ---');
+    await pool.query(`INSERT INTO "tipo_cliente" (id_tipo_cliente, nombre) VALUES (1, 'Particular'), (2, 'Aseguradora')`);
+    await pool.query(`INSERT INTO "cliente" (id_tipo_cliente, nombre) VALUES (2, 'Seguros Caracas'), (2, 'Aseguradora Federal'), (2, 'Vida Plus')`);
+
+    console.log('--- Insertando Configuraciones ---');
+    await pool.query(`INSERT INTO "configuraciones" (clave, valor) VALUES ('nombre_sistema', 'Sistema Clínica'), ('modo_prueba', 'true')`);
 
     console.log('--- Insertando Usuarios ---');
     const hashedPassAdmin = await bcrypt.hash('admin123', 10);
@@ -37,6 +44,9 @@ async function seed() {
 
     await pool.query(`INSERT INTO "Usuarios" (password_hash, rol, nombre, apellido, cedula, status, id_sede) 
       VALUES ($1, 'recepcionista', 'PEDRO', 'RECEP PS', '20000002', true, 2)`, [hashedPassRecep]);
+
+    await pool.query(`INSERT INTO "Usuarios" (password_hash, rol, nombre, apellido, cedula, status, id_sede) 
+      VALUES ($1, 'aps', 'SILVIA', 'APS', '30000001', true, 1)`, [hashedPassDoc]);
     
     const resDocPS = await pool.query(`INSERT INTO "Usuarios" (password_hash, rol, nombre, apellido, cedula, status, id_sede) 
       VALUES ($1, 'medico', 'CARLOS', 'MEDICO PS', '10000002', true, 2) RETURNING id_usuario`, [hashedPassDoc]);
@@ -70,6 +80,7 @@ async function seed() {
     console.log('--- Sede Santa Mónica ---');
     console.log('Doctor SM: 10000001 / doc123');
     console.log('Recep SM: 20000001 / recep123');
+    console.log('APS: 30000001 / doc123');
     console.log('--- Sede Plaza Sucre ---');
     console.log('Doctor PS: 10000002 / doc123');
     console.log('Recep PS: 20000002 / recep123');

@@ -35,7 +35,7 @@ export const routes: Routes = [
     loadComponent: () => import('./features/recepcion/recepcion').then(m => m.RecepcionComponent),
     canActivate: [authGuard, roleGuard(['aps', 'admin'])],
     data: {
-      pageTitle: 'ASEGURADORAS',
+      pageTitle: 'Aseguradoras',
       pageSubtitle: 'Gestión de aseguradoras',
       aseguradorasMode: true
     }
