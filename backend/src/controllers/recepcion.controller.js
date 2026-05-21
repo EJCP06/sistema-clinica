@@ -65,15 +65,24 @@ const getResponsablesPago = async (req, res) => {
 };
 
 const registrarAtencion = async (req, res) => {
-  const { id_paciente, id_servicio, id_responsable, id_cliente } = req.body;
+  const { id_paciente, id_servicio, id_especialidad, id_responsable, id_cliente } = req.body;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
-    // 1. Obtener el servicio y BLOQUEAR para numeración segura
-    const servicioRes = await client.query('SELECT * FROM "Servicio" WHERE id_servicio = $1 FOR UPDATE', [id_servicio]);
-    if (servicioRes.rows.length === 0) throw new Error('Servicio no encontrado');
-    const servicio = servicioRes.rows[0];
+    // 1. Validar el servicio/especialidad
+    let id_servicio_final = id_servicio;
+    let prefijo = 'TK';
+    
+    if (id_especialidad) {
+        const espRes = await client.query('SELECT s.prefijo FROM "Especialidades" e JOIN "Servicio" s ON e.id_servicio = s.id_servicio WHERE e.id_especialidad = $1 FOR UPDATE', [id_especialidad]);
+        if (espRes.rows.length === 0) throw new Error('Especialidad no encontrada');
+        prefijo = espRes.rows[0].prefijo;
+    } else {
+        const servRes = await client.query('SELECT prefijo FROM "Servicio" WHERE id_servicio = $1 FOR UPDATE', [id_servicio]);
+        if (servRes.rows.length === 0) throw new Error('Servicio no encontrado');
+        prefijo = servRes.rows[0].prefijo;
+    }
 
     // 2. Generar número secuencial del día
     const ultimoRes = await client.query(`
@@ -88,17 +97,17 @@ const registrarAtencion = async (req, res) => {
       const partes = ultimoRes.rows[0].numero.split('-');
       if (partes.length === 2) siguiente = parseInt(partes[1], 10) + 1;
     }
-    const nuevoNumero = `${servicio.prefijo || 'TK'}-${siguiente.toString().padStart(3, '0')}`.replace(/\s/g, '');
+    const nuevoNumero = `${prefijo || 'TK'}-${siguiente.toString().padStart(3, '0')}`.replace(/\s/g, '');
 
     // 3. Obtener el estado inicial (ID 1)
-    const estadoResult = await client.query('SELECT id_estado FROM "Estado" WHERE nombre_estado = $1', ['Registro']);
+    const estadoResult = await client.query('SELECT id_estado FROM "Estado" WHERE nombre_estado = $1', ['Espera']);
     const id_estado_inicial = estadoResult.rows[0]?.id_estado || 1;
 
-    // 4. Crear el registro en Atencion con el número generado
+    // 4. Crear el registro en Atencion con el número generado (incluyendo id_especialidad)
     const atencionResult = await client.query(
-      `INSERT INTO "Atencion" (id_paciente, id_servicio, id_responsable, id_estado_actual, id_usuario_registro, id_sede, numero, id_cliente) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id_atencion`,
-      [id_paciente, id_servicio, id_responsable, id_estado_inicial, req.usuario?.id || 1, req.usuario.id_sede, nuevoNumero, id_cliente || null]
+      `INSERT INTO "Atencion" (id_paciente, id_servicio, id_especialidad, id_responsable, id_estado_actual, id_usuario_registro, id_sede, numero, id_cliente) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id_atencion`,
+      [id_paciente, id_servicio, id_especialidad || null, id_responsable, id_estado_inicial, req.usuario?.id || 1, req.usuario.id_sede, nuevoNumero, id_cliente || null]
     );
     const id_atencion = atencionResult.rows[0].id_atencion;
 
@@ -115,11 +124,9 @@ const registrarAtencion = async (req, res) => {
     if (client) await client.query('ROLLBACK');
     console.error('--- ERROR AL REGISTRAR ATENCION ---');
     console.error('Error:', error);
-    console.error('Body:', req.body);
     res.status(500).json({ 
-      mensaje: 'Error al procesar la atención o conexión de DB', 
-      error: error.message,
-      detalle: error.detail 
+      mensaje: 'Error al procesar la atención', 
+      error: error.message 
     });
   } finally {
     client.release();
@@ -129,14 +136,17 @@ const registrarAtencion = async (req, res) => {
 const getTurnosSalaEspera = async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT a.id_atencion, p.nombre, p.apellido, s.nombre_servicio, e.nombre_estado,
+      SELECT a.id_atencion, p.nombre, p.apellido, 
+             COALESCE(e.nombre, s.nombre_servicio) as nombre_servicio, 
+             es.nombre_estado,
              c.nombre as consultorio_nombre
       FROM "Atencion" a
       JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
       JOIN "Servicio" s ON a.id_servicio = s.id_servicio
-      JOIN "Estado" e ON a.id_estado_actual = e.id_estado
+      LEFT JOIN "Especialidades" e ON a.id_especialidad = e.id_especialidad
+      JOIN "Estado" es ON a.id_estado_actual = es.id_estado
       LEFT JOIN "Consultorios" c ON a.id_consultorio = c.id_consultorio
-      WHERE e.nombre_estado IN ('Llamado', 'En Atención')
+      WHERE es.nombre_estado IN ('Espera', 'Atendiendo')
       AND a.hora_salida IS NULL
       AND a.id_sede = $1
       ORDER BY a.id_atencion DESC
@@ -158,7 +168,7 @@ const getUltimasAdmisiones = async (req, res) => {
         p.cedula, 
         p.telefono, 
         p.notificaciones_sms as mensaje,
-        COALESCE(s.nombre_servicio, 'SIN ASIGNAR') as nombre_servicio, 
+        COALESCE(e.nombre, s.nombre_servicio) as nombre_servicio, 
         COALESCE(a.hora_llegada, p.fecha_creacion) as fecha_creacion, 
         CASE 
           WHEN a.id_responsable = 2 AND cl.nombre IS NOT NULL THEN cl.nombre
@@ -167,11 +177,13 @@ const getUltimasAdmisiones = async (req, res) => {
         a.id_atencion,
         p.id_paciente,
         a.id_servicio,
+        a.id_especialidad,
         a.id_responsable,
         a.id_cliente
       FROM "Pacientes" p
       LEFT JOIN "Atencion" a ON p.id_paciente = a.id_paciente AND (a.id_estado_actual IN (1, 2, 3) OR a.id_estado_actual IS NULL)
       LEFT JOIN "Servicio" s ON a.id_servicio = s.id_servicio
+      LEFT JOIN "Especialidades" e ON a.id_especialidad = e.id_especialidad
       LEFT JOIN "Responsable_Pago" rp ON a.id_responsable = rp.id_responsable
       LEFT JOIN "cliente" cl ON a.id_cliente = cl.id_cliente
       WHERE p.id_sede = $1

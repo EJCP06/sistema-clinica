@@ -107,6 +107,7 @@ const consultoriosRoutes = require('./src/routes/consultorios.routes');
 const recepcionRoutes = require('./src/routes/recepcion.routes');
 const sharedRoutes = require('./src/routes/shared.routes');
 const medicoRoutes = require('./src/routes/medico.routes'); // Nueva ruta
+const especialidadesRoutes = require('./src/routes/especialidades.routes');
 
 // Rutas API
 app.use('/api/auth', authRoutes);
@@ -116,6 +117,7 @@ app.use('/api/turnos', turnosRoutes);
 app.use('/api/consultorios', consultoriosRoutes);
 app.use('/api/recepcion', recepcionRoutes);
 app.use('/api/medico', medicoRoutes); // Nueva ruta registrada
+app.use('/api/especialidades', especialidadesRoutes);
 
 // Manejo global de errores
 app.use((err, req, res, next) => {

@@ -550,6 +550,7 @@ const actualizarUsuario = async (req, res) => {
     query += ` WHERE id_usuario=$${params.length + 1}`;
     params.push(id);
 
+    
     await pool.query(query, params);
     res.json({ mensaje: 'Usuario actualizado' });
   } catch (error) {

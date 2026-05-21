@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule, Search, UserPlus, Plus, FileText, CheckCircle2, ChevronRight, User, Phone, CreditCard, Stethoscope, ChevronDown, XCircle, ShieldCheck, ClipboardList, Edit2, Trash2 } from 'lucide-angular';
-import { ApiService } from '../../core/services/api.service';
+import { EspecialidadesService } from '../../core/services/especialidades.service';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
@@ -63,6 +63,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   };
   
   servicios: any[] = [];
+  especialidades: any[] = [];
   responsables: any[] = [];
   ultimasAdmisiones: any[] = [];
 
@@ -87,6 +88,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
       if (this.searchFilter === 'nombre') {
         return matchNombre;
+        
       } else if (this.searchFilter === 'apellido') {
         return matchApellido;
       } else if (this.searchFilter === 'cedula') {

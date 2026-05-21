@@ -91,7 +91,7 @@
                 (click)="toggleSearchFilterDropdown()"
                 class="bg-white px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-500 focus:outline-none rounded-xl cursor-pointer hover:bg-slate-50 transition-all flex items-center gap-2 border-r border-slate-100"
               >
-                <span>{{ getSearchFilterLabel(searchFilter) }}</span>
+                <span class="lowercase first-letter:uppercase">{{ getSearchFilterLabel(searchFilter) }}</span>
                 <lucide-icon
                   [name]="ChevronDown"
                   class="w-3.5 h-3.5 transition-transform"
@@ -111,7 +111,7 @@
                     [class.bg-blue-50]="searchFilter === 'todo'"
                     [class.text-blue-600]="searchFilter === 'todo'"
                   >
-                    <span>Todo</span>
+                    <span class="lowercase first-letter:uppercase">Todo</span>
                     <lucide-icon *ngIf="searchFilter === 'todo'" [name]="CheckCircle2" class="w-3.5 h-3.5"></lucide-icon>
                   </div>
 
@@ -122,7 +122,7 @@
                     [class.bg-blue-50]="searchFilter === 'nombre'"
                     [class.text-blue-600]="searchFilter === 'nombre'"
                   >
-                    <span>Nombre</span>
+                    <span class="lowercase first-letter:uppercase">Nombre</span>
                     <lucide-icon *ngIf="searchFilter === 'nombre'" [name]="CheckCircle2" class="w-3.5 h-3.5"></lucide-icon>
                   </div>
 
@@ -134,7 +134,7 @@
                     [class.bg-blue-50]="searchFilter === 'apellido'"
                     [class.text-blue-600]="searchFilter === 'apellido'"
                   >
-                    <span>Apellido</span>
+                    <span class="lowercase first-letter:uppercase">Apellido</span>
                     <lucide-icon *ngIf="searchFilter === 'apellido'" [name]="CheckCircle2" class="w-3.5 h-3.5"></lucide-icon>
                   </div>
 
@@ -146,7 +146,7 @@
                     [class.bg-blue-50]="searchFilter === 'cedula'"
                     [class.text-blue-600]="searchFilter === 'cedula'"
                   >
-                    <span>Cédula</span>
+                    <span class="lowercase first-letter:uppercase">Cédula</span>
                     <lucide-icon *ngIf="searchFilter === 'cedula'" [name]="CheckCircle2" class="w-3.5 h-3.5"></lucide-icon>
                   </div>
 
@@ -158,7 +158,7 @@
                     [class.bg-blue-50]="searchFilter === 'especialidad'"
                     [class.text-blue-600]="searchFilter === 'especialidad'"
                   >
-                    <span>Especialidad</span>
+                    <span class="lowercase first-letter:uppercase">Especialidad</span>
                     <lucide-icon *ngIf="searchFilter === 'especialidad'" [name]="CheckCircle2" class="w-3.5 h-3.5"></lucide-icon>
                   </div>
 
@@ -170,7 +170,7 @@
                     [class.bg-blue-50]="searchFilter === 'prefijo'"
                     [class.text-blue-600]="searchFilter === 'prefijo'"
                   >
-                    <span>Prefijo</span>
+                    <span class="lowercase first-letter:uppercase">Prefijo</span>
                     <lucide-icon *ngIf="searchFilter === 'prefijo'" [name]="CheckCircle2" class="w-3.5 h-3.5"></lucide-icon>
                   </div>
 
@@ -864,7 +864,7 @@
           <div class="relative sede-dropdown-container">
             <button type="button" (click)="toggleSedeDropdown()"
               class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600">
-              <span class="whitespace-nowrap truncate mr-2" [class.text-slate-400]="!formPersonal.id_sede">{{ getSedeLabel(formPersonal.id_sede, true) }}</span>
+              <span class="lowercase first-letter:uppercase whitespace-nowrap truncate mr-2" [class.text-slate-400]="!formPersonal.id_sede">{{ getSedeLabel(formPersonal.id_sede, true) }}</span>
               <lucide-icon [name]="ChevronDown" class="w-4 h-4 text-slate-400 shrink-0" [class.rotate-180]="showSedeDropdown"></lucide-icon>
             </button>
             <div *ngIf="showSedeDropdown" class="absolute z-[100] w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600">
@@ -872,7 +872,7 @@
                 <div *ngFor="let s of sedes" (click)="selectSede(s.id_sede)"
                   class="px-4 py-2 text-sm hover:bg-slate-50 cursor-pointer transition-colors rounded-lg flex items-center justify-between"
                   [class.bg-blue-50]="formPersonal.id_sede == s.id_sede">
-                  <span class="font-bold">{{ toTitleCase(s.nombre) }}</span>
+                  <span class="lowercase first-letter:uppercase font-bold">{{ toTitleCase(s.nombre) }}</span>
                   <lucide-icon *ngIf="formPersonal.id_sede == s.id_sede" [name]="CheckCircle2" class="w-3.5 h-3.5 text-blue-600"></lucide-icon>
                 </div>
               </div>
@@ -887,7 +887,7 @@
             <div class="relative medico-esp-container">
               <button type="button" (click)="toggleMedicoEspDropdown()"
                 class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-left flex justify-between items-center shadow-sm">
-                <span [class.text-slate-400]="!formPersonal.servicio_id">{{ getNombreEsp(formPersonal.servicio_id, true) }}</span>
+                <span class="lowercase first-letter:uppercase" [class.text-slate-400]="!formPersonal.servicio_id">{{ getNombreEsp(formPersonal.servicio_id, true) }}</span>
                 <lucide-icon [name]="ChevronDown" class="w-4 h-4 text-slate-400" [class.rotate-180]="showMedicoEspDropdown"></lucide-icon>
               </button>
               <div *ngIf="showMedicoEspDropdown" class="absolute z-[100] w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600">
@@ -895,7 +895,7 @@
                   <div *ngFor="let s of especialidades" (click)="selectMedicoEsp(s)"
                     class="px-4 py-2 text-sm hover:bg-slate-50 cursor-pointer transition-colors rounded-lg flex items-center justify-between"
                     [class.bg-blue-50]="formPersonal.servicio_id === s.id">
-                    <span class="font-bold">{{ s.nombre }}</span>
+                    <span class="lowercase first-letter:uppercase font-bold">{{ s.nombre }}</span>
                     <lucide-icon *ngIf="formPersonal.servicio_id === s.id" [name]="CheckCircle2" class="w-3.5 h-3.5 text-blue-600"></lucide-icon>
                   </div>
                 </div>
