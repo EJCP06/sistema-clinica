@@ -33,6 +33,10 @@ router.put(
 );
 router.delete('/servicios/:id', adminController.eliminarServicio);
 
+// Aseguradoras - CRUD
+router.put('/aseguradoras/:id', adminController.actualizarAseguradora);
+router.delete('/aseguradoras/:id', adminController.eliminarAseguradora);
+
 // Consultorios - CRUD
 router.post(
 	'/consultorios',

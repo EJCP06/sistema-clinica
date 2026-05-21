@@ -7,16 +7,19 @@ const buscarPaciente = async (req, res) => {
   const filtro = req.query.filtro || 'todo';
   try {
     let result;
+    const busquedaLimpia = (cedula || '').toString().toUpperCase().trim();
+
     if (filtro === 'nombre') {
-      result = await pool.query('SELECT * FROM "Pacientes" WHERE nombre ILIKE $1 AND id_sede = $2', [`%${cedula}%`, req.usuario.id_sede]);
+      result = await pool.query('SELECT * FROM "Pacientes" WHERE nombre ILIKE $1 AND id_sede = $2', [`%${busquedaLimpia}%`, req.usuario.id_sede]);
     } else if (filtro === 'apellido') {
-      result = await pool.query('SELECT * FROM "Pacientes" WHERE apellido ILIKE $1 AND id_sede = $2', [`%${cedula}%`, req.usuario.id_sede]);
+      result = await pool.query('SELECT * FROM "Pacientes" WHERE apellido ILIKE $1 AND id_sede = $2', [`%${busquedaLimpia}%`, req.usuario.id_sede]);
     } else if (filtro === 'cedula') {
-      result = await pool.query('SELECT * FROM "Pacientes" WHERE cedula ILIKE $1 AND id_sede = $2', [`%${cedula}%`, req.usuario.id_sede]);
+      const cedulaSoloNumeros = busquedaLimpia.replace(/\D/g, '');
+      result = await pool.query('SELECT * FROM "Pacientes" WHERE cedula ILIKE $1 AND id_sede = $2', [`%${cedulaSoloNumeros}%`, req.usuario.id_sede]);
     } else {
       result = await pool.query(
         'SELECT * FROM "Pacientes" WHERE (cedula ILIKE $1 OR nombre ILIKE $1 OR apellido ILIKE $1 OR CONCAT(nombre, \' \', apellido) ILIKE $1) AND id_sede = $2',
-        [`%${cedula}%`, req.usuario.id_sede]
+        [`%${busquedaLimpia}%`, req.usuario.id_sede]
       );
     }
     
@@ -32,11 +35,11 @@ const crearPaciente = async (req, res) => {
   let { cedula, nombre, apellido, telefono, status, notificaciones_sms } = req.body;
   
   try {
-    // Sanitización y Formateo con protección contra nulos
-    const cedulaLimpia = (cedula || Date.now().toString()).toString().replace(/\D/g, '');
-    const nombreMayus = (nombre || 'PACIENTE').toUpperCase().trim();
-    const apellidoMayus = (apellido || 'NUEVO').toUpperCase().trim();
-    const telefonoLimpio = telefono ? telefono.toString().replace(/\D/g, '') : null;
+    // Sanitización, Formateo estricto y TRIM
+    const cedulaLimpia = (cedula || Date.now().toString()).toString().replace(/\D/g, '').trim();
+    const nombreMayus = (nombre || 'PACIENTE').toString().toUpperCase().trim();
+    const apellidoMayus = (apellido || 'NUEVO').toString().toUpperCase().trim();
+    const telefonoLimpio = telefono ? telefono.toString().replace(/\D/g, '').trim() : null;
 
     const result = await pool.query(
       'INSERT INTO "Pacientes" (cedula, nombre, apellido, telefono, status, notificaciones_sms, id_sede) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
@@ -46,12 +49,7 @@ const crearPaciente = async (req, res) => {
   } catch (error) {
     console.error('--- ERROR AL CREAR PACIENTE ---');
     console.error('Error:', error);
-    console.error('Body:', req.body);
-    res.status(500).json({ 
-      mensaje: 'Error al registrar paciente', 
-      error: error.message,
-      detalle: error.detail 
-    });
+    res.status(500).json({ mensaje: 'Error al registrar paciente' });
   }
 };
 
@@ -67,24 +65,44 @@ const getResponsablesPago = async (req, res) => {
 };
 
 const registrarAtencion = async (req, res) => {
-  const { id_paciente, id_servicio, id_responsable } = req.body;
+  const { id_paciente, id_servicio, id_responsable, id_cliente } = req.body;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
-    // 1. Obtener el estado inicial (ej: 'Registro' o el ID 1)
+    // 1. Obtener el servicio y BLOQUEAR para numeración segura
+    const servicioRes = await client.query('SELECT * FROM "Servicio" WHERE id_servicio = $1 FOR UPDATE', [id_servicio]);
+    if (servicioRes.rows.length === 0) throw new Error('Servicio no encontrado');
+    const servicio = servicioRes.rows[0];
+
+    // 2. Generar número secuencial del día
+    const ultimoRes = await client.query(`
+      SELECT numero FROM "Atencion" 
+      WHERE id_servicio = $1 
+      AND DATE(hora_llegada) = CURRENT_DATE 
+      ORDER BY id_atencion DESC LIMIT 1
+    `, [id_servicio]);
+
+    let siguiente = 1;
+    if (ultimoRes.rows.length > 0 && ultimoRes.rows[0].numero) {
+      const partes = ultimoRes.rows[0].numero.split('-');
+      if (partes.length === 2) siguiente = parseInt(partes[1], 10) + 1;
+    }
+    const nuevoNumero = `${servicio.prefijo || 'TK'}-${siguiente.toString().padStart(3, '0')}`.replace(/\s/g, '');
+
+    // 3. Obtener el estado inicial (ID 1)
     const estadoResult = await client.query('SELECT id_estado FROM "Estado" WHERE nombre_estado = $1', ['Registro']);
     const id_estado_inicial = estadoResult.rows[0]?.id_estado || 1;
 
-    // 2. Crear el registro en Atencion
+    // 4. Crear el registro en Atencion con el número generado
     const atencionResult = await client.query(
-      `INSERT INTO "Atencion" (id_paciente, id_servicio, id_responsable, id_estado_actual, id_usuario_registro, id_sede) 
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id_atencion`,
-      [id_paciente, id_servicio, id_responsable, id_estado_inicial, req.usuario?.id || 1, req.usuario.id_sede]
+      `INSERT INTO "Atencion" (id_paciente, id_servicio, id_responsable, id_estado_actual, id_usuario_registro, id_sede, numero, id_cliente) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id_atencion`,
+      [id_paciente, id_servicio, id_responsable, id_estado_inicial, req.usuario?.id || 1, req.usuario.id_sede, nuevoNumero, id_cliente || null]
     );
     const id_atencion = atencionResult.rows[0].id_atencion;
 
-    // 3. Crear el primer hito en Historial_Atencion
+    // 5. Crear el primer hito en Historial_Atencion
     await client.query(
       `INSERT INTO "Historial_Atencion" (id_atencion, id_estado) 
        VALUES ($1, $2)`,
@@ -92,7 +110,7 @@ const registrarAtencion = async (req, res) => {
     );
 
     await client.query('COMMIT');
-    res.status(201).json({ mensaje: 'Atención registrada correctamente', id_atencion });
+    res.status(201).json({ mensaje: 'Atención registrada correctamente', id_atencion, numero: nuevoNumero });
   } catch (error) {
     if (client) await client.query('ROLLBACK');
     console.error('--- ERROR AL REGISTRAR ATENCION ---');
@@ -133,8 +151,6 @@ const getTurnosSalaEspera = async (req, res) => {
 
 const getUltimasAdmisiones = async (req, res) => {
   try {
-    // Esta consulta ahora trae tanto las admisiones reales como los pacientes registrados hoy
-    // que aún no tienen una atención asignada (usando LEFT JOIN y COALESCE)
     const result = await pool.query(`
       SELECT 
         p.nombre, 
@@ -144,21 +160,100 @@ const getUltimasAdmisiones = async (req, res) => {
         p.notificaciones_sms as mensaje,
         COALESCE(s.nombre_servicio, 'SIN ASIGNAR') as nombre_servicio, 
         COALESCE(a.hora_llegada, p.fecha_creacion) as fecha_creacion, 
-        COALESCE(rp.nombre, 'PENDIENTE') as modalidad_pago,
+        CASE 
+          WHEN a.id_responsable = 2 AND cl.nombre IS NOT NULL THEN cl.nombre
+          ELSE COALESCE(rp.nombre, 'PENDIENTE')
+        END as modalidad_pago,
         a.id_atencion,
-        p.id_paciente
+        p.id_paciente,
+        a.id_servicio,
+        a.id_responsable,
+        a.id_cliente
       FROM "Pacientes" p
-      LEFT JOIN "Atencion" a ON p.id_paciente = a.id_paciente
+      LEFT JOIN "Atencion" a ON p.id_paciente = a.id_paciente AND (a.id_estado_actual IN (1, 2, 3) OR a.id_estado_actual IS NULL)
       LEFT JOIN "Servicio" s ON a.id_servicio = s.id_servicio
       LEFT JOIN "Responsable_Pago" rp ON a.id_responsable = rp.id_responsable
-      WHERE p.id_sede = $1 AND (a.id_estado_actual = 1 OR a.id_estado_actual IS NULL)
-      ORDER BY 6 DESC
-      LIMIT 15
+      LEFT JOIN "cliente" cl ON a.id_cliente = cl.id_cliente
+      WHERE p.id_sede = $1
+      ORDER BY 7 DESC
+      LIMIT 20
     `, [req.usuario.id_sede]);
     res.json(result.rows);
   } catch (error) {
     console.error('Error ultimas admisiones:', error);
     res.status(500).json({ mensaje: 'Error al obtener historial' });
+  }
+};
+
+const actualizarPaciente = async (req, res) => {
+  const { id_paciente } = req.params;
+  const { nombre, apellido, cedula, telefono, notificaciones_sms } = req.body;
+  try {
+    const nombreMayus = (nombre || '').toString().toUpperCase().trim();
+    const apellidoMayus = (apellido || '').toString().toUpperCase().trim();
+    const cedulaLimpia = (cedula || '').toString().replace(/\D/g, '').trim();
+    const telefonoLimpio = (telefono || '').toString().replace(/\D/g, '').trim();
+
+    await pool.query(
+      'UPDATE "Pacientes" SET nombre = $1, apellido = $2, cedula = $3, telefono = $4, notificaciones_sms = $5 WHERE id_paciente = $6 AND id_sede = $7',
+      [nombreMayus, apellidoMayus, cedulaLimpia, telefonoLimpio, notificaciones_sms, id_paciente, req.usuario.id_sede]
+    );
+    res.json({ mensaje: 'Paciente actualizado correctamente' });
+  } catch (error) {
+    console.error('Error al actualizar paciente:', error);
+    res.status(500).json({ mensaje: 'Error al actualizar paciente' });
+  }
+};
+
+const actualizarAtencion = async (req, res) => {
+  const { id_atencion } = req.params;
+  const { id_servicio, id_responsable, id_cliente } = req.body;
+  try {
+    // Si cambia el servicio, NO cambiamos el número del ticket por seguridad y consistencia
+    await pool.query(
+      'UPDATE "Atencion" SET id_servicio = $1, id_responsable = $2, id_cliente = $3 WHERE id_atencion = $4 AND id_sede = $5',
+      [id_servicio, id_responsable, id_cliente || null, id_atencion, req.usuario.id_sede]
+    );
+    res.json({ mensaje: 'Atención actualizada correctamente' });
+  } catch (error) {
+    console.error('Error al actualizar atención:', error);
+    res.status(500).json({ mensaje: 'Error al actualizar atención' });
+  }
+};
+
+const eliminarAtencion = async (req, res) => {
+  const { id_atencion } = req.params;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    // Borrar historial primero por FK
+    await client.query('DELETE FROM "Historial_Atencion" WHERE id_atencion = $1', [id_atencion]);
+    await client.query('DELETE FROM "Atencion" WHERE id_atencion = $1 AND id_sede = $2', [id_atencion, req.usuario.id_sede]);
+    await client.query('COMMIT');
+    res.json({ mensaje: 'Atención eliminada correctamente' });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error al eliminar atención:', error);
+    res.status(500).json({ mensaje: 'Error al eliminar atención' });
+  } finally {
+    client.release();
+  }
+};
+
+const eliminarPaciente = async (req, res) => {
+  const { id_paciente } = req.params;
+  try {
+    // Solo permitimos eliminar si no tiene atenciones relacionadas (o borrarlas en cascada)
+    // Por seguridad, si tiene atenciones, no dejamos borrar al paciente directo
+    const check = await pool.query('SELECT COUNT(*) FROM "Atencion" WHERE id_paciente = $1', [id_paciente]);
+    if (parseInt(check.rows[0].count) > 0) {
+      return res.status(400).json({ mensaje: 'No se puede eliminar un paciente que tiene historial de atenciones' });
+    }
+    await pool.query('DELETE FROM "Pacientes" WHERE id_paciente = $1 AND id_sede = $2', [id_paciente, req.usuario.id_sede]);
+    res.json({ mensaje: 'Paciente eliminado correctamente' });
+  } catch (error) {
+    console.error('Error al eliminar paciente:', error);
+    res.status(500).json({ mensaje: 'Error al eliminar paciente' });
   }
 };
 
@@ -208,5 +303,9 @@ module.exports = {
   registrarAtencion,
   getTurnosSalaEspera,
   getUltimasAdmisiones,
-  actualizarEstadoAtencion
+  actualizarEstadoAtencion,
+  actualizarPaciente,
+  actualizarAtencion,
+  eliminarAtencion,
+  eliminarPaciente
 };

@@ -336,10 +336,12 @@
                   <td class="px-8 py-4 text-slate-600 font-bold uppercase text-center">{{ t.hora_llegada | date: 'shortTime' }}</td>
                 </tr>
                 <tr *ngIf="turnos.length === 0">
-                  <td colspan="6" class="px-8 py-20 text-center">
-                    <div class="flex flex-col items-center justify-center text-slate-400">
-                      <lucide-icon [name]="Search" class="w-10 h-10 mb-3 opacity-20"></lucide-icon>
-                      <p class="italic font-medium">No se han registrado atenciones hoy.</p>
+                  <td colspan="6" class="px-8 py-24 text-center">
+                    <div class="flex flex-col items-center justify-center">
+                      <div class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4">
+                        <lucide-icon [name]="Search" class="w-8 h-8 text-slate-500 opacity-60"></lucide-icon>
+                      </div>
+                      <p class="text-slate-400 italic font-medium">No se han registrado atenciones hoy.</p>
                     </div>
                   </td>
                 </tr>
@@ -533,7 +535,6 @@
                   <th class="px-8 py-5 text-center">Apellido</th>
                   <th class="px-8 py-5 text-center">Cédula</th>
                   <th class="px-8 py-5 text-center">Teléfono</th>
-                  <th class="px-8 py-5 text-center">Correo</th>
                   <th class="px-8 py-5 text-center">Especialidad</th>
                   <th class="px-8 py-5 text-center">Sede</th>
                   <th class="px-8 py-5 text-center">Piso</th>
@@ -548,9 +549,6 @@
                   <td class="px-8 py-4 font-bold text-slate-800 uppercase text-center">{{ m.apellido }}</td>
                   <td class="px-8 py-4 text-slate-600 font-bold tracking-tight text-center">{{ m.cedula }}</td>
                   <td class="px-8 py-4 text-slate-600 font-bold uppercase text-center">{{ m.telefono || 'SIN ASIGNAR' }}</td>
-                  <td class="px-8 py-4 text-slate-600 font-bold text-center">
-                    <span [ngClass]="m.email ? 'lowercase' : 'uppercase font-bold text-slate-600'">{{ m.email || 'SIN ASIGNAR' }}</span>
-                  </td>
                   <td class="px-8 py-4 text-center">
                     <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-bold uppercase tracking-wider border border-blue-100">
                       {{ getNombreEsp(m.servicio_id) }}
@@ -582,10 +580,12 @@
                   </td>
                 </tr>
                 <tr *ngIf="medicosFiltrados.length === 0">
-                  <td colspan="11" class="px-8 py-20 text-center">
-                    <div class="flex flex-col items-center justify-center text-slate-400">
-                      <lucide-icon [name]="Search" class="w-10 h-10 mb-3 opacity-20"></lucide-icon>
-                      <p class="italic font-medium">No se encontraron médicos registrados.</p>
+                  <td colspan="10" class="px-8 py-24 text-center">
+                    <div class="flex flex-col items-center justify-center">
+                      <div class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4">
+                        <lucide-icon [name]="Search" class="w-8 h-8 text-slate-500 opacity-60"></lucide-icon>
+                      </div>
+                      <p class="text-slate-400 italic font-medium">No se encontraron médicos registrados.</p>
                     </div>
                   </td>
                 </tr>
@@ -610,7 +610,7 @@
                   <th class="px-8 py-5 text-center">Apellido</th>
                   <th class="px-8 py-5 text-center">Cédula</th>
                   <th class="px-8 py-5 text-center">Teléfono</th>
-                  <th class="px-8 py-5 text-center">Correo</th>
+                  
                   <th class="px-8 py-5 text-center">Sede</th>
                   <th class="px-8 py-5 text-center">Piso</th>
                   <th class="px-8 py-5 text-center">Estado</th>
@@ -623,9 +623,7 @@
                   <td class="px-8 py-4 font-bold text-slate-800 uppercase text-center">{{ r.apellido }}</td>
                   <td class="px-8 py-4 text-slate-600 font-bold tracking-tight text-center">{{ r.cedula }}</td>
                   <td class="px-8 py-4 text-slate-600 uppercase font-bold text-center">{{ r.telefono || 'SIN ASIGNAR' }}</td>
-                   <td class="px-8 py-4 text-slate-600 font-bold text-center">
-                    <span [ngClass]="r.email ? 'lowercase' : 'uppercase font-bold text-slate-600'">{{ r.email || 'SIN ASIGNAR' }}</span>
-                  </td>
+                   
                   <td class="px-8 py-4 text-slate-600 font-bold text-center">{{ getSedeLabel(r.id_sede) }}</td>
                   <td class="px-8 py-4 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tighter text-center">
                     {{ r.piso ? 'PISO ' + r.piso : 'SIN ASIGNAR' }}
@@ -648,10 +646,12 @@
                   </td>
                 </tr>
                 <tr *ngIf="recepcionistasFiltradas.length === 0">
-                  <td colspan="9" class="px-8 py-20 text-center">
-                    <div class="flex flex-col items-center justify-center text-slate-400">
-                      <lucide-icon [name]="Search" class="w-10 h-10 mb-3 opacity-20"></lucide-icon>
-                      <p class="italic font-medium">No se encontraron recepcionistas registradas.</p>
+                  <td colspan="7" class="px-8 py-24 text-center">
+                    <div class="flex flex-col items-center justify-center">
+                      <div class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4">
+                        <lucide-icon [name]="Search" class="w-8 h-8 text-slate-500 opacity-60"></lucide-icon>
+                      </div>
+                      <p class="text-slate-400 italic font-medium">No se encontraron recepcionistas registradas.</p>
                     </div>
                   </td>
                 </tr>
@@ -676,7 +676,7 @@
                   <th class="px-8 py-5 text-center">Apellido</th>
                   <th class="px-8 py-5 text-center">Cédula</th>
                   <th class="px-8 py-5 text-center">Teléfono</th>
-                  <th class="px-8 py-5 text-center">Correo</th>
+                  
                   <th class="px-8 py-5 text-center">Sede</th>
                   <th class="px-8 py-5 text-center">Estado</th>
                   <th class="px-8 py-5 text-right md:sticky md:right-0 bg-slate-50 dark:bg-slate-800 z-10 border-b border-slate-200 dark:border-slate-800">Acciones</th>
@@ -688,9 +688,7 @@
                   <td class="px-8 py-4 font-bold text-slate-800 uppercase text-center">{{ a.apellido }}</td>
                   <td class="px-8 py-4 text-slate-600 font-bold tracking-tight text-center">{{ a.cedula }}</td>
                   <td class="px-8 py-4 text-slate-600 font-bold uppercase text-center">{{ a.telefono || 'SIN ASIGNAR' }}</td>
-                  <td class="px-8 py-4 text-slate-600 font-bold text-center">
-                    <span [ngClass]="a.email ? 'lowercase' : 'uppercase font-bold text-slate-600'">{{ a.email || 'SIN ASIGNAR' }}</span>
-                  </td>
+                  
                   <td class="px-8 py-4 text-slate-600 font-bold text-center">{{ getSedeLabel(a.id_sede) }}</td>
                   <td class="px-8 py-4 text-center">
                     <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider"
@@ -710,10 +708,12 @@
                   </td>
                 </tr>
                 <tr *ngIf="administradoresFiltrados.length === 0">
-                  <td colspan="8" class="px-8 py-20 text-center">
-                    <div class="flex flex-col items-center justify-center text-slate-400">
-                      <lucide-icon [name]="Search" class="w-10 h-10 mb-3 opacity-20"></lucide-icon>
-                      <p class="italic font-medium">No se encontraron administradores registrados.</p>
+                  <td colspan="7" class="px-8 py-24 text-center">
+                    <div class="flex flex-col items-center justify-center">
+                      <div class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4">
+                        <lucide-icon [name]="Search" class="w-8 h-8 text-slate-500 opacity-60"></lucide-icon>
+                      </div>
+                      <p class="text-slate-400 italic font-medium">No se encontraron administradores registrados.</p>
                     </div>
                   </td>
                 </tr>
@@ -778,10 +778,12 @@
                   </td>
                 </tr>
                 <tr *ngIf="especialidadesFiltradas.length === 0">
-                  <td colspan="6" class="px-8 py-20 text-center">
-                    <div class="flex flex-col items-center justify-center text-slate-400">
-                      <lucide-icon [name]="Search" class="w-10 h-10 mb-3 opacity-20"></lucide-icon>
-                      <p class="italic font-medium">No se encontraron especialidades que coincidan con la búsqueda.</p>
+                  <td colspan="6" class="px-8 py-24 text-center">
+                    <div class="flex flex-col items-center justify-center">
+                      <div class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4">
+                        <lucide-icon [name]="Search" class="w-8 h-8 text-slate-500 opacity-60"></lucide-icon>
+                      </div>
+                      <p class="text-slate-400 italic font-medium">No se encontraron especialidades que coincidan con la búsqueda.</p>
                     </div>
                   </td>
                 </tr>
@@ -834,36 +836,30 @@
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-6">
         
         <!-- DATOS PERSONALES -->
-        <div class="lg:col-span-1 space-y-1.5">
+        <div class="lg:col-span-2 space-y-1.5">
           <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Nombre</label>
           <input [(ngModel)]="formPersonal.nombre" (keypress)="soloLetras($event)" placeholder="Ej: Juan"
             class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
         </div>
-        <!-- REMOVED SEDE FROM HERE -->
-        <div class="lg:col-span-1 space-y-1.5">
+        <div class="lg:col-span-2 space-y-1.5">
           <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Apellido</label>
           <input [(ngModel)]="formPersonal.apellido" (keypress)="soloLetras($event)" placeholder="Ej: Perez"
             class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
         </div>
-        <div class="lg:col-span-1 space-y-1.5">
+        <div class="lg:col-span-2 space-y-1.5">
           <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Cédula</label>
           <input [(ngModel)]="formPersonal.cedula" (keypress)="soloNumeros($event)" placeholder="Ej: 13894759"
             class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
         </div>
 
-        <div class="lg:col-span-1 space-y-1.5">
+        <div class="lg:col-span-2 space-y-1.5">
           <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Teléfono</label>
           <input [(ngModel)]="formPersonal.telefono" (keypress)="soloNumeros($event)" placeholder="Ej: 04141118228"
             class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
         </div>
-        <div class="lg:col-span-2 space-y-1.5">
-          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Correo Electrónico</label>
-          <input [(ngModel)]="formPersonal.email" type="email" (keypress)="sinEspacios($event)" (input)="formPersonal.email = formPersonal.email.toLowerCase()" placeholder="Ej: correo@ejemplo.com"
-            class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
-        </div>
 
-        <!-- SEDE PERSONALIZADA (DESPUÉS DEL CORREO) -->
-        <div class="lg:col-span-1 space-y-1.5">
+        <!-- SEDE PERSONALIZADA (DESPUÉS DEL TELÉFONO) -->
+        <div class="lg:col-span-2 space-y-1.5">
           <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Sede</label>
           <div class="relative sede-dropdown-container">
             <button type="button" (click)="toggleSedeDropdown()"

@@ -25,7 +25,8 @@
                 "input": "public"
               }
             ],
-            "styles": ["src/styles.css"]
+            "styles": ["src/styles.css"],
+            "allowedCommonJsDependencies": ["core-js","canvg","html2canvas","jspdf","raf","rgbcolor"]
           },
           "configurations": {
             "production": {
