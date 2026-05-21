@@ -91,6 +91,24 @@
   .dark .shadow-xl {
     box-shadow: 0 20px 25px -5px rgba(255, 255, 255, 0.1), 0 10px 10px -5px rgba(255, 255, 255, 0.04);
   }
+
+  /* Soft light gray text for table data */
+  table tbody td, 
+  table tbody td *,
+  table tbody td span,
+  table tbody td div {
+    color: #64748b !important; /* slate-500: gris medio en claro */
+  }
+
+  /* Specific Gray for Dark Mode - Force it to not be white */
+  .dark table tbody td,
+  .dark table tbody td *,
+  .dark table tbody td span,
+  .dark table tbody td div,
+  .dark tr td,
+  .dark tr td span {
+    color: #94a3b8 !important; /* slate-400: un gris medio-claro que NO es blanco */
+  }
 }
 
 @keyframes ticker {

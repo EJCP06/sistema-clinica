@@ -1,34 +1,61 @@
 const pool = require('../config/db');
 
+/**
+ * Obtiene el historial de atenciones (turnos) para la sede actual.
+ */
 const getTodosLosTurnos = async (req, res) => {
   try {
     const { consultorio_id } = req.query;
     let query = `
-      SELECT t.*, s.nombre_servicio as servicio_nombre 
-      FROM turnos t 
-      LEFT JOIN "Servicio" s ON t.servicio_id = s.id_servicio
-      WHERE t.id_sede = $1
+      SELECT 
+        a.id_atencion as id, 
+        a.numero, 
+        e.nombre_estado as estado, 
+        a.hora_llegada, 
+        a.hora_salida as hora_fin,
+        p.nombre as nombre_paciente, 
+        p.cedula as documento_paciente, 
+        p.telefono as telefono_paciente,
+        s.nombre_servicio as servicio_nombre, 
+        a.id_sede,
+        a.id_consultorio as consultorio_id
+      FROM "Atencion" a
+      JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
+      JOIN "Servicio" s ON a.id_servicio = s.id_servicio
+      JOIN "Estado" e ON a.id_estado_actual = e.id_estado
+      WHERE a.id_sede = $1
     `;
     const params = [req.usuario.id_sede];
 
     if (consultorio_id) {
-      query += ` AND t.consultorio_id = $2`;
+      query += ` AND a.id_consultorio = $2`;
       params.push(consultorio_id);
     }
 
-    query += ` ORDER BY t.hora_llegada DESC LIMIT 100`;
+    query += ` ORDER BY a.hora_llegada DESC LIMIT 100`;
 
     const result = await pool.query(query, params);
     
-    // Mapeo para compatibilidad con frontend (paciente object)
-    const turnos = result.rows.map(t => ({
-      ...t,
-      paciente: {
-        nombre: t.nombre_paciente,
-        documento: t.documento_paciente,
-        telefono: t.telefono_paciente
-      }
-    }));
+    // Mapeo para compatibilidad con frontend
+    const turnos = result.rows.map(t => {
+      let estadoFrontend = 'EN_ESPERA';
+      const st = t.estado.toLowerCase();
+      
+      if (st === 'atendido') estadoFrontend = 'ATENDIDO';
+      else if (st === 'cancelado') estadoFrontend = 'AUSENTE';
+      else if (st === 'llamado') estadoFrontend = 'LLAMADO';
+      else if (st === 'en atencion') estadoFrontend = 'EN_ATENCION';
+
+      return {
+        ...t,
+        estado: estadoFrontend,
+        paciente: {
+          nombre: t.nombre_paciente,
+          documento: t.documento_paciente,
+          telefono: t.telefono_paciente
+        }
+      };
+    });
 
     res.json(turnos);
   } catch (error) {
@@ -37,12 +64,20 @@ const getTodosLosTurnos = async (req, res) => {
   }
 };
 
+/**
+ * Crea una nueva atención (turno) generando un ticket secuencial.
+ */
 const crearTurno = async (req, res) => {
-  const { nombre_paciente, documento_paciente, telefono_paciente, servicio_id, notificar } = req.body;
+  const { nombre_paciente, documento_paciente, telefono_paciente, servicio_id } = req.body;
 
   if (!nombre_paciente || !documento_paciente || !servicio_id) {
     return res.status(400).json({ mensaje: 'Faltan datos requeridos' });
   }
+
+  // Normalización
+  const nombreMayus = (nombre_paciente || 'PACIENTE').toString().toUpperCase().trim();
+  const documentoLimpio = (documento_paciente || '').toString().replace(/\D/g, '');
+  const telefonoLimpio = telefono_paciente ? telefono_paciente.toString().replace(/\D/g, '') : null;
 
   const client = await pool.connect();
   try {
@@ -55,7 +90,21 @@ const crearTurno = async (req, res) => {
       return res.status(403).json({ mensaje: 'El sistema está cerrado. No se pueden generar nuevos turnos.' });
     }
 
-    // 1. Validar que el servicio exista y BLOQUEARLO
+    // 1. Obtener/Crear Paciente
+    let pacienteId;
+    const pacRes = await client.query('SELECT id_paciente FROM "Pacientes" WHERE cedula = $1', [documentoLimpio]);
+    
+    if (pacRes.rows.length > 0) {
+      pacienteId = pacRes.rows[0].id_paciente;
+    } else {
+      const newPac = await client.query(
+        'INSERT INTO "Pacientes" (cedula, nombre, apellido, telefono, id_sede) VALUES ($1, $2, $3, $4, $5) RETURNING id_paciente',
+        [documentoLimpio, nombreMayus, 'N/A', telefonoLimpio, req.usuario.id_sede]
+      );
+      pacienteId = newPac.rows[0].id_paciente;
+    }
+
+    // 2. Validar Servicio y Bloquear para Numeración
     const servicioRes = await client.query('SELECT * FROM "Servicio" WHERE id_servicio = $1 AND id_sede = $2 FOR UPDATE', [servicio_id, req.usuario.id_sede]);
     if (servicioRes.rows.length === 0) {
       await client.query('ROLLBACK');
@@ -63,101 +112,87 @@ const crearTurno = async (req, res) => {
     }
     const servicio = servicioRes.rows[0];
 
-    // 2. Validación anti-duplicado
-    const dupRes = await client.query(`
-      SELECT id FROM turnos 
-      WHERE documento_paciente = $1 
-      AND servicio_id = $2 
-      AND id_sede = $3
-      AND estado NOT IN ('ATENDIDO', 'AUSENTE')
-    `, [documento_paciente, servicio_id, req.usuario.id_sede]);
-
-    if (dupRes.rows.length > 0) {
-      await client.query('ROLLBACK');
-      return res.status(400).json({ mensaje: 'El paciente ya tiene un turno activo en este servicio' });
-    }
-
-    // 3. Generación de número secuencial (Ahora seguro dentro de la transacción y con FOR UPDATE en el servicio)
-    const ultimoTurnoRes = await client.query(`
-      SELECT numero FROM turnos 
-      WHERE servicio_id = $1 
+    // 3. Generar Número Secuencial
+    const ultimoRes = await client.query(`
+      SELECT numero FROM "Atencion" 
+      WHERE id_servicio = $1 
       AND id_sede = $2
       AND DATE(hora_llegada) = CURRENT_DATE
-      ORDER BY id DESC LIMIT 1
+      ORDER BY id_atencion DESC LIMIT 1
     `, [servicio_id, req.usuario.id_sede]);
 
-    let siguienteNumero = 1;
-    if (ultimoTurnoRes.rows.length > 0) {
-      const ultimoNumero = ultimoTurnoRes.rows[0].numero;
-      const partes = ultimoNumero.split('-');
-      if (partes.length === 2) {
-        siguienteNumero = parseInt(partes[1], 10) + 1;
-      }
+    let siguiente = 1;
+    if (ultimoRes.rows.length > 0 && ultimoRes.rows[0].numero) {
+      const partes = ultimoRes.rows[0].numero.split('-');
+      if (partes.length === 2) siguiente = parseInt(partes[1], 10) + 1;
     }
+    const nuevoNumero = `${servicio.prefijo || 'TK'}-${siguiente.toString().padStart(3, '0')}`.replace(/\s/g, '');
 
-    const nuevoNumeroFormateado = `${servicio.prefijo}-${siguienteNumero.toString().padStart(3, '0')}`;
+    // 4. Registrar Atención (Estado: Sala de Espera = 2)
+    const atencionRes = await client.query(`
+      INSERT INTO "Atencion" (id_paciente, id_servicio, id_estado_actual, id_sede, id_usuario_registro, numero)
+      VALUES ($1, $2, 2, $3, $4, $5)
+      RETURNING id_atencion as id, numero, hora_llegada
+    `, [pacienteId, servicio_id, req.usuario.id_sede, req.usuario.id, nuevoNumero]);
 
-    // 4. Insertar nuevo turno
-    const insertRes = await client.query(`
-      INSERT INTO turnos (numero, estado, servicio_id, nombre_paciente, documento_paciente, telefono_paciente, id_sede)
-      VALUES ($1, 'EN_ESPERA', $2, $3, $4, $5, $6)
-      RETURNING id, numero, hora_llegada, id_sede
-    `, [nuevoNumeroFormateado, servicio_id, nombre_paciente, documento_paciente, telefono_paciente, req.usuario.id_sede]);
+    const atencion = atencionRes.rows[0];
 
-    const turno = insertRes.rows[0];
+    // 5. Historial
+    await client.query('INSERT INTO "Historial_Atencion" (id_atencion, id_estado) VALUES ($1, 2)', [atencion.id]);
 
     await client.query('COMMIT');
 
-    // 5. Opcional: Integración para notificar (ej. SMS)
-    if (notificar) {
-      console.log(`[Simulación] SMS enviado al paciente ${nombre_paciente} al número ${telefono_paciente}`);
-    }
-
     if (req.io) {
-      req.io.emit('nuevo-turno', turno);
+      req.io.emit('nuevo-turno', { ...atencion, estado: 'EN_ESPERA' });
     }
 
-    res.status(201).json(turno);
+    res.status(201).json(atencion);
 
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Error al crear turno:', error);
-    res.status(500).json({ mensaje: 'Error interno del servidor' });
+    res.status(500).json({ mensaje: 'Error al procesar el turno' });
   } finally {
     client.release();
   }
 };
 
-const pausarAtencion = async (req, res) => {
+/**
+ * Marca a un paciente como ausente (Cancelado ID 6).
+ */
+const marcarAusente = async (req, res) => {
   const { id } = req.params;
+  const client = await pool.connect();
   try {
-    const result = await pool.query(
-      "UPDATE turnos SET estado = 'EN_PAUSA' WHERE id = $1 AND estado = 'EN_ATENCION' AND id_sede = $2 RETURNING *",
-      [id, req.usuario.id_sede]
-    );
-    if (result.rows.length === 0) return res.status(400).json({ mensaje: 'El turno no está en atención o no existe' });
-    res.json({ mensaje: 'Atención pausada', turno: result.rows[0] });
+    await client.query('BEGIN');
+    
+    const atencionRes = await client.query('SELECT id_consultorio FROM "Atencion" WHERE id_atencion = $1 FOR UPDATE', [id]);
+    if (atencionRes.rows.length === 0) throw new Error('Atención no encontrada');
+    
+    const consultorioId = atencionRes.rows[0].id_consultorio;
+    
+    await client.query('UPDATE "Atencion" SET id_estado_actual = 6, hora_salida = NOW() WHERE id_atencion = $1', [id]);
+    await client.query('INSERT INTO "Historial_Atencion" (id_atencion, id_estado) VALUES ($1, 6)', [id]);
+    
+    if (consultorioId) {
+      await client.query("UPDATE \"Consultorios\" SET estado_fisico = 'LIBRE' WHERE id_consultorio = $1", [consultorioId]);
+    }
+    
+    await client.query('COMMIT');
+    res.json({ mensaje: 'Paciente marcado como ausente (Cancelado)' });
   } catch (error) {
-    console.error('Error en pausarAtencion:', error);
-    res.status(500).json({ mensaje: 'Error interno' });
+    await client.query('ROLLBACK');
+    console.error('Error en marcarAusente:', error);
+    res.status(500).json({ mensaje: error.message });
+  } finally {
+    client.release();
   }
 };
 
-const reanudarAtencion = async (req, res) => {
-  const { id } = req.params;
-  try {
-    const result = await pool.query(
-      "UPDATE turnos SET estado = 'EN_ATENCION' WHERE id = $1 AND estado = 'EN_PAUSA' AND id_sede = $2 RETURNING *",
-      [id, req.usuario.id_sede]
-    );
-    if (result.rows.length === 0) return res.status(400).json({ mensaje: 'El turno no está en pausa o no existe' });
-    res.json({ mensaje: 'Atención reanudada', turno: result.rows[0] });
-  } catch (error) {
-    console.error('Error en reanudarAtencion:', error);
-    res.status(500).json({ mensaje: 'Error interno' });
-  }
-};
-
+/**
+ * Transfiere a un paciente a otro servicio.
+ * Finaliza la atención actual (Atendido) y crea una nueva.
+ */
 const transferirPaciente = async (req, res) => {
   const { id } = req.params;
   const { nuevo_servicio_id } = req.body;
@@ -166,43 +201,43 @@ const transferirPaciente = async (req, res) => {
   try {
     await client.query('BEGIN');
     
-    // 1. Obtener turno actual y BLOQUEARLO
-    const currentRes = await client.query('SELECT * FROM turnos WHERE id = $1 FOR UPDATE', [id]);
-    if (currentRes.rows.length === 0) throw new Error('Turno no encontrado');
-    const turnoActual = currentRes.rows[0];
+    // 1. Finalizar atención actual (ID 5: Atendido)
+    const currentRes = await client.query('SELECT * FROM "Atencion" WHERE id_atencion = $1 FOR UPDATE', [id]);
+    if (currentRes.rows.length === 0) throw new Error('Atención no encontrada');
+    const actual = currentRes.rows[0];
 
-    // 2. Cerrar turno actual
-    await client.query("UPDATE turnos SET estado = 'TRANSFERIDO', hora_fin = NOW() WHERE id = $1", [id]);
-
-    // 3. Liberar consultorio actual
-    if (turnoActual.consultorio_id) {
-      await client.query("UPDATE \"Consultorios\" SET estado_fisico = 'LIBRE' WHERE id_consultorio = $1", [turnoActual.consultorio_id]);
+    await client.query('UPDATE "Atencion" SET id_estado_actual = 5, hora_salida = NOW() WHERE id_atencion = $1', [id]);
+    
+    if (actual.id_consultorio) {
+      await client.query("UPDATE \"Consultorios\" SET estado_fisico = 'LIBRE' WHERE id_consultorio = $1", [actual.id_consultorio]);
     }
 
-    // 4. Bloquear nuevo servicio para numeración segura
+    // 2. Crear nueva atención en el servicio destino
+    // El frontend hará el flujo de creación o nosotros lo automatizamos aquí
+    // Para simplificar y seguir el plan, llamaremos a la lógica de creación
+    
+    // Bloquear nuevo servicio para numeración
     const servicioRes = await client.query('SELECT * FROM "Servicio" WHERE id_servicio = $1 FOR UPDATE', [nuevo_servicio_id]);
     if (servicioRes.rows.length === 0) throw new Error('Servicio destino no encontrado');
     const servicio = servicioRes.rows[0];
 
-    const ultimoTurnoRes = await client.query(`
-      SELECT numero FROM turnos 
-      WHERE servicio_id = $1 
-      AND DATE(hora_llegada) = CURRENT_DATE
-      ORDER BY id DESC LIMIT 1
+    const ultimoRes = await client.query(`
+      SELECT numero FROM "Atencion" WHERE id_servicio = $1 AND DATE(hora_llegada) = CURRENT_DATE ORDER BY id_atencion DESC LIMIT 1
     `, [nuevo_servicio_id]);
 
-    let siguienteNumero = 1;
-    if (ultimoTurnoRes.rows.length > 0) {
-      const partes = ultimoTurnoRes.rows[0].numero.split('-');
-      if (partes.length === 2) siguienteNumero = parseInt(partes[1], 10) + 1;
+    let siguiente = 1;
+    if (ultimoRes.rows.length > 0 && ultimoRes.rows[0].numero) {
+      const partes = ultimoRes.rows[0].numero.split('-');
+      if (partes.length === 2) siguiente = parseInt(partes[1], 10) + 1;
     }
-    const nuevoNumero = `${servicio.prefijo}-${siguienteNumero.toString().padStart(3, '0')}`;
+    const nuevoNumero = `${servicio.prefijo || 'TK'}-${siguiente.toString().padStart(3, '0')}`.replace(/\s/g, '');
 
-    // 5. Crear nuevo turno heredando la llegada original
     const newRes = await client.query(`
-      INSERT INTO turnos (numero, estado, servicio_id, nombre_paciente, documento_paciente, telefono_paciente, hora_llegada)
-      VALUES ($1, 'EN_ESPERA', $2, $3, $4, $5, $6) RETURNING id, numero
-    `, [nuevoNumero, nuevo_servicio_id, turnoActual.nombre_paciente, turnoActual.documento_paciente, turnoActual.telefono_paciente, turnoActual.hora_llegada]);
+      INSERT INTO "Atencion" (id_paciente, id_servicio, id_estado_actual, id_sede, id_usuario_registro, numero)
+      VALUES ($1, $2, 2, $3, $4, $5) RETURNING id_atencion as id, numero
+    `, [actual.id_paciente, nuevo_servicio_id, req.usuario.id_sede, req.usuario.id, nuevoNumero]);
+
+    await client.query('INSERT INTO "Historial_Atencion" (id_atencion, id_estado) VALUES ($1, 2)', [newRes.rows[0].id]);
 
     await client.query('COMMIT');
     res.json({ mensaje: 'Transferido exitosamente', nuevo_turno: newRes.rows[0] });
@@ -215,39 +250,15 @@ const transferirPaciente = async (req, res) => {
   }
 };
 
-const marcarAusente = async (req, res) => {
-  const { id } = req.params;
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    
-    const turnoRes = await client.query("SELECT consultorio_id FROM turnos WHERE id = $1 AND estado = 'LLAMADO' FOR UPDATE", [id]);
-    if (turnoRes.rows.length === 0) throw new Error('Turno no encontrado o no está en estado LLAMADO');
-    
-    const consultorioId = turnoRes.rows[0].consultorio_id;
-    
-    await client.query("UPDATE turnos SET estado = 'AUSENTE', hora_fin = NOW() WHERE id = $1", [id]);
-    
-    if (consultorioId) {
-      await client.query("UPDATE \"Consultorios\" SET estado_fisico = 'LIBRE' WHERE id_consultorio = $1", [consultorioId]);
-    }
-    
-    await client.query('COMMIT');
-    res.json({ mensaje: 'Paciente marcado como ausente' });
-  } catch (error) {
-    await client.query('ROLLBACK');
-    console.error('Error en marcarAusente:', error);
-    res.status(500).json({ mensaje: error.message });
-  } finally {
-    client.release();
-  }
-};
+// Placeholders para funciones eliminadas
+const pausarAtencion = (req, res) => res.status(410).json({ mensaje: 'Funcionalidad deshabilitada' });
+const reanudarAtencion = (req, res) => res.status(410).json({ mensaje: 'Funcionalidad deshabilitada' });
 
 module.exports = {
   getTodosLosTurnos,
   crearTurno,
-  pausarAtencion,
-  reanudarAtencion,
+  marcarAusente,
   transferirPaciente,
-  marcarAusente
+  pausarAtencion,
+  reanudarAtencion
 };

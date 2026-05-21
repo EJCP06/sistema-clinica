@@ -15,26 +15,14 @@
   >
     <lucide-icon [name]="Sun" class="w-4 h-4 text-amber-500"></lucide-icon>
     <label class="relative inline-flex items-center cursor-pointer group">
-      <input
-        type="checkbox"
-        [checked]="isDarkMode"
-        (change)="toggleDarkMode()"
-        class="sr-only peer"
-      />
-      <div
-        class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 peer-checked:bg-blue-600 shadow-inner transition-none"
-      ></div>
+      <input type="checkbox" [checked]="isDarkMode" (change)="toggleDarkMode()" class="sr-only peer" />
+      <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 peer-checked:bg-slate-800 shadow-inner"></div>
     </label>
-    <lucide-icon
-      [name]="Moon"
-      class="w-4 h-4"
-      [class.text-blue-400]="isDarkMode"
-      [class.text-slate-300]="!isDarkMode"
-    ></lucide-icon>
+    <lucide-icon [name]="Moon" class="w-4 h-4 text-slate-300 dark:text-blue-400"></lucide-icon>
   </div>
 
   <div
-    class="w-full max-w-5xl flex flex-col lg:flex-row rounded-[40px] overflow-hidden shadow-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 relative z-10 backdrop-blur-xl"
+    class="w-full max-w-5xl flex flex-col lg:flex-row rounded-[24px] md:rounded-[40px] overflow-hidden shadow-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 relative z-10 backdrop-blur-xl"
   >
     <!-- Panel Izquierdo (Branding & Info) -->
     <div
@@ -81,12 +69,12 @@
 
     <!-- Panel Derecho (Login Form) -->
     <div
-      class="w-full lg:w-[55%] p-10 lg:p-20 flex flex-col justify-center bg-white dark:bg-transparent transition-colors"
+      class="w-full lg:w-[55%] p-6 md:p-10 lg:p-20 flex flex-col justify-center bg-white dark:bg-transparent transition-colors"
     >
       <div class="max-w-sm mx-auto w-full">
-        <div class="mb-12">
-          <div class="flex items-center gap-3 lg:hidden mb-10">
-            <div class="w-12 h-12 bg-[#ffffff] p-2 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/20">
+        <div class="mb-8 md:mb-12">
+          <div class="flex items-center gap-3 lg:hidden mb-8">
+            <div class="w-10 h-10 md:w-12 md:h-12 bg-[#ffffff] p-2 rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/20">
               <img
                 src="/logo-cnc.png"
                 alt="CNC Logo"
@@ -97,14 +85,14 @@
               />
             </div>
             <div class="flex flex-col items-center">
-              <span class="text-base font-black tracking-tighter text-slate-900 dark:text-white leading-none uppercase">Clinica</span>
-              <span class="text-base font-black tracking-tighter text-slate-900 dark:text-white leading-none uppercase">Nueva Caracas</span>
+              <span class="text-sm md:text-base font-black tracking-tighter text-slate-900 dark:text-white leading-none uppercase">Clinica</span>
+              <span class="text-sm md:text-base font-black tracking-tighter text-slate-900 dark:text-white leading-none uppercase">Nueva Caracas</span>
             </div>
           </div>
-          <h2 class="text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+          <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
             Bienvenido
           </h2>
-          <p class="text-slate-500 dark:text-slate-400 mt-3 font-medium">
+          <p class="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-2 md:mt-3 font-medium">
             Ingresa tus credenciales para acceder
           </p>
         </div>

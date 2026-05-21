@@ -3,21 +3,28 @@ const bcrypt = require('bcryptjs');
 
 // --- REPORTES Y CIERRE DE SISTEMA ---
 
-/**
- * Obtiene el resumen de actividad del día actual.
- */
 const getReporteDiario = async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT t.id, t.numero, t.estado, t.hora_llegada, t.hora_inicio, t.hora_fin,
-             t.nombre_paciente as paciente_nombre, t.documento_paciente as paciente_documento, t.telefono_paciente as paciente_telefono,
-             s.nombre_servicio as servicio, t.id_sede
-      FROM turnos t
-      JOIN "Servicio" s ON t.servicio_id = s.id_servicio
-      WHERE t.hora_llegada >= CURRENT_DATE 
-      AND t.hora_llegada < (CURRENT_DATE + interval '1 day')
-      AND t.id_sede = $1
-      ORDER BY t.hora_llegada DESC
+      SELECT 
+        a.id_atencion as id, 
+        a.numero, 
+        e.nombre_estado as estado, 
+        a.hora_llegada, 
+        a.hora_salida as hora_fin,
+        p.nombre as paciente_nombre, 
+        p.cedula as paciente_documento, 
+        p.telefono as paciente_telefono,
+        s.nombre_servicio as servicio, 
+        a.id_sede
+      FROM "Atencion" a
+      JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
+      JOIN "Servicio" s ON a.id_servicio = s.id_servicio
+      JOIN "Estado" e ON a.id_estado_actual = e.id_estado
+      WHERE a.hora_llegada >= CURRENT_DATE 
+      AND a.hora_llegada < (CURRENT_DATE + interval '1 day')
+      AND a.id_sede = $1
+      ORDER BY a.hora_llegada DESC
     `, [req.usuario.id_sede]);
 
     let atendidos = 0;
@@ -28,30 +35,39 @@ const getReporteDiario = async (req, res) => {
     let tiempoAtencionTotal = 0;
 
     const turnosProcesados = result.rows.map((t) => {
-      // Mapeo para el frontend que espera objeto paciente
-      const processed = {
+      let estadoFrontend = 'EN_ESPERA';
+      const st = t.estado.toLowerCase();
+      
+      if (st === 'atendido') {
+        estadoFrontend = 'ATENDIDO';
+        atendidos++;
+      } else if (st === 'cancelado') {
+        estadoFrontend = 'AUSENTE';
+        ausentes++;
+      } else if (st === 'llamado') {
+        estadoFrontend = 'LLAMADO';
+        en_espera++;
+      } else if (st === 'en atencion') {
+        estadoFrontend = 'EN_ATENCION';
+        en_espera++;
+      } else {
+        en_espera++;
+      }
+
+      return {
         ...t,
+        estado: estadoFrontend,
         paciente: {
           nombre: t.paciente_nombre,
           documento: t.paciente_documento || 'N/D',
           telefono: t.paciente_telefono || 'N/D',
         },
       };
-
-      if (t.estado === 'ATENDIDO') {
-        atendidos++;
-        // ... (resto de lógica de tiempos si existieran las columnas en t)
-      } else if (t.estado === 'AUSENTE') ausentes++;
-      else if (t.estado === 'TRANSFERIDO') transferidos++;
-      else if (t.estado === 'EN_ESPERA' || t.estado === 'LLAMADO') en_espera++;
-
-      return processed;
     });
 
     const promedios = {
       esperaMinutos: atendidos > 0 ? (tiempoEsperaTotal / atendidos / 60000).toFixed(2) : '0.00',
-      atencionMinutos:
-        atendidos > 0 ? (tiempoAtencionTotal / atendidos / 60000).toFixed(2) : '0.00',
+      atencionMinutos: atendidos > 0 ? (tiempoAtencionTotal / atendidos / 60000).toFixed(2) : '0.00',
     };
 
     res.json({
@@ -66,29 +82,23 @@ const getReporteDiario = async (req, res) => {
   }
 };
 
-/**
- * Estadísticas avanzadas con filtrado por rango de fechas.
- */
 const getEstadisticasAvanzadas = async (req, res) => {
   try {
-    // 1. Tiempos Promedio (Espera y Atención)
     const tiemposPromedio = await pool.query(
       `
       SELECT 
-        AVG(EXTRACT(EPOCH FROM (h2.fecha_hora_entrada - h1.fecha_hora_entrada))/60) as promedio_espera_min,
-        AVG(EXTRACT(EPOCH FROM (h2.fecha_hora_salida - h2.fecha_hora_entrada))/60) as promedio_atencion_min
+        AVG(EXTRACT(EPOCH FROM (h2.fecha_hora - h1.fecha_hora))/60) as promedio_espera_min,
+        AVG(EXTRACT(EPOCH FROM (a.hora_salida - a.hora_llegada))/60) as promedio_atencion_min
       FROM "Historial_Atencion" h1
       JOIN "Historial_Atencion" h2 ON h1.id_atencion = h2.id_atencion
-      JOIN "Estado" e1 ON h1.id_estado = e1.id_estado
-      JOIN "Estado" e2 ON h2.id_estado = e2.id_estado
-      WHERE e1.nombre_estado = 'Registro' AND e2.nombre_estado = 'En Atención'
-      AND h1.id_sede = $1
-      AND h1.fecha_hora_entrada >= (CURRENT_DATE - interval '30 days')
+      JOIN "Atencion" a ON h1.id_atencion = a.id_atencion
+      WHERE h1.id_estado = 2 AND h2.id_estado = 4
+      AND a.id_sede = $1
+      AND h1.fecha_hora >= (CURRENT_DATE - interval '30 days')
     `,
       [req.usuario.id_sede],
     );
 
-    // 2. Pacientes por Servicio
     const porServicio = await pool.query(
       `
       SELECT s.nombre_servicio as nombre, COUNT(a.id_atencion) as total
@@ -100,7 +110,6 @@ const getEstadisticasAvanzadas = async (req, res) => {
       [req.usuario.id_sede],
     );
 
-    // 3. Distribución por Responsable de Pago
     const porPago = await pool.query(
       `
       SELECT r.nombre, COUNT(a.id_atencion) as total
@@ -112,7 +121,6 @@ const getEstadisticasAvanzadas = async (req, res) => {
       [req.usuario.id_sede],
     );
 
-    // 4. Últimos Movimientos (Auditoría)
     const auditoria = await pool.query(
       `
       SELECT p.nombre, p.apellido, e.nombre_estado, a.hora_llegada as fecha_creacion, u.cedula as responsable
@@ -129,8 +137,8 @@ const getEstadisticasAvanzadas = async (req, res) => {
 
     res.json({
       estadisticas: {
-        espera: Math.round(tiemposPromedio.rows[0].promedio_espera_min || 0),
-        atencion: Math.round(tiemposPromedio.rows[0].promedio_atencion_min || 0),
+        espera: Math.round(tiemposPromedio.rows[0]?.promedio_espera_min || 0),
+        atencion: Math.round(tiemposPromedio.rows[0]?.promedio_atencion_min || 0),
         total_pacientes: auditoria.rowCount > 0 ? auditoria.rows.length : 0,
       },
       por_servicio: porServicio.rows,
@@ -143,43 +151,30 @@ const getEstadisticasAvanzadas = async (req, res) => {
   }
 };
 
-/**
- * Cierra el sistema para el día actual.
- */
 const cerrarSistema = async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-
-    // 1. Marcar como ausentes los turnos que quedaron colgados
     await client.query(
       `
-      UPDATE turnos 
-      SET estado = 'AUSENTE', hora_fin = NOW() 
-      WHERE estado IN ('EN_ESPERA', 'LLAMADO') 
+      UPDATE "Atencion" 
+      SET id_estado_actual = 6, hora_salida = NOW() 
+      WHERE id_estado_actual IN (2, 3) 
       AND DATE(hora_llegada) = CURRENT_DATE
       AND id_sede = $1
     `,
       [req.usuario.id_sede],
     );
 
-    // 2. Resetear todos los consultorios a estado LIBRE
     await client.query('UPDATE "Consultorios" SET estado_fisico = \'LIBRE\' WHERE id_sede = $1', [
       req.usuario.id_sede,
     ]);
 
-    // 3. Registrar el cierre en configuraciones
     await client.query("DELETE FROM configuraciones WHERE clave = 'sistema_cerrado'");
-    await client.query(
-      "INSERT INTO configuraciones (clave, valor) VALUES ('sistema_cerrado', 'true')",
-    );
+    await client.query("INSERT INTO configuraciones (clave, valor) VALUES ('sistema_cerrado', 'true')");
 
     await client.query('COMMIT');
-
-    if (req.io) {
-      req.io.emit('sistema-cerrado', { mensaje: 'Atención finalizada por hoy.' });
-    }
-
+    if (req.io) req.io.emit('sistema-cerrado', { mensaje: 'Atención finalizada por hoy.' });
     res.json({ mensaje: 'Sistema cerrado exitosamente.' });
   } catch (error) {
     await client.query('ROLLBACK');
@@ -195,138 +190,71 @@ const cerrarSistema = async (req, res) => {
 const getServicios = async (req, res) => {
   try {
     const result = await pool.query(
-      `
-      SELECT id_servicio as id, nombre_servicio as nombre, status as activo, 
-             prefijo, piso, consultorio, id_sede
-      FROM "Servicio" 
-      WHERE id_sede = $1
-      ORDER BY nombre_servicio ASC
-    `,
-      [req.usuario.id_sede],
+      `SELECT id_servicio as id, nombre_servicio as nombre, status as activo, prefijo, piso, consultorio, id_sede
+       FROM "Servicio" WHERE id_sede = $1 ORDER BY nombre_servicio ASC`,
+      [req.usuario.id_sede]
     );
     res.json(result.rows);
   } catch (error) {
-    console.error('Error en getServicios:', error);
-    res.status(500).json({ mensaje: 'Error al obtener la lista de servicios' });
+    res.status(500).json({ mensaje: 'Error al obtener servicios' });
   }
 };
 
 const getResponsables = async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT id_responsable as id, nombre FROM "Responsable_Pago" ORDER BY id_responsable ASC',
-    );
+    const result = await pool.query('SELECT id_responsable as id, nombre FROM "Responsable_Pago" ORDER BY id_responsable ASC');
     res.json(result.rows);
   } catch (error) {
-    console.error('Error en getResponsables:', error);
-    res.status(500).json({ mensaje: 'Error al obtener responsables de pago' });
+    res.status(500).json({ mensaje: 'Error al obtener responsables' });
   }
 };
 
 const crearServicio = async (req, res) => {
   try {
-    const { nombre, activo, prefijo, piso, consultorio, id_sede } = req.body;
+    let { nombre, activo, prefijo, piso, consultorio, id_sede } = req.body;
     const sedeId = id_sede || req.usuario.id_sede;
-    const nombreMayus = (nombre || '').toUpperCase().trim();
-    const pisoLimpio = piso ? piso.toString().replace(/\D/g, '') : null;
-    const consultorioMayus = consultorio ? consultorio.toUpperCase().trim() : null;
+    nombre = (nombre || '').toString().toUpperCase().trim();
+    prefijo = (prefijo || '').toString().toUpperCase().trim();
+    piso = piso ? piso.toString().replace(/\D/g, '') : null;
+    consultorio = consultorio ? consultorio.toString().toUpperCase().trim() : null;
 
     const result = await pool.query(
-      `INSERT INTO "Servicio" 
-       (nombre_servicio, status, prefijo, piso, consultorio, id_sede) 
-       VALUES ($1, $2, $3, $4, $5, $6) 
-       RETURNING id_servicio as id, nombre_servicio as nombre, piso, consultorio, id_sede`,
-      [
-        nombreMayus || 'NUEVO SERVICIO',
-        activo ?? true,
-        (prefijo || '').toUpperCase().trim(),
-        pisoLimpio,
-        consultorioMayus,
-        sedeId,
-      ],
+      `INSERT INTO "Servicio" (nombre_servicio, status, prefijo, piso, consultorio, id_sede) 
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id_servicio as id`,
+      [nombre, activo ?? true, prefijo, piso, consultorio, sedeId]
     );
-
-    // Auto-sincronizar tabla Consultorios para el flujo médico
-    const newId = result.rows[0].id;
-    if (consultorioMayus && pisoLimpio) {
-      const nombres = consultorioMayus
-        .split(',')
-        .map((n) => n.trim())
-        .filter((n) => n);
-      for (const cn of nombres) {
-        await pool.query(
-          `INSERT INTO "Consultorios" (nombre, piso, id_servicio, estado_fisico, id_sede) VALUES ($1, $2, $3, 'LIBRE', $4)`,
-          [cn, pisoLimpio, newId, sedeId],
-        );
-      }
-    }
-
     res.status(201).json(result.rows[0]);
   } catch (error) {
-    console.error('Error al crear servicio:', error);
-    res.status(500).json({ mensaje: 'Error al registrar el nuevo servicio' });
+    res.status(500).json({ mensaje: 'Error al crear servicio' });
   }
 };
 
 const actualizarServicio = async (req, res) => {
   const { id } = req.params;
-  const { nombre, activo, prefijo, piso, consultorio, id_sede } = req.body;
+  let { nombre, activo, prefijo, piso, consultorio, id_sede } = req.body;
   const sedeId = id_sede || req.usuario.id_sede;
   try {
-    // Sanitización y Formateo
-    const nombreMayus = nombre ? nombre.toUpperCase().trim() : null;
-    const pisoLimpio = piso ? piso.toString().replace(/\D/g, '') : null;
-    const consultorioMayus = consultorio ? consultorio.toUpperCase().trim() : null;
+    nombre = nombre ? nombre.toString().toUpperCase().trim() : null;
+    prefijo = prefijo ? prefijo.toString().toUpperCase().trim() : null;
+    piso = piso ? piso.toString().replace(/\D/g, '') : null;
+    consultorio = consultorio ? consultorio.toString().toUpperCase().trim() : null;
 
-    const result = await pool.query(
-      `UPDATE "Servicio" 
-       SET nombre_servicio = $1, status = $2, prefijo = $3, piso = $4, consultorio = $5, id_sede = $6
-       WHERE id_servicio = $7 
-       RETURNING id_servicio as id, id_sede`,
-      [
-        nombreMayus,
-        activo,
-        prefijo ? prefijo.toUpperCase().trim() : null,
-        pisoLimpio,
-        consultorioMayus,
-        sedeId,
-        id,
-      ],
+    await pool.query(
+      `UPDATE "Servicio" SET nombre_servicio = $1, status = $2, prefijo = $3, piso = $4, consultorio = $5, id_sede = $6 WHERE id_servicio = $7`,
+      [nombre, activo, prefijo, piso, consultorio, sedeId, id]
     );
-    if (result.rows.length === 0)
-      return res.status(404).json({ mensaje: 'Servicio no encontrado' });
-
-    // Auto-sincronizar tabla Consultorios
-    if (consultorioMayus && pisoLimpio) {
-      // Eliminar consultorios previos de este servicio y recrear
-      await pool.query('DELETE FROM "Consultorios" WHERE id_servicio = $1', [id]);
-      const nombres = consultorioMayus
-        .split(',')
-        .map((n) => n.trim())
-        .filter((n) => n);
-      for (const cn of nombres) {
-        await pool.query(
-          `INSERT INTO "Consultorios" (nombre, piso, id_servicio, estado_fisico, id_sede) VALUES ($1, $2, $3, 'LIBRE', $4)`,
-          [cn, pisoLimpio, id, sedeId],
-        );
-      }
-    }
-
-    res.json(result.rows[0]);
+    res.json({ mensaje: 'Servicio actualizado' });
   } catch (error) {
-    console.error('Error al actualizar servicio:', error);
-    res.status(500).json({ mensaje: 'Error al actualizar el servicio' });
+    res.status(500).json({ mensaje: 'Error al actualizar servicio' });
   }
 };
 
 const eliminarServicio = async (req, res) => {
-  const { id } = req.params;
   try {
-    await pool.query('DELETE FROM "Servicio" WHERE id_servicio = $1', [id]);
-    res.json({ mensaje: 'Servicio eliminado correctamente' });
+    await pool.query('DELETE FROM "Servicio" WHERE id_servicio = $1', [req.params.id]);
+    res.json({ mensaje: 'Servicio eliminado' });
   } catch (error) {
-    console.error('Error al eliminar servicio:', error);
-    res.status(500).json({ mensaje: 'Error al eliminar el servicio' });
+    res.status(500).json({ mensaje: 'Error al eliminar servicio' });
   }
 };
 
@@ -335,107 +263,93 @@ const eliminarServicio = async (req, res) => {
 const getConsultorios = async (req, res) => {
   try {
     const result = await pool.query(
-      `
-      SELECT c.id_consultorio as id, c.nombre, c.piso, c.estado_fisico as estado, c.id_servicio as servicio_id, s.nombre_servicio as servicio_nombre
-      FROM "Consultorios" c
-      LEFT JOIN "Servicio" s ON c.id_servicio = s.id_servicio
-      WHERE c.id_sede = $1
-      ORDER BY c.nombre ASC
-    `,
-      [req.usuario.id_sede],
+      `SELECT c.id_consultorio as id, c.nombre, c.piso, c.estado_fisico as estado, c.id_servicio as servicio_id, s.nombre_servicio as servicio_nombre
+       FROM "Consultorios" c LEFT JOIN "Servicio" s ON c.id_servicio = s.id_servicio WHERE c.id_sede = $1 ORDER BY c.nombre ASC`,
+      [req.usuario.id_sede]
     );
     res.json(result.rows);
   } catch (error) {
-    console.error('Error en getConsultorios:', error);
     res.status(500).json({ mensaje: 'Error al obtener consultorios' });
   }
 };
 
 const getAseguradoras = async (req, res) => {
   try {
-    const result = await pool.query(
-      `
-      SELECT c.nombre as aseguradora, t.nombre as tipo
-      FROM "cliente" c
-      JOIN "tipo_cliente" t ON c.id_tipo_cliente = t.id_tipo_cliente
-      WHERE c.id_tipo_cliente = 2
-      ORDER BY c.nombre ASC
-    `,
-      [],
-    );
+    const result = await pool.query('SELECT * FROM vista_aseguradoras WHERE id_sede = $1', [req.usuario.id_sede]);
     res.json(result.rows);
   } catch (error) {
-    console.error('Error en getAseguradoras:', error);
     res.status(500).json({ mensaje: 'Error al obtener aseguradoras' });
   }
 };
 
 const crearAseguradora = async (req, res) => {
-  const { nombre } = req.body;
-
-  if (!nombre || !nombre.toString().trim()) {
-    return res.status(400).json({ mensaje: 'El nombre de la aseguradora es obligatorio' });
-  }
-
+  let { nombre } = req.body;
+  if (!nombre) return res.status(400).json({ mensaje: 'Nombre obligatorio' });
   try {
-    const result = await pool.query(
-      'INSERT INTO "cliente" (id_tipo_cliente, nombre) VALUES ($1, $2) RETURNING id_cliente as id, nombre',
-      [2, nombre.toString().trim()]
-    );
-    res.status(201).json(result.rows[0]);
+    await pool.query('INSERT INTO "cliente" (id_tipo_cliente, nombre, id_sede) VALUES ($1, $2, $3)', [2, nombre.toString().toUpperCase().trim(), req.usuario.id_sede]);
+    res.status(201).json({ mensaje: 'Aseguradora creada' });
   } catch (error) {
-    console.error('Error en crearAseguradora:', error);
-    res.status(500).json({ mensaje: 'Error al crear aseguradora', error: error.message });
+    res.status(500).json({ mensaje: 'Error al crear aseguradora' });
+  }
+};
+
+const actualizarAseguradora = async (req, res) => {
+  const { id } = req.params;
+  const { nombre } = req.body;
+  try {
+    await pool.query('UPDATE "cliente" SET nombre = $1 WHERE id_cliente = $2 AND id_sede = $3', [nombre.toUpperCase().trim(), id, req.usuario.id_sede]);
+    res.json({ mensaje: 'Aseguradora actualizada' });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al actualizar aseguradora' });
+  }
+};
+
+const eliminarAseguradora = async (req, res) => {
+  const { id } = req.params;
+  try {
+    // Verificar si tiene atenciones asociadas
+    const check = await pool.query('SELECT COUNT(*) FROM "Atencion" WHERE id_cliente = $1', [id]);
+    if (parseInt(check.rows[0].count) > 0) {
+      return res.status(400).json({ mensaje: 'No se puede eliminar una aseguradora con historial de atenciones' });
+    }
+    await pool.query('DELETE FROM "cliente" WHERE id_cliente = $1 AND id_sede = $2', [id, req.usuario.id_sede]);
+    res.json({ mensaje: 'Aseguradora eliminada' });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al eliminar aseguradora' });
   }
 };
 
 const crearConsultorio = async (req, res) => {
-  const { nombre, servicio_id, piso } = req.body;
+  let { nombre, servicio_id, piso } = req.body;
   try {
-    // Sanitización y Formateo
-    const nombreMayus = nombre.toUpperCase().trim();
-    const pisoLimpio = piso ? piso.toString().replace(/\D/g, '') : null;
-
-    const result = await pool.query(
-      'INSERT INTO "Consultorios" (nombre, id_servicio, piso, estado_fisico, id_sede) VALUES ($1, $2, $3, $4, $5) RETURNING id_consultorio as id',
-      [nombreMayus, servicio_id, pisoLimpio, 'LIBRE', req.usuario.id_sede],
-    );
-    res.status(201).json(result.rows[0]);
+    nombre = (nombre || '').toString().toUpperCase().trim();
+    piso = piso ? piso.toString().replace(/\D/g, '') : null;
+    await pool.query('INSERT INTO "Consultorios" (nombre, id_servicio, piso, id_sede) VALUES ($1, $2, $3, $4)', [nombre, servicio_id, piso, req.usuario.id_sede]);
+    res.status(201).json({ mensaje: 'Consultorio creado' });
   } catch (error) {
-    console.error('Error al crear consultorio:', error);
-    res.status(500).json({ mensaje: 'Error al registrar consultorio' });
+    res.status(500).json({ mensaje: 'Error al crear consultorio' });
   }
 };
 
 const actualizarConsultorio = async (req, res) => {
   const { id } = req.params;
-  const { nombre, servicio_id, piso } = req.body;
+  let { nombre, servicio_id, piso } = req.body;
   try {
-    // Sanitización y Formateo
-    const nombreMayus = nombre ? nombre.toUpperCase().trim() : null;
-    const pisoLimpio = piso ? piso.toString().replace(/\D/g, '') : null;
-
-    const result = await pool.query(
-      'UPDATE "Consultorios" SET nombre = $1, id_servicio = $2, piso = $3 WHERE id_consultorio = $4 RETURNING id_consultorio as id',
-      [nombreMayus, servicio_id, pisoLimpio, id],
-    );
-    if (result.rows.length === 0)
-      return res.status(404).json({ mensaje: 'Consultorio no encontrado' });
-    res.json(result.rows[0]);
+    nombre = nombre ? nombre.toString().toUpperCase().trim() : null;
+    piso = piso ? piso.toString().replace(/\D/g, '') : null;
+    await pool.query('UPDATE "Consultorios" SET nombre = $1, id_servicio = $2, piso = $3 WHERE id_consultorio = $4', [nombre, servicio_id, piso, id]);
+    res.json({ mensaje: 'Consultorio actualizado' });
   } catch (error) {
-    console.error('Error al actualizar consultorio:', error);
     res.status(500).json({ mensaje: 'Error al actualizar consultorio' });
   }
 };
 
 const eliminarConsultorio = async (req, res) => {
-  const { id } = req.params;
   try {
-    await pool.query('DELETE FROM "Consultorios" WHERE id_consultorio = $1', [id]);
+    await pool.query('DELETE FROM "Consultorios" WHERE id_consultorio = $1', [req.params.id]);
     res.json({ mensaje: 'Consultorio eliminado' });
   } catch (error) {
-    console.error('Error al eliminar consultorio:', error);
-    res.status(500).json({ mensaje: 'Error al eliminar el consultorio' });
+    res.status(500).json({ mensaje: 'Error al eliminar consultorio' });
   }
 };
 
@@ -443,124 +357,70 @@ const eliminarConsultorio = async (req, res) => {
 
 const getMedicos = async (req, res) => {
   try {
-    const result = await pool.query(
-      `
-      SELECT id_usuario as id, rol, id_consultorio as consultorio_id, id_servicio as servicio_id, nombre, apellido, cedula, telefono, email, status as activo, piso, id_sede
-      FROM "Usuarios" 
-      WHERE rol = 'medico' AND id_sede = $1
-      ORDER BY apellido ASC, nombre ASC
-    `,
-      [req.usuario.id_sede],
-    );
+    const result = await pool.query('SELECT * FROM "Usuarios" WHERE rol = \'medico\' AND id_sede = $1', [req.usuario.id_sede]);
     res.json(result.rows);
   } catch (error) {
-    console.error('Error en getMedicos:', error);
-    res.status(500).json({ mensaje: 'Error al obtener lista de médicos' });
+    res.status(500).json({ mensaje: 'Error al obtener médicos' });
   }
 };
 
 const crearMedico = async (req, res) => {
-  const {
-    username,
-    password,
-    nombre,
-    apellido,
-    cedula,
-    telefono,
-    email,
-    activo,
-    id_consultorio,
-    servicio_id,
-    piso,
-  } = req.body;
+  let { nombre, apellido, cedula, telefono, email, password, servicio_id, id_consultorio, piso } = req.body;
   try {
     const salt = await bcrypt.genSalt(10);
-    const password_hash = await bcrypt.hash(password, salt);
+    const hash = await bcrypt.hash(password || cedula, salt);
+    nombre = (nombre || '').toString().toUpperCase().trim();
+    apellido = (apellido || '').toString().toUpperCase().trim();
+    cedula = (cedula || '').toString().replace(/\D/g, '');
+    telefono = telefono ? telefono.toString().replace(/\D/g, '') : null;
+    email = email ? email.toString().toLowerCase().trim() : null;
 
-    const result = await pool.query(
-      `INSERT INTO "Usuarios" (password_hash, rol, nombre, apellido, cedula, telefono, email, status, id_consultorio, id_servicio, piso, id_sede) 
-       VALUES ($1, 'medico', $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id_usuario as id, cedula`,
-      [
-        password_hash,
-        (nombre || '').toUpperCase().trim(),
-        (apellido || '').toUpperCase().trim(),
-        (cedula || '').toString().replace(/\D/g, ''),
-        telefono || null,
-        email ? email.toLowerCase().trim() : null,
-        activo ?? true,
-        id_consultorio || null,
-        servicio_id || null,
-        piso || null,
-        req.usuario.id_sede
-      ],
+    await pool.query(
+      `INSERT INTO "Usuarios" (nombre, apellido, cedula, telefono, email, password_hash, rol, id_servicio, id_consultorio, piso, id_sede) 
+       VALUES ($1, $2, $3, $4, $5, $6, 'medico', $7, $8, $9, $10)`,
+      [nombre, apellido, cedula, telefono, email, hash, servicio_id, id_consultorio, piso, req.usuario.id_sede]
     );
-    res.status(201).json(result.rows[0]);
+    res.status(201).json({ mensaje: 'Médico creado' });
   } catch (error) {
-    console.error('Error al crear médico:', error);
-    res
-      .status(500)
-      .json({
-        mensaje: 'Error al registrar médico (verifique si el username o cédula ya existen)',
-      });
+    res.status(500).json({ mensaje: 'Error al crear médico' });
   }
 };
 
 const actualizarMedico = async (req, res) => {
   const { id } = req.params;
-  const {
-    username,
-    nombre,
-    apellido,
-    cedula,
-    telefono,
-    email,
-    activo,
-    id_consultorio,
-    servicio_id,
-    password,
-    piso,
-  } = req.body;
+  let { nombre, apellido, cedula, telefono, email, password, servicio_id, id_consultorio, piso } = req.body;
   try {
-    let query = `UPDATE "Usuarios" SET nombre = $1, apellido = $2, cedula = $3, telefono = $4, email = $5, status = $6, id_consultorio = $7, id_servicio = $8, piso = $9`;
-    const params = [
-      (nombre || '').toUpperCase().trim(),
-      (apellido || '').toUpperCase().trim(),
-      (cedula || '').toString().replace(/\D/g, ''),
-      telefono || null,
-      email ? email.toLowerCase().trim() : null,
-      activo,
-      id_consultorio || null,
-      servicio_id || null,
-      piso || null,
-    ];
+    nombre = (nombre || '').toString().toUpperCase().trim();
+    apellido = (apellido || '').toString().toUpperCase().trim();
+    cedula = (cedula || '').toString().replace(/\D/g, '');
+    telefono = telefono ? telefono.toString().replace(/\D/g, '') : null;
+    email = email ? email.toString().toLowerCase().trim() : null;
 
-    if (password && password.trim() !== '') {
+    let query = `UPDATE "Usuarios" SET nombre=$1, apellido=$2, cedula=$3, telefono=$4, email=$5, id_servicio=$6, id_consultorio=$7, piso=$8`;
+    let params = [nombre, apellido, cedula, telefono, email, servicio_id, id_consultorio, piso];
+
+    if (password) {
       const salt = await bcrypt.genSalt(10);
-      const password_hash = await bcrypt.hash(password, salt);
-      query += `, password_hash = $${params.length + 1}`;
-      params.push(password_hash);
+      const hash = await bcrypt.hash(password, salt);
+      query += `, password_hash=$9`;
+      params.push(hash);
     }
-
-    query += ` WHERE id_usuario = $${params.length + 1} AND rol = 'medico' RETURNING id_usuario as id, cedula`;
+    query += ` WHERE id_usuario=$${params.length + 1}`;
     params.push(id);
 
-    const result = await pool.query(query, params);
-    if (result.rows.length === 0) return res.status(404).json({ mensaje: 'Médico no encontrado' });
-    res.json(result.rows[0]);
+    await pool.query(query, params);
+    res.json({ mensaje: 'Médico actualizado' });
   } catch (error) {
-    console.error('Error al actualizar médico:', error);
-    res.status(500).json({ mensaje: 'Error al actualizar datos del médico' });
+    res.status(500).json({ mensaje: 'Error al actualizar médico' });
   }
 };
 
 const eliminarMedico = async (req, res) => {
-  const { id } = req.params;
   try {
-    await pool.query('DELETE FROM "Usuarios" WHERE id_usuario = $1 AND rol = $2', [id, 'medico']);
-    res.json({ mensaje: 'Médico eliminado exitosamente' });
+    await pool.query('DELETE FROM "Usuarios" WHERE id_usuario = $1', [req.params.id]);
+    res.json({ mensaje: 'Médico eliminado' });
   } catch (error) {
-    console.error('Error al eliminar médico:', error);
-    res.status(500).json({ mensaje: 'Error al intentar eliminar el médico' });
+    res.status(500).json({ mensaje: 'Error al eliminar médico' });
   }
 };
 
@@ -568,287 +428,153 @@ const eliminarMedico = async (req, res) => {
 
 const getRecepcionistas = async (req, res) => {
   try {
-    const query = `
-      SELECT id_usuario as id, nombre, apellido, cedula, telefono, email, status as activo, rol, id_consultorio, id_servicio, piso, id_sede
-      FROM "Usuarios" 
-      WHERE rol = 'recepcionista' 
-      AND id_sede = $1
-      ORDER BY nombre ASC
-    `;
-    const result = await pool.query(query, [req.usuario?.id_sede]);
+    const result = await pool.query('SELECT * FROM "Usuarios" WHERE rol = \'recepcionista\' AND id_sede = $1', [req.usuario.id_sede]);
     res.json(result.rows);
   } catch (error) {
-    console.error('Error en getRecepcionistas:', error);
-    res.status(500).json({ mensaje: 'Error al obtener lista de recepcionistas' });
+    res.status(500).json({ mensaje: 'Error al obtener recepcionistas' });
   }
 };
 
 const crearRecepcionista = async (req, res) => {
-  const { username, password, nombre, apellido, cedula, telefono, email, activo, piso } = req.body;
+  let { nombre, apellido, cedula, telefono, email, password, piso } = req.body;
   try {
     const salt = await bcrypt.genSalt(10);
-    const password_hash = await bcrypt.hash(password, salt);
+    const hash = await bcrypt.hash(password || cedula, salt);
+    nombre = (nombre || '').toString().toUpperCase().trim();
+    apellido = (apellido || '').toString().toUpperCase().trim();
+    cedula = (cedula || '').toString().replace(/\D/g, '');
+    telefono = telefono ? telefono.toString().replace(/\D/g, '') : null;
+    email = email ? email.toString().toLowerCase().trim() : null;
 
-    const result = await pool.query(
-      `INSERT INTO "Usuarios" (password_hash, rol, nombre, apellido, cedula, telefono, email, status, piso, id_consultorio, id_servicio, id_sede) 
-       VALUES ($1, 'recepcionista', $2, $3, $4, $5, $6, $7, $8, NULL, NULL, $9) RETURNING id_usuario as id, cedula`,
-      [
-        password_hash,
-        (nombre || '').toUpperCase().trim(),
-        (apellido || '').toUpperCase().trim(),
-        (cedula || '').toString().replace(/\D/g, ''),
-        telefono || null,
-        email ? email.toLowerCase().trim() : null,
-        activo ?? true,
-        piso || null,
-        req.usuario.id_sede
-      ],
+    await pool.query(
+      `INSERT INTO "Usuarios" (nombre, apellido, cedula, telefono, email, password_hash, rol, piso, id_sede) 
+       VALUES ($1, $2, $3, $4, $5, $6, 'recepcionista', $7, $8)`,
+      [nombre, apellido, cedula, telefono, email, hash, piso, req.usuario.id_sede]
     );
-    res.status(201).json(result.rows[0]);
+    res.status(201).json({ mensaje: 'Recepcionista creada' });
   } catch (error) {
-    console.error('Error al crear recepcionista:', error);
-    res.status(500).json({ mensaje: 'Error al registrar recepcionista' });
+    res.status(500).json({ mensaje: 'Error al crear recepcionista' });
   }
 };
 
 const actualizarRecepcionista = async (req, res) => {
   const { id } = req.params;
-  const { username, nombre, apellido, cedula, telefono, email, activo, password, piso } = req.body;
+  let { nombre, apellido, cedula, telefono, email, password, piso } = req.body;
   try {
-    let query = `UPDATE "Usuarios" SET nombre = $1, apellido = $2, cedula = $3, telefono = $4, email = $5, status = $6, piso = $7, id_consultorio = NULL, id_servicio = NULL`;
-    const params = [
-      (nombre || '').toUpperCase().trim(),
-      (apellido || '').toUpperCase().trim(),
-      (cedula || '').toString().replace(/\D/g, ''),
-      telefono || null,
-      email ? email.toLowerCase().trim() : null,
-      activo,
-      piso || null
-    ];
+    nombre = (nombre || '').toString().toUpperCase().trim();
+    apellido = (apellido || '').toString().toUpperCase().trim();
+    cedula = (cedula || '').toString().replace(/\D/g, '');
+    telefono = telefono ? telefono.toString().replace(/\D/g, '') : null;
+    email = email ? email.toString().toLowerCase().trim() : null;
 
-    if (password && password.trim() !== '') {
+    let query = `UPDATE "Usuarios" SET nombre=$1, apellido=$2, cedula=$3, telefono=$4, email=$5, piso=$6`;
+    let params = [nombre, apellido, cedula, telefono, email, piso];
+
+    if (password) {
       const salt = await bcrypt.genSalt(10);
-      const password_hash = await bcrypt.hash(password, salt);
-      query += `, password_hash = $${params.length + 1}`;
-      params.push(password_hash);
+      const hash = await bcrypt.hash(password, salt);
+      query += `, password_hash=$7`;
+      params.push(hash);
     }
-
-    query += ` WHERE id_usuario = $${params.length + 1} AND rol = 'recepcionista' RETURNING id_usuario as id, cedula`;
+    query += ` WHERE id_usuario=$${params.length + 1}`;
     params.push(id);
 
-    const result = await pool.query(query, params);
-    if (result.rows.length === 0)
-      return res.status(404).json({ mensaje: 'Recepcionista no encontrada' });
-    res.json(result.rows[0]);
+    await pool.query(query, params);
+    res.json({ mensaje: 'Recepcionista actualizada' });
   } catch (error) {
-    console.error('Error al actualizar recepcionista:', error);
-    res.status(500).json({ mensaje: 'Error al actualizar datos de recepcionista' });
+    res.status(500).json({ mensaje: 'Error al actualizar recepcionista' });
   }
 };
 
 const eliminarRecepcionista = async (req, res) => {
-  const { id } = req.params;
   try {
-    await pool.query('DELETE FROM "Usuarios" WHERE id_usuario = $1 AND rol = $2', [
-      id,
-      'recepcionista',
-    ]);
-    res.json({ mensaje: 'Recepcionista eliminada correctamente' });
+    await pool.query('DELETE FROM "Usuarios" WHERE id_usuario = $1', [req.params.id]);
+    res.json({ mensaje: 'Recepcionista eliminada' });
   } catch (error) {
-    console.error('Error al eliminar recepcionista:', error);
-    res.status(500).json({ mensaje: 'Error al intentar eliminar la recepcionista' });
+    res.status(500).json({ mensaje: 'Error al eliminar recepcionista' });
   }
 };
 
-// --- CRUD GENÉRICO DE USUARIOS (PERSONAL) ---
+// --- CRUD GENÉRICO DE USUARIOS ---
 
 const getUsuarios = async (req, res) => {
-  const { rol } = req.query;
   try {
-    let query =
-      'SELECT id_usuario as id, rol, id_consultorio as consultorio_id, id_servicio as servicio_id, nombre, apellido, cedula, telefono, email, status as activo, piso, id_sede FROM "Usuarios"';
-    const params = [];
-
-    const sedeId = req.usuario?.id_sede;
-    const userRol = req.usuario?.rol;
-
-    if (rol) {
-      query += ' WHERE rol = $1 AND id_sede = $2';
-      params.push(rol, sedeId);
-    } else {
-      query += ' WHERE id_sede = $1';
-      params.push(sedeId);
-    }
-
-    query += ' ORDER BY rol ASC, apellido ASC, nombre ASC';
-
-    const result = await pool.query(query, params);
+    const result = await pool.query('SELECT * FROM "Usuarios" WHERE id_sede = $1', [req.usuario.id_sede]);
     res.json(result.rows);
   } catch (error) {
-    console.error('Error en getUsuarios:', error);
-    res.status(500).json({ mensaje: 'Error al obtener lista de personal' });
+    res.status(500).json({ mensaje: 'Error al obtener usuarios' });
   }
 };
 
 const crearUsuario = async (req, res) => {
-  const {
-    password,
-    rol,
-    nombre,
-    apellido,
-    cedula,
-    telefono,
-    email,
-    activo,
-    id_consultorio,
-    servicio_id,
-    piso,
-  } = req.body;
+  let { nombre, apellido, cedula, telefono, email, password, rol, id_sede } = req.body;
   try {
     const salt = await bcrypt.genSalt(10);
-    const password_hash = await bcrypt.hash(password || cedula || '123456', salt);
+    const hash = await bcrypt.hash(password || cedula, salt);
+    nombre = (nombre || '').toString().toUpperCase().trim();
+    apellido = (apellido || '').toString().toUpperCase().trim();
+    cedula = (cedula || '').toString().replace(/\D/g, '');
+    telefono = telefono ? telefono.toString().replace(/\D/g, '') : null;
+    email = email ? email.toString().toLowerCase().trim() : null;
 
-    // Usar la sede del usuario que crea, o la que viene en el body
-    const sedeId = req.body.id_sede || req.usuario.id_sede;
-
-    const result = await pool.query(
-      `INSERT INTO "Usuarios" (password_hash, rol, nombre, apellido, cedula, telefono, email, status, id_consultorio, id_servicio, piso, id_sede) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id_usuario as id, cedula, rol`,
-      [
-        password_hash,
-        rol || 'admin',
-        (nombre || 'NUEVO').toUpperCase().trim(),
-        (apellido || 'USUARIO').toUpperCase().trim(),
-        (cedula || Date.now().toString()).toString().replace(/\D/g, ''),
-        telefono || null,
-        email ? email.toLowerCase().trim() : null,
-        activo ?? true,
-        id_consultorio || null,
-        servicio_id || null,
-        piso || null,
-        sedeId
-      ],
+    await pool.query(
+      `INSERT INTO "Usuarios" (nombre, apellido, cedula, telefono, email, password_hash, rol, id_sede) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [nombre, apellido, cedula, telefono, email, hash, rol, id_sede || req.usuario.id_sede]
     );
-    res.status(201).json(result.rows[0]);
+    res.status(201).json({ mensaje: 'Usuario creado' });
   } catch (error) {
-    console.error('--- ERROR AL CREAR USUARIO ---');
-    console.error('Error:', error);
-    console.error('Body:', req.body);
-    res.status(500).json({ 
-      mensaje: 'Error al registrar personal', 
-      error: error.message,
-      detalle: error.detail 
-    });
+    res.status(500).json({ mensaje: 'Error al crear usuario' });
   }
 };
 
 const actualizarUsuario = async (req, res) => {
   const { id } = req.params;
-  const {
-    username,
-    rol,
-    nombre,
-    apellido,
-    cedula,
-    telefono,
-    email,
-    activo,
-    id_consultorio,
-    servicio_id,
-    password,
-    piso,
-  } = req.body;
+  let { nombre, apellido, cedula, telefono, email, password, rol, status, id_sede } = req.body;
   try {
-    // Sanitización y Formateo
-    const nombreMayus = nombre ? nombre.toUpperCase().trim() : null;
-    const apellidoMayus = apellido ? apellido.toUpperCase().trim() : null;
-    const cedulaLimpia = cedula ? cedula.toString().replace(/\D/g, '') : null;
-    const telefonoLimpio = telefono ? telefono.toString().replace(/\D/g, '') : null;
-    const emailMin = email ? email.toLowerCase().trim() : null;
+    nombre = (nombre || '').toString().toUpperCase().trim();
+    apellido = (apellido || '').toString().toUpperCase().trim();
+    cedula = (cedula || '').toString().replace(/\D/g, '');
+    telefono = telefono ? telefono.toString().replace(/\D/g, '') : null;
+    email = email ? email.toString().toLowerCase().trim() : null;
 
-    // Limpiar campos según rol
-    const cleanPiso =
-      rol === 'medico' || rol === 'recepcionista'
-        ? piso
-          ? piso.toString().replace(/\D/g, '')
-          : null
-        : null;
-    const cleanConsultorio = rol === 'medico' ? id_consultorio || null : null;
-    const cleanServicio = rol === 'medico' ? servicio_id || null : null;
+    let query = `UPDATE "Usuarios" SET nombre=$1, apellido=$2, cedula=$3, telefono=$4, email=$5, rol=$6, status=$7, id_sede=$8`;
+    let params = [nombre, apellido, cedula, telefono, email, rol, status, id_sede || req.usuario.id_sede];
 
-    let query = `UPDATE "Usuarios" SET rol = $1, nombre = $2, apellido = $3, cedula = $4, telefono = $5, email = $6, status = $7, id_consultorio = $8, id_servicio = $9, piso = $10, id_sede = $11`;
-    const params = [
-      rol,
-      nombreMayus,
-      apellidoMayus,
-      cedulaLimpia,
-      telefonoLimpio,
-      emailMin,
-      activo,
-      cleanConsultorio,
-      cleanServicio,
-      cleanPiso,
-      req.body.id_sede || req.usuario.id_sede
-    ];
-
-    if (password && password.trim() !== '') {
+    if (password) {
       const salt = await bcrypt.genSalt(10);
-      const password_hash = await bcrypt.hash(password, salt);
-      query += `, password_hash = $${params.length + 1}`;
-      params.push(password_hash);
+      const hash = await bcrypt.hash(password, salt);
+      query += `, password_hash=$9`;
+      params.push(hash);
     }
-
-    query += ` WHERE id_usuario = $${params.length + 1} RETURNING id_usuario as id, cedula, rol`;
+    query += ` WHERE id_usuario=$${params.length + 1}`;
     params.push(id);
 
-    const result = await pool.query(query, params);
-    if (result.rows.length === 0) return res.status(404).json({ mensaje: 'Usuario no encontrado' });
-    res.json(result.rows[0]);
+    await pool.query(query, params);
+    res.json({ mensaje: 'Usuario actualizado' });
   } catch (error) {
-    console.error('--- ERROR AL ACTUALIZAR USUARIO ---');
-    console.error('Error:', error);
-    console.error('Body:', req.body);
-    res.status(500).json({ 
-      mensaje: 'Error al actualizar personal', 
-      error: error.message,
-      detalle: error.detail 
-    });
+    res.status(500).json({ mensaje: 'Error al actualizar usuario' });
   }
 };
 
 const eliminarUsuario = async (req, res) => {
-  const { id } = req.params;
   try {
-    await pool.query('DELETE FROM "Usuarios" WHERE id_usuario = $1', [id]);
-    res.json({ mensaje: 'Usuario eliminado correctamente' });
+    await pool.query('DELETE FROM "Usuarios" WHERE id_usuario = $1', [req.params.id]);
+    res.json({ mensaje: 'Usuario eliminado' });
   } catch (error) {
-    console.error('Error al eliminar usuario:', error);
-    res.status(500).json({ mensaje: 'Error al intentar eliminar el usuario' });
+    res.status(500).json({ mensaje: 'Error al eliminar usuario' });
   }
 };
 
 const resetDatabase = async (req, res) => {
-  const fs = require('fs');
-  const path = require('path');
-  try {
-    const sqlPath = path.join(__dirname, '../../db/reset_data.sql');
-    const sql = fs.readFileSync(sqlPath, 'utf8');
-
-    await pool.query(sql);
-
-    res.json({ mensaje: 'Base de datos reseteada y cargada con éxito' });
-  } catch (error) {
-    console.error('Error al resetear DB:', error);
-    res.status(500).json({ mensaje: 'Error al ejecutar el reset: ' + error.message });
-  }
+  res.status(501).json({ mensaje: 'Reset manual deshabilitado por seguridad' });
 };
 
 const getSedes = async (req, res) => {
   try {
-    const result = await pool.query('SELECT id_sede, nombre FROM "Sedes" ORDER BY id_sede ASC');
+    const result = await pool.query('SELECT * FROM "Sedes" ORDER BY id_sede ASC');
     res.json(result.rows);
   } catch (error) {
-    console.error('Error en getSedes:', error);
     res.status(500).json({ mensaje: 'Error al obtener sedes' });
   }
 };
@@ -868,6 +594,8 @@ module.exports = {
   eliminarConsultorio,
   getAseguradoras,
   crearAseguradora,
+  actualizarAseguradora,
+  eliminarAseguradora,
   getMedicos,
   crearMedico,
   actualizarMedico,
