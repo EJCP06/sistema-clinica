@@ -1,10 +1,8 @@
 const pool = require('../config/db');
 
-/**
- * Obtiene los pacientes en espera para el servicio del médico actual.
- */
 const getPacientesEnEspera = async (req, res) => {
-  const { id_servicio } = req.query; // El médico filtra por su especialidad asignada
+  const { id_servicio } = req.query;
+
   try {
     const result = await pool.query(
       `
@@ -29,8 +27,9 @@ const getPacientesEnEspera = async (req, res) => {
         CASE WHEN e.nombre_estado = 'En Atención' THEN 0 ELSE 1 END,
         a.hora_llegada ASC
     `,
-      [id_servicio, req.usuario.id_sede],
+      [id_servicio, req.usuario?.id_sede],
     );
+
     res.json(result.rows);
   } catch (error) {
     console.error('Error al obtener lista de espera:', error);
@@ -38,35 +37,32 @@ const getPacientesEnEspera = async (req, res) => {
   }
 };
 
-/**
- * Cambia el estado del paciente a 'En Atención' y registra el hito.
- */
 const llamarPaciente = async (req, res) => {
   const { id_atencion } = req.body;
   const client = await pool.connect();
+
   try {
     await client.query('BEGIN');
 
-    // 1. Obtener ID del estado 'En Atención'
     const estadoResult = await client.query(
       'SELECT id_estado FROM "Estado" WHERE nombre_estado = $1',
       ['En Atención'],
     );
+
     const id_estado_nuevo = estadoResult.rows[0].id_estado;
 
-    // 2. Actualizar estado actual en la atención
     await client.query('UPDATE "Atencion" SET id_estado_actual = $1 WHERE id_atencion = $2', [
       id_estado_nuevo,
       id_atencion,
     ]);
 
-    // 4. Crear nuevo hito en historial
     await client.query(
       'INSERT INTO "Historial_Atencion" (id_atencion, id_estado) VALUES ($1, $2)',
       [id_atencion, id_estado_nuevo],
     );
 
     await client.query('COMMIT');
+
     res.json({ mensaje: 'Paciente en atención', id_estado_nuevo });
   } catch (error) {
     await client.query('ROLLBACK');
@@ -76,12 +72,10 @@ const llamarPaciente = async (req, res) => {
   }
 };
 
-/**
- * Finaliza la atención del paciente.
- */
 const finalizarAtencion = async (req, res) => {
   const { id_atencion } = req.body;
   const client = await pool.connect();
+
   try {
     await client.query('BEGIN');
 
@@ -89,21 +83,21 @@ const finalizarAtencion = async (req, res) => {
       'SELECT id_estado FROM "Estado" WHERE nombre_estado = $1',
       ['Atendido'],
     );
+
     const id_estado_final = estadoResult.rows[0].id_estado;
 
-    // 1. Marcar hora de salida y estado final
     await client.query(
       'UPDATE "Atencion" SET id_estado_actual = $1, hora_salida = NOW() WHERE id_atencion = $2',
       [id_estado_final, id_atencion],
     );
 
-    // 3. Crear hito final
     await client.query(
       'INSERT INTO "Historial_Atencion" (id_atencion, id_estado) VALUES ($1, $2)',
       [id_atencion, id_estado_final],
     );
 
     await client.query('COMMIT');
+
     res.json({ mensaje: 'Atención finalizada' });
   } catch (error) {
     await client.query('ROLLBACK');

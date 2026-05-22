@@ -50,7 +50,7 @@ export class Header {
 
   get sedeNombre() {
     if (!this.usuario?.id_sede) return '';
-    return this.usuario.id_sede === 1 ? 'Santa Mónica' : 'Plaza Sucre';
+    return this.usuario.id_sede === 1 ? 'Plaza Sucre' : 'Santa Mónica';
   }
 
   get isDarkMode() {

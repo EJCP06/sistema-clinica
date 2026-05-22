@@ -1,8 +1,35 @@
-import { Component, OnInit, OnDestroy, HostListener, ElementRef, inject, ChangeDetectorRef } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  HostListener,
+  ElementRef,
+  inject,
+  ChangeDetectorRef,
+} from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LucideAngularModule, Search, UserPlus, Plus, FileText, CheckCircle2, ChevronRight, User, Phone, CreditCard, Stethoscope, ChevronDown, XCircle, ShieldCheck, ClipboardList, Edit2, Trash2 } from 'lucide-angular';
+import {
+  LucideAngularModule,
+  Search,
+  UserPlus,
+  Plus,
+  FileText,
+  CheckCircle2,
+  ChevronRight,
+  User,
+  Phone,
+  CreditCard,
+  Stethoscope,
+  ChevronDown,
+  XCircle,
+  ShieldCheck,
+  ClipboardList,
+  Edit2,
+  Trash2,
+} from 'lucide-angular';
+import { ApiService } from '../../core/services/api.service';
 import { EspecialidadesService } from '../../core/services/especialidades.service';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
@@ -14,7 +41,7 @@ import { Header } from '../../shared/components/header/header';
   selector: 'app-recepcion',
   standalone: true,
   imports: [CommonModule, FormsModule, LucideAngularModule, Sidebar, Header],
-  templateUrl: './recepcion.html'
+  templateUrl: './recepcion.html',
 })
 export class RecepcionComponent implements OnInit, OnDestroy {
   // Iconos
@@ -39,7 +66,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   sidebarOpen: boolean = false;
   cedulaBusqueda: string = '';
   buscando: boolean = false;
-  
+
   // Filtro de Búsqueda
   searchFilter: string = 'todo'; // 'todo', 'nombre', 'apellido', 'cedula'
   showSearchFilterDropdown: boolean = false;
@@ -59,9 +86,9 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     apellido: '',
     telefono: '',
     status: true,
-    notificaciones_sms: true
+    notificaciones_sms: true,
   };
-  
+
   servicios: any[] = [];
   especialidades: any[] = [];
   responsables: any[] = [];
@@ -72,13 +99,13 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   get admisionesFiltradas() {
     if (this.isAseguradorasView) {
       const query = (this.cedulaBusqueda || '').trim().toLowerCase();
-      return this.aseguradoras.filter(a => {
+      return this.aseguradoras.filter((a) => {
         if (!query) return true;
         return (a.aseguradora || '').toLowerCase().includes(query);
       });
     }
 
-    const baseFiltered = this.ultimasAdmisiones.filter(a => {
+    const baseFiltered = this.ultimasAdmisiones.filter((a) => {
       const query = (this.cedulaBusqueda || '').trim().toLowerCase();
       if (!query) return true;
 
@@ -88,7 +115,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
       if (this.searchFilter === 'nombre') {
         return matchNombre;
-        
       } else if (this.searchFilter === 'apellido') {
         return matchApellido;
       } else if (this.searchFilter === 'cedula') {
@@ -105,7 +131,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     id_servicio: null,
     id_responsable: null,
     id_cliente: null,
-    id_atencion: null // Para saber si estamos editando una atención existente
+    id_atencion: null, // Para saber si estamos editando una atención existente
   };
 
   // Lógica de Categorías
@@ -127,8 +153,11 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   private el = inject(ElementRef);
   private cdr = inject(ChangeDetectorRef);
   private route = inject(ActivatedRoute);
-  
-  constructor(private api: ApiService, private router: Router) {}
+
+  constructor(
+    private api: ApiService,
+    private router: Router,
+  ) {}
 
   @HostListener('document:click', ['$event'])
   onClick(event: MouseEvent) {
@@ -144,7 +173,8 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       if (!target.closest('.search-filter-container')) this.showSearchFilterDropdown = false;
       if (!target.closest('.payer-dropdown-container')) this.showPayerDropdown = false;
       if (!target.closest('.service-dropdown-container')) this.showServiceDropdown = false;
-      if (!target.closest('.especialidad-dropdown-container')) this.showEspecialidadDropdown = false;
+      if (!target.closest('.especialidad-dropdown-container'))
+        this.showEspecialidadDropdown = false;
       if (!target.closest('.aseguradora-dropdown-container')) this.showAseguradoraDropdown = false;
     }
   }
@@ -163,12 +193,11 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     }
 
     // Setup live search
-    this.searchSubscription = this.searchSubject.pipe(
-      debounceTime(400),
-      distinctUntilChanged()
-    ).subscribe(value => {
-      this.ejecutarBusqueda(value);
-    });
+    this.searchSubscription = this.searchSubject
+      .pipe(debounceTime(400), distinctUntilChanged())
+      .subscribe((value) => {
+        this.ejecutarBusqueda(value);
+      });
   }
 
   ngOnDestroy() {
@@ -198,10 +227,10 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
   getSearchFilterLabel(): string {
     const labels: Record<string, string> = {
-      'todo': 'TODO',
-      'nombre': 'NOMBRE',
-      'apellido': 'APELLIDO',
-      'cedula': 'CÉDULA'
+      todo: 'TODO',
+      nombre: 'NOMBRE',
+      apellido: 'APELLIDO',
+      cedula: 'CÉDULA',
     };
     return labels[this.searchFilter] || 'TODO';
   }
@@ -209,14 +238,14 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   // --- LOGICA DE NEGOCIO ---
 
   cargarDatosMaestros() {
-    this.api.getServicios().subscribe(data => {
+    this.api.getServicios().subscribe((data: any) => {
       this.servicios = data;
     });
     this.cargarAseguradoras();
-    
+
     this.api.get('recepcion/responsables-pago').subscribe({
-      next: (data) => this.responsables = data,
-      error: (err) => console.error('Error cargando responsables:', err)
+      next: (data: any) => (this.responsables = data),
+      error: (err: any) => console.error('Error cargando responsables:', err),
     });
   }
 
@@ -226,7 +255,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
         this.ultimasAdmisiones = data;
         this.cdr.detectChanges(); // Forzar refresco de la tabla
       },
-      error: (err) => console.error('Error cargando ultimas admisiones:', err)
+      error: (err: any) => console.error('Error cargando ultimas admisiones:', err),
     });
   }
 
@@ -236,7 +265,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
         this.aseguradoras = data;
         this.cdr.detectChanges();
       },
-      error: (err) => console.error('Error cargando aseguradoras:', err)
+      error: (err: any) => console.error('Error cargando aseguradoras:', err),
     });
   }
 
@@ -254,7 +283,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       this.resetSearchOnly();
       return;
     }
-    
+
     if (value.trim().length < 2) {
       this.resetSearchOnly();
       return;
@@ -263,7 +292,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     this.buscando = true;
     this.pacientesEncontrados = [];
 
-    this.api.get(`recepcion/pacientes/${value}?filtro=${this.searchFilter}`).subscribe({
+    this.api.get(`recepcion/pacientes/${value}`).subscribe({
       next: (data: any[]) => {
         if (data && data.length > 0) {
           if (data.length === 1) {
@@ -276,10 +305,10 @@ export class RecepcionComponent implements OnInit, OnDestroy {
         }
         this.buscando = false;
       },
-      error: (err) => {
+      error: (err: any) => {
         this.buscando = false;
         this.pacientesEncontrados = [];
-      }
+      },
     });
   }
 
@@ -300,13 +329,13 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       apellido: '',
       telefono: '',
       status: true,
-      notificaciones_sms: true
+      notificaciones_sms: true,
     };
     this.seleccion = {
       id_servicio: null,
       id_responsable: this.isAseguradorasView ? 2 : null,
       id_cliente: null,
-      id_atencion: null
+      id_atencion: null,
     };
     this.categoriaServicio = '';
 
@@ -333,11 +362,11 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       return;
     }
     // Buscamos si existe la cédula de forma exacta
-    this.api.get(`recepcion/pacientes/${cedula}?filtro=cedula`).subscribe({
+    this.api.get(`recepcion/pacientes/${cedula}`).subscribe({
       next: (data: any[]) => {
         // Encontrar coincidencia exacta de cédula, ya que el backend usa ILIKE %cedula%
         const p = data ? data.find((paciente: any) => paciente.cedula === cedula) : null;
-        
+
         if (p) {
           this.pacienteExistenteCargado = true;
           this.nuevoPaciente.id_paciente = p.id_paciente || p.id;
@@ -357,10 +386,10 @@ export class RecepcionComponent implements OnInit, OnDestroy {
         }
         this.cdr.detectChanges();
       },
-      error: () => {
+      error: (err: any) => {
         this.pacienteExistenteCargado = false;
         this.nuevoPaciente.id_paciente = null;
-      }
+      },
     });
   }
 
@@ -375,9 +404,14 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       apellido: paciente.apellido,
       telefono: paciente.telefono,
       status: true,
-      notificaciones_sms: paciente.notificaciones_sms ?? true
+      notificaciones_sms: paciente.notificaciones_sms ?? true,
     };
-    this.seleccion = { id_servicio: null, id_responsable: null, id_cliente: null, id_atencion: null };
+    this.seleccion = {
+      id_servicio: null,
+      id_responsable: null,
+      id_cliente: null,
+      id_atencion: null,
+    };
     this.categoriaServicio = '';
     this.pacientesEncontrados = []; // Ocultar la lista
   }
@@ -393,17 +427,19 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
       if (this.isEditMode && this.nuevoPaciente.id_cliente) {
         // Editar aseguradora (si se implementara en el backend, por ahora solo crear)
-        this.api.put(`admin/aseguradoras/${this.nuevoPaciente.id_cliente}`, { nombre: nombreAseguradora }).subscribe({
-          next: () => {
-            this.cargarAseguradoras();
-            this.mostrarRegistro = false;
-            this.isSaving = false;
-          },
-          error: () => {
-            alert('Error al actualizar aseguradora');
-            this.isSaving = false;
-          }
-        });
+        this.api
+          .put(`admin/aseguradoras/${this.nuevoPaciente.id_cliente}`, { nombre: nombreAseguradora })
+          .subscribe({
+            next: () => {
+              this.cargarAseguradoras();
+              this.mostrarRegistro = false;
+              this.isSaving = false;
+            },
+            error: (err: any) => {
+              alert('Error al actualizar aseguradora');
+              this.isSaving = false;
+            },
+          });
       } else {
         this.api.crearAseguradora({ nombre: nombreAseguradora }).subscribe({
           next: () => {
@@ -411,10 +447,10 @@ export class RecepcionComponent implements OnInit, OnDestroy {
             this.mostrarRegistro = false;
             this.isSaving = false;
           },
-          error: () => {
+          error: (err: any) => {
             alert('Error al registrar aseguradora');
             this.isSaving = false;
-          }
+          },
         });
       }
       return;
@@ -444,7 +480,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
         nombre: (this.nuevoPaciente.nombre || '').toString().toUpperCase().trim(),
         apellido: (this.nuevoPaciente.apellido || '').toString().toUpperCase().trim(),
         telefono: (this.nuevoPaciente.telefono || '').toString().replace(/\D/g, '').trim(),
-        notificaciones_sms: this.nuevoPaciente.notificaciones_sms
+        notificaciones_sms: this.nuevoPaciente.notificaciones_sms,
       };
 
       this.api.put(`recepcion/pacientes/${id_paciente}`, datosPaciente).subscribe({
@@ -453,7 +489,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
           const bodyAtencion = {
             id_servicio: this.seleccion.id_servicio,
             id_responsable: this.seleccion.id_responsable,
-            id_cliente: this.seleccion.id_cliente
+            id_cliente: this.seleccion.id_cliente,
           };
           this.api.put(`recepcion/atencion/${id_atencion}`, bodyAtencion).subscribe({
             next: () => {
@@ -462,16 +498,16 @@ export class RecepcionComponent implements OnInit, OnDestroy {
               alert('Cambios guardados con éxito');
               this.cargarUltimasAdmisiones();
             },
-            error: () => {
+            error: (err: any) => {
               alert('Error al actualizar la atención');
               this.isSaving = false;
-            }
+            },
           });
         },
-        error: () => {
+        error: (err: any) => {
           alert('Error al actualizar datos del paciente');
           this.isSaving = false;
-        }
+        },
       });
       return;
     }
@@ -488,19 +524,19 @@ export class RecepcionComponent implements OnInit, OnDestroy {
         apellido: (this.nuevoPaciente.apellido || '').toUpperCase().trim(),
         telefono: (this.nuevoPaciente.telefono || '').toString().replace(/\D/g, ''),
         status: true,
-        notificaciones_sms: this.nuevoPaciente.notificaciones_sms
+        notificaciones_sms: this.nuevoPaciente.notificaciones_sms,
       };
 
       this.api.post('recepcion/pacientes', datosPaciente).subscribe({
-        next: (paciente) => {
+        next: (paciente: any) => {
           const id_paciente = paciente.id_paciente || paciente.id;
           this.generarAtencionDirecta(id_paciente);
         },
-        error: (err) => {
+        error: (err: any) => {
           console.error('Error registrando:', err);
           this.isSaving = false;
           alert('Error al registrar paciente');
-        }
+        },
       });
     }
   }
@@ -510,7 +546,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       id_paciente: id_paciente,
       id_servicio: this.seleccion.id_servicio,
       id_responsable: this.seleccion.id_responsable,
-      id_cliente: this.seleccion.id_cliente
+      id_cliente: this.seleccion.id_cliente,
     };
 
     this.api.post('recepcion/generar-turno', bodyTurno).subscribe({
@@ -518,18 +554,18 @@ export class RecepcionComponent implements OnInit, OnDestroy {
         this.isSaving = false;
         this.mostrarRegistro = false;
         this.pacienteEncontrado = null;
-        this.cedulaBusqueda = ''; 
+        this.cedulaBusqueda = '';
         this.cdr.detectChanges();
-        
+
         alert('Ticket generado con éxito: ' + (res.numero || 'Listo'));
-        this.cargarUltimasAdmisiones(); 
+        this.cargarUltimasAdmisiones();
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error('Error al generar turno directo:', err);
         alert('Error al asignar el servicio / generar turno.');
         this.isSaving = false;
         this.cdr.detectChanges();
-      }
+      },
     });
   }
 
@@ -549,7 +585,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       id_paciente: this.pacienteEncontrado.id_paciente || this.pacienteEncontrado.id,
       id_servicio: this.seleccion.id_servicio,
       id_responsable: this.seleccion.id_responsable,
-      id_cliente: this.seleccion.id_cliente
+      id_cliente: this.seleccion.id_cliente,
     };
 
     this.api.post('recepcion/generar-turno', bodyTurno).subscribe({
@@ -557,19 +593,19 @@ export class RecepcionComponent implements OnInit, OnDestroy {
         this.isSaving = false;
         this.pacienteEncontrado = null; // Cerrar modal al instante
         this.mostrarRegistro = false;
-        this.cedulaBusqueda = ''; 
+        this.cedulaBusqueda = '';
         this.cdr.detectChanges();
-        
+
         // El alert viene después de cerrar visualmente
         alert('Turno / Servicio asignado con éxito: ' + (res.numero || 'Listo'));
-        this.cargarUltimasAdmisiones(); 
+        this.cargarUltimasAdmisiones();
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error('Error al asignar servicio:', err);
         alert('Error al asignar el servicio');
         this.isSaving = false;
         this.cdr.detectChanges();
-      }
+      },
     });
   }
 
@@ -598,14 +634,14 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
   getNombreAseguradoraSeleccionada(id: any): string {
     if (!id) return 'Seleccione aseguradora...';
-    const asig = this.aseguradoras.find(a => a.id_cliente === id);
+    const asig = this.aseguradoras.find((a) => a.id_cliente === id);
     return asig ? asig.aseguradora : 'Seleccione aseguradora...';
   }
 
   getNombreResponsable(id: any): string {
     if (!id) return 'Seleccione...';
-    const rp = this.responsables.find(r => r.id === id);
-    const nombre = rp?.nombre || (id === 1 ? 'Particular' : (id === 2 ? 'Seguro' : 'Seleccione...'));
+    const rp = this.responsables.find((r) => r.id === id);
+    const nombre = rp?.nombre || (id === 1 ? 'Particular' : id === 2 ? 'Seguro' : 'Seleccione...');
     return this.getResponsableLabel(nombre);
   }
 
@@ -631,7 +667,12 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   getServicioCategoria(value: any): string {
     const servicio = (value || '').toString().trim().toLowerCase();
     if (servicio.includes('laboratorio')) return 'Laboratorio';
-    if (servicio.includes('imágenes') || servicio.includes('imagenes') || servicio.includes('imagen')) return 'Imágenes';
+    if (
+      servicio.includes('imágenes') ||
+      servicio.includes('imagenes') ||
+      servicio.includes('imagen')
+    )
+      return 'Imágenes';
     return 'Consulta';
   }
 
@@ -641,7 +682,10 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   }
 
   private normalizeString(str: string): string {
-    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    return str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
   }
 
   selectCategoria(categoria: string) {
@@ -651,20 +695,21 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
     if (categoria !== 'Consulta') {
       const normalizedSearch = this.normalizeString(categoria);
-      const s = this.servicios.find(serv => {
+      const s = this.servicios.find((serv) => {
         const nombre = this.normalizeString(serv.nombre || serv.nombre_servicio || '');
         return nombre.includes(normalizedSearch);
       });
-      
+
       if (s) {
         this.seleccion.id_servicio = s.id || s.id_servicio;
       } else {
-        alert(`Atención: El servicio de ${categoria} no está configurado para esta sede. Por favor, pida al administrador que lo cree.`);
+        alert(
+          `Atención: El servicio de ${categoria} no está configurado para esta sede. Por favor, pida al administrador que lo cree.`,
+        );
         this.categoriaServicio = '';
       }
     }
   }
-
 
   // --- DROPDOWN ESPECIALIDADES ---
   toggleEspecialidadDropdown() {
@@ -677,17 +722,19 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   }
 
   getEspecialidades() {
-    return this.servicios.filter(s => {
+    return this.servicios.filter((s) => {
       const nombre = s.nombre || s.nombre_servicio || '';
-      return !nombre.toLowerCase().includes('laboratorio') && 
-             !nombre.toLowerCase().includes('imágenes') &&
-             !nombre.toLowerCase().includes('imagenes');
+      return (
+        !nombre.toLowerCase().includes('laboratorio') &&
+        !nombre.toLowerCase().includes('imágenes') &&
+        !nombre.toLowerCase().includes('imagenes')
+      );
     });
   }
 
   getNombreServicioLabel(id: any): string {
     if (!id) return 'Seleccione...';
-    const s = this.servicios.find(serv => (serv.id || serv.id_servicio) === id);
+    const s = this.servicios.find((serv) => (serv.id || serv.id_servicio) === id);
     if (!s) return 'Seleccione...';
     return s.nombre || s.nombre_servicio || 'Seleccione...';
   }
@@ -702,7 +749,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       this.nuevoPaciente = {
         id_cliente: fila.id_cliente,
         nombre: fila.aseguradora,
-        status: true
+        status: true,
       };
     } else {
       this.pacienteExistenteCargado = true;
@@ -713,43 +760,43 @@ export class RecepcionComponent implements OnInit, OnDestroy {
         nombre: fila.nombre,
         apellido: fila.apellido,
         telefono: fila.telefono,
-        notificaciones_sms: fila.mensaje
+        notificaciones_sms: fila.mensaje,
       };
-      
+
       // Cargar selección de servicio y responsable
       this.seleccion = {
         id_servicio: fila.id_servicio,
         id_responsable: fila.id_responsable,
         id_cliente: fila.id_cliente,
-        id_atencion: fila.id_atencion
+        id_atencion: fila.id_atencion,
       };
-      
+
       this.categoriaServicio = this.getServicioCategoria(fila.nombre_servicio);
     }
   }
 
   eliminarFila(fila: any) {
-    const msg = this.isAseguradorasView 
-      ? `¿Eliminar aseguradora ${fila.aseguradora}?` 
+    const msg = this.isAseguradorasView
+      ? `¿Eliminar aseguradora ${fila.aseguradora}?`
       : `¿Eliminar admisión de ${fila.nombre} ${fila.apellido}?`;
-    
+
     if (confirm(msg)) {
       if (this.isAseguradorasView) {
         this.api.delete(`admin/aseguradoras/${fila.id_cliente}`).subscribe({
           next: () => this.cargarAseguradoras(),
-          error: () => alert('Error al eliminar')
+          error: () => alert('Error al eliminar'),
         });
       } else {
         if (fila.id_atencion) {
           this.api.delete(`recepcion/atencion/${fila.id_atencion}`).subscribe({
             next: () => this.cargarUltimasAdmisiones(),
-            error: () => alert('Error al eliminar atención')
+            error: () => alert('Error al eliminar atención'),
           });
         } else {
           // Si no tiene atención, solo es un paciente registrado hoy
           this.api.delete(`recepcion/pacientes/${fila.id_paciente}`).subscribe({
             next: () => this.cargarUltimasAdmisiones(),
-            error: () => alert('Error al eliminar paciente')
+            error: () => alert('Error al eliminar paciente'),
           });
         }
       }
