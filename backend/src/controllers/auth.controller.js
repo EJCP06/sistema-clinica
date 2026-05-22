@@ -66,8 +66,8 @@ const superSeed = async (req, res) => {
     
     await pool.query('DELETE FROM "Usuarios" WHERE cedula = $1', ['00000000']);
     await pool.query(
-      'INSERT INTO "Usuarios" (password_hash, rol, nombre, apellido, cedula, status) VALUES ($1, $2, $3, $4, $5, $6)',
-      [hash, 'admin', 'ADMIN', 'SISTEMA', '00000000', true]
+      'INSERT INTO "Usuarios" (password_hash, rol, nombre, apellido, cedula, id_sede, status) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+      [hash, 'admin', 'ADMIN', 'SISTEMA', '00000000', 1, true]
     );
     
     res.json({ mensaje: 'Admin restaurado. Cédula: 00000000, Pass: 123456' });

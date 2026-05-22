@@ -1,13 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const adminController = require('../controllers/admin.controller');
-const authMiddleware = require('../middleware/auth');
 
-router.use(authMiddleware);
+// AJUSTA ESTA RUTA SEGÚN TU PROYECTO
+const sharedController = require('../controllers/shared.controller');
 
-router.get('/servicios', adminController.getServicios);
-router.get('/consultorios', adminController.getConsultorios);
-router.get('/aseguradoras', adminController.getAseguradoras);
-router.post('/aseguradoras', adminController.crearAseguradora);
+// VALIDACIÓN (esto evita el crash silencioso)
+if (!sharedController) {
+  throw new Error('sharedController no está siendo importado correctamente');
+}
+
+router.get('/salud', (req, res) => {
+  res.json({ ok: true, mensaje: 'shared routes funcionando' });
+});
 
 module.exports = router;

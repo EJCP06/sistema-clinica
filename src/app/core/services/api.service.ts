@@ -19,7 +19,9 @@ export class ApiService {
   private http = inject(HttpClient);
   private base = environment.apiUrl;
 
-  // Métodos genéricos
+  // =========================
+  // MÉTODOS GENÉRICOS
+  // =========================
   get(endpoint: string): Observable<any> {
     return this.http.get(`${this.base}/${endpoint}`);
   }
@@ -36,20 +38,45 @@ export class ApiService {
     return this.http.delete(`${this.base}/${endpoint}`);
   }
 
-  // --- AUTH ---
+  // =========================
+  // AUTH
+  // =========================
   login(username: string, password: string): Observable<any> {
     return this.http.post(`${this.base}/auth/login`, { username, password });
   }
 
-  // --- RECEPCIÓN ---
-  crearTurno(body: { nombre_paciente: string; documento_paciente: string; telefono_paciente?: string; servicio_id: number; notificar?: boolean }): Observable<any> {
+  // =========================
+  // TURNOS (CORREGIDO)
+  // =========================
+
+  // ✅ crear turno
+  crearTurno(body: {
+    nombre_paciente: string;
+    documento_paciente: string;
+    telefono_paciente?: string;
+    servicio_id: number;
+    notificar?: boolean;
+  }): Observable<any> {
     return this.http.post(`${this.base}/turnos`, body);
   }
 
-  actualizarEstadoAtencion(idAtencion: number, idEstadoNuevo: number): Observable<any> {
-    return this.http.put(`${this.base}/recepcion/atencion/${idAtencion}/estado`, { id_estado_nuevo: idEstadoNuevo });
+  // ✅ LISTAR TURNOS (ARREGLADO)
+  getTurnosTodos(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.base}/turnos/todos`);
   }
 
+  // =========================
+  // RECEPCIÓN
+  // =========================
+  actualizarEstadoAtencion(idAtencion: number, idEstadoNuevo: number): Observable<any> {
+    return this.http.put(`${this.base}/recepcion/atencion/${idAtencion}/estado`, {
+      id_estado_nuevo: idEstadoNuevo,
+    });
+  }
+
+  // =========================
+  // SHARED
+  // =========================
   getAseguradoras(): Observable<any[]> {
     return this.http.get<any[]>(`${this.base}/shared/aseguradoras`);
   }
@@ -58,13 +85,18 @@ export class ApiService {
     return this.http.post(`${this.base}/shared/aseguradoras`, body);
   }
 
-  // --- PANEL MÉDICO (consultorios) ---
+  // =========================
+  // CONSULTORIOS
+  // =========================
   getMiEstado(): Observable<any> {
     return this.http.get<any>(`${this.base}/consultorios/mi-estado`);
   }
 
   llamarSiguiente(): Observable<LlamarSiguienteResponse> {
-    return this.http.post<LlamarSiguienteResponse>(`${this.base}/consultorios/llamar-siguiente`, {});
+    return this.http.post<LlamarSiguienteResponse>(
+      `${this.base}/consultorios/llamar-siguiente`,
+      {},
+    );
   }
 
   iniciarAtencion(): Observable<any> {
@@ -83,6 +115,9 @@ export class ApiService {
     return this.http.put(`${this.base}/consultorios/reanudar`, {});
   }
 
+  // =========================
+  // TURNOS ACCIONES
+  // =========================
   pausarAtencion(turnoId: number): Observable<any> {
     return this.http.put(`${this.base}/turnos/${turnoId}/pausar`, {});
   }
@@ -92,20 +127,25 @@ export class ApiService {
   }
 
   transferirPaciente(turnoId: number, nuevo_servicio_id: number): Observable<any> {
-    return this.http.post(`${this.base}/turnos/${turnoId}/transferir`, { nuevo_servicio_id });
+    return this.http.post(`${this.base}/turnos/${turnoId}/transferir`, {
+      nuevo_servicio_id,
+    });
   }
 
   marcarAusente(turnoId: number): Observable<any> {
     return this.http.put(`${this.base}/turnos/${turnoId}/ausente`, {});
   }
 
-  // --- ADMIN ---
+  // =========================
+  // ADMIN
+  // =========================
   getReporteDiario(): Observable<any> {
     return this.http.get(`${this.base}/admin/reportes/diario`);
   }
 
   getEstadisticasAvanzadas(fechaInicio?: string, fechaFin?: string): Observable<any> {
-    const params = fechaInicio && fechaFin ? `?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}` : '';
+    const params =
+      fechaInicio && fechaFin ? `?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}` : '';
     return this.http.get(`${this.base}/admin/reportes/avanzadas${params}`);
   }
 
@@ -121,73 +161,13 @@ export class ApiService {
     return this.http.get<any[]>(`${this.base}/admin/sedes`);
   }
 
-  crearServicio(body: { nombre: string; piso?: string; consultorio?: string; prefijo: string; descripcion?: string; codigo?: string; activo?: boolean }): Observable<any> {
-    return this.http.post(`${this.base}/admin/servicios`, body);
-  }
-
-  actualizarServicio(id: number, body: any): Observable<any> {
-    return this.http.put(`${this.base}/admin/servicios/${id}`, body);
-  }
-
-  eliminarServicio(id: number): Observable<any> {
-    return this.http.delete(`${this.base}/admin/servicios/${id}`);
-  }
-
-  getConsultorios(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.base}/admin/consultorios`);
-  }
-
-  crearConsultorio(body: { nombre: string; servicio_id: number; piso?: string }): Observable<any> {
-    return this.http.post(`${this.base}/admin/consultorios`, body);
-  }
-
-  actualizarConsultorio(id: number, body: any): Observable<any> {
-    return this.http.put(`${this.base}/admin/consultorios/${id}`, body);
-  }
-
-  eliminarConsultorio(id: number): Observable<any> {
-    return this.http.delete(`${this.base}/admin/consultorios/${id}`);
-  }
-
-  // --- MÉDICOS Y PERSONAL ---
-  getMedicos(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.base}/admin/medicos?rol=medico`);
-  }
-
-  crearMedico(body: any): Observable<any> {
-    return this.http.post(`${this.base}/admin/medicos`, { ...body, rol: 'medico' });
-  }
-
-  actualizarMedico(id: number, body: any): Observable<any> {
-    return this.http.put(`${this.base}/admin/medicos/${id}`, { ...body, rol: 'medico' });
-  }
-
-  eliminarMedico(id: number): Observable<any> {
-    return this.http.delete(`${this.base}/admin/medicos/${id}`);
-  }
-
-  // Recepcionistas
-  getRecepcionistas(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.base}/admin/recepcionistas`);
-  }
-
-  crearRecepcionista(data: any): Observable<any> {
-    return this.http.post(`${this.base}/admin/recepcionistas`, data);
-  }
-
-  actualizarRecepcionista(id: number, data: any): Observable<any> {
-    return this.http.put(`${this.base}/admin/recepcionistas/${id}`, data);
-  }
-
-  eliminarRecepcionista(id: number): Observable<any> {
-    return this.http.delete(`${this.base}/admin/recepcionistas/${id}`);
-  }
-
+  // =========================
+  // PERSONAL
+  // =========================
   getTurnos(): Observable<any[]> {
     return this.http.get<any[]>(`${this.base}/turnos`);
   }
 
-  // --- PERSONAL GENÉRICO ---
   getPersonal(rol?: string): Observable<any[]> {
     const params = rol ? `?rol=${rol}` : '';
     return this.http.get<any[]>(`${this.base}/admin/personal${params}`);
@@ -203,5 +183,36 @@ export class ApiService {
 
   eliminarPersonal(id: number): Observable<any> {
     return this.http.delete(`${this.base}/admin/personal/${id}`);
+  }
+
+  // =========================
+  // ADMIN (FALTANTES)
+  // =========================
+
+  getConsultorios(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.base}/admin/consultorios`);
+  }
+
+  crearServicio(body: any): Observable<any> {
+    return this.http.post(`${this.base}/admin/servicios`, body);
+  }
+
+  actualizarServicio(id: number, body: any): Observable<any> {
+    return this.http.put(`${this.base}/admin/servicios/${id}`, body);
+  }
+
+  eliminarServicio(id: number): Observable<any> {
+    return this.http.delete(`${this.base}/admin/servicios/${id}`);
+  }
+  crearConsultorio(body: any): Observable<any> {
+    return this.http.post(`${this.base}/admin/consultorios`, body);
+  }
+
+  actualizarConsultorio(id: number, body: any): Observable<any> {
+    return this.http.put(`${this.base}/admin/consultorios/${id}`, body);
+  }
+
+  eliminarConsultorio(id: number): Observable<any> {
+    return this.http.delete(`${this.base}/admin/consultorios/${id}`);
   }
 }

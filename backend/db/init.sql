@@ -79,7 +79,6 @@ CREATE TABLE "Usuarios" (
   "nombre" varchar NOT NULL,
   "apellido" varchar NOT NULL,
   "telefono" varchar,
-  "email" varchar UNIQUE,
   "piso" integer,
   "id_consultorio" integer REFERENCES "Consultorios"("id_consultorio"),
   "id_servicio" integer REFERENCES "Servicio"("id_servicio"),
@@ -95,7 +94,6 @@ CREATE TABLE "Pacientes" (
   "nombre" varchar NOT NULL,
   "apellido" varchar NOT NULL,
   "telefono" varchar,
-  "email" varchar,
   "notificaciones_sms" boolean DEFAULT true,
   "status" boolean DEFAULT true,
   "id_sede" integer REFERENCES "Sedes"("id_sede"),
@@ -127,7 +125,8 @@ CREATE TABLE "Atencion" (
   "id_sede" integer REFERENCES "Sedes"("id_sede"),
   "hora_llegada" timestamp DEFAULT (now()),
   "hora_salida" timestamp,
-  "id_usuario_registro" integer REFERENCES "Usuarios"("id_usuario")
+  "id_usuario_registro" integer REFERENCES "Usuarios"("id_usuario"),
+  "numero" VARCHAR(20)
 );
 
 CREATE TABLE "Historial_Atencion" (
@@ -138,11 +137,11 @@ CREATE TABLE "Historial_Atencion" (
 );
 
 -- DATOS INICIALES (SEED)
-INSERT INTO "Sedes" ("id_sede", "nombre") VALUES (1, 'Sede Principal');
-INSERT INTO "Servicio" ("nombre_servicio", "prefijo") VALUES ('CONSULTA', 'CONS'), ('LABORATORIO', 'LAB'), ('IMÁGENES', 'IMG');
+INSERT INTO "Sedes" ("id_sede", "nombre") VALUES (1, 'Plaza Sucre'), (2, 'Santa Monica');
+INSERT INTO "Servicio" ("nombre_servicio", "prefijo") VALUES ('CONSULTA', 'CONS'), ('LABORATORIO', 'LAB'), ('IMAGENES', 'IMG');
 INSERT INTO "Especialidades" ("nombre", "prefijo", "id_servicio", "id_sede", "piso") VALUES 
-('Cardiología', 'CARD', 1, 1, '1'),
-('Pediatría', 'PEDI', 1, 1, '1'),
+('Cardiologia', 'CARD', 1, 1, '1'),
+('Pediatria', 'PEDI', 1, 1, '1'),
 ('Medicina General', 'MEDG', 1, 1, '1');
 INSERT INTO "Responsable_Pago" ("nombre") VALUES ('Particular'), ('Seguro');
 INSERT INTO "Estado" ("nombre_estado") VALUES ('Espera'), ('Atendiendo'), ('Finalizado');
