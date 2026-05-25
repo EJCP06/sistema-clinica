@@ -175,7 +175,7 @@
                       Asignar Servicio en APS
                     </h3>
                     <span
-                      class="px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest"
+                      class="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400"
                       >Atención Nueva</span
                     >
                   </div>
@@ -425,7 +425,7 @@
                   <th class="px-8 py-6 text-center">Apellido</th>
                   <th class="px-8 py-6 text-center">Cédula</th>
                   <th class="px-8 py-6 text-center">Responsable</th>
-                  <th class="px-8 py-6 text-center">Teléfono</th>
+                  <th class="px-8 py-6 text-center">Estado Actual</th>
                   <th class="px-8 py-6 text-center">Servicio</th>
                   <th class="px-8 py-6 text-center">Hora</th>
                   <th class="px-8 py-6 text-center">Acciones</th>
@@ -439,35 +439,50 @@
                   <td class="px-8 py-6 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.nombre }}</td>
                   <td class="px-8 py-6 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.apellido }}</td>
                   <td class="px-8 py-6 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tight text-center">{{ a.cedula }}</td>
+                  <td class="px-8 py-6 font-bold text-slate-800 dark:text-white uppercase text-center">
+                    {{ getResponsableLabel(a.modalidad_pago) }}
+                  </td>
                   <td class="px-8 py-6 text-center">
-                    <span *ngIf="getResponsableLabel(a.modalidad_pago) !== 'SIN ASIGNAR'" class="px-2.5 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-500 rounded-lg text-[10px] font-black uppercase tracking-wider">
-                      {{ getResponsableLabel(a.modalidad_pago) }}
-                    </span>
-                    <span *ngIf="getResponsableLabel(a.modalidad_pago) === 'SIN ASIGNAR'" class="text-slate-600 dark:text-slate-400 font-bold uppercase">
-                      SIN ASIGNAR
+                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border"
+                      [ngClass]="{
+                        'bg-blue-50 text-blue-600 border-blue-200': a.id_estado_actual === 1,
+                        'bg-amber-50 text-amber-600 border-amber-200': a.id_estado_actual === 2,
+                        'bg-emerald-50 text-emerald-600 border-emerald-200': a.id_estado_actual === 3
+                      }">
+                      {{ a.nombre_estado }}
                     </span>
                   </td>
-                  <td class="px-8 py-6 text-slate-600 dark:text-slate-400 font-bold uppercase text-center">{{ a.telefono }}</td>
                   <td class="px-8 py-6 font-bold text-slate-800 dark:text-white uppercase text-center">{{ getServicioCategoria(a.nombre_servicio) }}</td>
                   <td class="px-8 py-6 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.fecha_creacion | date: 'shortTime' }}</td>
                   <td class="px-8 py-6 text-center">
-                    <button (click)="enviarASalaEspera(a.id)" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all">
-                      <lucide-icon [name]="ArrowRightLeft" class="w-4 h-4"></lucide-icon>
-                    </button>
+                    <div class="flex items-center justify-center gap-2">
+                      <!-- De Registrado a Presupuesto -->
+                      <button *ngIf="a.id_estado_actual === 1" (click)="enviarAPresupuesto(a.id_atencion)" title="Enviar a Presupuesto" class="p-2 text-amber-500 hover:bg-amber-50 rounded-xl transition-all">
+                        <lucide-icon [name]="FileText" class="w-4 h-4"></lucide-icon>
+                      </button>
+                      <!-- De Presupuesto a Sala de Espera -->
+                      <button *ngIf="a.id_estado_actual === 2" (click)="enviarASalaEspera(a.id_atencion)" title="Confirmar Pago y Enviar a Sala de Espera" class="p-2 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all">
+                        <lucide-icon [name]="CheckCircle2" class="w-4 h-4"></lucide-icon>
+                      </button>
+                      <!-- Atajo directo si ya está todo listo -->
+                      <button *ngIf="a.id_estado_actual === 1" (click)="enviarASalaEspera(a.id_atencion)" title="Enviar directo a Sala de Espera" class="p-2 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all">
+                        <lucide-icon [name]="ChevronRight" class="w-4 h-4"></lucide-icon>
+                      </button>
+                    </div>
                   </td>
                 </tr>
                 <tr *ngIf="admisionesFiltradas.length === 0">
-                  <td colspan="8" class="px-8 py-24 text-center">
-                    <div class="flex flex-col items-center justify-center">
+                  <td colspan="8" class="px-8 py-24 text-center align-middle">
+                    <div class="flex flex-col items-center justify-center w-full">
                       <div
-                        class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4"
+                        class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 mx-auto"
                       >
                         <lucide-icon
                           [name]="Search"
                           class="w-8 h-8 text-slate-500 opacity-60"
                         ></lucide-icon>
                       </div>
-                      <p class="text-slate-400 italic font-medium">
+                      <p class="text-slate-400 italic font-medium text-center w-full">
                         No hay admisiones recientes registradas.
                       </p>
                     </div>

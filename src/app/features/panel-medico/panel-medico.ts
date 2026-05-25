@@ -36,6 +36,7 @@ export class PanelMedicoComponent implements OnInit, OnDestroy {
   // Perfil Médico
   medicoInfo: any = {
     id_servicio: null,
+    id_especialidad: null,
     servicio_nombre: ''
   };
 
@@ -54,6 +55,7 @@ export class PanelMedicoComponent implements OnInit, OnDestroy {
     const user = this.auth.usuarioActual;
     if (user) {
       this.medicoInfo.id_servicio = user.servicio_id;
+      this.medicoInfo.id_especialidad = user.id_especialidad;
       this.medicoInfo.servicio_nombre = user.especialidad_nombre || 'Especialista';
     }
 
@@ -84,11 +86,13 @@ export class PanelMedicoComponent implements OnInit, OnDestroy {
       if (sesion) {
         const user = JSON.parse(sesion);
         this.medicoInfo.id_servicio = user.servicio_id;
+        this.medicoInfo.id_especialidad = user.id_especialidad;
       } else return;
     }
 
     this.loading = true;
-    this.api.get(`medico/espera?id_servicio=${this.medicoInfo.id_servicio}`).subscribe({
+    const params = `?id_servicio=${this.medicoInfo.id_servicio}${this.medicoInfo.id_especialidad ? '&id_especialidad=' + this.medicoInfo.id_especialidad : ''}`;
+    this.api.get(`medico/espera${params}`).subscribe({
       next: (data: any[]) => {
         const normalizar = (s: string) => (s || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         
@@ -122,29 +126,29 @@ export class PanelMedicoComponent implements OnInit, OnDestroy {
     });
   }
 
-  llamarSiguiente() {
-    if (this.pacientesEspera.length === 0 || this.pacienteActual) return;
-    
-    const proximo = this.pacientesEspera[0];
-    
-    // Bloqueo inmediato para evitar doble clic y parpadeos
-    this.pacienteActual = { ...proximo, nombre_estado: 'En Atención' };
-    sessionStorage.setItem('paciente_atendiendo_data', JSON.stringify(this.pacienteActual));
-    this.pacientesEspera.shift();
-
-    this.api.post('medico/llamar', { id_atencion: proximo.id_atencion }).subscribe({
-      next: () => {
-        // No llamamos a cargarPacientes() inmediatamente para dar tiempo a la DB
-        setTimeout(() => this.cargarPacientes(), 1000); 
-      },
-      error: (err) => {
-        console.error('Error al llamar:', err);
-        this.pacienteActual = null;
-        sessionStorage.removeItem('paciente_atendiendo_data');
-        this.cargarPacientes();
-      }
-    });
-  }
+llamarSiguiente() {
+  if (this.pacientesEspera.length === 0 || this.pacienteActual) return;
+  
+  const proximo = this.pacientesEspera[0];
+  
+  // Llamada al backend para cambiar el estado
+  this.api.post('medico/llamar', { id_atencion: proximo.id_atencion }).subscribe({
+    next: () => {
+      // Actualizamos el estado optimísticamente para mejorar la UX
+      this.pacienteActual = { ...proximo, nombre_estado: 'En Atención' };
+      sessionStorage.setItem('paciente_atendiendo_data', JSON.stringify(this.pacienteActual));
+      this.pacientesEspera.shift();
+      
+      // Programamos una actualización para sincronizar con el backend
+      setTimeout(() => this.cargarPacientes(), 1500); 
+    },
+    error: (err) => {
+      console.error('Error al llamar:', err);
+      // En caso de error, no cambiamos el estado
+      this.cargarPacientes();
+    }
+  });
+}
 
   finalizarAtencion() {
     if (!this.pacienteActual) return;

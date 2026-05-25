@@ -1,9 +1,20 @@
 const pool = require('../config/db');
 
 const getPacientesEnEspera = async (req, res) => {
-  const { id_servicio } = req.query;
+  const { id_servicio, id_especialidad } = req.query;
 
   try {
+    let whereClause = 'WHERE a.id_sede = $1 AND a.hora_salida IS NULL';
+    const params = [req.usuario?.id_sede];
+
+    if (id_especialidad && id_especialidad !== 'null' && id_especialidad !== 'undefined') {
+      whereClause += ` AND a.id_especialidad = $${params.length + 1}`;
+      params.push(id_especialidad);
+    } else if (id_servicio && id_servicio !== 'null' && id_servicio !== 'undefined') {
+      whereClause += ` AND a.id_servicio = $${params.length + 1}`;
+      params.push(id_servicio);
+    }
+
     const result = await pool.query(
       `
       SELECT 
@@ -14,20 +25,20 @@ const getPacientesEnEspera = async (req, res) => {
         p.cedula, 
         e.nombre_estado, 
         s.nombre_servicio,
-        a.id_estado_actual
+        a.id_estado_actual,
+        a.id_especialidad,
+        esp.nombre as nombre_especialidad
       FROM "Atencion" a
       INNER JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
       INNER JOIN "Estado" e ON a.id_estado_actual = e.id_estado
       INNER JOIN "Servicio" s ON a.id_servicio = s.id_servicio
-      WHERE a.id_servicio = $1 
-      AND a.id_sede = $2
-      AND a.hora_salida IS NULL
-      AND e.nombre_estado IN ('Sala de Espera', 'Llamado', 'En Atención')
+      LEFT JOIN "Especialidades" esp ON a.id_especialidad = esp.id_especialidad
+      ${whereClause}
+      AND UPPER(e.nombre_estado) IN ('SALA DE ESPERA')
       ORDER BY 
-        CASE WHEN e.nombre_estado = 'En Atención' THEN 0 ELSE 1 END,
         a.hora_llegada ASC
     `,
-      [id_servicio, req.usuario?.id_sede],
+      params,
     );
 
     res.json(result.rows);

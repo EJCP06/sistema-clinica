@@ -15,22 +15,6 @@ router.post('/llamar-siguiente', roleMiddleware('medico', 'admin'), consultorios
 router.post('/iniciar-atencion', roleMiddleware('medico', 'admin'), consultoriosController.iniciarAtencion);
 router.post('/finalizar-atencion', roleMiddleware('medico', 'admin'), consultoriosController.finalizarAtencion);
 
-router.put('/pausar', roleMiddleware('medico', 'admin'), (req, res, next) => {
-  if (!req.usuario.consultorio_id) {
-    return res.status(400).json({ mensaje: 'No tiene consultorio asignado' });
-  }
-  req.params.id = req.usuario.consultorio_id;
-  next();
-}, consultoriosController.pausarConsultorio);
-
-router.put('/reanudar', roleMiddleware('medico', 'admin'), (req, res, next) => {
-  if (!req.usuario.consultorio_id) {
-    return res.status(400).json({ mensaje: 'No tiene consultorio asignado' });
-  }
-  req.params.id = req.usuario.consultorio_id;
-  next();
-}, consultoriosController.reanudarConsultorio);
-
 // --- Rutas CRUD admin (requieren rol admin) ---
 router.get('/', roleMiddleware('admin', 'medico', 'recepcionista'), adminController.getConsultorios);
 router.post(
