@@ -269,15 +269,19 @@ export class ApsComponent implements OnInit, OnDestroy {
     });
   }
 
-  enviarASalaEspera(id_atencion: number) {
-    if (!confirm('¿Deseas enviar este paciente a la Sala de Espera?')) return;
+  enviarAPresupuesto(id_atencion: number) {
+    if (!confirm('¿Deseas enviar este paciente a Presupuesto/Caja?')) return;
     this.api.actualizarEstadoAtencion(id_atencion, 2).subscribe({
-      next: () => {
-        this.cargarUltimasAdmisiones();
-      },
-      error: (err: any) => {
-        alert(err.error?.mensaje || 'Error al cambiar estado');
-      }
+      next: () => this.cargarUltimasAdmisiones(),
+      error: (err: any) => alert(err.error?.mensaje || 'Error al cambiar estado')
+    });
+  }
+
+  enviarASalaEspera(id_atencion: number) {
+    if (!confirm('¿Deseas enviar este paciente a la Sala de Espera (Ya pagó)?')) return;
+    this.api.actualizarEstadoAtencion(id_atencion, 3).subscribe({
+      next: () => this.cargarUltimasAdmisiones(),
+      error: (err: any) => alert(err.error?.mensaje || 'Error al cambiar estado')
     });
   }
 

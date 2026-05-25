@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
 
 const login = async (req, res) => {
-  const { username, password } = req.body; // El campo del input se llama username en el payload de Angular pero contiene la cedula
+  const { username, password } = req.body;
   const cedula = username; 
 
   if (!cedula || !password) {
@@ -15,9 +15,12 @@ const login = async (req, res) => {
     
     // 1. Buscar al usuario por cédula
     const result = await pool.query(`
-      SELECT id_usuario as id, cedula, password_hash, rol, nombre, apellido, id_servicio as servicio_id, id_consultorio as consultorio_id, id_sede 
-      FROM "Usuarios" 
-      WHERE cedula = $1
+      SELECT u.id_usuario as id, u.cedula, u.password_hash, u.rol, u.nombre, u.apellido,
+             u.id_servicio as servicio_id, u.id_consultorio as consultorio_id, u.id_sede,
+             u.id_especialidad, e.nombre as especialidad_nombre
+      FROM "Usuarios" u
+      LEFT JOIN "Especialidades" e ON u.id_especialidad = e.id_especialidad
+      WHERE u.cedula = $1
     `, [cedula]);
 
     if (result.rows.length === 0) {
@@ -41,7 +44,9 @@ const login = async (req, res) => {
       rol: usuario.rol,
       servicio_id: usuario.servicio_id,
       consultorio_id: usuario.consultorio_id,
-      id_sede: usuario.id_sede
+      id_sede: usuario.id_sede,
+      id_especialidad: usuario.id_especialidad,
+      especialidad_nombre: usuario.especialidad_nombre
     };
 
     const token = jwt.sign(payload, process.env.JWT_SECRET || 'clinica-secret-key', { expiresIn: '24h' });

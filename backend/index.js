@@ -20,7 +20,7 @@ app.use(helmet());
 // Configuración de Socket.io
 const io = new Server(server, {
   cors: {
-    origin: '*', // En producción debería restringirse al dominio del frontend
+    origin: ['http://localhost:4200', 'http://localhost:4201', 'http://localhost'], // Restringir a dominios específicos
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
   },
 });
@@ -52,6 +52,11 @@ pool.query('SELECT NOW()', async (err, res) => {
         'ALTER TABLE "Atencion" ADD COLUMN IF NOT EXISTS id_consultorio INTEGER REFERENCES "Consultorios"("id_consultorio")'
       );
       console.log('✅ Columna id_consultorio asegurada en tabla Atencion');
+
+      await pool.query(
+        'ALTER TABLE "Atencion" ADD COLUMN IF NOT EXISTS id_cliente INTEGER REFERENCES "cliente"("id_cliente")'
+      );
+      console.log('✅ Columna id_cliente asegurada en tabla Atencion');
 
       await pool.query('DROP TABLE IF EXISTS "turnos" CASCADE');
       console.log('✅ Tabla legacy turnos eliminada de la base de datos actual si existía');
@@ -100,6 +105,22 @@ app.get('/api/health', (req, res) => {
 });
 
 // Importar y usar las demás rutas
+// Middlewares
+app.use(cors({
+  origin: ['http://localhost:4200', 'http://localhost:4201', 'http://localhost'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+app.use(express.json());
+
+// Hacer io accesible desde los controladores u otras rutas si es necesario
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
+
+// Importar y usar las demás rutas
 const authRoutes = require('./src/routes/auth.routes');
 const adminRoutes = require('./src/routes/admin.routes');
 const turnosRoutes = require('./src/routes/turnos.routes');
@@ -133,12 +154,37 @@ io.on('connection', (socket) => {
   });
 });
 
-// Iniciar el servidor
-const PORT = process.env.PORT || 3000;
+// Iniciar el servidor con auto-recuperación de puerto
+const PORT = process.env.PORT || 3001;
 if (require.main === module) {
-  server.listen(PORT, () => {
-    console.log(`🚀 Servidor backend corriendo en http://localhost:${PORT}`);
-  });
+  const startServer = () => {
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.log(`⚠️  Puerto ${PORT} en uso, liberando...`);
+        const { execSync } = require('child_process');
+        try {
+          const output = execSync(
+            `netstat -ano | findstr :${PORT} | findstr LISTENING`,
+            { shell: true, encoding: 'utf8', timeout: 3000 }
+          );
+          output.trim().split(/\r?\n/).forEach(line => {
+            const parts = line.trim().split(/\s+/);
+            const pid = parseInt(parts[parts.length - 1]);
+            if (!isNaN(pid)) {
+              try { process.kill(pid, 'SIGTERM'); } catch (e) { /* ignore */ }
+            }
+          });
+        } catch (e) { /* netstat no match or timeout */ }
+        setTimeout(startServer, 1500);
+      } else {
+        console.error('❌ Error al iniciar servidor:', err);
+      }
+    });
+    server.listen(PORT, () => {
+      console.log(`🚀 Servidor backend corriendo en http://localhost:${PORT}`);
+    });
+  };
+  startServer();
 }
 
 module.exports = { app, server, io };

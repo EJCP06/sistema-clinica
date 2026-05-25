@@ -12,7 +12,7 @@ const pool = new Pool({
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  max: 10, // Máximo de conexiones en el pool
+  max: 20, // Incrementado para manejar más conexiones concurrentes
   idleTimeoutMillis: 30000, // 30 segundos
   connectionTimeoutMillis: 5000 // 5 segundos
 });

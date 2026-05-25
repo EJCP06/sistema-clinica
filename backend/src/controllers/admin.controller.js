@@ -47,9 +47,24 @@ const getReporteDiario = async (req, res) => {
       [sede],
     );
 
+    const turnos = result.rows.map(r => ({
+      id: r.id,
+      numero: r.numero,
+      estado: r.estado,
+      hora_llegada: r.hora_llegada,
+      hora_fin: r.hora_fin,
+      servicio_nombre: r.servicio,
+      id_sede: r.id_sede,
+      paciente: {
+        nombre: r.paciente_nombre,
+        documento: r.paciente_documento,
+        telefono: r.paciente_telefono,
+      },
+    }));
+
     res.json({
-      total: result.rows.length,
-      turnos: result.rows,
+      total: turnos.length,
+      turnos,
     });
   } catch (error) {
     console.error(error);
@@ -125,16 +140,11 @@ const cerrarSistema = async (req, res) => {
 ========================================================= */
 
 const getServicios = async (req, res) => {
-  const sede = getSede(req, res);
-  if (!sede) return;
-
   try {
     const result = await pool.query(
-      `SELECT id_servicio as id, nombre_servicio as nombre, prefijo, piso, consultorio, status as activo, id_sede
+      `SELECT id_servicio as id, nombre_servicio as nombre, prefijo, status as activo
        FROM "Servicio"
-       WHERE id_sede = $1
-       ORDER BY id_servicio`,
-      [sede],
+       ORDER BY id_servicio`
     );
 
     res.json(result.rows);
@@ -145,16 +155,13 @@ const getServicios = async (req, res) => {
 };
 
 const crearServicio = async (req, res) => {
-  const sede = getSede(req, res);
-  if (!sede) return;
-
   try {
-    let { nombre, prefijo, piso, consultorio, activo } = req.body;
+    let { nombre, prefijo, piso, activo } = req.body;
 
     await pool.query(
-      `INSERT INTO "Servicio" (nombre_servicio, prefijo, piso, consultorio, status, id_sede)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [nombre, prefijo || null, piso || null, consultorio || null, activo !== false, sede],
+      `INSERT INTO "Servicio" (nombre_servicio, prefijo, piso, status)
+       VALUES ($1, $2, $3, $4)`,
+      [nombre, prefijo || null, piso || null, activo !== false],
     );
 
     res.status(201).json({ mensaje: 'Servicio creado' });
@@ -165,22 +172,18 @@ const crearServicio = async (req, res) => {
 };
 
 const actualizarServicio = async (req, res) => {
-  const sede = getSede(req, res);
-  if (!sede) return;
-
   try {
     const { id } = req.params;
-    const { nombre, prefijo, piso, consultorio, activo } = req.body;
+    const { nombre, prefijo, piso, activo } = req.body;
 
     await pool.query(
       `UPDATE "Servicio"
        SET nombre_servicio = COALESCE($1, nombre_servicio),
            prefijo = COALESCE($2, prefijo),
            piso = COALESCE($3, piso),
-           consultorio = COALESCE($4, consultorio),
-           status = COALESCE($5, status)
-       WHERE id_servicio = $6 AND id_sede = $7`,
-      [nombre, prefijo || null, piso || null, consultorio || null, activo !== undefined ? activo : null, id, sede],
+           status = COALESCE($4, status)
+       WHERE id_servicio = $5`,
+      [nombre, prefijo || null, piso || null, activo !== undefined ? activo : null, id],
     );
 
     res.json({ mensaje: 'Servicio actualizado' });
@@ -191,14 +194,11 @@ const actualizarServicio = async (req, res) => {
 };
 
 const eliminarServicio = async (req, res) => {
-  const sede = getSede(req, res);
-  if (!sede) return;
-
   try {
     await pool.query(
       `DELETE FROM "Servicio"
-       WHERE id_servicio = $1 AND id_sede = $2`,
-      [req.params.id, sede],
+       WHERE id_servicio = $1`,
+      [req.params.id],
     );
 
     res.json({ mensaje: 'Servicio eliminado' });
@@ -356,23 +356,24 @@ const getPersonal = async (req, res) => {
 };
 
 const crearPersonal = async (req, res) => {
-  const sede = getSede(req, res);
-  if (!sede) return;
+  const sedeToken = getSede(req, res);
+  if (!sedeToken) return;
 
   try {
-    const { cedula, nombre, apellido, telefono, password, rol, piso, id_consultorio, id_servicio, id_especialidad, username, status } = req.body;
+    const { cedula, nombre, apellido, telefono, password, rol, piso, id_consultorio, id_servicio, id_especialidad, username, status, id_sede } = req.body;
 
     if (!cedula || !nombre || !rol) {
       return res.status(400).json({ mensaje: 'Cédula, nombre y rol son requeridos' });
     }
 
     const password_hash = password ? await bcrypt.hash(password, 10) : await bcrypt.hash(cedula, 10);
+    const sedeFinal = id_sede ? Number(id_sede) : sedeToken;
 
     const result = await pool.query(
       `INSERT INTO "Usuarios" (cedula, nombre, apellido, telefono, password_hash, rol, piso, id_consultorio, id_servicio, id_especialidad, id_sede, status)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        RETURNING id_usuario`,
-      [cedula, nombre, apellido || '', telefono || '', password_hash, rol, piso || null, id_consultorio || null, id_servicio || null, id_especialidad || null, sede, status !== false],
+      [cedula, nombre, apellido || '', telefono || '', password_hash, rol, piso || null, id_consultorio || null, id_servicio || null, id_especialidad || null, sedeFinal, status !== false],
     );
 
     res.status(201).json({ mensaje: 'Personal creado', id: result.rows[0].id_usuario });
@@ -391,7 +392,7 @@ const actualizarPersonal = async (req, res) => {
 
   try {
     const { id } = req.params;
-    const { cedula, nombre, apellido, telefono, password, rol, piso, id_consultorio, id_servicio, id_especialidad, status } = req.body;
+    const { cedula, nombre, apellido, telefono, password, rol, piso, id_consultorio, id_servicio, id_especialidad, status, id_sede } = req.body;
 
     const sets = [];
     const values = [];
@@ -407,6 +408,7 @@ const actualizarPersonal = async (req, res) => {
     if (id_consultorio !== undefined) { sets.push(`id_consultorio = $${idx++}`); values.push(id_consultorio); }
     if (id_servicio !== undefined) { sets.push(`id_servicio = $${idx++}`); values.push(id_servicio); }
     if (id_especialidad !== undefined) { sets.push(`id_especialidad = $${idx++}`); values.push(id_especialidad); }
+    if (id_sede !== undefined) { sets.push(`id_sede = $${idx++}`); values.push(Number(id_sede)); }
     if (status !== undefined) { sets.push(`status = $${idx++}`); values.push(status); }
 
     if (sets.length === 0) {

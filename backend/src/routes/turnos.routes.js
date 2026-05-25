@@ -1,21 +1,15 @@
 const express = require('express');
 const router = express.Router();
-
 const turnosController = require('../controllers/turnos.controller');
+const auth = require('../middleware/auth');
 
-console.log('TURNOS CONTROLLER:', turnosController);
+router.use(auth);
 
-// SOLO FUNCIONES (SIN PARENTESIS)
+router.get('/', turnosController.getTodosLosTurnos);
 router.get('/todos', turnosController.getTodosLosTurnos);
-
-router.post('/crear', turnosController.crearTurno);
-
-router.put('/ausente/:id', turnosController.marcarAusente);
-
-router.put('/transferir/:id', turnosController.transferirPaciente);
-
-router.put('/pausar/:id', turnosController.pausarAtencion);
-
-router.put('/reanudar/:id', turnosController.reanudarAtencion);
+router.post('/', turnosController.crearTurno);
+router.put('/:id/ausente', turnosController.marcarAusente);
+router.put('/:id/pausar', turnosController.pausarAtencion);
+router.put('/:id/reanudar', turnosController.reanudarAtencion);
 
 module.exports = router;

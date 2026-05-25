@@ -10,6 +10,7 @@ export interface Usuario {
   consultorioId?: string;    // para compatibilidad con mock anterior
   consultorio_id?: number;   // viene del backend real
   servicio_id?: number;
+  id_especialidad?: number;
   especialidad_nombre?: string;
   id_sede?: number;
 }

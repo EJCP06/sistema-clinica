@@ -131,7 +131,9 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     id_servicio: null,
     id_responsable: null,
     id_cliente: null,
-    id_atencion: null, // Para saber si estamos editando una atención existente
+    id_atencion: null,
+    id_especialidad: null,
+    nombre_servicio_label: '',
   };
 
   // Lógica de Categorías
@@ -153,6 +155,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   private el = inject(ElementRef);
   private cdr = inject(ChangeDetectorRef);
   private route = inject(ActivatedRoute);
+  private espService = inject(EspecialidadesService);
 
   constructor(
     private api: ApiService,
@@ -238,9 +241,27 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   // --- LOGICA DE NEGOCIO ---
 
   cargarDatosMaestros() {
-    this.api.getServicios().subscribe((data: any) => {
-      this.servicios = data;
+    this.api.getServicios().subscribe({
+      next: (data: any) => {
+        this.servicios = data;
+        console.log('Servicios cargados:', this.servicios.length);
+      },
+      error: (err: any) => console.error('Error cargando servicios:', err)
     });
+    
+    this.espService.getAllEspecialidades().subscribe({
+      next: (data: any) => {
+        this.especialidades = data;
+        console.log('Especialidades cargadas:', this.especialidades.length);
+        if (this.especialidades.length === 0) {
+          console.warn('¡ADVERTENCIA: No se cargaron especialidades!');
+        }
+      },
+      error: (err: any) => {
+        console.error('Error cargando especialidades:', err);
+      }
+    });
+    
     this.cargarAseguradoras();
 
     this.api.get('recepcion/responsables-pago').subscribe({
@@ -547,6 +568,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       id_servicio: this.seleccion.id_servicio,
       id_responsable: this.seleccion.id_responsable,
       id_cliente: this.seleccion.id_cliente,
+      id_especialidad: this.seleccion.id_especialidad || null,
     };
 
     this.api.post('recepcion/generar-turno', bodyTurno).subscribe({
@@ -586,6 +608,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       id_servicio: this.seleccion.id_servicio,
       id_responsable: this.seleccion.id_responsable,
       id_cliente: this.seleccion.id_cliente,
+      id_especialidad: this.seleccion.id_especialidad || null,
     };
 
     this.api.post('recepcion/generar-turno', bodyTurno).subscribe({
@@ -716,27 +739,51 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     this.showEspecialidadDropdown = !this.showEspecialidadDropdown;
   }
 
-  selectEspecialidad(id: number) {
-    this.seleccion.id_servicio = id;
+  selectEspecialidad(item: any) {
+    if (this.categoriaServicio === 'Consulta') {
+      // item es una especialidad
+      this.seleccion.id_servicio = item.id_servicio; // El ID del servicio 'CONSULTA'
+      this.seleccion.id_especialidad = item.id_especialidad || item.id;
+      this.seleccion.nombre_servicio_label = item.nombre || '';
+    } else {
+      // item es un servicio (Laboratorio/Imagen)
+      this.seleccion.id_servicio = item.id || item.id_servicio;
+      this.seleccion.id_especialidad = null;
+      this.seleccion.nombre_servicio_label = item.nombre || item.nombre_servicio || '';
+    }
     this.showEspecialidadDropdown = false;
   }
 
   getEspecialidades() {
-    return this.servicios.filter((s) => {
-      const nombre = s.nombre || s.nombre_servicio || '';
-      return (
-        !nombre.toLowerCase().includes('laboratorio') &&
-        !nombre.toLowerCase().includes('imágenes') &&
-        !nombre.toLowerCase().includes('imagenes')
-      );
-    });
+    // Si no hay categoría seleccionada, mostrar todas las especialidades por defecto
+    if (!this.categoriaServicio) {
+      return this.especialidades;
+    }
+    
+    if (this.categoriaServicio === 'Consulta') {
+      return this.especialidades;
+    }
+    if (this.categoriaServicio === 'Laboratorio') {
+      return this.servicios.filter((s) => {
+        const n = (s.nombre || s.nombre_servicio || '').toLowerCase();
+        return n.includes('laboratorio');
+      });
+    }
+    if (this.categoriaServicio === 'Imágenes') {
+      return this.servicios.filter((s) => {
+        const n = (s.nombre || s.nombre_servicio || '').toLowerCase();
+        return n.includes('imagen');
+      });
+    }
+    return [];
   }
 
   getNombreServicioLabel(id: any): string {
+    if (this.seleccion.nombre_servicio_label) return this.seleccion.nombre_servicio_label;
     if (!id) return 'Seleccione...';
     const s = this.servicios.find((serv) => (serv.id || serv.id_servicio) === id);
-    if (!s) return 'Seleccione...';
-    return s.nombre || s.nombre_servicio || 'Seleccione...';
+    if (s) return s.nombre || s.nombre_servicio || 'Seleccione...';
+    return 'Seleccione...';
   }
 
   // --- ACCIONES DE TABLA ---
@@ -769,9 +816,18 @@ export class RecepcionComponent implements OnInit, OnDestroy {
         id_responsable: fila.id_responsable,
         id_cliente: fila.id_cliente,
         id_atencion: fila.id_atencion,
+        id_especialidad: fila.id_especialidad,
       };
 
       this.categoriaServicio = this.getServicioCategoria(fila.nombre_servicio);
+      
+      // Intentar encontrar el nombre de la especialidad para el label
+      if (fila.id_especialidad) {
+        const esp = this.especialidades.find(e => (e.id_especialidad || e.id) === fila.id_especialidad);
+        if (esp) {
+          this.seleccion.nombre_servicio_label = esp.nombre;
+        }
+      }
     }
   }
 

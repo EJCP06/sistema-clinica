@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/admin.controller');
+const sharedController = require('../controllers/shared.controller');
 const authMiddleware = require('../middleware/auth');
 
 // Todas las rutas require token
@@ -8,6 +9,10 @@ router.use(authMiddleware);
 
 // SEDES
 router.get('/sedes', adminController.getSedes);
+
+// RESPONSABLES DE PAGO (lo usa APS)
+const recepcionController = require('../controllers/recepcion.controller');
+router.get('/responsables', recepcionController.getResponsablesPago);
 
 // SERVICIOS
 router.get('/servicios', adminController.getServicios);
@@ -33,5 +38,8 @@ router.get('/reportes/avanzadas', adminController.getEstadisticasAvanzadas);
 
 // SISTEMA
 router.post('/sistema/cerrar', adminController.cerrarSistema);
+
+// ASEGURADORAS
+router.delete('/aseguradoras/:id', sharedController.eliminarAseguradora);
 
 module.exports = router;
