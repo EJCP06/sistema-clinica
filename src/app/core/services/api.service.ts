@@ -27,6 +27,9 @@ export class ApiService {
     this.socket.on('estado-actualizado', (data: any) => {
       this.cambios$.next(data);
     });
+    this.socket.on('nuevo-llamado', (data: any) => {
+      this.cambios$.next(data);
+    });
   }
 
   // =========================
@@ -94,25 +97,9 @@ export class ApiService {
     return this.http.post(`${this.base}/consultorios/finalizar-atencion`, {});
   }
 
-  pausarConsultorio(): Observable<any> {
-    return this.http.put(`${this.base}/consultorios/pausar`, {});
-  }
-
-  reanudarConsultorio(): Observable<any> {
-    return this.http.put(`${this.base}/consultorios/reanudar`, {});
-  }
-
   // =========================
   // TURNOS ACCIONES
   // =========================
-  pausarAtencion(turnoId: number): Observable<any> {
-    return this.http.put(`${this.base}/turnos/${turnoId}/pausar`, {});
-  }
-
-  reanudarAtencion(turnoId: number): Observable<any> {
-    return this.http.put(`${this.base}/turnos/${turnoId}/reanudar`, {});
-  }
-
   marcarAusente(turnoId: number): Observable<any> {
     return this.http.put(`${this.base}/turnos/${turnoId}/ausente`, {});
   }

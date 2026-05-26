@@ -62,9 +62,19 @@ const getReporteDiario = async (req, res) => {
       },
     }));
 
+    // Calcular estadísticas por estado
+    const atendidos = turnos.filter(t => t.estado === 'Atendido').length;
+    const ausentes = turnos.filter(t => t.estado === 'Ausente').length;
+    const enEspera = turnos.filter(t => t.estado === 'Sala de Espera' || t.estado === 'Llamado').length;
+
     res.json({
       total: turnos.length,
       turnos,
+      estadisticas: {
+        atendidos,
+        ausentes,
+        en_espera: enEspera,
+      },
     });
   } catch (error) {
     console.error(error);
@@ -218,7 +228,7 @@ const getConsultorios = async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT id_consultorio as id, nombre, estado_fisico as estado
+      `SELECT id_consultorio as id, nombre, estado_fisico as estado, id_servicio as servicio_id
        FROM "Consultorios"
        WHERE id_sede = $1`,
       [sede],
@@ -402,7 +412,7 @@ const actualizarPersonal = async (req, res) => {
     if (nombre !== undefined) { sets.push(`nombre = $${idx++}`); values.push(nombre); }
     if (apellido !== undefined) { sets.push(`apellido = $${idx++}`); values.push(apellido); }
     if (telefono !== undefined) { sets.push(`telefono = $${idx++}`); values.push(telefono); }
-    if (password) { sets.push(`password_hash = $${idx++}`); values.push(bcrypt.hashSync(password, 10)); }
+    if (password) { sets.push(`password_hash = $${idx++}`); values.push(await bcrypt.hash(password, 10)); }
     if (rol !== undefined) { sets.push(`rol = $${idx++}`); values.push(rol); }
     if (piso !== undefined) { sets.push(`piso = $${idx++}`); values.push(piso); }
     if (id_consultorio !== undefined) { sets.push(`id_consultorio = $${idx++}`); values.push(id_consultorio); }

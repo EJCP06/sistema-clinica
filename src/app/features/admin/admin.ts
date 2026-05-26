@@ -13,6 +13,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '@core/services/api.service';
 import { AuthService } from '@core/services/auth.service';
+import { Subscription } from 'rxjs';
 import { ThemeService } from '@core/services/theme.service';
 import { Header } from '../../shared/components/header/header';
 import {
@@ -41,6 +42,7 @@ import {
   MapPin,
   Layers,
   CheckCircle2,
+  Check,
   LayoutGrid,
   ShieldCheck,
   Calendar,
@@ -85,6 +87,7 @@ export class Admin implements OnInit, OnDestroy {
   readonly MapPin = MapPin;
   readonly Layers = Layers;
   readonly CheckCircle2 = CheckCircle2;
+  readonly Check = Check;
   readonly LayoutGrid = LayoutGrid;
   readonly ShieldCheck = ShieldCheck;
   readonly Calendar = Calendar;
@@ -144,11 +147,12 @@ export class Admin implements OnInit, OnDestroy {
   editingId: number | null = null;
   isSaving = false;
   showPassword = false;
+  private cambiosSub?: Subscription;
   sidebarOpen = false;
 
   // Search
   searchQuery = '';
-  searchFilter = 'all';
+  searchFilter = 'todo';
 
   // Custom Dropdowns
   showRolDropdown = false;
@@ -180,8 +184,7 @@ export class Admin implements OnInit, OnDestroy {
     codigo: '',
     prefijo: '',
     piso: '',
-    id_consultorio: null as number | null,
-    consultorioInput: '',
+    consultorios_ids: [] as number[],
     descripcion: '',
     activo: true,
     id_sede: '' as string | number,
@@ -225,6 +228,11 @@ export class Admin implements OnInit, OnDestroy {
 
     this.cargarSedes();
     this.cargarTodo();
+
+    // Real-time updates via socket
+    this.cambiosSub = this.apiService.cambios$.subscribe(() => {
+      this.cargarReporte();
+    });
   }
 
   cargarSedes() {
@@ -242,6 +250,7 @@ export class Admin implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.cambiosSub?.unsubscribe();
     this.charts.forEach((c) => c.destroy());
     this.charts = [];
   }
@@ -270,7 +279,7 @@ export class Admin implements OnInit, OnDestroy {
 
   cargarConsultorios() {
     this.apiService.getConsultorios().subscribe((cons) => {
-      this.consultorios = cons;
+      this.consultorios = cons.sort((a, b) => a.nombre.localeCompare(b.nombre, undefined, { numeric: true }));
       this.cdr.detectChanges();
     });
   }
@@ -362,8 +371,7 @@ export class Admin implements OnInit, OnDestroy {
         codigo: esp.codigo || '',
         prefijo: esp.prefijo || '',
         piso: esp.piso || '',
-        id_consultorio: esp.id_consultorio || null,
-        consultorioInput: esp.consultorio_nombre || '',
+        consultorios_ids: esp.consultorios_ids || [],
         descripcion: esp.descripcion || '',
         activo: esp.activo,
         id_sede: esp.id_sede || '',
@@ -377,8 +385,7 @@ export class Admin implements OnInit, OnDestroy {
         codigo: '',
         prefijo: '',
         piso: '',
-        id_consultorio: null,
-        consultorioInput: '',
+        consultorios_ids: [],
         descripcion: '',
         activo: true,
         id_sede: '',
@@ -468,24 +475,30 @@ export class Admin implements OnInit, OnDestroy {
   }
 
   // --- CRUD ESPECIALIDADES ---
+  isConsultorioEspSelected(id: number): boolean {
+    return this.formEsp.consultorios_ids.includes(id);
+  }
+
+  toggleConsultorioEsp(id: number) {
+    const idx = this.formEsp.consultorios_ids.indexOf(id);
+    if (idx >= 0) {
+      this.formEsp.consultorios_ids.splice(idx, 1);
+    } else {
+      this.formEsp.consultorios_ids.push(id);
+    }
+  }
+
   guardarEsp() {
     if (this.isSaving) return;
 
     this.isSaving = true;
 
-    const consultorioTexto = (this.formEsp.consultorioInput || '').toString().trim();
-    const consultorioEncontrado = this.consultorios.find(
-      (c) => (c.nombre || '').toString().trim() === consultorioTexto
-    );
-
     const body = {
       nombre: (this.formEsp.nombre || '').toUpperCase().trim(),
       prefijo: (this.formEsp.prefijo || '').toUpperCase().trim(),
       id_servicio: 1,
+      consultorios_ids: this.formEsp.consultorios_ids,
       piso: (this.formEsp.piso || '').toString().replace(/\D/g, ''),
-      id_consultorio: consultorioEncontrado
-        ? Number(consultorioEncontrado.id || consultorioEncontrado.id_consultorio)
-        : null,
       activo: this.formEsp.activo,
       id_sede: this.formEsp.id_sede
         ? Number(this.formEsp.id_sede)
@@ -508,8 +521,7 @@ export class Admin implements OnInit, OnDestroy {
           codigo: '',
           prefijo: '',
           piso: '',
-          id_consultorio: null,
-          consultorioInput: '',
+          consultorios_ids: [],
           descripcion: '',
           activo: true,
           id_sede: this.usuario?.id_sede || '',
@@ -796,8 +808,10 @@ export class Admin implements OnInit, OnDestroy {
   }
 
   get consultoriosDelServicio() {
-    if (!this.formPersonal.servicio_id) return this.consultorios;
-    return this.consultorios.filter((c) => c.servicio_id === this.formPersonal.servicio_id);
+    if (!this.formPersonal.especialidad_id) return this.consultorios;
+    const esp = this.especialidades.find(e => e.id === this.formPersonal.especialidad_id);
+    if (!esp || !esp.consultorios_ids || esp.consultorios_ids.length === 0) return this.consultorios;
+    return this.consultorios.filter((c) => esp.consultorios_ids.includes(c.id));
   }
 
   selectMedicoCon(con: any) {
@@ -862,6 +876,14 @@ export class Admin implements OnInit, OnDestroy {
   getNombreCon(id: any, forDropdown = false): string {
     const con = this.consultorios.find((c) => (c.id || c.id_consultorio) == id);
     return con ? con.nombre.toUpperCase() : forDropdown ? 'Seleccione...' : 'SIN ASIGNAR';
+  }
+
+  getConsultoriosEspLabel(ids: number[]): string {
+    if (!ids || ids.length === 0) return 'SIN ASIGNAR';
+    return ids.map(id => {
+      const con = this.consultorios.find(c => c.id == id);
+      return con ? con.nombre.toUpperCase() : `#${id}`;
+    }).join(', ');
   }
 
   getPisoCon(id: any): string {

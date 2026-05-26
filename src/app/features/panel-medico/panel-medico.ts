@@ -140,7 +140,7 @@ llamarSiguiente() {
       this.pacientesEspera.shift();
       
       // Programamos una actualización para sincronizar con el backend
-      setTimeout(() => this.cargarPacientes(), 1500); 
+      this.cargarPacientes(); 
     },
     error: (err) => {
       console.error('Error al llamar:', err);

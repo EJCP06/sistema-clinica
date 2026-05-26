@@ -15,12 +15,12 @@ export interface Consultorio {
   id: string;
   nombre: string;
   especialidadId: string;
-  estado: 'LIBRE' | 'EN_DESCANSO' | 'EN_ATENCION' | 'EN_PAUSA' | 'STANDBY';
+  estado: 'LIBRE' | 'EN_DESCANSO' | 'EN_ATENCION' | 'STANDBY';
   medicoAsignado: string;
   turnoActualId?: string;
 }
 
-export type EstadoTurno = 'EN_ESPERA' | 'LLAMADO' | 'EN_ATENCION' | 'EN_PAUSA' | 'ATENDIDO' | 'AUSENTE' | 'TRANSFERIDO' | 'DESCARTADO';
+export type EstadoTurno = 'EN_ESPERA' | 'LLAMADO' | 'EN_ATENCION' | 'ATENDIDO' | 'AUSENTE' | 'TRANSFERIDO' | 'DESCARTADO';
 
 export interface Turno {
   id: string; // ej. PED-009
@@ -33,5 +33,4 @@ export interface Turno {
   horaInicioAtencion?: Date;
   horaFin?: Date;
   consultorioId?: string;
-  tiempoPausadoSegundos: number;
 }

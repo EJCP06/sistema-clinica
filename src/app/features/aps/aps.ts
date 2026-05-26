@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { LucideAngularModule, Search, UserPlus, Plus, FileText, CheckCircle2, ChevronRight, User, Phone, CreditCard, Stethoscope, ChevronDown, XCircle, ShieldCheck, ClipboardList, Edit2, ArrowRightLeft } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
 import { Subject, Subscription } from 'rxjs';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { debounceTime } from 'rxjs/operators';
 
 import { Sidebar } from '../../shared/components/sidebar/sidebar';
 import { Header } from '../../shared/components/header/header';
@@ -49,6 +49,8 @@ export class ApsComponent implements OnInit, OnDestroy {
   // Live Search
   private searchSubject = new Subject<string>();
   private searchSubscription?: Subscription;
+  private busquedaSubscription?: Subscription;
+  mostrarResultadosBusqueda: boolean = false;
 
   // Datos
   pacientesEncontrados: any[] = [];
@@ -112,21 +114,35 @@ export class ApsComponent implements OnInit, OnDestroy {
     }
   }
 
+  private cambiosSub?: Subscription;
+
   ngOnInit() {
     this.cargarDatosMaestros();
     this.cargarUltimasAdmisiones();
 
+    // Real-time updates via socket
+    this.cambiosSub = this.api.cambios$.subscribe(() => {
+      this.cargarUltimasAdmisiones();
+    });
+
     this.searchSubscription = this.searchSubject.pipe(
-      debounceTime(150),
-      distinctUntilChanged()
+      debounceTime(150)
     ).subscribe(value => {
-      this.ejecutarBusqueda(value);
+      if (!value || value.trim().length < 1) {
+        this.resetSearchOnly();
+      } else {
+        this.ejecutarBusqueda(value);
+      }
     });
   }
 
   ngOnDestroy() {
+    this.cambiosSub?.unsubscribe();
     if (this.searchSubscription) {
       this.searchSubscription.unsubscribe();
+    }
+    if (this.busquedaSubscription) {
+      this.busquedaSubscription.unsubscribe();
     }
   }
 
@@ -194,40 +210,62 @@ export class ApsComponent implements OnInit, OnDestroy {
   }
 
   onSearchChange(value: string) {
-    if (!value || !value.trim()) {
+    if (!value || value.trim().length < 1) {
       this.resetSearchOnly();
     }
+    this.searchSubject.next(value);
     this.cdr.detectChanges();
   }
 
   ejecutarBusqueda(value: string) {
-    const queryClean = value.trim().toLowerCase();
-    if (!queryClean || queryClean.length < 2) {
-      this.resetSearchOnly();
-      return;
+    if (this.busquedaSubscription) {
+      this.busquedaSubscription.unsubscribe();
     }
 
     this.buscando = true;
     this.pacientesEncontrados = [];
 
-    this.api.get(`recepcion/pacientes/${value}?filtro=${this.searchFilter}`).subscribe({
+    const filtro = this.searchFilter !== 'todo' ? `?filtro=${this.searchFilter}` : '';
+    this.busquedaSubscription = this.api.get(`recepcion/pacientes/${value}${filtro}`).subscribe({
       next: (data: any[]) => {
+        if (!this.cedulaBusqueda || this.cedulaBusqueda.trim().length < 1) {
+          return;
+        }
         this.pacientesEncontrados = data || [];
+        this.mostrarResultadosBusqueda = data && data.length > 0;
         this.buscando = false;
         this.cdr.detectChanges();
       },
       error: () => {
         this.buscando = false;
         this.pacientesEncontrados = [];
+        this.mostrarResultadosBusqueda = false;
         this.cdr.detectChanges();
       }
     });
   }
 
   resetSearchOnly() {
+    if (this.busquedaSubscription) {
+      this.busquedaSubscription.unsubscribe();
+      this.busquedaSubscription = undefined;
+    }
     this.pacientesEncontrados = [];
     this.pacienteEncontrado = null;
     this.buscando = false;
+    this.mostrarResultadosBusqueda = false;
+  }
+
+  onSearchFocus() {
+    if (this.pacientesEncontrados.length > 0) {
+      this.mostrarResultadosBusqueda = true;
+    }
+  }
+
+  onSearchBlur() {
+    setTimeout(() => {
+      this.mostrarResultadosBusqueda = false;
+    }, 200);
   }
 
   seleccionarPaciente(paciente: any) {
@@ -235,6 +273,7 @@ export class ApsComponent implements OnInit, OnDestroy {
     this.seleccion = { id_servicio: null, id_responsable: null };
     this.categoriaServicio = '';
     this.pacientesEncontrados = [];
+    this.mostrarResultadosBusqueda = false;
   }
 
   generarAtencion() {
