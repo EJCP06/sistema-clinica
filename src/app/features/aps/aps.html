@@ -106,9 +106,31 @@
                 type="text"
                 [(ngModel)]="cedulaBusqueda"
                 (ngModelChange)="onSearchChange($event)"
+                (focus)="onSearchFocus()"
+                (blur)="onSearchBlur()"
                 placeholder="Buscar paciente registrado para APS..."
                 class="w-full pl-14 pr-10 py-3 text-sm focus:outline-none font-medium bg-transparent rounded-r-2xl text-slate-900 dark:text-white"
               />
+
+              <!-- Resultados de búsqueda -->
+              <div
+                *ngIf="mostrarResultadosBusqueda && pacientesEncontrados.length > 0"
+                class="absolute z-[120] left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600"
+              >
+                <div class="p-1.5 max-h-60 overflow-y-auto space-y-1">
+                  <div
+                    *ngFor="let p of pacientesEncontrados"
+                    (mousedown)="seleccionarPaciente(p)"
+                    class="px-4 py-3 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
+                  >
+                    <div class="flex flex-col">
+                      <span class="font-bold text-slate-800 dark:text-white uppercase">{{ p.nombre }} {{ p.apellido }}</span>
+                      <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">C.I: {{ p.cedula }}</span>
+                    </div>
+                    <lucide-icon [name]="ChevronRight" class="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-colors"></lucide-icon>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -127,9 +149,9 @@
             (click)="resetSearchOnly()"
           ></div>
           <div
-            class="bg-white dark:bg-slate-900 rounded-[36px] shadow-2xl w-full max-w-4xl relative z-10 overflow-visible animate-in zoom-in-95 duration-300 border border-slate-200 dark:border-slate-800 flex flex-col"
+            class="bg-white dark:bg-slate-900 rounded-[36px] shadow-2xl w-full max-w-4xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] md:max-h-none"
           >
-            <div class="grid grid-cols-1 md:grid-cols-3 flex-1 overflow-visible">
+            <div class="grid grid-cols-1 md:grid-cols-3 flex-1 overflow-y-auto md:overflow-visible">
               <!-- Lateral Izquierdo -->
               <div
                 class="md:col-span-1 bg-blue-600 dark:bg-blue-700 py-12 px-8 flex flex-col justify-center border-b md:border-b-0 md:border-r border-blue-500/20 rounded-t-[36px] md:rounded-l-[36px] md:rounded-tr-none md:rounded-br-none"
@@ -445,9 +467,12 @@
                   <td class="px-8 py-6 text-center">
                     <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border"
                       [ngClass]="{
-                        'bg-blue-50 text-blue-600 border-blue-200': a.id_estado_actual === 1,
-                        'bg-amber-50 text-amber-600 border-amber-200': a.id_estado_actual === 2,
-                        'bg-emerald-50 text-emerald-600 border-emerald-200': a.id_estado_actual === 3
+                        'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20': a.id_estado_actual === 1,
+                        'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20': a.id_estado_actual === 2,
+                        'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20': a.id_estado_actual === 3,
+                        'bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20': a.id_estado_actual === 7,
+                        'bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20': a.id_estado_actual === 5,
+                        'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20': a.id_estado_actual === 6
                       }">
                       {{ a.nombre_estado }}
                     </span>

@@ -13,7 +13,7 @@ const getTodosLosTurnos = async (req, res) => {
       JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
       JOIN "Servicio" s ON a.id_servicio = s.id_servicio
       JOIN "Estado" e ON a.id_estado_actual = e.id_estado
-      WHERE a.id_sede = $1
+      WHERE a.id_sede = $1 AND a.hora_llegada >= CURRENT_DATE
       ORDER BY a.hora_llegada DESC
     `, [req.usuario.id_sede]);
     
@@ -141,52 +141,9 @@ const transferirPaciente = async (req, res) => {
   }
 };
 
-const pausarAtencion = async (req, res) => {
-  const { id } = req.params;
-  try {
-    // Estado 7 = Pausado (asumiendo que existe este estado)
-    const result = await pool.query(
-      'UPDATE "Atencion" SET id_estado_actual = 7 WHERE id_atencion = $1 RETURNING *',
-      [id]
-    );
-    
-    if (result.rowCount === 0) {
-      return res.status(404).json({ mensaje: 'Turno no encontrado' });
-    }
-    
-    res.json({ mensaje: 'Atención pausada correctamente' });
-  } catch (error) {
-    console.error('Error en pausarAtencion:', error);
-    res.status(500).json({ mensaje: 'Error al pausar atención' });
-  }
-};
-
-const reanudarAtencion = async (req, res) => {
-  const { id } = req.params;
-  try {
-    // Volver al estado anterior (asumiendo que volvemos de pausado a llamado o en atención)
-    // Esto sería más complejo en un sistema real, pero por simplicidad vamos a estado 3 (Llamado)
-    const result = await pool.query(
-      'UPDATE "Atencion" SET id_estado_actual = 3 WHERE id_atencion = $1 RETURNING *',
-      [id]
-    );
-    
-    if (result.rowCount === 0) {
-      return res.status(404).json({ mensaje: 'Turno no encontrado' });
-    }
-    
-    res.json({ mensaje: 'Atención reanudada correctamente' });
-  } catch (error) {
-    console.error('Error en reanudarAtencion:', error);
-    res.status(500).json({ mensaje: 'Error al reanudar atención' });
-  }
-};
-
 module.exports = {
   getTodosLosTurnos,
   crearTurno,
   marcarAusente,
   transferirPaciente,
-  pausarAtencion,
-  reanudarAtencion,
 };

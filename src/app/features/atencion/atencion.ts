@@ -65,7 +65,7 @@ export class Atencion implements OnInit, OnDestroy {
   turnosEnEspera: number = 0;
   proximosTurnos: any[] = [];
 
-  tiempoRestante: number = 60;
+  tiempoRestante: number = 120;
   private timerSub: Subscription | null = null;
   private pollSub: Subscription | null = null;
 
@@ -75,7 +75,7 @@ export class Atencion implements OnInit, OnDestroy {
   // Historial
   turnosAtendidos: any[] = [];
   searchQueryHistorial: string = '';
-  searchFilter: string = 'all';
+  searchFilter: string = 'todo';
   showSearchFilterDropdown: boolean = false;
   totalAtendidosHoy: number = 0;
   tiempoPromedioConsulta: string = '0 min';
@@ -172,20 +172,25 @@ export class Atencion implements OnInit, OnDestroy {
       },
       error: (err: any) => {
         this.cargando = false;
-        this.mensajeInfo = err.error?.mensaje || 'No hay pacientes en espera.';
-        setTimeout(() => this.mensajeInfo = '', 3000);
+        this.mensajeInfo = err.error?.mensaje || 'No hay pacientes en espera de este servicio.';
+        setTimeout(() => {
+          this.mensajeInfo = '';
+          this.cdr.detectChanges();
+        }, 2000);
         this.cdr.detectChanges();
       }
     });
   }
 
   iniciarAtencion() {
-    this.detenerTemporizador();
     this.apiService.iniciarAtencion().subscribe({
       next: () => {
+        this.detenerTemporizador();
+        this.turnoActual.estado = 'EN_ATENCION';
         this.consultorioEstado = 'OCUPADO';
-        this.cargarEstadoConsultorio(); // Forzar recarga de estado
-        this.cdr.detectChanges();      // Forzar UI
+        this.atendiendoLocalmente = false;
+        this.cargarEstadoConsultorio();
+        this.cdr.detectChanges();
       },
       error: (err: any) => alert(err.error?.mensaje)
     });
@@ -213,42 +218,45 @@ export class Atencion implements OnInit, OnDestroy {
         this.atendiendoLocalmente = false;
         this.detenerTemporizador();
         this.cargarEstadoConsultorio();
+        this.cargarHistorial();
         this.cdr.detectChanges();
       },
       error: (err: any) => alert(err.error?.mensaje)
     });
   }
 
-  pausarAtencion() {
-    if (!this.turnoActual) return;
-    this.apiService.pausarAtencion(this.turnoActual.id).subscribe({
-      error: (err: any) => alert(err.error?.mensaje)
-    });
+  tiempoExpirado() {
+    if (this.turnoActual && this.turnoActual.estado === 'LLAMADO') {
+      this.marcarAusenteAuto();
+    }
   }
 
-  reanudarAtencion() {
+  marcarAusenteAuto() {
     if (!this.turnoActual) return;
-    this.apiService.reanudarAtencion(this.turnoActual.id).subscribe({
+    this.apiService.marcarAusente(this.turnoActual.id).subscribe({
+      next: () => {
+        this.turnoActual = null;
+        this.consultorioEstado = 'LIBRE';
+        this.atendiendoLocalmente = false;
+        this.cargarEstadoConsultorio();
+        this.cargarHistorial();
+        this.cdr.detectChanges();
+      },
       error: (err: any) => alert(err.error?.mensaje)
     });
   }
 
   iniciarTemporizador() {
-    this.tiempoRestante = 60;
     this.detenerTemporizador();
+    this.tiempoRestante = 120;
     this.timerSub = interval(1000).subscribe(() => {
       this.tiempoRestante--;
+      this.cdr.detectChanges();
       if (this.tiempoRestante <= 0) {
         this.detenerTemporizador();
         this.tiempoExpirado();
       }
     });
-  }
-
-  tiempoExpirado() {
-    if (this.turnoActual && this.turnoActual.estado === 'LLAMADO') {
-      this.marcarAusente();
-    }
   }
 
   detenerTemporizador() {
@@ -285,20 +293,16 @@ export class Atencion implements OnInit, OnDestroy {
           }
         }));
 
-        // 1. Filtrar HISTORIAL (atendidos por este médico o especialidad)
-        if (eid) {
-          console.log('--- DEBUG HISTORIAL SEGREGACIÓN ---');
-          console.log('Mi Especialidad ID:', eid);
+        // 1. Filtrar HISTORIAL (atendidos por este médico/consultorio)
+        if (eid && cid) {
           this.turnosAtendidos = turnosNormalizados.filter(t => {
             const turnoEspId = t.id_especialidad ? Number(t.id_especialidad) : null;
+            const turnoConId = t.id_consultorio ? Number(t.id_consultorio) : null;
             const estadoMayus = (t.estado || '').toUpperCase();
-            
-            // Verificación estricta: si el turno tiene especialidad, debe coincidir.
-            // Si el turno no tiene especialidad, lo ocultamos para este médico especialista.
             const esDeMiEspecialidad = turnoEspId === Number(eid);
+            const esDeMiConsultorio = turnoConId === Number(cid);
             const esAtendido = ['ATENDIDO', 'AUSENTE'].includes(estadoMayus);
-            
-            return esDeMiEspecialidad && esAtendido;
+            return esDeMiEspecialidad && esDeMiConsultorio && esAtendido;
           }).sort((a, b) => {
             const dateA = new Date(a.updated_at || a.hora_llegada).getTime();
             const dateB = new Date(b.updated_at || b.hora_llegada).getTime();
@@ -373,8 +377,9 @@ export class Atencion implements OnInit, OnDestroy {
     return this.turnosAtendidos.filter(t => {
       const p = t.paciente;
       if (this.searchFilter === 'nombre') return p.nombre.toLowerCase().includes(query);
+      if (this.searchFilter === 'apellido') return (p.apellido || '').toLowerCase().includes(query);
       if (this.searchFilter === 'cedula') return p.documento.includes(query);
-      return p.nombre.toLowerCase().includes(query) || p.documento.includes(query) || t.numero.toLowerCase().includes(query);
+      return p.nombre.toLowerCase().includes(query) || (p.apellido || '').toLowerCase().includes(query) || p.documento.includes(query) || t.numero.toLowerCase().includes(query);
     });
   }
 
@@ -388,7 +393,7 @@ export class Atencion implements OnInit, OnDestroy {
   }
 
   getSearchFilterLabel(filter: string) {
-    const labels: any = { all: 'Todo', nombre: 'Nombre', cedula: 'Cédula' };
+    const labels: any = { all: 'Todo', nombre: 'Nombre', apellido: 'Apellido', cedula: 'Cédula' };
     return labels[filter] || 'Filtrar';
   }
 }

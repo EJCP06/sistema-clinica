@@ -9,7 +9,5 @@ router.get('/', turnosController.getTodosLosTurnos);
 router.get('/todos', turnosController.getTodosLosTurnos);
 router.post('/', turnosController.crearTurno);
 router.put('/:id/ausente', turnosController.marcarAusente);
-router.put('/:id/pausar', turnosController.pausarAtencion);
-router.put('/:id/reanudar', turnosController.reanudarAtencion);
 
 module.exports = router;

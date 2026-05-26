@@ -44,7 +44,7 @@ export class QueueService {
     return this.turnos.find(t =>
       t.paciente.documento === documento &&
       t.especialidadId === especialidadId &&
-      ['EN_ESPERA', 'LLAMADO', 'EN_ATENCION', 'EN_PAUSA'].includes(t.estado)
+      ['EN_ESPERA', 'LLAMADO', 'EN_ATENCION'].includes(t.estado)
     );
   }
 
@@ -63,7 +63,6 @@ export class QueueService {
       especialidadId,
       estado: 'EN_ESPERA',
       horaLlegada: new Date(),
-      tiempoPausadoSegundos: 0
     };
 
     this.turnos = [...this.turnos, newTurno];
@@ -126,20 +125,6 @@ export class QueueService {
     }
   }
 
-  pausarAtencion(turnoId: string) {
-    this.turnos = this.turnos.map(t =>
-      t.id === turnoId ? { ...t, estado: 'EN_PAUSA' } : t
-    );
-    this.turnosSubject.next(this.turnos);
-  }
-
-  reanudarAtencion(turnoId: string) {
-    this.turnos = this.turnos.map(t =>
-      t.id === turnoId ? { ...t, estado: 'EN_ATENCION' } : t
-    );
-    this.turnosSubject.next(this.turnos);
-  }
-
   finalizarAtencion(turnoId: string) {
     this.turnos = this.turnos.map(t =>
       t.id === turnoId ? { ...t, estado: 'ATENDIDO', horaFin: new Date() } : t
@@ -176,7 +161,6 @@ export class QueueService {
       especialidadId: nuevaEspecialidadId,
       estado: 'EN_ESPERA',
       horaLlegada: turnoOriginal.horaLlegada, // Hereda la hora original
-      tiempoPausadoSegundos: 0
     };
 
     this.turnos = [...this.turnos, nuevoTurno];

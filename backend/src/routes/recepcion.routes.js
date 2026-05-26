@@ -7,7 +7,7 @@ router.use(auth);
 
 router.get('/responsables-pago', ctrl.getResponsablesPago);
 router.get('/ultimas-admisiones', ctrl.getUltimasAdmisiones);
-router.get('/pacientes/:cedula', ctrl.buscarPaciente);
+router.get('/pacientes/:termino', ctrl.buscarPaciente);
 router.post('/pacientes', ctrl.crearPaciente);
 router.put('/pacientes/:id', ctrl.actualizarPaciente);
 router.delete('/pacientes/:id', ctrl.eliminarPaciente);

@@ -79,18 +79,6 @@ pool.query('SELECT NOW()', async (err, res) => {
           (2, 'Aseguradora')
         ON CONFLICT ("id_tipo_cliente") DO UPDATE SET
           "nombre" = EXCLUDED."nombre";
-
-        CREATE OR REPLACE VIEW "vista_aseguradoras" AS
-          SELECT
-            c."id_cliente",
-            c."nombre" AS aseguradora,
-            t."id_tipo_cliente",
-            t."nombre" AS tipo,
-            c."id_sede"
-          FROM "cliente" c
-          JOIN "tipo_cliente" t
-            ON c."id_tipo_cliente" = t."id_tipo_cliente"
-          WHERE c."id_tipo_cliente" = 2;
       `);
       console.log('✅ Tablas tipo_cliente y cliente aseguradas en la base de datos');
     } catch (alterError) {

@@ -32,7 +32,7 @@ import {
 import { ApiService } from '../../core/services/api.service';
 import { EspecialidadesService } from '../../core/services/especialidades.service';
 import { Subject, Subscription } from 'rxjs';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { debounceTime } from 'rxjs/operators';
 
 import { Sidebar } from '../../shared/components/sidebar/sidebar';
 import { Header } from '../../shared/components/header/header';
@@ -76,6 +76,8 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   // Live Search
   private searchSubject = new Subject<string>();
   private searchSubscription?: Subscription;
+  private busquedaSubscription?: Subscription;
+  mostrarResultadosBusqueda: boolean = false;
 
   // Datos
   pacientesEncontrados: any[] = [];
@@ -101,7 +103,10 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       const query = (this.cedulaBusqueda || '').trim().toLowerCase();
       return this.aseguradoras.filter((a) => {
         if (!query) return true;
-        return (a.aseguradora || '').toLowerCase().includes(query);
+        const matchNombre = (a.aseguradora || '').toLowerCase().includes(query);
+        const matchTipo = (a.tipo || '').toLowerCase().includes(query);
+        if (this.searchFilter === 'nombre') return matchNombre;
+        return matchNombre || matchTipo;
       });
     }
 
@@ -182,6 +187,8 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     }
   }
 
+  private cambiosSub?: Subscription;
+
   ngOnInit() {
     const data = this.route.snapshot.data;
     this.pageTitle = data['pageTitle'] || this.pageTitle;
@@ -195,17 +202,34 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       this.cargarUltimasAdmisiones();
     }
 
+    // Real-time updates via socket
+    this.cambiosSub = this.api.cambios$.subscribe(() => {
+      if (this.isAseguradorasView) {
+        this.cargarAseguradoras();
+      } else {
+        this.cargarUltimasAdmisiones();
+      }
+    });
+
     // Setup live search
     this.searchSubscription = this.searchSubject
-      .pipe(debounceTime(400), distinctUntilChanged())
+      .pipe(debounceTime(80))
       .subscribe((value) => {
-        this.ejecutarBusqueda(value);
+        if (!value || value.trim().length < 1) {
+          this.resetSearchOnly();
+        } else {
+          this.ejecutarBusqueda(value);
+        }
       });
   }
 
   ngOnDestroy() {
+    this.cambiosSub?.unsubscribe();
     if (this.searchSubscription) {
       this.searchSubscription.unsubscribe();
+    }
+    if (this.busquedaSubscription) {
+      this.busquedaSubscription.unsubscribe();
     }
   }
 
@@ -291,51 +315,58 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   }
 
   onSearchChange(value: string) {
-    if (!value || !value.trim()) {
+    if (!value || value.trim().length < 1) {
       this.resetSearchOnly();
-    } else {
-      this.searchSubject.next(value);
     }
-    this.cdr.detectChanges();
+    this.searchSubject.next(value);
   }
 
   ejecutarBusqueda(value: string) {
-    if (!value.trim()) {
-      this.resetSearchOnly();
-      return;
-    }
-
-    if (value.trim().length < 2) {
-      this.resetSearchOnly();
-      return;
+    if (this.busquedaSubscription) {
+      this.busquedaSubscription.unsubscribe();
     }
 
     this.buscando = true;
     this.pacientesEncontrados = [];
 
-    this.api.get(`recepcion/pacientes/${value}`).subscribe({
+    const filtro = this.searchFilter !== 'todo' ? `?filtro=${this.searchFilter}` : '';
+    this.busquedaSubscription = this.api.get(`recepcion/pacientes/${value}${filtro}`).subscribe({
       next: (data: any[]) => {
-        if (data && data.length > 0) {
-          if (data.length === 1) {
-            this.seleccionarPaciente(data[0]);
-          } else {
-            this.pacientesEncontrados = data;
-          }
-        } else {
-          this.pacientesEncontrados = [];
+        if (!this.cedulaBusqueda || this.cedulaBusqueda.trim().length < 1) {
+          return;
         }
+        this.pacientesEncontrados = data || [];
+        this.mostrarResultadosBusqueda = data && data.length > 0;
         this.buscando = false;
       },
       error: (err: any) => {
         this.buscando = false;
         this.pacientesEncontrados = [];
+        this.mostrarResultadosBusqueda = false;
       },
     });
   }
 
   resetSearchOnly() {
+    if (this.busquedaSubscription) {
+      this.busquedaSubscription.unsubscribe();
+      this.busquedaSubscription = undefined;
+    }
     this.pacientesEncontrados = [];
     this.buscando = false;
+    this.mostrarResultadosBusqueda = false;
+  }
+
+  onSearchFocus() {
+    if (this.pacientesEncontrados.length > 0) {
+      this.mostrarResultadosBusqueda = true;
+    }
+  }
+
+  onSearchBlur() {
+    setTimeout(() => {
+      this.mostrarResultadosBusqueda = false;
+    }, 200);
   }
 
   prepararNuevoPaciente() {
@@ -434,7 +465,8 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       id_atencion: null,
     };
     this.categoriaServicio = '';
-    this.pacientesEncontrados = []; // Ocultar la lista
+    this.pacientesEncontrados = [];
+    this.mostrarResultadosBusqueda = false;
   }
 
   registrarYContinuar() {

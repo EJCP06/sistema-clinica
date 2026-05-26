@@ -56,14 +56,27 @@ const buscarPaciente = async (req, res) => {
   if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
 
   try {
-    const { cedula } = req.params;
+    const { termino } = req.params;
+    const { filtro } = req.query;
+
+    let whereColumna;
+    if (filtro === 'nombre') {
+      whereColumna = `nombre ILIKE $1`;
+    } else if (filtro === 'apellido') {
+      whereColumna = `apellido ILIKE $1`;
+    } else if (filtro === 'cedula') {
+      whereColumna = `cedula ILIKE $1`;
+    } else {
+      whereColumna = `(cedula ILIKE $1 OR nombre ILIKE $1 OR apellido ILIKE $1)`;
+    }
+
     const result = await pool.query(
       `SELECT id_paciente, cedula, nombre, apellido, telefono, notificaciones_sms, status, id_sede
        FROM "Pacientes"
-       WHERE cedula ILIKE $1 AND id_sede = $2
+       WHERE ${whereColumna} AND id_sede = $2
        ORDER BY id_paciente DESC
        LIMIT 20`,
-      [`%${cedula}%`, sede],
+      [`%${termino}%`, sede],
     );
     res.json(result.rows);
   } catch (error) {
@@ -269,6 +282,8 @@ const generarTurno = async (req, res) => {
        RETURNING id_atencion, numero, hora_llegada`,
       [id_paciente, id_servicio, id_responsable || null, sede, usuarioId || null, numero, id_cliente || null, id_especialidad || null],
     );
+
+    if (req.io) req.io.emit('estado-actualizado', { tipo: 'nuevo-turno', id_atencion: result.rows[0].id_atencion });
 
     res.status(201).json(result.rows[0]);
   } catch (error) {

@@ -89,6 +89,34 @@
                     class="w-3 h-3"
                   ></lucide-icon>
                 </div>
+                <div
+                  *ngIf="!isAseguradorasView"
+                  (click)="selectSearchFilter('apellido')"
+                  class="px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 cursor-pointer transition-colors rounded-lg flex items-center justify-between"
+                  [class.bg-blue-50]="searchFilter === 'apellido'"
+                  [class.text-blue-600]="searchFilter === 'apellido'"
+                >
+                  <span>Apellido</span>
+                  <lucide-icon
+                    *ngIf="searchFilter === 'apellido'"
+                    [name]="CheckCircle2"
+                    class="w-3 h-3"
+                  ></lucide-icon>
+                </div>
+                <div
+                  *ngIf="!isAseguradorasView"
+                  (click)="selectSearchFilter('cedula')"
+                  class="px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 cursor-pointer transition-colors rounded-lg flex items-center justify-between"
+                  [class.bg-blue-50]="searchFilter === 'cedula'"
+                  [class.text-blue-600]="searchFilter === 'cedula'"
+                >
+                  <span>Cédula</span>
+                  <lucide-icon
+                    *ngIf="searchFilter === 'cedula'"
+                    [name]="CheckCircle2"
+                    class="w-3 h-3"
+                  ></lucide-icon>
+                </div>
               </div>
             </div>
           </div>
@@ -102,9 +130,31 @@
               type="text"
               [(ngModel)]="cedulaBusqueda"
               (ngModelChange)="onSearchChange($event)"
+              (focus)="onSearchFocus()"
+              (blur)="onSearchBlur()"
               [placeholder]="isAseguradorasView ? 'Buscar aseguradora...' : 'Buscar paciente...'"
               class="w-full pl-14 pr-10 py-3 text-sm focus:outline-none font-medium bg-transparent rounded-r-2xl text-slate-900 dark:text-white"
             />
+
+            <!-- Resultados de búsqueda -->
+            <div
+              *ngIf="mostrarResultadosBusqueda && pacientesEncontrados.length > 0"
+              class="absolute z-[120] left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600"
+            >
+              <div class="p-1.5 max-h-60 overflow-y-auto space-y-1">
+                <div
+                  *ngFor="let p of pacientesEncontrados"
+                  (mousedown)="seleccionarPaciente(p)"
+                  class="px-4 py-3 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
+                >
+                  <div class="flex flex-col">
+                    <span class="font-bold text-slate-800 dark:text-white uppercase">{{ p.nombre }} {{ p.apellido }}</span>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">C.I: {{ p.cedula }}</span>
+                  </div>
+                  <lucide-icon [name]="ChevronRight" class="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-colors"></lucide-icon>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -119,13 +169,13 @@
         >
           <div
             class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-300"
-            (click)="mostrarRegistro = false"
+            (mousedown)="mostrarRegistro = false"
           ></div>
           <div
-            class="bg-white dark:bg-slate-900 rounded-[32px] shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]"
+            class="bg-white dark:bg-slate-900 rounded-[32px] shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] md:max-h-none"
           >
             <!-- HEADER -->
-            <div class="bg-blue-600 p-4 md:p-6 text-white flex items-center justify-between shrink-0">
+            <div class="bg-blue-600 p-6 text-white flex items-center justify-between shrink-0 border-b border-blue-500/50">
               <div class="flex items-center gap-3">
                 <div
                   class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shadow-inner hidden sm:flex"
@@ -151,8 +201,8 @@
               </button>
             </div>
 
-            <div class="p-4 md:p-8 flex-1 overflow-visible">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 md:gap-y-6">
+            <div class="p-4 md:p-8 flex-1 overflow-y-auto md:overflow-visible">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
                 <!-- FILA 1: NOMBRE | APELLIDO -->
                 <div class="space-y-1.5">
                   <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Nombre</label>

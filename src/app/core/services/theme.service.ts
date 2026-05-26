@@ -4,14 +4,12 @@ import { Injectable, signal, effect } from '@angular/core';
   providedIn: 'root'
 })
 export class ThemeService {
-  // Estado reactivo del tema con detección inicial robusta
   isDarkMode = signal<boolean>(
-    localStorage.getItem('theme') === 'dark' || 
-    (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)
+    sessionStorage.getItem('theme') === 'dark' || 
+    (!sessionStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)
   );
 
   constructor() {
-    // Sincronizar automáticamente el estado con el DOM usando un efecto
     effect(() => {
       const isDark = this.isDarkMode();
       const hasDarkClass = document.documentElement.classList.contains('dark');
@@ -22,7 +20,7 @@ export class ThemeService {
         document.documentElement.classList.remove('dark');
       }
       
-      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      sessionStorage.setItem('theme', isDark ? 'dark' : 'light');
     });
   }
 
