@@ -26,6 +26,7 @@ const obtenerMiEstado = async (req, res) => {
           ELSE UPPER(e.nombre_estado)
         END as turno_estado,
         p.nombre as nombre_paciente,
+        p.apellido as apellido_paciente,
         p.cedula as documento_paciente,
         a.hora_llegada as turno_hora_llegada
       FROM "Consultorios" c
@@ -86,7 +87,7 @@ const llamarSiguiente = async (req, res) => {
     // 2. Buscar paciente en espera (estado_actual = 3 - Sala de Espera)
     const idEspecialidad = req.usuario.id_especialidad;
     let queryEspera = `
-      SELECT a.id_atencion as id, a.numero, e.nombre_estado as estado, p.nombre as nombre_paciente, p.cedula as documento_paciente, p.telefono as telefono_paciente, a.hora_llegada
+      SELECT a.id_atencion as id, a.numero, e.nombre_estado as estado, p.nombre as nombre_paciente, p.apellido as apellido_paciente, p.cedula as documento_paciente, p.telefono as telefono_paciente, a.hora_llegada
       FROM "Atencion" a
       JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
       JOIN "Estado" e ON a.id_estado_actual = e.id_estado
@@ -207,6 +208,9 @@ const iniciarAtencion = async (req, res) => {
     );
     
     await client.query('COMMIT');
+
+    if (req.io) req.io.emit('estado-actualizado', { id_atencion: atencionId });
+
     res.json({ mensaje: 'Atención iniciada correctamente', id_atencion: atencionId });
   } catch (error) {
     await client.query('ROLLBACK');

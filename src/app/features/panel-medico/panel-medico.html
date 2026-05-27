@@ -41,7 +41,7 @@
               </div>
 
               <div 
-                *ngFor="let p of pacientesEspera; let i = index"
+                *ngFor="let p of pacientesEspera; trackBy: trackById; let i = index"
                 class="bg-white dark:bg-slate-900 p-6 rounded-[32px] border border-slate-200 dark:border-slate-800 flex items-center justify-between group hover:border-blue-500 transition-all cursor-default shadow-sm"
               >
                 <div class="flex items-center gap-4">
@@ -118,6 +118,52 @@
                   Finalizar Atención
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PACIENTES ATENDIDOS HOY -->
+        <div class="space-y-6">
+          <div class="flex items-center justify-between px-4">
+            <h2 class="text-lg font-black text-slate-800 dark:text-white flex items-center gap-2">
+              <lucide-icon [name]="CheckCircle" class="w-4 h-4 text-teal-500"></lucide-icon>
+              Pacientes Atendidos Hoy
+            </h2>
+            <span class="text-xs font-bold text-slate-400">{{ pacientesAtendidosHoy.length }} atendidos</span>
+          </div>
+
+          <div class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                  <tr class="text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
+                    <th class="px-8 py-5 text-center">Paciente</th>
+                    <th class="px-8 py-5 text-center">Cédula</th>
+                    <th class="px-8 py-5 text-center">Servicio</th>
+                    <th class="px-8 py-5 text-center">Estado</th>
+                    <th class="px-8 py-5 text-center">Salida</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                  <tr *ngFor="let p of pacientesAtendidosHoy; trackBy: trackById" class="hover:bg-slate-50 dark:hover:bg-slate-800">
+                    <td class="px-8 py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ p.nombre }} {{ p.apellido }}</td>
+                    <td class="px-8 py-4 text-slate-600 font-bold text-center">{{ p.cedula }}</td>
+                    <td class="px-8 py-4 font-bold text-slate-800 dark:text-white text-center">{{ p.nombre_especialidad || p.nombre_servicio }}</td>
+                    <td class="px-8 py-4 text-center">
+                      <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest" [ngClass]="p.nombre_estado === 'Atendido' ? 'bg-teal-50 text-teal-600 border border-teal-200 dark:bg-teal-500/10 dark:text-teal-400' : 'bg-slate-50 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400'">{{ p.nombre_estado }}</span>
+                    </td>
+                    <td class="px-8 py-4 font-bold text-slate-600 text-center">{{ p.hora_salida | date:'HH:mm' }}</td>
+                  </tr>
+                  <tr *ngIf="pacientesAtendidosHoy.length === 0">
+                    <td colspan="5" class="px-8 py-16 text-center align-middle">
+                      <div class="flex flex-col items-center justify-center w-full">
+                        <div class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 mx-auto"><lucide-icon [name]="UserCheck" class="w-8 h-8 text-slate-500 opacity-60"></lucide-icon></div>
+                        <p class="text-slate-400 italic font-medium text-center w-full">No hay pacientes atendidos hoy</p>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

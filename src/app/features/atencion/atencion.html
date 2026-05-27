@@ -43,22 +43,22 @@
               <table class="w-full text-left text-sm">
                 <thead class="sticky top-0 bg-white dark:bg-slate-900 z-10 shadow-sm">
                   <tr class="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    <th class="px-8 py-5">Turno</th>
-                    <th class="px-8 py-5">Paciente</th>
-                    <th class="px-8 py-5">Estado</th>
-                    <th class="px-8 py-5">Hora</th>
+                    <th class="px-8 py-5 text-center">Turno</th>
+                    <th class="px-8 py-5 text-center">Paciente</th>
+                    <th class="px-8 py-5 text-center">Estado</th>
+                    <th class="px-8 py-5 text-center">Hora</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-50 dark:divide-slate-800/50">
-                  <tr *ngFor="let t of historialFiltrado" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td class="px-8 py-4 font-bold text-slate-900 dark:text-white">{{ t?.numero || '---' }}</td>
-                    <td class="px-8 py-4">
-                      <span class="font-bold text-slate-900 dark:text-white">{{ t?.paciente?.nombre || 'Desconocido' }}</span>
+                  <tr *ngFor="let t of historialFiltrado; trackBy: trackById" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                    <td class="px-8 py-4 font-bold text-slate-900 dark:text-white text-center">{{ t?.numero || '---' }}</td>
+                    <td class="px-8 py-4 text-center">
+                      <span class="font-bold text-slate-900 dark:text-white">{{ t?.paciente?.nombre }} {{ t?.paciente?.apellido }}</span>
                     </td>
-                    <td class="px-8 py-4 font-bold text-slate-800 dark:text-white uppercase">
+                    <td class="px-8 py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
                       {{ t?.estado }}
                     </td>
-                    <td class="px-8 py-4 text-slate-500 dark:text-slate-400 font-medium">{{ (t?.updated_at || t?.hora_llegada) | date:'shortTime' }}</td>
+                    <td class="px-8 py-4 text-slate-500 dark:text-slate-400 font-medium text-center">{{ (t?.hora_llegada) | date:'shortTime' }}</td>
                   </tr>
                   <tr *ngIf="historialFiltrado.length === 0">
                     <td colspan="4" class="px-6 py-20 text-center align-middle">
@@ -138,14 +138,14 @@
                   <div class="flex items-center gap-4">
                     <div class="text-5xl font-black font-mono text-slate-900 dark:text-white tracking-tighter">{{ turnoActual.numero }}</div>
                     <span class="px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border" [ngClass]="{
-                      'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20': turnoActual.estado === 'LLAMADO',
-                      'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20': turnoActual.estado === 'EN_ATENCION'
+                      'bg-[#faf6f0] text-[#8d6e63] border-[#d7ccc8] dark:bg-[#8d6e63]/10 dark:text-[#d7ccc8] dark:border-[#8d6e63]/20': turnoActual.estado === 'LLAMADO',
+                      'bg-sky-50 text-sky-600 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20': turnoActual.estado === 'EN_ATENCION'
                     }">{{ turnoActual.estado.replace('_', ' ') }}</span>
                   </div>
                 </div>
 
                 <div class="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-3xl mb-6 border border-slate-100 dark:border-slate-700/50">
-                  <h3 class="text-xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">{{ turnoActual.paciente.nombre }}</h3>
+                  <h3 class="text-xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">{{ turnoActual.paciente.nombre }} {{ turnoActual.paciente.apellido }}</h3>
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-bold text-xs">
                       <lucide-icon [name]="IdCard" class="w-4 h-4 text-blue-500"></lucide-icon>
@@ -153,7 +153,7 @@
                     </div>
                     <div class="text-right">
                       <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Llegada</span>
-                      <span class="text-sm font-black text-slate-700 dark:text-slate-300">{{ turnoActual.horaLlegada | date: 'shortTime' }}</span>
+                      <span class="text-sm font-black text-slate-700 dark:text-slate-300">{{ turnoActual.hora_llegada | date: 'shortTime' }}</span>
                     </div>
                   </div>
                 </div>
@@ -279,19 +279,19 @@
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-50">
-                <tr *ngFor="let t of historialFiltrado" class="hover:bg-slate-50/80 transition-colors group">
+                <tr *ngFor="let t of historialFiltrado; trackBy: trackById" class="hover:bg-slate-50/80 transition-colors group">
                   <td class="px-8 py-4 font-bold text-slate-900">{{ t?.numero || '---' }}</td>
                   <td class="px-8 py-4">
-                    <span class="font-bold text-slate-900">{{ t?.paciente?.nombre || 'Desconocido' }}</span>
+                    <span class="font-bold text-slate-900">{{ t?.paciente?.nombre }} {{ t?.paciente?.apellido }}</span>
                   </td>
                   <td class="px-8 py-4 font-bold text-slate-800 dark:text-white uppercase">
                     {{ t?.estado }}
                   </td>
-                  <td class="px-8 py-4 text-slate-500">{{ (t?.updated_at || t?.hora_llegada) | date:'shortTime' }}</td>
-                  <td class="px-8 py-4 text-right">
-                    <button class="p-2 text-slate-300 dark:text-slate-600 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all hover:scale-110 active:scale-95">
-                      <lucide-icon [name]="ChevronRight" class="w-5 h-5"></lucide-icon>
-                    </button>
+                  <td class="px-8 py-4 text-slate-500">{{ (t?.hora_llegada) | date:'shortTime' }}</td>
+                    <td class="px-8 py-4 text-right">
+                      <button aria-label="Ver detalle del turno" class="p-2 text-slate-300 dark:text-slate-600 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all hover:scale-110 active:scale-95">
+                        <lucide-icon [name]="ChevronRight" class="w-5 h-5"></lucide-icon>
+                      </button>
                   </td>
                 </tr>
                 <tr *ngIf="historialFiltrado.length === 0">

@@ -34,10 +34,8 @@ router.delete('/personal/:id', adminController.eliminarPersonal);
 
 // REPORTES
 router.get('/reportes/diario', adminController.getReporteDiario);
-router.get('/reportes/avanzadas', adminController.getEstadisticasAvanzadas);
 
-// SISTEMA
-router.post('/sistema/cerrar', adminController.cerrarSistema);
+
 
 // ASEGURADORAS
 router.delete('/aseguradoras/:id', sharedController.eliminarAseguradora);

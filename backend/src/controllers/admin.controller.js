@@ -31,6 +31,7 @@ const getReporteDiario = async (req, res) => {
         a.hora_llegada, 
         a.hora_salida as hora_fin,
         p.nombre as paciente_nombre, 
+        p.apellido as paciente_apellido, 
         p.cedula as paciente_documento, 
         p.telefono as paciente_telefono,
         s.nombre_servicio as servicio, 
@@ -47,7 +48,7 @@ const getReporteDiario = async (req, res) => {
       [sede],
     );
 
-    const turnos = result.rows.map(r => ({
+    const turnos = result.rows.map((r) => ({
       id: r.id,
       numero: r.numero,
       estado: r.estado,
@@ -57,15 +58,18 @@ const getReporteDiario = async (req, res) => {
       id_sede: r.id_sede,
       paciente: {
         nombre: r.paciente_nombre,
+        apellido: r.paciente_apellido,
         documento: r.paciente_documento,
         telefono: r.paciente_telefono,
       },
     }));
 
     // Calcular estadísticas por estado
-    const atendidos = turnos.filter(t => t.estado === 'Atendido').length;
-    const ausentes = turnos.filter(t => t.estado === 'Ausente').length;
-    const enEspera = turnos.filter(t => t.estado === 'Sala de Espera' || t.estado === 'Llamado').length;
+    const atendidos = turnos.filter((t) => t.estado === 'Atendido').length;
+    const ausentes = turnos.filter((t) => t.estado === 'Ausente').length;
+    const enEspera = turnos.filter(
+      (t) => t.estado === 'Sala de Espera' || t.estado === 'Llamado',
+    ).length;
 
     res.json({
       total: turnos.length,
@@ -82,69 +86,6 @@ const getReporteDiario = async (req, res) => {
   }
 };
 
-const getEstadisticasAvanzadas = async (req, res) => {
-  const sede = getSede(req, res);
-  if (!sede) return;
-
-  try {
-    const tiemposPromedio = await pool.query(
-      `
-      SELECT 
-        AVG(EXTRACT(EPOCH FROM (h2.fecha_hora - h1.fecha_hora))/60) as promedio_espera_min,
-        AVG(EXTRACT(EPOCH FROM (a.hora_salida - a.hora_llegada))/60) as promedio_atencion_min
-      FROM "Historial_Atencion" h1
-      JOIN "Historial_Atencion" h2 ON h1.id_atencion = h2.id_atencion
-      JOIN "Atencion" a ON h1.id_atencion = a.id_atencion
-      WHERE a.id_sede = $1
-    `,
-      [sede],
-    );
-
-    res.json({
-      estadisticas: tiemposPromedio.rows[0] || {},
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ mensaje: 'Error al generar estadísticas' });
-  }
-};
-
-const cerrarSistema = async (req, res) => {
-  const sede = getSede(req, res);
-  if (!sede) return;
-
-  const client = await pool.connect();
-
-  try {
-    await client.query('BEGIN');
-
-    await client.query(
-      `UPDATE "Atencion"
-       SET id_estado_actual = 6, hora_salida = NOW()
-       WHERE id_estado_actual IN (2,3)
-       AND id_sede = $1`,
-      [sede],
-    );
-
-    await client.query(
-      `UPDATE "Consultorios"
-       SET estado_fisico = 'LIBRE'
-       WHERE id_sede = $1`,
-      [sede],
-    );
-
-    await client.query('COMMIT');
-
-    res.json({ mensaje: 'Sistema cerrado exitosamente' });
-  } catch (error) {
-    await client.query('ROLLBACK');
-    console.error(error);
-    res.status(500).json({ mensaje: 'Error crítico al cerrar sistema' });
-  } finally {
-    client.release();
-  }
-};
-
 /* =========================================================
    SERVICIOS
 ========================================================= */
@@ -154,7 +95,7 @@ const getServicios = async (req, res) => {
     const result = await pool.query(
       `SELECT id_servicio as id, nombre_servicio as nombre, prefijo, status as activo
        FROM "Servicio"
-       ORDER BY id_servicio`
+       ORDER BY id_servicio`,
     );
 
     res.json(result.rows);
@@ -314,9 +255,7 @@ const getSedes = async (req, res) => {
   if (!sede) return;
 
   try {
-    const result = await pool.query(
-      `SELECT id_sede, nombre FROM "Sedes" ORDER BY id_sede`,
-    );
+    const result = await pool.query(`SELECT id_sede, nombre FROM "Sedes" ORDER BY id_sede`);
     res.json(result.rows);
   } catch (error) {
     console.error(error);
@@ -370,20 +309,49 @@ const crearPersonal = async (req, res) => {
   if (!sedeToken) return;
 
   try {
-    const { cedula, nombre, apellido, telefono, password, rol, piso, id_consultorio, id_servicio, id_especialidad, username, status, id_sede } = req.body;
+    const {
+      cedula,
+      nombre,
+      apellido,
+      telefono,
+      password,
+      rol,
+      piso,
+      id_consultorio,
+      id_servicio,
+      id_especialidad,
+      username,
+      status,
+      id_sede,
+    } = req.body;
 
     if (!cedula || !nombre || !rol) {
       return res.status(400).json({ mensaje: 'Cédula, nombre y rol son requeridos' });
     }
 
-    const password_hash = password ? await bcrypt.hash(password, 10) : await bcrypt.hash(cedula, 10);
+    const password_hash = password
+      ? await bcrypt.hash(password, 10)
+      : await bcrypt.hash(cedula, 10);
     const sedeFinal = id_sede ? Number(id_sede) : sedeToken;
 
     const result = await pool.query(
       `INSERT INTO "Usuarios" (cedula, nombre, apellido, telefono, password_hash, rol, piso, id_consultorio, id_servicio, id_especialidad, id_sede, status)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        RETURNING id_usuario`,
-      [cedula, nombre, apellido || '', telefono || '', password_hash, rol, piso || null, id_consultorio || null, id_servicio || null, id_especialidad || null, sedeFinal, status !== false],
+      [
+        cedula,
+        nombre,
+        apellido || '',
+        telefono || '',
+        password_hash,
+        rol,
+        piso || null,
+        id_consultorio || null,
+        id_servicio || null,
+        id_especialidad || null,
+        sedeFinal,
+        status !== false,
+      ],
     );
 
     res.status(201).json({ mensaje: 'Personal creado', id: result.rows[0].id_usuario });
@@ -402,24 +370,73 @@ const actualizarPersonal = async (req, res) => {
 
   try {
     const { id } = req.params;
-    const { cedula, nombre, apellido, telefono, password, rol, piso, id_consultorio, id_servicio, id_especialidad, status, id_sede } = req.body;
+    const {
+      cedula,
+      nombre,
+      apellido,
+      telefono,
+      password,
+      rol,
+      piso,
+      id_consultorio,
+      id_servicio,
+      id_especialidad,
+      status,
+      id_sede,
+    } = req.body;
 
     const sets = [];
     const values = [];
     let idx = 1;
 
-    if (cedula !== undefined) { sets.push(`cedula = $${idx++}`); values.push(cedula); }
-    if (nombre !== undefined) { sets.push(`nombre = $${idx++}`); values.push(nombre); }
-    if (apellido !== undefined) { sets.push(`apellido = $${idx++}`); values.push(apellido); }
-    if (telefono !== undefined) { sets.push(`telefono = $${idx++}`); values.push(telefono); }
-    if (password) { sets.push(`password_hash = $${idx++}`); values.push(await bcrypt.hash(password, 10)); }
-    if (rol !== undefined) { sets.push(`rol = $${idx++}`); values.push(rol); }
-    if (piso !== undefined) { sets.push(`piso = $${idx++}`); values.push(piso); }
-    if (id_consultorio !== undefined) { sets.push(`id_consultorio = $${idx++}`); values.push(id_consultorio); }
-    if (id_servicio !== undefined) { sets.push(`id_servicio = $${idx++}`); values.push(id_servicio); }
-    if (id_especialidad !== undefined) { sets.push(`id_especialidad = $${idx++}`); values.push(id_especialidad); }
-    if (id_sede !== undefined) { sets.push(`id_sede = $${idx++}`); values.push(Number(id_sede)); }
-    if (status !== undefined) { sets.push(`status = $${idx++}`); values.push(status); }
+    if (cedula !== undefined) {
+      sets.push(`cedula = $${idx++}`);
+      values.push(cedula);
+    }
+    if (nombre !== undefined) {
+      sets.push(`nombre = $${idx++}`);
+      values.push(nombre);
+    }
+    if (apellido !== undefined) {
+      sets.push(`apellido = $${idx++}`);
+      values.push(apellido);
+    }
+    if (telefono !== undefined) {
+      sets.push(`telefono = $${idx++}`);
+      values.push(telefono);
+    }
+    if (password) {
+      sets.push(`password_hash = $${idx++}`);
+      values.push(await bcrypt.hash(password, 10));
+    }
+    if (rol !== undefined) {
+      sets.push(`rol = $${idx++}`);
+      values.push(rol);
+    }
+    if (piso !== undefined) {
+      sets.push(`piso = $${idx++}`);
+      values.push(piso);
+    }
+    if (id_consultorio !== undefined) {
+      sets.push(`id_consultorio = $${idx++}`);
+      values.push(id_consultorio);
+    }
+    if (id_servicio !== undefined) {
+      sets.push(`id_servicio = $${idx++}`);
+      values.push(id_servicio);
+    }
+    if (id_especialidad !== undefined) {
+      sets.push(`id_especialidad = $${idx++}`);
+      values.push(id_especialidad);
+    }
+    if (id_sede !== undefined) {
+      sets.push(`id_sede = $${idx++}`);
+      values.push(Number(id_sede));
+    }
+    if (status !== undefined) {
+      sets.push(`status = $${idx++}`);
+      values.push(status);
+    }
 
     if (sets.length === 0) {
       return res.status(400).json({ mensaje: 'No hay campos para actualizar' });
@@ -466,8 +483,6 @@ const eliminarPersonal = async (req, res) => {
 
 module.exports = {
   getReporteDiario,
-  getEstadisticasAvanzadas,
-  cerrarSistema,
 
   getServicios,
   crearServicio,

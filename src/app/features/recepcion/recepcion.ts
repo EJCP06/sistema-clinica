@@ -6,6 +6,7 @@ import {
   ElementRef,
   inject,
   ChangeDetectorRef,
+  ApplicationRef,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -159,6 +160,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
   private el = inject(ElementRef);
   private cdr = inject(ChangeDetectorRef);
+  private appRef = inject(ApplicationRef);
   private route = inject(ActivatedRoute);
   private espService = inject(EspecialidadesService);
 
@@ -295,10 +297,10 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   }
 
   cargarUltimasAdmisiones() {
-    this.api.get('recepcion/ultimas-admisiones').subscribe({
-      next: (data: any[]) => {
+    this.api.get<any[]>('recepcion/ultimas-admisiones').subscribe({
+      next: (data) => {
         this.ultimasAdmisiones = data;
-        this.cdr.detectChanges(); // Forzar refresco de la tabla
+        this.appRef.tick();
       },
       error: (err: any) => console.error('Error cargando ultimas admisiones:', err),
     });
@@ -330,8 +332,8 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     this.pacientesEncontrados = [];
 
     const filtro = this.searchFilter !== 'todo' ? `?filtro=${this.searchFilter}` : '';
-    this.busquedaSubscription = this.api.get(`recepcion/pacientes/${value}${filtro}`).subscribe({
-      next: (data: any[]) => {
+    this.busquedaSubscription = this.api.get<any[]>(`recepcion/pacientes/${value}${filtro}`).subscribe({
+      next: (data) => {
         if (!this.cedulaBusqueda || this.cedulaBusqueda.trim().length < 1) {
           return;
         }
@@ -414,8 +416,8 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       return;
     }
     // Buscamos si existe la cédula de forma exacta
-    this.api.get(`recepcion/pacientes/${cedula}`).subscribe({
-      next: (data: any[]) => {
+    this.api.get<any[]>(`recepcion/pacientes/${cedula}`).subscribe({
+      next: (data) => {
         // Encontrar coincidencia exacta de cédula, ya que el backend usa ILIKE %cedula%
         const p = data ? data.find((paciente: any) => paciente.cedula === cedula) : null;
 

@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LucideAngularModule, Bell, Volume2, Clock, Calendar, ArrowRight } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
+import { TurnoDTO } from '../../core/models/dto.models';
 import { Subscription, interval } from 'rxjs';
 
 @Component({
@@ -19,10 +20,12 @@ export class TurneroComponent implements OnInit, OnDestroy {
   readonly ArrowRight = ArrowRight;
 
   // Datos
-  turnosActivos: any[] = [];
-  ultimoLlamado: any = null;
+  turnosActivos: TurnoDTO[] = [];
+  ultimoLlamado: TurnoDTO | null = null;
   fechaActual: Date = new Date();
   
+  trackById = (index: number, item: TurnoDTO) => item?.id_atencion ?? item?.id ?? index;
+
   private timerSub: Subscription | null = null;
   private clockSub: Subscription | null = null;
 
@@ -44,23 +47,20 @@ export class TurneroComponent implements OnInit, OnDestroy {
   }
 
   cargarTurnos() {
-    this.api.get('recepcion/sala-espera').subscribe({
-      next: (data: any) => {
+    this.api.get<TurnoDTO[]>('recepcion/sala-espera').subscribe({
+      next: (data) => {
         if (data.length > 0) {
-          // Si el ID del primero ha cambiado, significa que hay un nuevo llamado
           if (!this.ultimoLlamado || this.ultimoLlamado.id_atencion !== data[0].id_atencion) {
             this.notificarNuevoLlamado(data[0]);
           }
           this.ultimoLlamado = data[0];
-          this.turnosActivos = data.slice(1, 6); // Los siguientes 5
+          this.turnosActivos = data.slice(1, 6);
         }
       },
-      error: (err) => console.error('Error sala espera:', err)
+      error: () => console.error('Error sala espera:')
     });
   }
 
-  notificarNuevoLlamado(turno: any) {
-    console.log('¡LLAMANDO A:', turno.nombre);
-    // Aquí podrías reproducir un sonido: new Audio('assets/sound.mp3').play();
+  notificarNuevoLlamado(turno: TurnoDTO) {
   }
 }

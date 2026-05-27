@@ -8,6 +8,7 @@ router.use(authMiddleware);
 router.use(roleMiddleware('medico', 'admin')); // Permitimos admin para pruebas
 
 router.get('/espera', medicoController.getPacientesEnEspera);
+router.get('/atendidos-hoy', medicoController.getAtendidosHoy);
 router.post('/llamar', medicoController.llamarPaciente);
 router.post('/finalizar', medicoController.finalizarAtencion);
 

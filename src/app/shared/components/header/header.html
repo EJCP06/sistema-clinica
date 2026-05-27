@@ -4,6 +4,7 @@
     <button
       *ngIf="showMenuButton"
       (click)="toggleSidebar.emit()"
+      aria-label="Abrir menú lateral"
       class="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors lg:hidden"
     >
       <lucide-icon [name]="Menu" class="w-6 h-6 text-slate-600 dark:text-slate-400"></lucide-icon>

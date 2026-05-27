@@ -8,7 +8,20 @@ const getTodosLosTurnos = async (req, res) => {
   
   try {
     const result = await pool.query(`
-      SELECT a.*, p.nombre, p.apellido, p.cedula, s.nombre_servicio, e.nombre_estado as estado, a.id_especialidad
+      SELECT 
+        a.id_atencion as id, 
+        a.numero, 
+        p.nombre as paciente_nombre, 
+        p.apellido as paciente_apellido, 
+        p.cedula as paciente_documento, 
+        s.nombre_servicio, 
+        e.nombre_estado as estado, 
+        a.id_especialidad,
+        a.id_consultorio,
+        a.id_servicio,
+        a.id_sede,
+        a.id_estado_actual,
+        a.hora_llegada
       FROM "Atencion" a
       JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
       JOIN "Servicio" s ON a.id_servicio = s.id_servicio
@@ -17,7 +30,25 @@ const getTodosLosTurnos = async (req, res) => {
       ORDER BY a.hora_llegada DESC
     `, [req.usuario.id_sede]);
     
-    res.json(result.rows);
+    const turnos = result.rows.map(r => ({
+      id: r.id,
+      numero: r.numero,
+      estado: r.estado,
+      hora_llegada: r.hora_llegada,
+      id_especialidad: r.id_especialidad,
+      id_consultorio: r.id_consultorio,
+      id_servicio: r.id_servicio,
+      id_sede: r.id_sede,
+      id_estado_actual: r.id_estado_actual,
+      nombre_servicio: r.nombre_servicio,
+      paciente: {
+        nombre: r.paciente_nombre,
+        apellido: r.paciente_apellido,
+        documento: r.paciente_documento
+      }
+    }));
+    
+    res.json(turnos);
   } catch (error) {
     console.error('Error en getTodosLosTurnos:', error);
     res.status(500).json({ mensaje: 'Error al obtener turnos' });

@@ -3,74 +3,81 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, Subject } from 'rxjs';
 import { environment } from '@env/environment';
 import { io, Socket } from 'socket.io-client';
-
-export type LlamarSiguienteResponse = {
-  mensaje: string;
-  turno: {
-    id: number;
-    numero: string;
-    estado: string;
-    hora_llegada: string;
-    paciente: { nombre: string; documento: string; telefono?: string | null };
-  };
-};
+import {
+  LoginRequest,
+  LoginResponse,
+  AdmisionDTO,
+  PacienteDTO,
+  TurnoDTO,
+  ConsultorioDTO,
+  MiEstadoDTO,
+  PersonalDTO,
+  ServicioDTO,
+  EspecialidadDTO,
+  SedeDTO,
+  AseguradoraDTO,
+  ReporteDiarioDTO,
+  ApiResponse,
+  LlamarSiguienteResponseDTO,
+  GenerarTurnoRequest,
+} from '@core/models/dto.models';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private http = inject(HttpClient);
   private base = environment.apiUrl;
   private socket: Socket;
-  public cambios$ = new Subject<any>();
+  public cambios$ = new Subject<{ tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; id_sede?: number }>();
 
   constructor() {
-    this.socket = io(environment.apiUrl.replace('/api', ''));
-    this.socket.on('estado-actualizado', (data: any) => {
-      this.cambios$.next(data);
+    this.socket = io(environment.socketUrl);
+    this.socket.on('estado-actualizado', (data: unknown) => {
+      this.cambios$.next(data as { tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; id_sede?: number });
     });
-    this.socket.on('nuevo-llamado', (data: any) => {
-      this.cambios$.next(data);
+    this.socket.on('nuevo-llamado', (data: unknown) => {
+      this.cambios$.next(data as { tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; id_sede?: number });
     });
   }
 
   // =========================
   // MÉTODOS GENÉRICOS
   // =========================
-  get(endpoint: string): Observable<any> {
-    return this.http.get(`${this.base}/${endpoint}`);
+  get<T = unknown>(endpoint: string): Observable<T> {
+    return this.http.get<T>(`${this.base}/${endpoint}`);
   }
 
-  post(endpoint: string, data: any): Observable<any> {
-    return this.http.post(`${this.base}/${endpoint}`, data);
+  post<T = unknown>(endpoint: string, data: unknown): Observable<T> {
+    return this.http.post<T>(`${this.base}/${endpoint}`, data);
   }
 
-  put(endpoint: string, data: any): Observable<any> {
-    return this.http.put(`${this.base}/${endpoint}`, data);
+  put<T = unknown>(endpoint: string, data: unknown): Observable<T> {
+    return this.http.put<T>(`${this.base}/${endpoint}`, data);
   }
 
-  delete(endpoint: string): Observable<any> {
-    return this.http.delete(`${this.base}/${endpoint}`);
+  delete<T = unknown>(endpoint: string): Observable<T> {
+    return this.http.delete<T>(`${this.base}/${endpoint}`);
   }
 
   // =========================
   // AUTH
   // =========================
-  login(username: string, password: string): Observable<any> {
-    return this.http.post(`${this.base}/auth/login`, { username, password });
+  login(username: string, password: string): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${this.base}/auth/login`, { username, password });
   }
 
   // =========================
   // TURNOS
   // =========================
-  crearTurno(body: any): Observable<any> {
-    return this.http.post(`${this.base}/turnos`, body);
+  crearTurno(body: GenerarTurnoRequest): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(`${this.base}/turnos`, body);
   }
 
-  getTurnosTodos(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.base}/turnos/todos`);
+  getTurnosTodos(): Observable<TurnoDTO[]> {
+    return this.http.get<TurnoDTO[]>(`${this.base}/turnos/todos`);
   }
 
-  actualizarEstadoAtencion(idAtencion: number, idEstadoNuevo: number): Observable<any> {
-    return this.http.put(`${this.base}/recepcion/atencion/${idAtencion}/estado`, {
+  actualizarEstadoAtencion(idAtencion: number, idEstadoNuevo: number): Observable<ApiResponse> {
+    return this.http.put<ApiResponse>(`${this.base}/recepcion/atencion/${idAtencion}/estado`, {
       id_estado_nuevo: idEstadoNuevo,
     });
   }
@@ -78,127 +85,118 @@ export class ApiService {
   // =========================
   // CONSULTORIOS
   // =========================
-  getMiEstado(): Observable<any> {
-    return this.http.get<any>(`${this.base}/consultorios/mi-estado`);
+  getMiEstado(): Observable<MiEstadoDTO> {
+    return this.http.get<MiEstadoDTO>(`${this.base}/consultorios/mi-estado`);
   }
 
-  llamarSiguiente(): Observable<LlamarSiguienteResponse> {
-    return this.http.post<LlamarSiguienteResponse>(
+  llamarSiguiente(): Observable<LlamarSiguienteResponseDTO> {
+    return this.http.post<LlamarSiguienteResponseDTO>(
       `${this.base}/consultorios/llamar-siguiente`,
       {},
     );
   }
 
-  iniciarAtencion(): Observable<any> {
-    return this.http.post(`${this.base}/consultorios/iniciar-atencion`, {});
+  iniciarAtencion(): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(`${this.base}/consultorios/iniciar-atencion`, {});
   }
 
-  finalizarAtencion(): Observable<any> {
-    return this.http.post(`${this.base}/consultorios/finalizar-atencion`, {});
+  finalizarAtencion(): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(`${this.base}/consultorios/finalizar-atencion`, {});
   }
 
   // =========================
   // TURNOS ACCIONES
   // =========================
-  marcarAusente(turnoId: number): Observable<any> {
-    return this.http.put(`${this.base}/turnos/${turnoId}/ausente`, {});
+  marcarAusente(turnoId: number): Observable<ApiResponse> {
+    return this.http.put<ApiResponse>(`${this.base}/turnos/${turnoId}/ausente`, {});
   }
 
   // =========================
   // ADMIN & SERVICES
   // =========================
-  getReporteDiario(): Observable<any> {
-    return this.http.get(`${this.base}/admin/reportes/diario`);
+  getReporteDiario(): Observable<ReporteDiarioDTO> {
+    return this.http.get<ReporteDiarioDTO>(`${this.base}/admin/reportes/diario`);
   }
 
-  getEstadisticasAvanzadas(fechaInicio?: string, fechaFin?: string): Observable<any> {
-    const params =
-      fechaInicio && fechaFin ? `?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}` : '';
-    return this.http.get(`${this.base}/admin/reportes/avanzadas${params}`);
+
+  getTurnos(): Observable<TurnoDTO[]> {
+    return this.http.get<TurnoDTO[]>(`${this.base}/turnos`);
   }
 
-  cerrarSistema(): Observable<any> {
-    return this.http.post(`${this.base}/admin/sistema/cerrar`, {});
+  getServicios(): Observable<ServicioDTO[]> {
+    return this.http.get<ServicioDTO[]>(`${this.base}/admin/servicios`);
   }
 
-  getTurnos(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.base}/turnos`);
+  getEspecialidades(): Observable<EspecialidadDTO[]> {
+    return this.http.get<EspecialidadDTO[]>(`${this.base}/especialidades`);
   }
 
-  getServicios(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.base}/admin/servicios`);
+  getSedes(): Observable<SedeDTO[]> {
+    return this.http.get<SedeDTO[]>(`${this.base}/admin/sedes`);
   }
 
-  getEspecialidades(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.base}/especialidades`);
-  }
-
-  getSedes(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.base}/admin/sedes`);
-  }
-
-  getPersonal(rol?: string): Observable<any[]> {
+  getPersonal(rol?: string): Observable<PersonalDTO[]> {
     const params = rol ? `?rol=${rol}` : '';
-    return this.http.get<any[]>(`${this.base}/admin/personal${params}`);
+    return this.http.get<PersonalDTO[]>(`${this.base}/admin/personal${params}`);
   }
 
-  crearPersonal(body: any): Observable<any> {
-    return this.http.post(`${this.base}/admin/personal`, body);
+  crearPersonal(body: Partial<PersonalDTO>): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(`${this.base}/admin/personal`, body);
   }
 
-  actualizarPersonal(id: number, body: any): Observable<any> {
-    return this.http.put(`${this.base}/admin/personal/${id}`, body);
+  actualizarPersonal(id: number, body: Partial<PersonalDTO>): Observable<ApiResponse> {
+    return this.http.put<ApiResponse>(`${this.base}/admin/personal/${id}`, body);
   }
 
-  eliminarPersonal(id: number): Observable<any> {
-    return this.http.delete(`${this.base}/admin/personal/${id}`);
+  eliminarPersonal(id: number): Observable<ApiResponse> {
+    return this.http.delete<ApiResponse>(`${this.base}/admin/personal/${id}`);
   }
 
-  crearEspecialidad(body: any): Observable<any> {
-    return this.http.post(`${this.base}/especialidades`, body);
+  crearEspecialidad(body: Partial<EspecialidadDTO>): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(`${this.base}/especialidades`, body);
   }
 
-  actualizarEspecialidad(id: number, body: any): Observable<any> {
-    return this.http.put(`${this.base}/especialidades/${id}`, body);
+  actualizarEspecialidad(id: number, body: Partial<EspecialidadDTO>): Observable<ApiResponse> {
+    return this.http.put<ApiResponse>(`${this.base}/especialidades/${id}`, body);
   }
 
-  eliminarEspecialidad(id: number): Observable<any> {
-    return this.http.delete(`${this.base}/especialidades/${id}`);
+  eliminarEspecialidad(id: number): Observable<ApiResponse> {
+    return this.http.delete<ApiResponse>(`${this.base}/especialidades/${id}`);
   }
 
-  getAseguradoras(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.base}/shared/aseguradoras`);
+  getAseguradoras(): Observable<AseguradoraDTO[]> {
+    return this.http.get<AseguradoraDTO[]>(`${this.base}/shared/aseguradoras`);
   }
 
-  crearAseguradora(body: { nombre: string }): Observable<any> {
-    return this.http.post(`${this.base}/shared/aseguradoras`, body);
+  crearAseguradora(body: { nombre: string }): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(`${this.base}/shared/aseguradoras`, body);
   }
 
-  getConsultorios(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.base}/admin/consultorios`);
+  getConsultorios(): Observable<ConsultorioDTO[]> {
+    return this.http.get<ConsultorioDTO[]>(`${this.base}/admin/consultorios`);
   }
 
-  crearServicio(body: any): Observable<any> {
-    return this.http.post(`${this.base}/admin/servicios`, body);
+  crearServicio(body: Partial<ServicioDTO>): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(`${this.base}/admin/servicios`, body);
   }
 
-  actualizarServicio(id: number, body: any): Observable<any> {
-    return this.http.put(`${this.base}/admin/servicios/${id}`, body);
+  actualizarServicio(id: number, body: Partial<ServicioDTO>): Observable<ApiResponse> {
+    return this.http.put<ApiResponse>(`${this.base}/admin/servicios/${id}`, body);
   }
 
-  eliminarServicio(id: number): Observable<any> {
-    return this.http.delete(`${this.base}/admin/servicios/${id}`);
+  eliminarServicio(id: number): Observable<ApiResponse> {
+    return this.http.delete<ApiResponse>(`${this.base}/admin/servicios/${id}`);
   }
 
-  crearConsultorio(body: any): Observable<any> {
-    return this.http.post(`${this.base}/admin/consultorios`, body);
+  crearConsultorio(body: Partial<ConsultorioDTO>): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(`${this.base}/admin/consultorios`, body);
   }
 
-  actualizarConsultorio(id: number, body: any): Observable<any> {
-    return this.http.put(`${this.base}/admin/consultorios/${id}`, body);
+  actualizarConsultorio(id: number, body: Partial<ConsultorioDTO>): Observable<ApiResponse> {
+    return this.http.put<ApiResponse>(`${this.base}/admin/consultorios/${id}`, body);
   }
 
-  eliminarConsultorio(id: number): Observable<any> {
-    return this.http.delete(`${this.base}/admin/consultorios/${id}`);
+  eliminarConsultorio(id: number): Observable<ApiResponse> {
+    return this.http.delete<ApiResponse>(`${this.base}/admin/consultorios/${id}`);
   }
 }

@@ -1,9 +1,11 @@
-import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ApiService, LlamarSiguienteResponse } from '@core/services/api.service';
+import { ApiService } from '@core/services/api.service';
 import { AuthService } from '@core/services/auth.service';
 import { ThemeService } from '@core/services/theme.service';
+import { TurnoDTO, MiEstadoDTO, LlamarSiguienteResponseDTO, ApiResponse } from '@core/models/dto.models';
 import { Subscription, interval } from 'rxjs';
 import { LucideAngularModule, Play, Pause, Coffee, Volume2, CheckCircle2, ArrowRightLeft, UserX, MonitorSpeaker, IdCard, X, Search, Calendar, Clock, Download, ChevronRight, ChevronDown } from 'lucide-angular';
 import { Header } from '../../shared/components/header/header';
@@ -40,7 +42,6 @@ export class Atencion implements OnInit, OnDestroy {
   private apiService = inject(ApiService);
   private authService = inject(AuthService);
   private themeService = inject(ThemeService);
-  private cdr = inject(ChangeDetectorRef);
 
   consultorioEstado: string = 'LIBRE';
   consultorioId: number = 0;
@@ -61,38 +62,40 @@ export class Atencion implements OnInit, OnDestroy {
     };
   }
 
-  turnoActual: any | null = null;
+  turnoActual: TurnoDTO | null = null;
   turnosEnEspera: number = 0;
-  proximosTurnos: any[] = [];
+  proximosTurnos: TurnoDTO[] = [];
+
+  private destroyRef = inject(DestroyRef);
 
   tiempoRestante: number = 120;
   private timerSub: Subscription | null = null;
-  private pollSub: Subscription | null = null;
 
   mensajeInfo = '';
   cargando = false;
 
   // Historial
-  turnosAtendidos: any[] = [];
+  turnosAtendidos: TurnoDTO[] = [];
   searchQueryHistorial: string = '';
   searchFilter: string = 'todo';
   showSearchFilterDropdown: boolean = false;
   totalAtendidosHoy: number = 0;
   tiempoPromedioConsulta: string = '0 min';
 
+  trackById = (index: number, item: TurnoDTO) => item?.id ?? index;
+
   ngOnInit() {
     this.cargarEstadoConsultorio();
     this.cargarHistorial();
     
     // Escuchar cambios en tiempo real
-    this.pollSub = this.apiService.cambios$.subscribe(() => {
+    this.apiService.cambios$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.cargarEstadoConsultorio();
       this.cargarHistorial();
     });
   }
 
   ngOnDestroy() {
-    this.pollSub?.unsubscribe();
     this.detenerTemporizador();
   }
 
@@ -112,7 +115,7 @@ export class Atencion implements OnInit, OnDestroy {
     }
 
     this.apiService.getMiEstado().subscribe({
-      next: (estado: any) => {
+      next: (estado: MiEstadoDTO) => {
         this.consultorioEstado = estado.estado || 'LIBRE';
         this.servicioId = estado.servicio_id;
         this.consultorioNombre = estado.nombre || `Consultorio ${this.consultorioId}`;
@@ -121,14 +124,15 @@ export class Atencion implements OnInit, OnDestroy {
         // Recuperar turno activo si existe y no estamos en medio de una acción local
         if (estado.turno_id && !this.atendiendoLocalmente) {
           this.turnoActual = {
-            id: estado.turno_id,
-            numero: estado.turno_numero,
-            estado: estado.turno_estado,
+            id: estado.turno_id!,
+            numero: estado.turno_numero!,
+            estado: estado.turno_estado!,
             paciente: {
-              nombre: estado.nombre_paciente,
-              documento: estado.documento_paciente
+              nombre: estado.nombre_paciente!,
+              apellido: estado.apellido_paciente!,
+              documento: estado.documento_paciente!
             },
-            horaLlegada: estado.turno_hora_llegada
+            hora_llegada: estado.turno_hora_llegada!
           };
           
           // Si el turno está llamado pero no iniciado, reactivar temporizador
@@ -138,7 +142,6 @@ export class Atencion implements OnInit, OnDestroy {
         } else if (!estado.turno_id && !this.atendiendoLocalmente) {
           this.turnoActual = null;
         }
-        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Error cargando consultorio:', err);
@@ -155,29 +158,22 @@ export class Atencion implements OnInit, OnDestroy {
     this.mensajeInfo = 'Llamando paciente...';
     
     this.apiService.llamarSiguiente().subscribe({
-      next: (res: LlamarSiguienteResponse) => {
+      next: (res: LlamarSiguienteResponseDTO) => {
         this.cargando = false;
         this.mensajeInfo = '';
         this.turnoActual = {
-          id: res.turno.id,
-          numero: res.turno.numero,
-          estado: res.turno.estado,
-          paciente: res.turno.paciente,
-          horaLlegada: res.turno.hora_llegada
+          ...res.turno
         };
         this.consultorioEstado = 'OCUPADO';
         this.atendiendoLocalmente = true;
         this.iniciarTemporizador();
-        this.cdr.detectChanges();
       },
       error: (err: any) => {
         this.cargando = false;
         this.mensajeInfo = err.error?.mensaje || 'No hay pacientes en espera de este servicio.';
         setTimeout(() => {
           this.mensajeInfo = '';
-          this.cdr.detectChanges();
-        }, 2000);
-        this.cdr.detectChanges();
+          }, 2000);
       }
     });
   }
@@ -186,11 +182,10 @@ export class Atencion implements OnInit, OnDestroy {
     this.apiService.iniciarAtencion().subscribe({
       next: () => {
         this.detenerTemporizador();
-        this.turnoActual.estado = 'EN_ATENCION';
+        if (this.turnoActual) this.turnoActual.estado = 'EN_ATENCION';
         this.consultorioEstado = 'OCUPADO';
         this.atendiendoLocalmente = false;
         this.cargarEstadoConsultorio();
-        this.cdr.detectChanges();
       },
       error: (err: any) => alert(err.error?.mensaje)
     });
@@ -203,7 +198,6 @@ export class Atencion implements OnInit, OnDestroy {
         this.consultorioEstado = 'LIBRE';
         this.atendiendoLocalmente = false;
         this.cargarEstadoConsultorio();
-        this.cdr.detectChanges();
       },
       error: (err: any) => alert(err.error?.mensaje)
     });
@@ -219,7 +213,6 @@ export class Atencion implements OnInit, OnDestroy {
         this.detenerTemporizador();
         this.cargarEstadoConsultorio();
         this.cargarHistorial();
-        this.cdr.detectChanges();
       },
       error: (err: any) => alert(err.error?.mensaje)
     });
@@ -240,7 +233,6 @@ export class Atencion implements OnInit, OnDestroy {
         this.atendiendoLocalmente = false;
         this.cargarEstadoConsultorio();
         this.cargarHistorial();
-        this.cdr.detectChanges();
       },
       error: (err: any) => alert(err.error?.mensaje)
     });
@@ -251,7 +243,6 @@ export class Atencion implements OnInit, OnDestroy {
     this.tiempoRestante = 120;
     this.timerSub = interval(1000).subscribe(() => {
       this.tiempoRestante--;
-      this.cdr.detectChanges();
       if (this.tiempoRestante <= 0) {
         this.detenerTemporizador();
         this.tiempoExpirado();
@@ -265,7 +256,6 @@ export class Atencion implements OnInit, OnDestroy {
   }
 
   cambiarTab(tab: string) {
-    console.log('Cambiando a tab:', tab);
     this.activeTab = tab;
     this.sidebarOpen = false;
     if (tab === 'historial') {
@@ -280,17 +270,11 @@ export class Atencion implements OnInit, OnDestroy {
     const eid = usuario?.id_especialidad;
     const sid = usuario?.servicio_id;
 
-    console.log('Cargando historial y espera:', { cid, eid, sid });
-
     this.apiService.getTurnos().subscribe({
-      next: (turnos: any[]) => {
-        // Normalizar datos (convertir campos planos a objeto paciente si es necesario)
+      next: (turnos: TurnoDTO[]) => {
         const turnosNormalizados = turnos.map(t => ({
           ...t,
-          paciente: t.paciente || {
-            nombre: `${t.nombre || ''} ${t.apellido || ''}`.trim(),
-            documento: t.cedula || ''
-          }
+          paciente: t.paciente || { nombre: '', apellido: '', documento: '' }
         }));
 
         // 1. Filtrar HISTORIAL (atendidos por este médico/consultorio)
@@ -345,24 +329,7 @@ export class Atencion implements OnInit, OnDestroy {
         this.tiempoPromedioConsulta = '12 min';
         this.cargando = false;
         
-        // Debug para el usuario en consola del navegador
-        console.log('--- ACTUALIZACIÓN DE DATOS ---');
-        console.log('Mi Usuario:', usuario?.nombre, 'ID:', usuario?.id);
-        console.log('Mi Especialidad ID (num):', miEspecialidadId);
-        console.log('Pacientes totales en BD:', turnosNormalizados.length);
-        console.log('Pacientes detectados para MI especialidad:', this.turnosEnEspera);
-        
-        if (this.turnosEnEspera === 0 && turnosNormalizados.length > 0) {
-          const primerTurno = turnosNormalizados[0];
-          console.log('Analizando primer turno de la lista:', {
-            numero: primerTurno.numero,
-            espId: primerTurno.id_especialidad,
-            estado: primerTurno.estado
-          });
-        }
-        
         // FORZAR ACTUALIZACIÓN DE LA UI
-        this.cdr.detectChanges();
       },
       error: (err: any) => {
         console.error('Error cargando historial:', err);
@@ -393,7 +360,7 @@ export class Atencion implements OnInit, OnDestroy {
   }
 
   getSearchFilterLabel(filter: string) {
-    const labels: any = { all: 'Todo', nombre: 'Nombre', apellido: 'Apellido', cedula: 'Cédula' };
+    const labels: Record<string, string> = { todo: 'Todo', nombre: 'Nombre', apellido: 'Apellido', cedula: 'Cédula' };
     return labels[filter] || 'Filtrar';
   }
 }
