@@ -11,8 +11,6 @@ const login = async (req, res) => {
   }
 
   try {
-    console.log('Intento de login con cédula:', cedula);
-    
     // 1. Buscar al usuario por cédula
     const result = await pool.query(`
       SELECT u.id_usuario as id, u.cedula, u.password_hash, u.rol, u.nombre, u.apellido,
@@ -24,7 +22,6 @@ const login = async (req, res) => {
     `, [cedula]);
 
     if (result.rows.length === 0) {
-      console.log('Usuario no encontrado en DB:', cedula);
       return res.status(401).json({ mensaje: 'Usuario inválido' });
     }
 
@@ -49,7 +46,7 @@ const login = async (req, res) => {
       especialidad_nombre: usuario.especialidad_nombre
     };
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET || 'clinica-secret-key', { expiresIn: '24h' });
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' });
 
     res.status(200).json({
       mensaje: 'Login exitoso',
@@ -58,7 +55,6 @@ const login = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error login:', error);
     res.status(500).json({ mensaje: 'Error interno' });
   }
 };

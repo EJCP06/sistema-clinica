@@ -1,9 +1,8 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription, interval } from 'rxjs';
 import { LucideAngularModule, Activity, Clock, Users, ArrowRight } from 'lucide-angular';
-import { io, Socket } from 'socket.io-client';
-import { environment } from '@env/environment';
+import { ApiService } from '@core/services/api.service';
 
 @Component({
   selector: 'app-pantalla-publica',
@@ -13,6 +12,8 @@ import { environment } from '@env/environment';
   styles: []
 })
 export class PantallaPublica implements OnInit, OnDestroy {
+  private apiService = inject(ApiService);
+
   readonly Activity = Activity;
   readonly Clock = Clock;
   readonly Users = Users;
@@ -23,37 +24,23 @@ export class PantallaPublica implements OnInit, OnDestroy {
 
   currentDate = new Date();
   private timerSub: Subscription | null = null;
-  private socket: Socket | null = null;
+  private cambiosSub: Subscription | null = null;
 
   ngOnInit() {
     this.timerSub = interval(1000).subscribe(() => this.currentDate = new Date());
-    this.conectarSocket();
-  }
-
-  conectarSocket() {
-    const socketUrl = environment.socketUrl || 'http://localhost:3000';
-    this.socket = io(socketUrl, {
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000
+    this.cambiosSub = this.apiService.cambios$.subscribe((data: unknown) => {
+      const llamado = data as { turno: string; consultorio: string };
+      if (llamado.turno && llamado.consultorio) {
+        this.historicoLlamados = [llamado, ...this.historicoLlamados].slice(0, 5);
+        this.turnoActual = llamado;
+        this.reproducirAudio(llamado.turno, llamado.consultorio);
+      }
     });
-
-    this.socket.on('connect', () => console.log('🔌 Pantalla conectada'));
-
-    this.socket.on('nuevo-llamado', (data: { turno: string; consultorio: string }) => {
-      this.historicoLlamados = [data, ...this.historicoLlamados].slice(0, 5);
-      this.turnoActual = data;
-      this.reproducirAudio(data.turno, data.consultorio);
-    });
-
-    this.socket.on('disconnect', () => console.log('🔴 Pantalla desconectada'));
   }
 
   ngOnDestroy() {
     this.timerSub?.unsubscribe();
-    this.socket?.disconnect();
-    this.socket = null;
+    this.cambiosSub?.unsubscribe();
   }
 
   reproducirAudio(turno: string, consultorio: string) {

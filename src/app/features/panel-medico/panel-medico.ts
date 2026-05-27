@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { LucideAngularModule, Users, Bell, CheckCircle, Clock, ArrowRight, UserCheck, Activity } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
+import { PacienteEnEsperaDTO } from '../../core/models/dto.models';
 import { Subscription, interval } from 'rxjs';
 
 import { Sidebar } from '../../shared/components/sidebar/sidebar';
@@ -28,17 +29,24 @@ export class PanelMedicoComponent implements OnInit, OnDestroy {
 
   // Estados
   sidebarOpen: boolean = false;
-  pacientesEspera: any[] = [];
-  pacienteActual: any = null;
+  pacientesEspera: PacienteEnEsperaDTO[] = [];
+  pacienteActual: PacienteEnEsperaDTO | null = null;
+  pacientesAtendidosHoy: PacienteEnEsperaDTO[] = [];
   loading: boolean = false;
   timerSubscription: Subscription | null = null;
   
   // Perfil Médico
-  medicoInfo: any = {
+  medicoInfo: {
+    id_servicio: number | null;
+    id_especialidad: number | null;
+    servicio_nombre: string;
+  } = {
     id_servicio: null,
     id_especialidad: null,
     servicio_nombre: ''
   };
+
+  trackById = (index: number, item: PacienteEnEsperaDTO) => item?.id_atencion ?? index;
 
   constructor(
     private api: ApiService, 
@@ -54,23 +62,27 @@ export class PanelMedicoComponent implements OnInit, OnDestroy {
   ngOnInit() {
     const user = this.auth.usuarioActual;
     if (user) {
-      this.medicoInfo.id_servicio = user.servicio_id;
-      this.medicoInfo.id_especialidad = user.id_especialidad;
+      this.medicoInfo.id_servicio = user.servicio_id ?? null;
+      this.medicoInfo.id_especialidad = user.id_especialidad ?? null;
       this.medicoInfo.servicio_nombre = user.especialidad_nombre || 'Especialista';
     }
 
     // Primero intentamos recuperar de la sesión para evitar parpadeos
     this.recuperarPacienteSesion();
     this.cargarPacientes();
+    this.cargarAtendidosHoy();
     
     // Refresco automático cada 30 segundos
-    this.timerSubscription = interval(30000).subscribe(() => this.cargarPacientes());
+    this.timerSubscription = interval(30000).subscribe(() => {
+      this.cargarPacientes();
+      this.cargarAtendidosHoy();
+    });
   }
 
   private recuperarPacienteSesion() {
     const guardado = sessionStorage.getItem('paciente_atendiendo_data');
     if (guardado) {
-      this.pacienteActual = JSON.parse(guardado);
+      this.pacienteActual = JSON.parse(guardado) as PacienteEnEsperaDTO;
     }
   }
 
@@ -92,8 +104,8 @@ export class PanelMedicoComponent implements OnInit, OnDestroy {
 
     this.loading = true;
     const params = `?id_servicio=${this.medicoInfo.id_servicio}${this.medicoInfo.id_especialidad ? '&id_especialidad=' + this.medicoInfo.id_especialidad : ''}`;
-    this.api.get(`medico/espera${params}`).subscribe({
-      next: (data: any[]) => {
+    this.api.get<PacienteEnEsperaDTO[]>(`medico/espera${params}`).subscribe({
+      next: (data) => {
         const normalizar = (s: string) => (s || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         
         // 1. Filtrar lista de espera (excluir al que ya se está atendiendo)
@@ -126,7 +138,16 @@ export class PanelMedicoComponent implements OnInit, OnDestroy {
     });
   }
 
-llamarSiguiente() {
+  cargarAtendidosHoy() {
+    if (!this.medicoInfo.id_servicio) return;
+    const params = `?id_servicio=${this.medicoInfo.id_servicio}${this.medicoInfo.id_especialidad ? '&id_especialidad=' + this.medicoInfo.id_especialidad : ''}`;
+    this.api.get<PacienteEnEsperaDTO[]>(`medico/atendidos-hoy${params}`).subscribe({
+      next: (data) => { this.pacientesAtendidosHoy = data; },
+      error: () => {}
+    });
+  }
+
+  llamarSiguiente() {
   if (this.pacientesEspera.length === 0 || this.pacienteActual) return;
   
   const proximo = this.pacientesEspera[0];

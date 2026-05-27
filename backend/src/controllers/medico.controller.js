@@ -74,6 +74,8 @@ const llamarPaciente = async (req, res) => {
 
     await client.query('COMMIT');
 
+    if (req.io) req.io.emit('estado-actualizado', { id_atencion });
+
     res.json({ mensaje: 'Paciente en atención', id_estado_nuevo });
   } catch (error) {
     await client.query('ROLLBACK');
@@ -109,6 +111,8 @@ const finalizarAtencion = async (req, res) => {
 
     await client.query('COMMIT');
 
+    if (req.io) req.io.emit('estado-actualizado', { id_atencion });
+
     res.json({ mensaje: 'Atención finalizada' });
   } catch (error) {
     await client.query('ROLLBACK');
@@ -118,8 +122,57 @@ const finalizarAtencion = async (req, res) => {
   }
 };
 
+const getAtendidosHoy = async (req, res) => {
+  const { id_servicio, id_especialidad } = req.query;
+
+  try {
+    let whereClause = 'WHERE a.hora_salida IS NOT NULL AND a.hora_salida::date = CURRENT_DATE AND a.id_sede = $1';
+    const params = [req.usuario?.id_sede];
+
+    if (id_especialidad && id_especialidad !== 'null' && id_especialidad !== 'undefined') {
+      whereClause += ` AND a.id_especialidad = $${params.length + 1}`;
+      params.push(id_especialidad);
+    } else if (id_servicio && id_servicio !== 'null' && id_servicio !== 'undefined') {
+      whereClause += ` AND a.id_servicio = $${params.length + 1}`;
+      params.push(id_servicio);
+    }
+
+    const result = await pool.query(
+      `
+      SELECT 
+        a.id_atencion, 
+        a.hora_llegada, 
+        a.hora_salida,
+        p.nombre, 
+        p.apellido, 
+        p.cedula, 
+        e.nombre_estado, 
+        s.nombre_servicio,
+        a.id_estado_actual,
+        a.id_especialidad,
+        esp.nombre as nombre_especialidad
+      FROM "Atencion" a
+      INNER JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
+      INNER JOIN "Estado" e ON a.id_estado_actual = e.id_estado
+      INNER JOIN "Servicio" s ON a.id_servicio = s.id_servicio
+      LEFT JOIN "Especialidades" esp ON a.id_especialidad = esp.id_especialidad
+      ${whereClause}
+      ORDER BY a.hora_salida DESC
+      LIMIT 20
+    `,
+      params,
+    );
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error al obtener atendidos hoy:', error);
+    res.status(500).json({ mensaje: 'Error al obtener pacientes atendidos' });
+  }
+};
+
 module.exports = {
   getPacientesEnEspera,
   llamarPaciente,
   finalizarAtencion,
+  getAtendidosHoy,
 };
