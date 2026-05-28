@@ -29,6 +29,20 @@ export const routes: Routes = [
     canActivate: [authGuard, roleGuard(['aps', 'admin'])]
   },
 
+  // Módulo de Laboratorio
+  {
+    path: 'laboratorio',
+    loadComponent: () => import('./features/laboratorio/laboratorio').then(m => m.LaboratorioComponent),
+    canActivate: [authGuard, roleGuard(['laboratorio', 'admin'])]
+  },
+
+  // Módulo de Imágenes
+  {
+    path: 'imagenes',
+    loadComponent: () => import('./features/imagenes/imagenes').then(m => m.ImagenesComponent),
+    canActivate: [authGuard, roleGuard(['imagenes', 'admin'])]
+  },
+
   // Pantalla de Aseguradoras (APS y Admin)
   {
     path: 'aseguradoras',

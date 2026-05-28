@@ -32,6 +32,8 @@ export const roleGuard = (roles: Rol[]): CanActivateFn => {
         recepcionista: '/recepcion',
         medico: '/atencion',
         aps: '/aps',
+        laboratorio: '/laboratorio',
+        imagenes: '/imagenes',
       };
       router.navigate([rutas[u.rol]]);
       return false;

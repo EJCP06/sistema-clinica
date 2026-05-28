@@ -1,0 +1,43 @@
+<div class="flex items-center justify-between px-8 py-4 border-t border-slate-100 dark:border-slate-800">
+  <div class="text-xs text-slate-400 font-bold">
+    {{ endItem }} de {{ totalItems }}
+  </div>
+  <div class="flex items-center gap-1">
+    <button
+      (click)="goToPage(currentPage - 1, $event)"
+      [disabled]="currentPage <= 1"
+      class="px-3 py-1.5 text-xs font-bold rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+      [class.hover:bg-slate-100]="currentPage > 1"
+      [class.text-slate-500]="currentPage > 1"
+      [class.text-slate-300]="currentPage <= 1"
+    >
+      Anterior
+    </button>
+
+    <ng-container *ngFor="let p of pages">
+      <button
+        *ngIf="p !== -1"
+        (click)="goToPage(p, $event)"
+        class="w-8 h-8 text-xs font-bold rounded-lg transition-colors"
+        [class.bg-blue-600]="p === currentPage"
+        [class.text-white]="p === currentPage"
+        [class.text-slate-500]="p !== currentPage"
+        [class.hover:bg-slate-100]="p !== currentPage"
+      >
+        {{ p }}
+      </button>
+      <span *ngIf="p === -1" class="w-8 text-center text-xs text-slate-300 font-bold">...</span>
+    </ng-container>
+
+    <button
+      (click)="goToPage(currentPage + 1, $event)"
+      [disabled]="currentPage >= totalPages"
+      class="px-3 py-1.5 text-xs font-bold rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+      [class.hover:bg-slate-100]="currentPage < totalPages"
+      [class.text-slate-500]="currentPage < totalPages"
+      [class.text-slate-300]="currentPage >= totalPages"
+    >
+      Siguiente
+    </button>
+  </div>
+</div>

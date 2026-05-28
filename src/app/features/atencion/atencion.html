@@ -27,7 +27,7 @@
       
       <!-- VISTA: ATENCION -->
       <ng-container *ngIf="activeTab === 'atencion'">
-        <div class="w-full max-w-[1400px] h-full grid grid-cols-1 xl:grid-cols-10 gap-10 items-start mx-auto">
+        <div class="w-full h-full grid grid-cols-1 xl:grid-cols-10 gap-10 items-start mx-auto">
           
           <!-- LADO IZQUIERDO: HISTORIAL -->
           <div class="xl:col-span-5 flex flex-col bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden min-h-[600px]">
@@ -39,27 +39,33 @@
               <div class="bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 px-3 py-1 rounded-full text-xs font-black">{{ totalAtendidosHoy }}</div>
             </div>
             
-            <div class="flex-1 overflow-y-auto p-0 custom-scrollbar max-h-[650px]">
-              <table class="w-full text-left text-sm">
+            <div class="flex-1 min-h-[600px] flex flex-col justify-between">
+              <div class="overflow-x-auto">
+<table class="w-full text-left text-sm ">
                 <thead class="sticky top-0 bg-white dark:bg-slate-900 z-10 shadow-sm">
-                  <tr class="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    <th class="px-8 py-5 text-center">Turno</th>
-                    <th class="px-8 py-5 text-center">Paciente</th>
-                    <th class="px-8 py-5 text-center">Estado</th>
-                    <th class="px-8 py-5 text-center">Hora</th>
+                  <tr class="h-[64px] border-b border-slate-100 dark:border-slate-800 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <th class="px-8 py-4 text-center">Turno</th>
+                    <th class="px-8 py-4 text-center">Paciente</th>
+                    <th class="px-8 py-4 text-center">Estado</th>
+                    <th class="px-8 py-4 text-center">Hora</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-50 dark:divide-slate-800/50">
-                  <tr *ngFor="let t of historialFiltrado; trackBy: trackById" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td class="px-8 py-4 font-bold text-slate-900 dark:text-white text-center">{{ t?.numero || '---' }}</td>
-                    <td class="px-8 py-4 text-center">
-                      <span class="font-bold text-slate-900 dark:text-white">{{ t?.paciente?.nombre }} {{ t?.paciente?.apellido }}</span>
-                    </td>
-                    <td class="px-8 py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
-                      {{ t?.estado }}
-                    </td>
-                    <td class="px-8 py-4 text-slate-500 dark:text-slate-400 font-medium text-center">{{ (t?.hora_llegada) | date:'shortTime' }}</td>
-                  </tr>
+                <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
+                  <ng-container *ngFor="let t of historialFiltrado | paginate: currentHistorialPage : pageSize; trackBy: trackById">
+                    <tr class="h-[64px] hover:bg-slate-50 dark:hover:bg-slate-800">
+                      <td class="px-8 py-4 font-bold text-slate-900 dark:text-white text-center">{{ t?.numero || '---' }}</td>
+                      <td class="px-8 py-4 text-center">
+                        <span class="font-bold text-slate-900 dark:text-white">{{ t?.paciente?.nombre }} {{ t?.paciente?.apellido }}</span>
+                      </td>
+                      <td class="px-8 py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
+                        {{ t?.estado }}
+                      </td>
+                      <td class="px-8 py-4 text-slate-500 dark:text-slate-400 font-medium text-center">{{ (t?.hora_llegada) | date:'shortTime' }}</td>
+                    </tr>
+                  </ng-container>
+                  <ng-container *ngFor="let _ of historialFiltrado | fillers: currentHistorialPage : pageSize">
+                    <tr><td colspan="4" class="h-[64px]"></td></tr>
+                  </ng-container>
                   <tr *ngIf="historialFiltrado.length === 0">
                     <td colspan="4" class="px-6 py-20 text-center align-middle">
                       <div class="flex flex-col items-center justify-center w-full">
@@ -72,6 +78,13 @@
                   </tr>
                 </tbody>
               </table>
+</div>
+              <app-pagination
+                [currentPage]="currentHistorialPage"
+                [totalItems]="historialFiltrado.length"
+                [pageSize]="pageSize"
+                (pageChange)="currentHistorialPage = $event"
+              ></app-pagination>
             </div>
           </div>
 
@@ -109,7 +122,7 @@
             <div class="flex flex-col">
               
               <!-- CARD ESTADO: LIBRE -->
-              <div *ngIf="!turnoActual" class="bg-white dark:bg-slate-900 rounded-[32px] p-10 text-center shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-center min-h-[460px]">
+              <div *ngIf="!turnoActual" class="bg-white dark:bg-slate-900 rounded-[32px] p-10 text-center shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-center min-h-[600px]">
                 <ng-container *ngIf="!mensajeInfo; else noPacientes">
                   <div class="w-20 h-20 bg-green-50 dark:bg-green-500/10 text-green-500 dark:text-green-400 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-green-100 dark:border-green-500/20">
                     <lucide-icon [name]="CheckCircle2" class="w-10 h-10"></lucide-icon>
@@ -117,7 +130,7 @@
                   <h2 class="text-3xl font-black text-slate-900 dark:text-white mb-3 tracking-tight leading-none">Consultorio Listo</h2>
                   <p class="text-slate-500 dark:text-slate-400 mb-8 text-sm px-4 leading-relaxed font-medium">Presione el botón para llamar al próximo turno.</p>
                   <div class="flex justify-center">
-                    <button (click)="llamarSiguiente()" [disabled]="cargando" class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-black py-5 rounded-[24px] shadow-xl shadow-blue-600/30 hover:shadow-blue-600/50 transition-all duration-300 flex items-center justify-center gap-3 text-lg group active:scale-95">
+                    <button (click)="llamarSiguiente()" [disabled]="cargando" class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-black py-4 rounded-[24px] shadow-xl shadow-blue-600/30 hover:shadow-blue-600/50 transition-all duration-300 flex items-center justify-center gap-3 text-lg group active:scale-95">
                       <span *ngIf="cargando" class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                       <lucide-icon *ngIf="!cargando" [name]="Volume2" class="w-6 h-6 transition-transform group-hover:scale-110"></lucide-icon>
                       {{ cargando ? 'Llamando...' : 'Llamar al Siguiente' }}
@@ -133,7 +146,7 @@
               </div>
 
               <!-- ESTADO: TURNO ACTIVO -->
-              <div *ngIf="turnoActual && (turnoActual.estado === 'LLAMADO' || turnoActual.estado === 'EN_ATENCION')" class="bg-white dark:bg-slate-900 rounded-[32px] p-8 shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50 border border-slate-100 dark:border-slate-800 min-h-[460px]">
+              <div *ngIf="turnoActual && (turnoActual.estado === 'LLAMADO' || turnoActual.estado === 'EN_ATENCION')" class="bg-white dark:bg-slate-900 rounded-[32px] p-8 shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50 border border-slate-100 dark:border-slate-800 min-h-[600px]">
                 <div class="flex flex-col md:flex-row items-center justify-between mb-6 pb-6 border-b border-slate-100 dark:border-slate-800 gap-4">
                   <div class="flex items-center gap-4">
                     <div class="text-5xl font-black font-mono text-slate-900 dark:text-white tracking-tighter">{{ turnoActual.numero }}</div>
@@ -170,10 +183,10 @@
                     </div>
                   </div>
                   <div class="grid grid-cols-2 gap-3">
-                    <button (click)="iniciarAtencion()" class="bg-blue-600 hover:bg-blue-700 text-white font-black py-3 rounded-xl shadow-lg shadow-blue-600/25 transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 text-xs uppercase tracking-widest">
+                    <button (click)="iniciarAtencion()" class="bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl shadow-lg shadow-blue-600/25 transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 text-xs uppercase tracking-widest">
                       <lucide-icon [name]="CheckCircle2" class="w-4 h-4"></lucide-icon> Iniciar
                     </button>
-                    <button (click)="marcarAusente()" class="bg-red-600 hover:bg-red-700 text-white font-black py-3 rounded-xl shadow-lg shadow-red-600/25 transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 text-xs uppercase tracking-widest">
+                    <button (click)="marcarAusente()" class="bg-red-600 hover:bg-red-700 text-white font-black py-4 rounded-xl shadow-lg shadow-red-600/25 transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 text-xs uppercase tracking-widest">
                       <lucide-icon [name]="UserX" class="w-4 h-4"></lucide-icon> Ausente
                     </button>
                   </div>
@@ -181,7 +194,7 @@
 
                 <!-- ACCIONES (EN_ATENCION) -->
                 <div *ngIf="turnoActual.estado === 'EN_ATENCION'" class="mt-auto pt-6 flex flex-col gap-4">
-                  <button (click)="finalizarAtencion()" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-black py-5 rounded-2xl shadow-xl shadow-teal-500/20 transition-all text-lg flex items-center justify-center gap-3 group">
+                  <button (click)="finalizarAtencion()" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-teal-500/20 transition-all text-lg flex items-center justify-center gap-3 group">
                     <lucide-icon [name]="CheckCircle2" class="w-6 h-6 group-hover:scale-110 transition-transform"></lucide-icon> Finalizar Atención
                   </button>
                 </div>
@@ -259,41 +272,47 @@
                 type="text" 
                 [(ngModel)]="searchQueryHistorial"
                 placeholder="Buscar paciente..."
-                class="w-full pl-14 pr-4 py-3.5 text-sm focus:outline-none font-medium bg-transparent rounded-r-2xl"
+                class="w-full pl-14 pr-4 py-4.5 text-sm focus:outline-none font-medium bg-transparent rounded-r-2xl"
               >
             </div>
           </div>
         </div>
 
         <!-- Tabla -->
-        <div class="w-full max-w-4xl bg-white rounded-[32px] border border-slate-100 shadow-xl overflow-hidden">
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
+        <div class="w-full bg-white rounded-[32px] border border-slate-100 shadow-xl overflow-hidden">
+          <div class="min-h-[600px] flex flex-col justify-between">
+            <div class="overflow-x-auto">
+<table class="w-full text-left text-sm ">
               <thead>
-                <tr class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  <th class="px-8 py-5">Turno</th>
-                  <th class="px-8 py-5">Paciente</th>
-                  <th class="px-8 py-5">Estado</th>
-                  <th class="px-8 py-5">Hora</th>
-                  <th class="px-8 py-5 text-right">Ver</th>
+                <tr class="h-[64px] bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  <th class="px-8 py-4">Turno</th>
+                  <th class="px-8 py-4">Paciente</th>
+                  <th class="px-8 py-4">Estado</th>
+                  <th class="px-8 py-4">Hora</th>
+                  <th class="px-8 py-4 text-right">Ver</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-slate-50">
-                <tr *ngFor="let t of historialFiltrado; trackBy: trackById" class="hover:bg-slate-50/80 transition-colors group">
-                  <td class="px-8 py-4 font-bold text-slate-900">{{ t?.numero || '---' }}</td>
-                  <td class="px-8 py-4">
-                    <span class="font-bold text-slate-900">{{ t?.paciente?.nombre }} {{ t?.paciente?.apellido }}</span>
-                  </td>
-                  <td class="px-8 py-4 font-bold text-slate-800 dark:text-white uppercase">
-                    {{ t?.estado }}
-                  </td>
-                  <td class="px-8 py-4 text-slate-500">{{ (t?.hora_llegada) | date:'shortTime' }}</td>
-                    <td class="px-8 py-4 text-right">
-                      <button aria-label="Ver detalle del turno" class="p-2 text-slate-300 dark:text-slate-600 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all hover:scale-110 active:scale-95">
-                        <lucide-icon [name]="ChevronRight" class="w-5 h-5"></lucide-icon>
-                      </button>
-                  </td>
-                </tr>
+              <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
+                <ng-container *ngFor="let t of historialFiltrado | paginate: currentHistorialTabPage : pageSize; trackBy: trackById">
+                  <tr class="h-[64px] hover:bg-slate-50 dark:hover:bg-slate-800">
+                    <td class="px-8 py-4 font-bold text-slate-900">{{ t?.numero || '---' }}</td>
+                    <td class="px-8 py-4">
+                      <span class="font-bold text-slate-900">{{ t?.paciente?.nombre }} {{ t?.paciente?.apellido }}</span>
+                    </td>
+                    <td class="px-8 py-4 font-bold text-slate-800 dark:text-white uppercase">
+                      {{ t?.estado }}
+                    </td>
+                    <td class="px-8 py-4 text-slate-500">{{ (t?.hora_llegada) | date:'shortTime' }}</td>
+                      <td class="px-8 py-4 text-right">
+                        <button aria-label="Ver detalle del turno" class="p-2 text-slate-300 dark:text-slate-600 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all hover:scale-110 active:scale-95">
+                          <lucide-icon [name]="ChevronRight" class="w-5 h-5"></lucide-icon>
+                        </button>
+                    </td>
+                  </tr>
+                </ng-container>
+                <ng-container *ngFor="let _ of historialFiltrado | fillers: currentHistorialTabPage : pageSize">
+                  <tr><td colspan="5" class="h-[64px]"></td></tr>
+                </ng-container>
                 <tr *ngIf="historialFiltrado.length === 0">
                   <td colspan="5" class="px-8 py-20 text-center align-middle">
                     <div class="flex flex-col items-center justify-center w-full">
@@ -306,6 +325,13 @@
                 </tr>
               </tbody>
             </table>
+</div>
+            <app-pagination
+              [currentPage]="currentHistorialTabPage"
+              [totalItems]="historialFiltrado.length"
+              [pageSize]="pageSize"
+              (pageChange)="currentHistorialTabPage = $event"
+            ></app-pagination>
           </div>
         </div>
       </ng-container>

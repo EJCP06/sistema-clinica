@@ -13,12 +13,12 @@ import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
 import { FillersPipe } from '../../shared/pipes/fillers.pipe';
 
 @Component({
-  selector: 'app-aps',
+  selector: 'app-laboratorio',
   standalone: true,
   imports: [CommonModule, FormsModule, LucideAngularModule, Sidebar, Header, PaginationComponent, PaginatePipe, FillersPipe],
-  templateUrl: './aps.html'
+  templateUrl: './laboratorio.html'
 })
-export class ApsComponent implements OnInit, OnDestroy {
+export class LaboratorioComponent implements OnInit, OnDestroy {
   readonly Search = Search;
   readonly FileText = FileText;
   readonly CheckCircle2 = CheckCircle2;

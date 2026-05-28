@@ -123,7 +123,7 @@ export interface TurnoDTO {
 
 export interface LlamarSiguienteResponseDTO {
   mensaje: string;
-  turno: TurnoDTO;
+  turno: TurnoDTO | null;
 }
 
 // ==========================================
@@ -144,8 +144,8 @@ export interface MiEstadoDTO {
 }
 
 export interface ConsultorioDTO {
-  id_consultorio: number;
-  id?: number;
+  id_consultorio?: number;
+  id: number;
   nombre: string;
   estado_fisico: string;
   id_servicio?: number;

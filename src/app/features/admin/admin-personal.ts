@@ -37,11 +37,14 @@ import {
   Sun,
   Moon,
 } from 'lucide-angular';
+import { PaginationComponent } from '../../shared/components/pagination/pagination';
+import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
+import { FillersPipe } from '../../shared/pipes/fillers.pipe';
 
 @Component({
   selector: 'app-admin-personal',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule, PaginationComponent, PaginatePipe, FillersPipe],
   templateUrl: './admin-personal.html',
   styles: [],
 })
@@ -80,6 +83,14 @@ export class AdminPersonal implements OnInit {
   private apiService = inject(ApiService);
   private destroyRef = inject(DestroyRef);
 
+  pageSize = 7;
+  currentPageMedicos = 1;
+  currentPageRecepcionistas = 1;
+  currentPageAdmin = 1;
+  currentPageLaboratorio = 1;
+  currentPageImagenes = 1;
+  currentPageAps = 1;
+
   @Input() activeTab: string = 'medicos';
 
   servicios: ServicioDTO[] = [];
@@ -89,6 +100,9 @@ export class AdminPersonal implements OnInit {
   medicos: PersonalDTO[] = [];
   recepcionistas: PersonalDTO[] = [];
   administradores: PersonalDTO[] = [];
+  laboratorio: PersonalDTO[] = [];
+  imagenes: PersonalDTO[] = [];
+  aps: PersonalDTO[] = [];
 
   searchQuery = '';
   searchFilter = 'todo';
@@ -175,6 +189,9 @@ export class AdminPersonal implements OnInit {
       this.medicos = personalMapeado.filter((p) => p.rol === 'medico');
       this.recepcionistas = personalMapeado.filter((p) => p.rol === 'recepcionista');
       this.administradores = personalMapeado.filter((p) => p.rol === 'admin');
+      this.laboratorio = personalMapeado.filter((p) => p.rol === 'laboratorio');
+      this.imagenes = personalMapeado.filter((p) => p.rol === 'imagenes');
+      this.aps = personalMapeado.filter((p) => p.rol === 'aps');
     });
   }
 
@@ -199,6 +216,11 @@ export class AdminPersonal implements OnInit {
         piso: user.piso || '',
         id_sede: user.id_sede || '',
       };
+      // Auto-asignar piso desde la especialidad si está vacío
+      if (!this.formPersonal.piso && this.formPersonal.especialidad_id) {
+        const esp = this.especialidades.find(e => e.id == this.formPersonal.especialidad_id);
+        if (esp?.piso) this.formPersonal.piso = String(esp.piso);
+      }
     } else {
       this.formPersonal = {
         rol: rol || 'medico',
@@ -234,8 +256,8 @@ export class AdminPersonal implements OnInit {
       username: cedulaFinal,
       telefono: (this.formPersonal.telefono || '').toString().replace(/\D/g, ''),
       password: this.formPersonal.password ? this.formPersonal.password.replace(/\s/g, '') : null,
-      piso: (rol === 'medico' || rol === 'recepcionista') && this.formPersonal.piso
-        ? this.formPersonal.piso.toString().replace(/\D/g, '') : null,
+      piso: (rol === 'medico' || rol === 'recepcionista' || rol === 'aps' || rol === 'laboratorio' || rol === 'imagenes') && this.formPersonal.piso
+        ? this.formPersonal.piso.toString().trim() : null,
       id_sede: this.formPersonal.id_sede ? Number(this.formPersonal.id_sede) : 1,
       id_consultorio: rol === 'medico'
         ? (this.formPersonal.consultorio_id ? Number(this.formPersonal.consultorio_id) : null) : null,
@@ -299,6 +321,48 @@ export class AdminPersonal implements OnInit {
     });
   }
 
+  get laboratorioFiltrados() {
+    return this.laboratorio.filter((a) => {
+      const query = this.searchQuery.toLowerCase();
+      if (!query) return true;
+      const matchNombre = (a.nombre || '').toLowerCase().includes(query);
+      const matchApellido = (a.apellido || '').toLowerCase().includes(query);
+      const matchCedula = (a.cedula || '').toLowerCase().includes(query);
+      if (this.searchFilter === 'nombre') return matchNombre;
+      if (this.searchFilter === 'apellido') return matchApellido;
+      if (this.searchFilter === 'cedula') return matchCedula;
+      return matchNombre || matchApellido || matchCedula;
+    });
+  }
+
+  get apsFiltrados() {
+    return this.aps.filter((a) => {
+      const query = this.searchQuery.toLowerCase();
+      if (!query) return true;
+      const matchNombre = (a.nombre || '').toLowerCase().includes(query);
+      const matchApellido = (a.apellido || '').toLowerCase().includes(query);
+      const matchCedula = (a.cedula || '').toLowerCase().includes(query);
+      if (this.searchFilter === 'nombre') return matchNombre;
+      if (this.searchFilter === 'apellido') return matchApellido;
+      if (this.searchFilter === 'cedula') return matchCedula;
+      return matchNombre || matchApellido || matchCedula;
+    });
+  }
+
+  get imagenesFiltrados() {
+    return this.imagenes.filter((a) => {
+      const query = this.searchQuery.toLowerCase();
+      if (!query) return true;
+      const matchNombre = (a.nombre || '').toLowerCase().includes(query);
+      const matchApellido = (a.apellido || '').toLowerCase().includes(query);
+      const matchCedula = (a.cedula || '').toLowerCase().includes(query);
+      if (this.searchFilter === 'nombre') return matchNombre;
+      if (this.searchFilter === 'apellido') return matchApellido;
+      if (this.searchFilter === 'cedula') return matchCedula;
+      return matchNombre || matchApellido || matchCedula;
+    });
+  }
+
   get administradoresFiltrados() {
     return this.administradores.filter((a) => {
       const query = this.searchQuery.toLowerCase();
@@ -343,11 +407,11 @@ export class AdminPersonal implements OnInit {
     if (!this.formPersonal.especialidad_id) return this.consultorios;
     const esp = this.especialidades.find(e => e.id === Number(this.formPersonal.especialidad_id));
     if (!esp || !esp.consultorios_ids || esp.consultorios_ids.length === 0) return this.consultorios;
-    return this.consultorios.filter((c) => esp.consultorios_ids!.includes(c.id_consultorio));
+    return this.consultorios.filter((c) => esp.consultorios_ids!.includes(c.id));
   }
 
   selectMedicoCon(con: ConsultorioDTO) {
-    this.formPersonal.consultorio_id = con.id_consultorio ?? '';
+    this.formPersonal.consultorio_id = con.id ?? '';
     this.showMedicoConDropdown = false;
   }
 
@@ -409,7 +473,7 @@ export class AdminPersonal implements OnInit {
 
   getNombreCon(id: number | string | null | undefined, forDropdown = false): string {
     if (id === null || id === undefined) return forDropdown ? 'Seleccione...' : 'SIN ASIGNAR';
-    const con = this.consultorios.find((c) => c.id_consultorio == id);
+    const con = this.consultorios.find((c) => c.id == id);
     return con ? con.nombre.toUpperCase() : forDropdown ? 'Seleccione...' : 'SIN ASIGNAR';
   }
 
@@ -436,7 +500,7 @@ export class AdminPersonal implements OnInit {
   }
 
   getRolLabel(rol: string): string {
-    const labels: { [key: string]: string } = { admin: 'Administrador', medico: 'Médico', recepcionista: 'Recepcionista' };
+    const labels: { [key: string]: string } = { admin: 'Administrador', medico: 'Médico', recepcionista: 'Recepcionista', laboratorio: 'Laboratorio', imagenes: 'Imágenes', aps: 'APS' };
     return labels[rol] || 'Seleccione...';
   }
 

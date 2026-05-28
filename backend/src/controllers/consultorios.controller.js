@@ -109,14 +109,28 @@ const llamarSiguiente = async (req, res) => {
       FOR UPDATE SKIP LOCKED
     `;
 
+    console.log('[DEBUG LLAMAR] Query:', queryEspera);
+    console.log('[DEBUG LLAMAR] Params:', paramsEspera);
+
     const turnoRes = await client.query(queryEspera, paramsEspera);
 
     if (turnoRes.rows.length === 0) {
-      console.log('[DEBUG LLAMAR] No se encontró turno con params:', paramsEspera);
+      // Log cuántos pacientes hay en Sala de Espera sin filtros
+      const totalEspera = await client.query('SELECT COUNT(*) as total FROM "Atencion" WHERE id_estado_actual = 3');
+      const totalServicio = await client.query('SELECT COUNT(*) as total FROM "Atencion" WHERE id_estado_actual = 3 AND id_servicio = $1', [consultorio.servicio_id]);
+      const totalSede = await client.query('SELECT COUNT(*) as total FROM "Atencion" WHERE id_estado_actual = 3 AND id_servicio = $1 AND id_sede = $2', [consultorio.servicio_id, req.usuario.id_sede]);
+      console.log('[DEBUG LLAMAR] Total en Sala de Espera:', totalEspera.rows[0].total);
+      console.log('[DEBUG LLAMAR] Total mismo servicio:', totalServicio.rows[0].total);
+      console.log('[DEBUG LLAMAR] Total mismo servicio+sede:', totalSede.rows[0].total);
+      if (idEspecialidad) {
+        const totalEsp = await client.query('SELECT COUNT(*) as total FROM "Atencion" WHERE id_estado_actual = 3 AND id_servicio = $1 AND id_sede = $2 AND id_especialidad = $3', [consultorio.servicio_id, req.usuario.id_sede, idEspecialidad]);
+        console.log('[DEBUG LLAMAR] Total mismo servicio+sede+especialidad:', totalEsp.rows[0].total);
+      }
+
       await client.query('ROLLBACK');
-      return res.status(404).json({ 
+      return res.json({ 
         mensaje: 'No hay pacientes en espera de este servicio',
-        debug: { params: paramsEspera, servicio_id: consultorio.servicio_id, sede_id: req.usuario.id_sede, especialidad_id: idEspecialidad }
+        turno: null
       });
     }
 
@@ -237,9 +251,9 @@ const finalizarAtencion = async (req, res) => {
     console.log('[DEBUG FINALIZAR] Resultado Update:', turnoRes.rows.length);
     if (turnoRes.rows.length === 0) {
       await client.query('ROLLBACK');
-      return res.status(404).json({ 
-        mensaje: 'No hay ninguna atención activa para finalizar',
-        debug: { consultorio_id: consultorioId }
+      return res.status(200).json({ 
+        mensaje: 'No hay pacientes en espera de este servicio',
+        turno: null
       });
     }
 

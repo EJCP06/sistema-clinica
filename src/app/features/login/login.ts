@@ -68,7 +68,9 @@ export class Login {
           else if (rol === 'recepcionista') this.router.navigate(['/recepcion']);
           else if (rol === 'medico') this.router.navigate(['/atencion']);
           else if (rol === 'aps') this.router.navigate(['/aps']);
-          else this.router.navigate(['/atencion']); // Fallback para médicos si el rol viene distinto
+          else if (rol === 'laboratorio') this.router.navigate(['/laboratorio']);
+          else if (rol === 'imagenes') this.router.navigate(['/imagenes']);
+          else this.router.navigate(['/atencion']); // Fallback
         }
       },
       error: (err: any) => {

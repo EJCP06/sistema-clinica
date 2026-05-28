@@ -14,7 +14,9 @@ import {
   User,
   Users,
   Ticket,
-  ClipboardList
+  ClipboardList,
+  FlaskConical,
+  Image
 } from 'lucide-angular';
 
 @Component({
@@ -34,6 +36,8 @@ export class Header {
   readonly Users = Users;
   readonly Ticket = Ticket;
   readonly ClipboardList = ClipboardList;
+  readonly FlaskConical = FlaskConical;
+  readonly Image = Image;
 
   @Input() title: string = '';
   @Input() subtitle: string = '';
