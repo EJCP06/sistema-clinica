@@ -10,11 +10,14 @@ import { Subscription, interval } from 'rxjs';
 
 import { Sidebar } from '../../shared/components/sidebar/sidebar';
 import { Header } from '../../shared/components/header/header';
+import { PaginationComponent } from '../../shared/components/pagination/pagination';
+import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
+import { FillersPipe } from '../../shared/pipes/fillers.pipe';
 
 @Component({
   selector: 'app-panel-medico',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule, Sidebar, Header],
+  imports: [CommonModule, FormsModule, LucideAngularModule, Sidebar, Header, PaginationComponent, PaginatePipe, FillersPipe],
   templateUrl: './panel-medico.html'
 })
 export class PanelMedicoComponent implements OnInit, OnDestroy {
@@ -27,6 +30,9 @@ export class PanelMedicoComponent implements OnInit, OnDestroy {
   readonly UserCheck = UserCheck;
   readonly Activity = Activity;
 
+  pageSize = 7;
+  currentPage = 1;
+
   // Estados
   sidebarOpen: boolean = false;
   pacientesEspera: PacienteEnEsperaDTO[] = [];
@@ -34,6 +40,7 @@ export class PanelMedicoComponent implements OnInit, OnDestroy {
   pacientesAtendidosHoy: PacienteEnEsperaDTO[] = [];
   loading: boolean = false;
   timerSubscription: Subscription | null = null;
+  cambiosSub: Subscription | null = null;
   
   // Perfil Médico
   medicoInfo: {
@@ -72,8 +79,14 @@ export class PanelMedicoComponent implements OnInit, OnDestroy {
     this.cargarPacientes();
     this.cargarAtendidosHoy();
     
-    // Refresco automático cada 30 segundos
+    // Refresco automático cada 30 segundos (fallback)
     this.timerSubscription = interval(30000).subscribe(() => {
+      this.cargarPacientes();
+      this.cargarAtendidosHoy();
+    });
+
+    // Tiempo real vía Socket.IO
+    this.cambiosSub = this.api.cambios$.subscribe(() => {
       this.cargarPacientes();
       this.cargarAtendidosHoy();
     });
@@ -87,9 +100,8 @@ export class PanelMedicoComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    if (this.timerSubscription) {
-      this.timerSubscription.unsubscribe();
-    }
+    this.timerSubscription?.unsubscribe();
+    this.cambiosSub?.unsubscribe();
   }
 
   cargarPacientes() {

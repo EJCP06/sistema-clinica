@@ -24,7 +24,13 @@
                 ? 'Personal de Recepción'
                 : activeTab === 'administradores'
                   ? 'Panel de Administradores'
-                  : activeTab === 'especialidades'
+                  : activeTab === 'laboratorio'
+                    ? 'Personal de Laboratorio'
+                  : activeTab === 'imagenes'
+                    ? 'Personal de Imágenes'
+                    : activeTab === 'aps'
+                      ? 'Personal APS'
+                      : activeTab === 'especialidades'
                     ? 'Gestión de Especialidades'
                     : 'Gestión de Consultorios'
       "
@@ -39,7 +45,13 @@
                 ? 'Gestión de operadores de admisión'
                 : activeTab === 'administradores'
                   ? 'Control de acceso al sistema'
-                  : activeTab === 'especialidades'
+                  : activeTab === 'laboratorio'
+                    ? 'Gestión de técnicos de laboratorio'
+                    : activeTab === 'imagenes'
+                    ? 'Gestión de técnicos de imágenes'
+                    : activeTab === 'aps'
+                      ? 'Gestión de personal de atención primaria'
+                      : activeTab === 'especialidades'
                     ? 'Configuración de servicios clínicos'
                     : 'Gestión de consultorios and ubicaciones'
       "
@@ -49,11 +61,14 @@
     >
     </app-header>
 
-    <div class="flex-1 overflow-y-auto custom-scrollbar p-8">
+    <div class="flex-1 overflow-y-auto p-8" style="scrollbar-width: none; -ms-overflow-style: none;">
+      <style>
+        .flex-1::-webkit-scrollbar { display: none; }
+      </style>
       <app-admin-reports [hidden]="activeTab !== 'reports' && activeTab !== 'stats'"></app-admin-reports>
 
       <app-admin-personal
-        [hidden]="activeTab !== 'medicos' && activeTab !== 'recepcionistas' && activeTab !== 'administradores'"
+        [hidden]="activeTab !== 'medicos' && activeTab !== 'recepcionistas' && activeTab !== 'administradores' && activeTab !== 'laboratorio' && activeTab !== 'imagenes' && activeTab !== 'aps'"
         [activeTab]="activeTab"
       ></app-admin-personal>
 

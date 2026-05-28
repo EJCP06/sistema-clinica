@@ -37,11 +37,14 @@ import { debounceTime } from 'rxjs/operators';
 
 import { Sidebar } from '../../shared/components/sidebar/sidebar';
 import { Header } from '../../shared/components/header/header';
+import { PaginationComponent } from '../../shared/components/pagination/pagination';
+import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
+import { FillersPipe } from '../../shared/pipes/fillers.pipe';
 
 @Component({
   selector: 'app-recepcion',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule, Sidebar, Header],
+  imports: [CommonModule, FormsModule, LucideAngularModule, Sidebar, Header, PaginationComponent, PaginatePipe, FillersPipe],
   templateUrl: './recepcion.html',
 })
 export class RecepcionComponent implements OnInit, OnDestroy {
@@ -62,6 +65,9 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   readonly ClipboardList = ClipboardList;
   readonly Edit2 = Edit2;
   readonly Trash2 = Trash2;
+
+  pageSize: number = 7;
+  currentPage: number = 1;
 
   // Estados
   sidebarOpen: boolean = false;
@@ -299,7 +305,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   cargarUltimasAdmisiones() {
     this.api.get<any[]>('recepcion/ultimas-admisiones').subscribe({
       next: (data) => {
-        this.ultimasAdmisiones = data;
+        this.ultimasAdmisiones = (data || []).filter((a: any) => (a.nombre_estado || '').toUpperCase() !== 'ATENDIDO');
         this.appRef.tick();
       },
       error: (err: any) => console.error('Error cargando ultimas admisiones:', err),

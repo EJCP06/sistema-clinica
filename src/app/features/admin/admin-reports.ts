@@ -27,11 +27,14 @@ import {
   Layers,
 } from 'lucide-angular';
 import jsPDF from 'jspdf';
+import { PaginationComponent } from '../../shared/components/pagination/pagination';
+import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
+import { FillersPipe } from '../../shared/pipes/fillers.pipe';
 
 @Component({
   selector: 'app-admin-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule, PaginationComponent, PaginatePipe, FillersPipe],
   templateUrl: './admin-reports.html',
   styles: [],
 })
@@ -59,6 +62,9 @@ export class AdminReports implements OnInit, OnDestroy {
   private apiService = inject(ApiService);
   private destroyRef = inject(DestroyRef);
 
+  pageSize = 7;
+  currentPage = 1;
+
   turnos: ReporteDiarioDTO['turnos'] = [];
   totalHoy = 0;
   totalAtendidos = 0;
@@ -80,7 +86,7 @@ export class AdminReports implements OnInit, OnDestroy {
     this.apiService.getReporteDiario().subscribe({
       next: (rep: ReporteDiarioDTO) => {
         console.log('Reporte diario recibido:', rep);
-        this.turnos = rep.turnos ?? [];
+        this.turnos = (rep.turnos ?? []).filter(t => t.estado?.toUpperCase() !== 'ATENDIDO');
         this.totalHoy = rep.total ?? 0;
         this.totalAtendidos = rep.estadisticas?.atendidos ?? 0;
         this.totalAusentes = rep.estadisticas?.ausentes ?? 0;

@@ -18,11 +18,14 @@ import {
   Check,
   MapPin,
 } from 'lucide-angular';
+import { PaginationComponent } from '../../shared/components/pagination/pagination';
+import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
+import { FillersPipe } from '../../shared/pipes/fillers.pipe';
 
 @Component({
   selector: 'app-admin-especialidades',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule, PaginationComponent, PaginatePipe, FillersPipe],
   templateUrl: './admin-especialidades.html',
   styles: [],
 })
@@ -38,6 +41,9 @@ export class AdminEspecialidades implements OnInit {
   readonly CheckCircle2 = CheckCircle2;
   readonly Check = Check;
   readonly MapPin = MapPin;
+
+  pageSize = 7;
+  currentPage = 1;
 
   private apiService = inject(ApiService);
   private destroyRef = inject(DestroyRef);

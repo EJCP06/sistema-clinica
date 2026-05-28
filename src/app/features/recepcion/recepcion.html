@@ -133,7 +133,7 @@
               (focus)="onSearchFocus()"
               (blur)="onSearchBlur()"
               [placeholder]="isAseguradorasView ? 'Buscar aseguradora...' : 'Buscar paciente...'"
-              class="w-full pl-14 pr-10 py-3 text-sm focus:outline-none font-medium bg-transparent rounded-r-2xl text-slate-900 dark:text-white"
+              class="w-full pl-14 pr-10 py-4 text-sm focus:outline-none font-medium bg-transparent rounded-r-2xl text-slate-900 dark:text-white"
             />
 
             <!-- Resultados de búsqueda -->
@@ -145,13 +145,13 @@
                 <div
                   *ngFor="let p of pacientesEncontrados"
                   (mousedown)="seleccionarPaciente(p)"
-                  class="px-4 py-3 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
+                  class="px-4 py-4 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
                 >
                   <div class="flex flex-col">
                     <span class="font-bold text-slate-800 dark:text-white uppercase">{{ p.nombre }} {{ p.apellido }}</span>
                     <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">C.I: {{ p.cedula }}</span>
                   </div>
-                  <lucide-icon [name]="ChevronRight" class="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-colors"></lucide-icon>
+                  <lucide-icon [name]="ChevronRight" class="w-4 h-4 text-slate-300 transition-colors"></lucide-icon>
                 </div>
               </div>
             </div>
@@ -160,7 +160,7 @@
       </div>
 
       <!-- CONTENEDOR PRINCIPAL -->
-      <div class="max-w-5xl mx-auto space-y-10">
+      <div class="mx-auto space-y-10">
 
         <!-- MODAL: REGISTRO DE PACIENTE -->
         <div
@@ -353,7 +353,7 @@
                       </div>
                     </div>
                     <div
-                      class="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 px-6 py-3 rounded-2xl shadow-inner"
+                      class="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 px-6 py-4 rounded-2xl shadow-inner"
                     >
                       <label class="relative inline-flex items-center cursor-pointer">
                         <input
@@ -414,78 +414,81 @@
         <div
           class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden"
         >
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
+          <div class="min-h-[600px] flex flex-col justify-between">
+            <div class="overflow-x-auto">
+<table class="w-full text-left text-sm ">
               <thead
-                class="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800"
+                class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800"
               >
-                <tr class="text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
+                <tr class="h-[64px] text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
                   <ng-container *ngIf="!isAseguradorasView; else aseguradoraHeaders">
-                    <th class="px-8 py-6 text-center">Nombre</th>
-                    <th class="px-8 py-6 text-center">Apellido</th>
-                    <th class="px-8 py-6 text-center">Cédula</th>
-                    <th class="px-8 py-6 text-center">Teléfono</th>
-                    <th class="px-8 py-6 text-center">Responsable</th>
-                    <th class="px-8 py-6 text-center">Servicio</th>
-                    <th class="px-8 py-6 text-center">Mensaje</th>
-                    <th class="px-8 py-6 text-center">Hora</th>
-                    <th class="px-8 py-6 text-center">Acciones</th>
+                    <th class="px-8 py-4 text-center">Nombre</th>
+                    <th class="px-8 py-4 text-center">Apellido</th>
+                    <th class="px-8 py-4 text-center">Cédula</th>
+                    <th class="px-8 py-4 text-center">Teléfono</th>
+                    <th class="px-8 py-4 text-center">Responsable</th>
+                    <th class="px-8 py-4 text-center">Servicio</th>
+                    <th class="px-8 py-4 text-center">Mensaje</th>
+                    <th class="px-8 py-4 text-center">Hora</th>
+                    <th class="px-8 py-4 text-center">Acciones</th>
                   </ng-container>
                   <ng-template #aseguradoraHeaders>
-                    <th class="px-8 py-6 text-center">Nombre</th>
-                    <th class="px-8 py-6 text-center">Tipo</th>
-                    <th class="px-8 py-6 text-center">Acciones</th>
+                    <th class="px-8 py-4 text-center">Nombre</th>
+                    <th class="px-8 py-4 text-center">Tipo</th>
+                    <th class="px-8 py-4 text-center">Acciones</th>
                   </ng-template>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                <tr
-                  *ngFor="let a of admisionesFiltradas"
-                  class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group"
-                >
-                  <ng-container *ngIf="!isAseguradorasView; else aseguradoraRow">
-                    <td class="px-8 py-6 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.nombre }}</td>
-                    <td class="px-8 py-6 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.apellido }}</td>
-                    <td class="px-8 py-6 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tight text-center">{{ a.cedula }}</td>
-                    <td class="px-8 py-6 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.telefono }}</td>
-                    <td class="px-8 py-6 font-bold text-slate-800 dark:text-white uppercase text-center">
-                      {{ getResponsableLabel(a.modalidad_pago) }}
-                    </td>
-                    <td class="px-8 py-6 font-bold text-slate-800 dark:text-white uppercase text-center">
-                      {{ a.nombre_servicio !== 'SIN ASIGNAR' ? getServicioCategoria(a.nombre_servicio) : 'SIN ASIGNAR' }}
-                    </td>
-                    <td class="px-8 py-6 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.mensaje ? 'Sí' : 'No' }}</td>
-                    <td class="px-8 py-6 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.fecha_creacion | date: 'shortTime' }}</td>
-                    <td class="px-8 py-6 text-center">
-                      <div class="flex items-center justify-center gap-2">
-                        <button (click)="editarFila(a)" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all">
-                          <lucide-icon [name]="Edit2" class="w-4 h-4"></lucide-icon>
-                        </button>
-                        <button (click)="eliminarFila(a)" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all">
-                          <lucide-icon [name]="Trash2" class="w-4 h-4"></lucide-icon>
-                        </button>
-                      </div>
-                    </td>
-                  </ng-container>
-                  <ng-template #aseguradoraRow>
-                    <td class="px-8 py-6 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.aseguradora }}</td>
-                    <td class="px-8 py-6 font-bold text-slate-800 dark:text-white uppercase text-center">
-                      {{ a.tipo || 'Aseguradora' }}
-                    </td>
-                    <td class="px-8 py-6 text-center">
-                      <div class="flex items-center justify-center gap-2">
-                        <button (click)="editarFila(a)" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all">
-                          <lucide-icon [name]="Edit2" class="w-4 h-4"></lucide-icon>
-                        </button>
-                        <button (click)="eliminarFila(a)" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all">
-                          <lucide-icon [name]="Trash2" class="w-4 h-4"></lucide-icon>
-                        </button>
-                      </div>
-                    </td>
-                  </ng-template>
-                </tr>
+              <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
+                <ng-container *ngFor="let a of admisionesFiltradas | paginate: currentPage : pageSize">
+                  <tr class="h-[64px] hover:bg-slate-50 dark:hover:bg-slate-800">
+                    <ng-container *ngIf="!isAseguradorasView; else aseguradoraRow">
+                      <td class="px-8 py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.nombre }}</td>
+                      <td class="px-8 py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.apellido }}</td>
+                      <td class="px-8 py-4 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tight text-center">{{ a.cedula }}</td>
+                      <td class="px-8 py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.telefono }}</td>
+                      <td class="px-8 py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
+                        {{ getResponsableLabel(a.modalidad_pago) }}
+                      </td>
+                      <td class="px-8 py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
+                        {{ a.nombre_servicio !== 'SIN ASIGNAR' ? getServicioCategoria(a.nombre_servicio) : 'SIN ASIGNAR' }}
+                      </td>
+                      <td class="px-8 py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.mensaje ? 'Sí' : 'No' }}</td>
+                      <td class="px-8 py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.fecha_creacion | date: 'shortTime' }}</td>
+                      <td class="px-8 py-4 text-center">
+                        <div class="flex items-center justify-center gap-2">
+                          <button (click)="editarFila(a)" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all">
+                            <lucide-icon [name]="Edit2" class="w-4 h-4"></lucide-icon>
+                          </button>
+                          <button (click)="eliminarFila(a)" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all">
+                            <lucide-icon [name]="Trash2" class="w-4 h-4"></lucide-icon>
+                          </button>
+                        </div>
+                      </td>
+                    </ng-container>
+                    <ng-template #aseguradoraRow>
+                      <td class="px-8 py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.aseguradora }}</td>
+                      <td class="px-8 py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
+                        {{ a.tipo || 'Aseguradora' }}
+                      </td>
+                      <td class="px-8 py-4 text-center">
+                        <div class="flex items-center justify-center gap-2">
+                          <button (click)="editarFila(a)" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all">
+                            <lucide-icon [name]="Edit2" class="w-4 h-4"></lucide-icon>
+                          </button>
+                          <button (click)="eliminarFila(a)" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all">
+                            <lucide-icon [name]="Trash2" class="w-4 h-4"></lucide-icon>
+                          </button>
+                        </div>
+                      </td>
+                    </ng-template>
+                  </tr>
+                </ng-container>
+                <ng-container *ngFor="let _ of admisionesFiltradas | fillers: currentPage : pageSize">
+                  <tr><td [attr.colspan]="isAseguradorasView ? 3 : 9" class="h-[64px]"></td></tr>
+                </ng-container>
                 <tr *ngIf="admisionesFiltradas.length === 0">
-                  <td [attr.colspan]="isAseguradorasView ? 3 : 9" class="px-8 py-24 text-center align-middle">
+                  <td [attr.colspan]="isAseguradorasView ? 3 : 9" class="px-8 py-20 text-center align-middle">
                     <div class="flex flex-col items-center justify-center w-full">
                       <div class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 mx-auto">
                         <lucide-icon [name]="Search" class="w-8 h-8 text-slate-500 opacity-60"></lucide-icon>
@@ -498,6 +501,13 @@
                 </tr>
               </tbody>
             </table>
+</div>
+            <app-pagination
+              [currentPage]="currentPage"
+              [totalItems]="admisionesFiltradas.length"
+              [pageSize]="pageSize"
+              (pageChange)="currentPage = $event"
+            ></app-pagination>
           </div>
         </div>
       </div>

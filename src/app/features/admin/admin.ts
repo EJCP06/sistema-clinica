@@ -36,7 +36,10 @@ export class Admin implements OnInit {
     | 'especialidades'
     | 'medicos'
     | 'recepcionistas'
-    | 'administradores' = 'reports';
+    | 'administradores'
+    | 'laboratorio'
+    | 'imagenes'
+    | 'aps' = 'reports';
 
   configExpanded = true;
   sidebarOpen = false;

@@ -10,11 +10,14 @@ import { Subscription, interval } from 'rxjs';
 import { LucideAngularModule, Play, Pause, Coffee, Volume2, CheckCircle2, ArrowRightLeft, UserX, MonitorSpeaker, IdCard, X, Search, Calendar, Clock, Download, ChevronRight, ChevronDown } from 'lucide-angular';
 import { Header } from '../../shared/components/header/header';
 import { Sidebar } from '../../shared/components/sidebar/sidebar';
+import { PaginationComponent } from '../../shared/components/pagination/pagination';
+import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
+import { FillersPipe } from '../../shared/pipes/fillers.pipe';
 
 @Component({
   selector: 'app-atencion',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule, Header, Sidebar],
+  imports: [CommonModule, FormsModule, LucideAngularModule, Header, Sidebar, PaginationComponent, PaginatePipe, FillersPipe],
   templateUrl: './atencion.html',
   styles: []
 })
@@ -35,6 +38,10 @@ export class Atencion implements OnInit, OnDestroy {
   readonly Download = Download;
   readonly ChevronRight = ChevronRight;
   readonly ChevronDown = ChevronDown;
+
+  pageSize = 7;
+  currentHistorialPage = 1;
+  currentHistorialTabPage = 1;
 
   sidebarOpen: boolean = false;
   activeTab: string = 'atencion';
@@ -160,20 +167,21 @@ export class Atencion implements OnInit, OnDestroy {
     this.apiService.llamarSiguiente().subscribe({
       next: (res: LlamarSiguienteResponseDTO) => {
         this.cargando = false;
+        if (!res.turno) {
+          this.mensajeInfo = res.mensaje || 'No hay pacientes en espera de este servicio.';
+          setTimeout(() => { this.mensajeInfo = ''; }, 2000);
+          return;
+        }
         this.mensajeInfo = '';
-        this.turnoActual = {
-          ...res.turno
-        };
+        this.turnoActual = { ...res.turno };
         this.consultorioEstado = 'OCUPADO';
         this.atendiendoLocalmente = true;
         this.iniciarTemporizador();
       },
       error: (err: any) => {
         this.cargando = false;
-        this.mensajeInfo = err.error?.mensaje || 'No hay pacientes en espera de este servicio.';
-        setTimeout(() => {
-          this.mensajeInfo = '';
-          }, 2000);
+        this.mensajeInfo = err.error?.mensaje || 'Error al llamar paciente.';
+        setTimeout(() => { this.mensajeInfo = ''; }, 2000);
       }
     });
   }
