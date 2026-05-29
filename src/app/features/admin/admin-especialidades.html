@@ -6,7 +6,7 @@
     </button>
   </div>
 
-  <div class="flex justify-center mb-10 mt-14">
+      <div class="flex justify-center mb-6 md:mb-10 mt-6 md:mt-14">
     <div class="relative w-full max-w-2xl">
       <div class="flex items-center w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-1 shadow-sm group focus-within:ring-4 focus-within:ring-blue-500/5 focus-within:border-blue-500 transition-all">
         <div class="relative search-filter-container">
@@ -40,34 +40,34 @@
   </div>
 
   <div class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-    <div class="min-h-[600px] flex flex-col justify-between">
+    <div class="flex flex-col justify-between">
       <div class="overflow-x-auto">
 <table class="w-full text-left text-sm ">
         <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
-          <tr class="h-[64px] text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
-            <th class="px-8 py-4 text-center">Prefijo</th>
-            <th class="px-8 py-4 text-center">Nombre de Especialidad</th>
-            <th class="px-8 py-4 text-center">Piso</th>
-            <th class="px-8 py-4 text-center">Consultorio</th>
-            <th class="px-8 py-4 text-center">Sede</th>
-            <th class="px-8 py-4 text-center">Servicio</th>
-            <th class="px-8 py-4 text-center">Estado</th>
-            <th class="px-8 py-4 text-right">Acciones</th>
+          <tr class="h-[52px] md:h-[64px] text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
+            <th class="px-3 md:px-6 py-3 md:py-4 text-center">Prefijo</th>
+            <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombre de Especialidad</th>
+            <th class="px-3 md:px-6 py-3 md:py-4 text-center">Piso</th>
+            <th class="px-3 md:px-6 py-3 md:py-4 text-center">Consultorio</th>
+            <th class="px-3 md:px-6 py-3 md:py-4 text-center">Sede</th>
+            <th class="px-3 md:px-6 py-3 md:py-4 text-center">Servicio</th>
+            <th class="px-3 md:px-6 py-3 md:py-4 text-center">Estado</th>
+            <th class="px-3 md:px-6 py-3 md:py-4 text-right">Acciones</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
           <ng-container *ngFor="let e of especialidadesFiltradas | paginate: currentPage : pageSize; trackBy: trackById">
-            <tr class="h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
-              <td class="px-8 py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ e.prefijo }}</td>
-              <td class="px-8 py-4 font-bold text-slate-800 dark:text-white tracking-tight uppercase text-center">{{ e.nombre }}</td>
-              <td class="px-8 py-4 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tighter text-center">{{ e.piso || 'SIN ASIGNAR' }}</td>
-              <td class="px-8 py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ getConsultoriosEspLabel(e.consultorios_ids) }}</td>
-              <td class="px-8 py-4 text-slate-600 dark:text-slate-400 font-bold text-center">{{ getSedeLabel(e.id_sede) }}</td>
-              <td class="px-8 py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ e.nombre_servicio || 'SIN ASIGNAR' }}</td>
-              <td class="px-8 py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
+            <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
+              <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ e.prefijo }}</td>
+              <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white tracking-tight uppercase text-center">{{ e.nombre }}</td>
+              <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tighter text-center">{{ e.piso || 'SIN ASIGNAR' }}</td>
+              <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ getConsultoriosEspLabel(e.consultorios_ids) }}</td>
+              <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 dark:text-slate-400 font-bold text-center">{{ getSedeLabel(e.id_sede) }}</td>
+              <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ e.nombre_servicio || 'SIN ASIGNAR' }}</td>
+              <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
                 <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [ngClass]="e.activo ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'">{{ e.activo ? 'Activo' : 'Inactivo' }}</span>
               </td>
-              <td class="px-8 py-4 text-center border-b border-slate-100/30 dark:border-slate-800/10">
+              <td class="px-3 md:px-6 py-3 md:py-4 text-center border-b border-slate-100/30 dark:border-slate-800/10">
                 <div class="flex justify-center gap-2">
                   <button (click)="openModalEsp(e)" aria-label="Editar especialidad" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all"><lucide-icon [name]="Edit2" class="w-4 h-4"></lucide-icon></button>
                   <button (click)="eliminarEspecialidad(e.id_especialidad)" aria-label="Eliminar especialidad" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all"><lucide-icon [name]="Trash2" class="w-4 h-4"></lucide-icon></button>
@@ -75,8 +75,10 @@
               </td>
             </tr>
           </ng-container>
-          <ng-container *ngFor="let _ of especialidadesFiltradas | fillers: currentPage : pageSize">
-            <tr><td colspan="8" class="h-[64px]"></td></tr>
+          <ng-container *ngIf="especialidadesFiltradas.length > 0">
+            <ng-container *ngFor="let _ of especialidadesFiltradas | fillers: currentPage : pageSize">
+              <tr><td colspan="8" class="h-[52px] md:h-[64px]"></td></tr>
+            </ng-container>
           </ng-container>
           <tr *ngIf="especialidadesFiltradas.length === 0">
             <td colspan="8" class="px-8 py-20 text-center align-middle">
@@ -164,7 +166,7 @@
       </div>
     </div>
     <div class="p-4 md:p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 shrink-0">
-      <button type="button" [disabled]="isSaving" (click)="showModalEspecialidad = false" class="px-8 py-4 bg-slate-500 hover:bg-slate-600 text-white font-black text-[11px] uppercase tracking-[2px] rounded-[20px] transition-all disabled:opacity-50 shadow-lg shadow-slate-500/20 dark:shadow-slate-950/50">CANCELAR</button>
+      <button type="button" [disabled]="isSaving" (click)="showModalEspecialidad = false" class="px-5 md:px-8 py-3 md:py-4 bg-slate-500 hover:bg-slate-600 text-white font-black text-[11px] uppercase tracking-[2px] rounded-[20px] transition-all disabled:opacity-50 shadow-lg shadow-slate-500/20 dark:shadow-slate-950/50">CANCELAR</button>
       <button type="button" [disabled]="isSaving" (click)="guardarEsp()" class="px-10 py-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-[11px] uppercase tracking-[2px] rounded-[20px] shadow-lg shadow-blue-600/20 dark:shadow-blue-950/50 transition-all flex items-center gap-2 disabled:opacity-50">
         <span *ngIf="isSaving" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
         {{ isSaving ? (isEditing ? 'GUARDANDO...' : 'CREANDO...') : isEditing ? 'GUARDAR' : 'CREAR' }}

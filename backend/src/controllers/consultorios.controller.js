@@ -1,59 +1,101 @@
 const pool = require('../config/db');
 
 const obtenerMiEstado = async (req, res) => {
-  // Verificar que el usuario y su consultorio existan
-  if (!req.usuario || !req.usuario.consultorio_id) {
-    return res.status(400).json({ mensaje: 'Datos de usuario insuficientes' });
+  // Verificar que el usuario exista
+  if (!req.usuario) {
+    return res.status(401).json({ mensaje: 'No hay usuario autenticado' });
   }
   
   const consultorioId = req.usuario.consultorio_id;
-  if (!consultorioId) {
+  const servicioId = req.usuario.servicio_id;
+  const rol = req.usuario.rol;
+
+  // Si no tiene consultorio y no es de lab/imagenes, error
+  if (!consultorioId && rol !== 'laboratorio' && rol !== 'imagenes') {
     return res.status(400).json({ mensaje: 'No tiene consultorio asignado' });
   }
 
   try {
-    const result = await pool.query(`
-      SELECT 
-        c.estado_fisico as estado, 
-        c.id_servicio as servicio_id, 
-        c.nombre, 
-        s.nombre_servicio as servicio_nombre,
-        a.id_atencion as turno_id,
-        a.numero as turno_numero,
-        CASE 
-          WHEN e.nombre_estado = 'En Atención' THEN 'EN_ATENCION'
-          WHEN e.nombre_estado = 'Llamado' THEN 'LLAMADO'
-          ELSE UPPER(e.nombre_estado)
-        END as turno_estado,
-        p.nombre as nombre_paciente,
-        p.apellido as apellido_paciente,
-        p.cedula as documento_paciente,
-        a.hora_llegada as turno_hora_llegada
-      FROM "Consultorios" c
-      LEFT JOIN "Servicio" s ON c.id_servicio = s.id_servicio
-      LEFT JOIN "Atencion" a ON a.id_consultorio = c.id_consultorio AND a.id_estado_actual IN (4, 7)
-      LEFT JOIN "Estado" e ON a.id_estado_actual = e.id_estado
-      LEFT JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
-      WHERE c.id_consultorio = $1
-      ORDER BY a.id_atencion DESC
-      LIMIT 1
-    `, [consultorioId]);
+    let query = '';
+    let params = [];
+
+    if (consultorioId) {
+      query = `
+        SELECT 
+          c.estado_fisico as estado, 
+          c.id_servicio as servicio_id, 
+          c.nombre, 
+          s.nombre_servicio as servicio_nombre,
+          a.id_atencion as turno_id,
+          a.numero as turno_numero,
+          CASE 
+            WHEN e.nombre_estado = 'En Atención' THEN 'EN_ATENCION'
+            WHEN e.nombre_estado = 'Llamado' THEN 'LLAMADO'
+            ELSE UPPER(e.nombre_estado)
+          END as turno_estado,
+          p.nombre as nombre_paciente,
+          p.apellido as apellido_paciente,
+          p.cedula as documento_paciente,
+          a.hora_llegada as turno_hora_llegada
+        FROM "Consultorios" c
+        LEFT JOIN "Servicio" s ON c.id_servicio = s.id_servicio
+        LEFT JOIN "Atencion" a ON a.id_consultorio = c.id_consultorio AND a.id_estado_actual IN (4, 7)
+        LEFT JOIN "Estado" e ON a.id_estado_actual = e.id_estado
+        LEFT JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
+        WHERE c.id_consultorio = $1
+        ORDER BY a.id_atencion DESC
+        LIMIT 1
+      `;
+      params = [consultorioId];
+    } else {
+      // Caso especial para Lab/Imágenes sin consultorio fijo
+      query = `
+        SELECT 
+          'LIBRE' as estado, 
+          s.id_servicio as servicio_id, 
+          s.nombre_servicio as nombre, 
+          s.nombre_servicio as servicio_nombre,
+          a.id_atencion as turno_id,
+          a.numero as turno_numero,
+          CASE 
+            WHEN e.nombre_estado = 'En Atención' THEN 'EN_ATENCION'
+            WHEN e.nombre_estado = 'Llamado' THEN 'LLAMADO'
+            ELSE UPPER(e.nombre_estado)
+          END as turno_estado,
+          p.nombre as nombre_paciente,
+          p.apellido as apellido_paciente,
+          p.cedula as documento_paciente,
+          a.hora_llegada as turno_hora_llegada
+        FROM "Servicio" s
+        LEFT JOIN "Atencion" a ON a.id_servicio = s.id_servicio AND a.id_estado_actual IN (4, 7) AND a.id_consultorio IS NULL
+        LEFT JOIN "Estado" e ON a.id_estado_actual = e.id_estado
+        LEFT JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
+        WHERE s.id_servicio = $1
+        ORDER BY a.id_atencion DESC
+        LIMIT 1
+      `;
+      params = [servicioId];
+    }
+
+    const result = await pool.query(query, params);
     
     if (result.rows.length === 0) {
-      return res.status(404).json({ mensaje: 'Consultorio no encontrado' });
+      return res.status(404).json({ mensaje: 'Información no encontrada' });
     }
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error en obtenerMiEstado:', error);
-    res.status(500).json({ mensaje: 'Error al obtener estado del consultorio' });
+    res.status(500).json({ mensaje: 'Error al obtener estado' });
   }
 };
 
 const llamarSiguiente = async (req, res) => {
   console.log('[LLAMAR SIGUIENTE] Usuario:', req.usuario);
   const consultorioId = req.usuario.consultorio_id;
-  if (!consultorioId) {
-    console.log('[LLAMAR SIGUIENTE] Error: Usuario sin consultorio_id');
+  const servicioId = req.usuario.servicio_id;
+  const rol = req.usuario.rol;
+
+  if (!consultorioId && rol !== 'laboratorio' && rol !== 'imagenes') {
     return res.status(400).json({ mensaje: 'Usuario sin consultorio' });
   }
 
@@ -62,24 +104,27 @@ const llamarSiguiente = async (req, res) => {
   try {
     await client.query('BEGIN');
     
-    // 1. Obtener consultorio y BLOQUEARLO
-    const consultorioRes = await client.query('SELECT estado_fisico as estado, id_servicio as servicio_id, nombre FROM "Consultorios" WHERE id_consultorio = $1 FOR UPDATE', [consultorioId]);
-    if (consultorioRes.rows.length === 0) {
-      console.log('[LLAMAR SIGUIENTE] Error: Consultorio no encontrado:', consultorioId);
-      throw new Error('Consultorio no encontrado');
-    }
-    
-    const consultorio = consultorioRes.rows[0];
-    console.log('[LLAMAR SIGUIENTE] Consultorio encontrado:', consultorio);
-    if (consultorio.estado !== 'LIBRE') {
-      console.log('[LLAMAR SIGUIENTE] Error: Consultorio no está LIBRE, estado actual:', consultorio.estado);
-      await client.query('ROLLBACK');
-      return res.status(400).json({ mensaje: 'El consultorio debe estar LIBRE para llamar' });
+    let consultorio = null;
+    if (consultorioId) {
+      // 1. Obtener consultorio y BLOQUEARLO
+      const consultorioRes = await client.query('SELECT estado_fisico as estado, id_servicio as servicio_id, nombre FROM "Consultorios" WHERE id_consultorio = $1 FOR UPDATE', [consultorioId]);
+      if (consultorioRes.rows.length === 0) {
+        throw new Error('Consultorio no encontrado');
+      }
+      consultorio = consultorioRes.rows[0];
+      if (consultorio.estado !== 'LIBRE') {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ mensaje: 'El consultorio debe estar LIBRE para llamar' });
+      }
+    } else {
+      // Caso Lab/Imágenes: Simular consultorio con la info del servicio
+      const servicioRes = await client.query('SELECT nombre_servicio as nombre, id_servicio as servicio_id FROM "Servicio" WHERE id_servicio = $1', [servicioId]);
+      if (servicioRes.rows.length === 0) throw new Error('Servicio no encontrado');
+      consultorio = servicioRes.rows[0];
     }
 
     // Verificar que el usuario y su sede existan
     if (!req.usuario || !req.usuario.id_sede) {
-      console.log('[LLAMAR SIGUIENTE] Error: Datos de usuario insuficientes:', req.usuario);
       await client.query('ROLLBACK');
       return res.status(400).json({ mensaje: 'Datos de usuario insuficientes' });
     }
@@ -95,9 +140,6 @@ const llamarSiguiente = async (req, res) => {
     `;
     const paramsEspera = [consultorio.servicio_id, req.usuario.id_sede];
 
-    console.log('[DEBUG LLAMAR] Query:', queryEspera);
-    console.log('[DEBUG LLAMAR] Params:', paramsEspera);
-
     if (idEspecialidad) {
       queryEspera += ` AND a.id_especialidad = $3`;
       paramsEspera.push(idEspecialidad);
@@ -109,24 +151,9 @@ const llamarSiguiente = async (req, res) => {
       FOR UPDATE SKIP LOCKED
     `;
 
-    console.log('[DEBUG LLAMAR] Query:', queryEspera);
-    console.log('[DEBUG LLAMAR] Params:', paramsEspera);
-
     const turnoRes = await client.query(queryEspera, paramsEspera);
 
     if (turnoRes.rows.length === 0) {
-      // Log cuántos pacientes hay en Sala de Espera sin filtros
-      const totalEspera = await client.query('SELECT COUNT(*) as total FROM "Atencion" WHERE id_estado_actual = 3');
-      const totalServicio = await client.query('SELECT COUNT(*) as total FROM "Atencion" WHERE id_estado_actual = 3 AND id_servicio = $1', [consultorio.servicio_id]);
-      const totalSede = await client.query('SELECT COUNT(*) as total FROM "Atencion" WHERE id_estado_actual = 3 AND id_servicio = $1 AND id_sede = $2', [consultorio.servicio_id, req.usuario.id_sede]);
-      console.log('[DEBUG LLAMAR] Total en Sala de Espera:', totalEspera.rows[0].total);
-      console.log('[DEBUG LLAMAR] Total mismo servicio:', totalServicio.rows[0].total);
-      console.log('[DEBUG LLAMAR] Total mismo servicio+sede:', totalSede.rows[0].total);
-      if (idEspecialidad) {
-        const totalEsp = await client.query('SELECT COUNT(*) as total FROM "Atencion" WHERE id_estado_actual = 3 AND id_servicio = $1 AND id_sede = $2 AND id_especialidad = $3', [consultorio.servicio_id, req.usuario.id_sede, idEspecialidad]);
-        console.log('[DEBUG LLAMAR] Total mismo servicio+sede+especialidad:', totalEsp.rows[0].total);
-      }
-
       await client.query('ROLLBACK');
       return res.json({ 
         mensaje: 'No hay pacientes en espera de este servicio',
@@ -136,21 +163,23 @@ const llamarSiguiente = async (req, res) => {
 
     const turno = turnoRes.rows[0];
 
-    // 3. Actualizar Atencion (estado 3 = Llamado)
+    // 3. Actualizar Atencion (estado 7 = Llamado)
     await client.query(
       "UPDATE \"Atencion\" SET id_estado_actual = 7, id_consultorio = $1 WHERE id_atencion = $2",
-      [consultorioId, turno.id]
+      [consultorioId || null, turno.id]
     );
 
     await client.query(
-      "INSERT INTO \"Historial_Atencion\" (id_atencion, id_estado) VALUES ($1, 3)",
+      "INSERT INTO \"Historial_Atencion\" (id_atencion, id_estado) VALUES ($1, 7)",
       [turno.id]
     );
 
-    await client.query(
-      "UPDATE \"Consultorios\" SET estado_fisico = 'OCUPADO' WHERE id_consultorio = $1",
-      [consultorioId]
-    );
+    if (consultorioId) {
+      await client.query(
+        "UPDATE \"Consultorios\" SET estado_fisico = 'OCUPADO' WHERE id_consultorio = $1",
+        [consultorioId]
+      );
+    }
 
     await client.query('COMMIT');
 
@@ -191,22 +220,28 @@ const llamarSiguiente = async (req, res) => {
 
 const iniciarAtencion = async (req, res) => {
   const consultorioId = req.usuario.consultorio_id;
+  const servicioId = req.usuario.servicio_id;
   const client = await pool.connect();
-  console.log('[DEBUG INICIAR] Consultorio:', consultorioId);
+  
   try {
     await client.query('BEGIN');
-    // Buscar la atención en estado LLAMADO (3) para este consultorio
-    const atencionRes = await client.query(
-      'SELECT id_atencion FROM "Atencion" WHERE id_consultorio = $1 AND id_estado_actual = 7 LIMIT 1 FOR UPDATE',
-      [consultorioId]
-    );
-    console.log('[DEBUG INICIAR] Atencion encontrada:', atencionRes.rows.length);
+    
+    let query = '';
+    let params = [];
+    
+    if (consultorioId) {
+      query = 'SELECT id_atencion FROM "Atencion" WHERE id_consultorio = $1 AND id_estado_actual = 7 LIMIT 1 FOR UPDATE';
+      params = [consultorioId];
+    } else {
+      query = 'SELECT id_atencion FROM "Atencion" WHERE id_servicio = $1 AND id_consultorio IS NULL AND id_estado_actual = 7 LIMIT 1 FOR UPDATE';
+      params = [servicioId];
+    }
+
+    const atencionRes = await client.query(query, params);
+    
     if (atencionRes.rows.length === 0) {
       await client.query('ROLLBACK');
-      return res.status(404).json({ 
-        mensaje: 'No hay paciente llamado esperando para iniciar atención',
-        debug: { consultorio_id: consultorioId }
-      });
+      return res.status(404).json({ mensaje: 'No hay paciente llamado esperando para iniciar atención' });
     }
     
     const atencionId = atencionRes.rows[0].id_atencion;
@@ -237,40 +272,46 @@ const iniciarAtencion = async (req, res) => {
 
 const finalizarAtencion = async (req, res) => {
   const consultorioId = req.usuario.consultorio_id;
-  console.log('[DEBUG FINALIZAR] Consultorio:', consultorioId);
+  const servicioId = req.usuario.servicio_id;
   const client = await pool.connect();
+  
   try {
     await client.query('BEGIN');
     
-    // Finalizar Atencion (estado 5 = Atendido)
-    const turnoRes = await client.query(
-      "UPDATE \"Atencion\" SET id_estado_actual = 5, hora_salida = NOW() WHERE id_consultorio = $1 AND id_estado_actual = 4 RETURNING id_atencion",
-      [consultorioId]
-    );
+    let query = '';
+    let params = [];
     
-    console.log('[DEBUG FINALIZAR] Resultado Update:', turnoRes.rows.length);
+    if (consultorioId) {
+      query = 'UPDATE "Atencion" SET id_estado_actual = 5, hora_salida = NOW() WHERE id_consultorio = $1 AND id_estado_actual = 4 RETURNING id_atencion';
+      params = [consultorioId];
+    } else {
+      query = 'UPDATE "Atencion" SET id_estado_actual = 5, hora_salida = NOW() WHERE id_servicio = $1 AND id_consultorio IS NULL AND id_estado_actual = 4 RETURNING id_atencion';
+      params = [servicioId];
+    }
+
+    const turnoRes = await client.query(query, params);
+    
     if (turnoRes.rows.length === 0) {
       await client.query('ROLLBACK');
-      return res.status(200).json({ 
-        mensaje: 'No hay pacientes en espera de este servicio',
-        turno: null
-      });
+      return res.status(200).json({ mensaje: 'No hay pacientes en espera de este servicio', turno: null });
     }
+
+    const atencionId = turnoRes.rows[0].id_atencion;
 
     await client.query(
       "INSERT INTO \"Historial_Atencion\" (id_atencion, id_estado) VALUES ($1, 5)",
-      [turnoRes.rows[0].id_atencion]
+      [atencionId]
     );
 
-    // Liberar consultorio
-    await client.query("UPDATE \"Consultorios\" SET estado_fisico = 'LIBRE' WHERE id_consultorio = $1", [consultorioId]);
+    if (consultorioId) {
+      await client.query("UPDATE \"Consultorios\" SET estado_fisico = 'LIBRE' WHERE id_consultorio = $1", [consultorioId]);
+    }
 
     await client.query('COMMIT');
 
-    // Emitir evento
-    if (req.io) req.io.emit('estado-actualizado', { id_atencion: turnoRes.rows[0].id_atencion });
+    if (req.io) req.io.emit('estado-actualizado', { id_atencion: atencionId });
 
-    res.json({ mensaje: 'Atención finalizada y consultorio liberado' });
+    res.json({ mensaje: 'Atención finalizada' });
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Error en finalizarAtencion:', error);

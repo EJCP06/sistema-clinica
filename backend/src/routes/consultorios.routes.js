@@ -10,10 +10,10 @@ const adminController = require('../controllers/admin.controller');
 router.use(authMiddleware);
 
 // --- Rutas médico (requieren rol medico o admin) ---
-router.get('/mi-estado', roleMiddleware('medico', 'admin'), consultoriosController.obtenerMiEstado);
-router.post('/llamar-siguiente', roleMiddleware('medico', 'admin'), consultoriosController.llamarSiguiente);
-router.post('/iniciar-atencion', roleMiddleware('medico', 'admin'), consultoriosController.iniciarAtencion);
-router.post('/finalizar-atencion', roleMiddleware('medico', 'admin'), consultoriosController.finalizarAtencion);
+router.get('/mi-estado', roleMiddleware('medico', 'admin', 'laboratorio', 'imagenes'), consultoriosController.obtenerMiEstado);
+router.post('/llamar-siguiente', roleMiddleware('medico', 'admin', 'laboratorio', 'imagenes'), consultoriosController.llamarSiguiente);
+router.post('/iniciar-atencion', roleMiddleware('medico', 'admin', 'laboratorio', 'imagenes'), consultoriosController.iniciarAtencion);
+router.post('/finalizar-atencion', roleMiddleware('medico', 'admin', 'laboratorio', 'imagenes'), consultoriosController.finalizarAtencion);
 
 // --- Rutas CRUD admin (requieren rol admin) ---
 router.get('/', roleMiddleware('admin', 'medico', 'recepcionista'), adminController.getConsultorios);

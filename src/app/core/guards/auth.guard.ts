@@ -27,14 +27,14 @@ export const roleGuard = (roles: Rol[]): CanActivateFn => {
     if (!auth.tieneRol(roles)) {
       // Redirigir al módulo correcto según su rol
       const u = auth.usuarioActual!;
-      const rutas: Record<Rol, string> = {
-        admin: '/admin',
-        recepcionista: '/recepcion',
-        medico: '/atencion',
-        aps: '/aps',
-        laboratorio: '/laboratorio',
-        imagenes: '/imagenes',
-      };
+     const rutas: Record<Rol, string> = {
+         admin: '/admin',
+         recepcionista: '/recepcion',
+         medico: '/atencion',
+         aps: '/aps',
+         laboratorio: '/atencion-laboratorio',
+         imagenes: '/atencion-imagenes',
+       };
       router.navigate([rutas[u.rol]]);
       return false;
     }

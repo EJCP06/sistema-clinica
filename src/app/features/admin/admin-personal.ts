@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '@core/services/api.service';
+import { SwalService } from '../../core/services/swal.service';
 import { ServicioDTO, EspecialidadDTO, ConsultorioDTO, PersonalDTO, SedeDTO } from '@core/models/dto.models';
 import {
   LucideAngularModule,
@@ -82,8 +83,9 @@ export class AdminPersonal implements OnInit {
 
   private apiService = inject(ApiService);
   private destroyRef = inject(DestroyRef);
+  private swal = inject(SwalService);
 
-  pageSize = 7;
+  pageSize = 6;
   currentPageMedicos = 1;
   currentPageRecepcionistas = 1;
   currentPageAdmin = 1;
@@ -275,19 +277,28 @@ export class AdminPersonal implements OnInit {
         this.showModalPersonal = false;
         this.isSaving = false;
         this.cargarPersonal();
+        this.swal.success('Personal guardado correctamente');
       },
       error: (err) => {
         this.isSaving = false;
         console.error('Error al guardar:', err);
-        alert(err.error?.mensaje || 'Error al guardar personal');
+        this.swal.error(err.error?.mensaje || 'Error al guardar personal');
       },
     });
   }
 
-  eliminarPersonal(id: number) {
-    if (confirm('¿Eliminar este usuario del personal?')) {
-      this.apiService.eliminarPersonal(id).subscribe(() => this.cargarPersonal());
-    }
+  async eliminarPersonal(id: number) {
+    const result = await this.swal.confirmDelete('¿Eliminar este usuario del personal?');
+    if (!result.isConfirmed) return;
+    this.apiService.eliminarPersonal(id).subscribe({
+      next: () => {
+        this.cargarPersonal();
+        this.swal.success('Personal eliminado correctamente');
+      },
+      error: () => {
+        this.swal.error('Error al eliminar personal');
+      },
+    });
   }
 
   // --- Filtered Getters ---

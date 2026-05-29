@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '@core/services/api.service';
+import { SwalService } from '../../core/services/swal.service';
 import { ConsultorioDTO, EspecialidadDTO, SedeDTO } from '@core/models/dto.models';
 import {
   LucideAngularModule,
@@ -42,11 +43,12 @@ export class AdminEspecialidades implements OnInit {
   readonly Check = Check;
   readonly MapPin = MapPin;
 
-  pageSize = 7;
+  pageSize = 6;
   currentPage = 1;
 
   private apiService = inject(ApiService);
   private destroyRef = inject(DestroyRef);
+  private swal = inject(SwalService);
 
   consultorios: ConsultorioDTO[] = [];
   especialidades: EspecialidadDTO[] = [];
@@ -173,20 +175,28 @@ export class AdminEspecialidades implements OnInit {
         this.isSaving = false;
         this.formEsp = { nombre: '', codigo: '', prefijo: '', piso: '', consultorios_ids: [], descripcion: '', activo: true, id_sede: '', id_servicio: 1 };
         this.cargarEspecialidades();
+        this.swal.success('Especialidad guardada correctamente');
       },
       error: (err) => {
-        console.error('Error al guardar especialidad:', err);
-        this.showModalEspecialidad = false;
         this.isSaving = false;
-        this.cargarEspecialidades();
+        console.error('Error al guardar especialidad:', err);
+        this.swal.error(err.error?.mensaje || 'Error al guardar especialidad');
       },
     });
   }
 
-  eliminarEspecialidad(id: number) {
-    if (confirm('¿Eliminar esta especialidad?')) {
-      this.apiService.eliminarEspecialidad(id).subscribe(() => this.cargarEspecialidades());
-    }
+  async eliminarEspecialidad(id: number) {
+    const result = await this.swal.confirmDelete('¿Eliminar esta especialidad?');
+    if (!result.isConfirmed) return;
+    this.apiService.eliminarEspecialidad(id).subscribe({
+      next: () => {
+        this.cargarEspecialidades();
+        this.swal.success('Especialidad eliminada correctamente');
+      },
+      error: () => {
+        this.swal.error('Error al eliminar especialidad');
+      },
+    });
   }
 
   isConsultorioEspSelected(id: number): boolean {

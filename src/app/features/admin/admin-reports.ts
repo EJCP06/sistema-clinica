@@ -62,7 +62,7 @@ export class AdminReports implements OnInit, OnDestroy {
   private apiService = inject(ApiService);
   private destroyRef = inject(DestroyRef);
 
-  pageSize = 7;
+  pageSize = 6;
   currentPage = 1;
 
   turnos: ReporteDiarioDTO['turnos'] = [];

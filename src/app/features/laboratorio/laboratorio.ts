@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronRight, ChevronDown } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
+import { SwalService } from '../../core/services/swal.service';
 import { AdmisionDTO } from '@core/models/dto.models';
 
 import { Sidebar } from '../../shared/components/sidebar/sidebar';
@@ -25,7 +26,7 @@ export class LaboratorioComponent implements OnInit, OnDestroy {
   readonly ChevronRight = ChevronRight;
   readonly ChevronDown = ChevronDown;
 
-  pageSize = 7;
+  pageSize = 6;
   currentPage = 1;
 
   sidebarOpen = false;
@@ -56,6 +57,7 @@ export class LaboratorioComponent implements OnInit, OnDestroy {
 
   private el = inject(ElementRef);
   private destroyRef = inject(DestroyRef);
+  private swal = inject(SwalService);
 
   constructor(private api: ApiService) {}
 
@@ -115,8 +117,7 @@ export class LaboratorioComponent implements OnInit, OnDestroy {
           const esSeguro = modalidadPagoLower === 'seguro';
           const esParticular = modalidadPagoLower === 'particular';
 
-          if (esLaboratorio || esImagenes) return esSeguro;
-          if (esConsulta) return esSeguro || esParticular;
+          if (esLaboratorio) return esParticular || esSeguro;
           return false;
         });
       },
@@ -125,21 +126,29 @@ export class LaboratorioComponent implements OnInit, OnDestroy {
   }
 
   onSearchChange(value: string | undefined) {
+    this.cedulaBusqueda = value || '';
+    this.currentPage = 1;
   }
 
-  enviarAPresupuesto(id_atencion: number) {
-    if (!confirm('¿Deseas enviar este paciente a Presupuesto/Caja?')) return;
+  onSearch() {
+    this.currentPage = 1;
+  }
+
+  async enviarAPresupuesto(id_atencion: number) {
+    const result = await this.swal.confirm('¿Deseas enviar este paciente a Presupuesto/Caja?');
+    if (!result.isConfirmed) return;
     this.api.actualizarEstadoAtencion(id_atencion, 2).subscribe({
       next: () => this.cargarUltimasAdmisiones(),
-      error: (err) => alert(err.error?.mensaje || 'Error al cambiar estado')
+      error: (err) => this.swal.error(err.error?.mensaje || 'Error al cambiar estado')
     });
   }
 
-  enviarASalaEspera(id_atencion: number) {
-    if (!confirm('¿Deseas enviar este paciente a la Sala de Espera (Ya pagó)?')) return;
+  async enviarASalaEspera(id_atencion: number) {
+    const result = await this.swal.confirm('¿Deseas enviar este paciente a la Sala de Espera (Ya pagó)?');
+    if (!result.isConfirmed) return;
     this.api.actualizarEstadoAtencion(id_atencion, 3).subscribe({
       next: () => this.cargarUltimasAdmisiones(),
-      error: (err) => alert(err.error?.mensaje || 'Error al cambiar estado')
+      error: (err) => this.swal.error(err.error?.mensaje || 'Error al cambiar estado')
     });
   }
 
