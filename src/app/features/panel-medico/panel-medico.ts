@@ -30,7 +30,7 @@ export class PanelMedicoComponent implements OnInit, OnDestroy {
   readonly UserCheck = UserCheck;
   readonly Activity = Activity;
 
-  pageSize = 7;
+  pageSize = 6;
   currentPage = 1;
 
   // Estados

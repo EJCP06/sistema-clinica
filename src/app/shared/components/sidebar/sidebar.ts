@@ -103,9 +103,11 @@ export class Sidebar {
     this.themeService.toggleTheme();
   }
 
-  navigate(route: string, tab?: string) {
-    if (route === 'admin') {
-      this.router.navigate(['/admin'], { queryParams: { tab: tab } });
+  navigate(route: string, queryParams?: any) {
+    if (route === 'admin' && typeof queryParams === 'string') {
+      this.router.navigate(['/admin'], { queryParams: { tab: queryParams } });
+    } else if (queryParams) {
+      this.router.navigate([`/${route}`], { queryParams: queryParams });
     } else {
       this.router.navigate([`/${route}`]);
     }
@@ -116,9 +118,9 @@ export class Sidebar {
   isActive(route: string, tab?: string): boolean {
     const currentRoute = this.router.url.split('?')[0];
     if (tab) {
-      return currentRoute.includes(route) && this.router.url.includes(`tab=${tab}`);
+      return currentRoute === `/${route}` && this.router.url.includes(`tab=${tab}`);
     }
-    return currentRoute.includes(route);
+    return currentRoute === `/${route}`;
   }
 
   cambiarTab(tab: string) {

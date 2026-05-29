@@ -112,6 +112,7 @@ const marcarAusente = async (req, res) => {
     await client.query('INSERT INTO "Historial_Atencion" (id_atencion, id_estado) VALUES ($1, 6)', [id]);
     
     await client.query('COMMIT');
+    if (req.io) req.io.emit('estado-actualizado', { id_atencion: Number(id) });
     res.json({ mensaje: 'Turno marcado como ausente' });
   } catch (error) {
     await client.query('ROLLBACK');

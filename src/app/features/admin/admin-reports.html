@@ -39,7 +39,7 @@
   </div>
 
   <div class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-    <div class="px-8 py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between">
+    <div class="px-5 md:px-8 py-4 md:py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between">
       <h3 class="font-bold text-slate-900 dark:text-white">Actividad Reciente</h3>
       <div class="flex gap-2">
         <button (click)="exportarPDF()" class="flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-600 border border-rose-100 rounded-xl hover:bg-rose-100 transition-all">
@@ -49,29 +49,29 @@
 
       </div>
     </div>
-    <div class="min-h-[600px] flex flex-col justify-between">
+    <div class="flex flex-col justify-between">
       <div class="overflow-x-auto" style="scrollbar-width: none; -ms-overflow-style: none;">
         <style>
           .overflow-x-auto::-webkit-scrollbar { display: none; }
         </style>
 <table class="w-full text-left text-sm ">
         <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
-          <tr class="h-[64px] text-slate-500 dark:text-slate-400 font-black text-[10px] uppercase tracking-[2px]">
-            <th class="px-8 py-4 text-center">Turno</th>
-            <th class="px-8 py-4 text-center">Paciente</th>
-            <th class="px-8 py-4 text-center">Cédula</th>
-            <th class="px-8 py-4 text-center">Estado</th>
-            <th class="px-8 py-4 text-center">Servicio</th>
-            <th class="px-8 py-4 text-center">Llegada</th>
+          <tr class="h-[52px] md:h-[64px] text-slate-500 dark:text-slate-400 font-black text-[10px] uppercase tracking-[2px]">
+            <th class="px-3 md:px-6 py-3 md:py-4 text-center">Turno</th>
+            <th class="px-3 md:px-6 py-3 md:py-4 text-center">Paciente</th>
+            <th class="px-3 md:px-6 py-3 md:py-4 text-center">Cédula</th>
+            <th class="px-3 md:px-6 py-3 md:py-4 text-center">Estado</th>
+            <th class="px-3 md:px-6 py-3 md:py-4 text-center">Servicio</th>
+            <th class="px-3 md:px-6 py-3 md:py-4 text-center">Llegada</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
           <ng-container *ngFor="let t of turnos | paginate: currentPage : pageSize; trackBy: trackById">
-            <tr class="h-[64px] hover:bg-slate-50 dark:hover:bg-slate-800">
-              <td class="px-8 py-4 text-slate-600 font-bold tracking-tight text-center">{{ t.numero || t.id }}</td>
-              <td class="px-8 py-4 font-bold text-slate-800 uppercase text-center">{{ t.paciente.nombre }} {{ t.paciente.apellido || '' }}</td>
-              <td class="px-8 py-4 text-slate-600 font-bold tracking-tight text-center">{{ t.paciente.documento }}</td>
-              <td class="px-8 py-4 text-center">
+            <tr class="h-[52px] md:h-[64px] hover:bg-slate-50 dark:hover:bg-slate-800">
+              <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ t.numero || t.id }}</td>
+              <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ t.paciente.nombre }} {{ t.paciente.apellido || '' }}</td>
+              <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ t.paciente.documento }}</td>
+              <td class="px-3 md:px-6 py-3 md:py-4 text-center">
                 <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [ngClass]="{
                   'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20': t.estado === 'Registrado',
                   'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20': t.estado === 'En Presupuesto / Caja',
@@ -82,12 +82,14 @@
                   'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20': t.estado === 'Ausente'
                 }">{{ t.estado }}</span>
               </td>
-              <td class="px-8 py-4 text-slate-600 font-bold uppercase text-center">{{ t.servicio_nombre }}</td>
-              <td class="px-8 py-4 text-slate-600 dark:text-slate-400 font-bold text-center">{{ t.hora_llegada | date: 'shortTime' }}</td>
+              <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold uppercase text-center">{{ t.servicio_nombre }}</td>
+              <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 dark:text-slate-400 font-bold text-center">{{ t.hora_llegada | date: 'shortTime' }}</td>
             </tr>
           </ng-container>
-          <ng-container *ngFor="let _ of turnos | fillers: currentPage : pageSize">
-            <tr><td colspan="6" class="h-[64px]"></td></tr>
+          <ng-container *ngIf="turnos.length > 0">
+            <ng-container *ngFor="let _ of turnos | fillers: currentPage : pageSize">
+              <tr><td colspan="6" class="h-[52px] md:h-[64px]"></td></tr>
+            </ng-container>
           </ng-container>
           <tr *ngIf="turnos.length === 0">
             <td colspan="6" class="px-8 py-20 text-center align-middle">

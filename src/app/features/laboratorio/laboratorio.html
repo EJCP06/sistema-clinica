@@ -17,7 +17,7 @@
     <div class="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8">
 
       <!-- BUSCADOR CON FILTROS -->
-      <div class="flex justify-center mb-10 mt-14">
+      <div class="flex justify-center mb-6 md:mb-10 mt-6 md:mt-14">
         <div class="relative w-full max-w-2xl">
           <div
             class="flex items-center w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-1 shadow-sm group focus-within:ring-4 focus-within:ring-blue-500/5 focus-within:border-blue-500 transition-all"
@@ -121,31 +121,31 @@
         <div
           class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden"
         >
-          <div class="min-h-[600px] flex flex-col justify-between">
+          <div class="flex flex-col justify-between">
             <div class="overflow-x-auto">
 <table class="w-full text-left text-sm ">
               <thead
                 class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800"
               >
-                <tr class="h-[64px] text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
-                  <th class="px-8 py-4 text-center">Nombre</th>
-                  <th class="px-8 py-4 text-center">Apellido</th>
-                  <th class="px-8 py-4 text-center">Cédula</th>
-                  <th class="px-8 py-4 text-center">Responsable</th>
-                  <th class="px-8 py-4 text-center">Estado Actual</th>
-                  <th class="px-8 py-4 text-center">Servicio</th>
-                  <th class="px-8 py-4 text-center">Hora</th>
-                  <th class="px-8 py-4 text-center">Acciones</th>
+                <tr class="h-[52px] md:h-[64px] text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
+                  <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombre</th>
+                  <th class="px-3 md:px-6 py-3 md:py-4 text-center">Apellido</th>
+                  <th class="px-3 md:px-6 py-3 md:py-4 text-center">Cédula</th>
+                  <th class="px-3 md:px-6 py-3 md:py-4 text-center">Responsable</th>
+                  <th class="px-3 md:px-6 py-3 md:py-4 text-center">Estado Actual</th>
+                  <th class="px-3 md:px-6 py-3 md:py-4 text-center">Servicio</th>
+                  <th class="px-3 md:px-6 py-3 md:py-4 text-center">Hora</th>
+                  <th class="px-3 md:px-6 py-3 md:py-4 text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
                 <ng-container *ngFor="let a of admisionesFiltradas | paginate: currentPage : pageSize; trackBy: trackById">
-                  <tr class="h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
-                    <td class="px-8 py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.nombre }}</td>
-                    <td class="px-8 py-4 font-bold text-slate-700 dark:text-slate-300 uppercase text-center">{{ a.apellido }}</td>
-                    <td class="px-8 py-4 text-slate-600 font-bold tracking-tight text-center">{{ a.cedula }}</td>
-                    <td class="px-8 py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ getResponsableLabel(a.modalidad_pago) }}</td>
-                    <td class="px-8 py-4 text-center">
+                  <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
+                    <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.nombre }}</td>
+                    <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-700 dark:text-slate-300 uppercase text-center">{{ a.apellido }}</td>
+                    <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ a.cedula }}</td>
+                    <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ getResponsableLabel(a.modalidad_pago) }}</td>
+                    <td class="px-3 md:px-6 py-3 md:py-4 text-center">
                       <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border"
                         [ngClass]="{
                           'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20': a.id_estado_actual === 1,
@@ -159,9 +159,9 @@
                         {{ a.nombre_estado }}
                       </span>
                     </td>
-                    <td class="px-8 py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ getServicioCategoria(a.nombre_servicio) }}</td>
-                    <td class="px-8 py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.fecha_creacion | date: 'shortTime' }}</td>
-                    <td class="px-8 py-4 text-center border-b border-slate-100/30 dark:border-slate-800/10">
+                    <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ getServicioCategoria(a.nombre_servicio) }}</td>
+                    <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.fecha_creacion | date: 'shortTime' }}</td>
+                    <td class="px-3 md:px-6 py-3 md:py-4 text-center border-b border-slate-100/30 dark:border-slate-800/10">
                       <div class="flex items-center justify-center gap-2">
                         <button *ngIf="a.id_estado_actual === 1" (click)="enviarAPresupuesto(a.id_atencion)" aria-label="Enviar a presupuesto" title="Enviar a Presupuesto" class="p-2 text-amber-500 hover:bg-amber-50 rounded-xl transition-all">
                           <lucide-icon [name]="FileText" class="w-4 h-4"></lucide-icon>
@@ -176,8 +176,10 @@
                     </td>
                   </tr>
                 </ng-container>
-                <ng-container *ngFor="let _ of admisionesFiltradas | fillers: currentPage : pageSize">
-                  <tr><td colspan="8" class="h-[64px]"></td></tr>
+                <ng-container *ngIf="admisionesFiltradas.length > 0">
+                  <ng-container *ngFor="let _ of admisionesFiltradas | fillers: currentPage : pageSize">
+                    <tr><td colspan="8" class="h-[52px] md:h-[64px]"></td></tr>
+                  </ng-container>
                 </ng-container>
                 <tr *ngIf="admisionesFiltradas.length === 0">
                   <td colspan="8" class="px-8 py-20 text-center align-middle">

@@ -29,20 +29,6 @@ export const routes: Routes = [
     canActivate: [authGuard, roleGuard(['aps', 'admin'])]
   },
 
-  // Módulo de Laboratorio
-  {
-    path: 'laboratorio',
-    loadComponent: () => import('./features/laboratorio/laboratorio').then(m => m.LaboratorioComponent),
-    canActivate: [authGuard, roleGuard(['laboratorio', 'admin'])]
-  },
-
-  // Módulo de Imágenes
-  {
-    path: 'imagenes',
-    loadComponent: () => import('./features/imagenes/imagenes').then(m => m.ImagenesComponent),
-    canActivate: [authGuard, roleGuard(['imagenes', 'admin'])]
-  },
-
   // Pantalla de Aseguradoras (APS y Admin)
   {
     path: 'aseguradoras',
@@ -55,11 +41,26 @@ export const routes: Routes = [
     }
   },
 
-  // Panel Médico de Atención (Solo Médico)
+   // Panel Médico de Atención (Solo Médico)
+   {
+     path: 'atencion',
+     loadComponent: () => import('./features/atencion/atencion').then(m => m.Atencion),
+     canActivate: [authGuard, roleGuard(['medico'])],
+     data: { tipo: 'medico' }
+   },
+
+  // Panel de Atención Laboratorio (Solo Laboratorio)
   {
-    path: 'atencion',
-    loadComponent: () => import('./features/atencion/atencion').then(m => m.Atencion),
-    canActivate: [authGuard, roleGuard(['medico'])]
+    path: 'atencion-laboratorio',
+    loadComponent: () => import('./features/laboratorio/laboratorio').then(m => m.LaboratorioComponent),
+    canActivate: [authGuard, roleGuard(['laboratorio', 'admin'])]
+  },
+
+  // Panel de Atención Imágenes (Solo Imágenes)
+  {
+    path: 'atencion-imagenes',
+    loadComponent: () => import('./features/imagenes/imagenes').then(m => m.ImagenesComponent),
+    canActivate: [authGuard, roleGuard(['imagenes', 'admin'])]
   },
 
   // Pantalla Pública del Turnero (Acceso público para TVs)

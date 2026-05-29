@@ -2,6 +2,7 @@ import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
+import Swal from 'sweetalert2';
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
@@ -33,7 +34,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       }
 
       console.error(`[HTTP ${error.status}]`, mensaje, error);
-      alert(mensaje);
+      Swal.fire({ icon: 'error', title: 'Error', text: mensaje, confirmButtonColor: '#2563eb' });
 
       return throwError(() => error);
     }),

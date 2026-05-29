@@ -99,21 +99,39 @@
         </button>
 
         <button 
-          *ngIf="['admin', 'laboratorio'].includes(rol)"
-          (click)="navigate('laboratorio')"
+          *ngIf="rol === 'admin' || (rol === 'laboratorio' && !usuario?.consultorio_id)"
+          (click)="navigate('atencion-laboratorio')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
           <lucide-icon [name]="FlaskConical" class="w-5 h-5 text-slate-400 dark:text-slate-400"></lucide-icon>
-          <span class="font-bold text-[13px] uppercase tracking-wider">Laboratorio</span>
+          <span class="font-bold text-[13px] uppercase tracking-wider">Atención Laboratorio</span>
         </button>
 
         <button 
-          *ngIf="['admin', 'imagenes'].includes(rol)"
-          (click)="navigate('imagenes')"
+          *ngIf="rol === 'laboratorio' && usuario?.consultorio_id"
+          (click)="navigate('atencion', { tipo: 'laboratorio' })"
+          class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
+        >
+          <lucide-icon [name]="FlaskConical" class="w-5 h-5 text-slate-400 dark:text-slate-400"></lucide-icon>
+          <span class="font-bold text-[13px] uppercase tracking-wider">Llamados Laboratorio</span>
+        </button>
+
+        <button 
+          *ngIf="rol === 'admin' || (rol === 'imagenes' && !usuario?.consultorio_id)"
+          (click)="navigate('atencion-imagenes')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
           <lucide-icon [name]="Image" class="w-5 h-5 text-slate-400 dark:text-slate-400"></lucide-icon>
-          <span class="font-bold text-[13px] uppercase tracking-wider">Imágenes</span>
+          <span class="font-bold text-[13px] uppercase tracking-wider">Atención Imágenes</span>
+        </button>
+
+        <button 
+          *ngIf="rol === 'imagenes' && usuario?.consultorio_id"
+          (click)="navigate('atencion', { tipo: 'imagenes' })"
+          class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
+        >
+          <lucide-icon [name]="Image" class="w-5 h-5 text-slate-400 dark:text-slate-400"></lucide-icon>
+          <span class="font-bold text-[13px] uppercase tracking-wider">Llamados Imágenes</span>
         </button>
 
         <button 
@@ -133,6 +151,7 @@
           <lucide-icon [name]="Stethoscope" class="w-5 h-5 text-slate-400 dark:text-slate-400"></lucide-icon>
           <span class="font-bold text-[13px] uppercase tracking-wider">Atención Médica</span>
         </button>
+
       </div>
     </div>
 

@@ -31,6 +31,7 @@ import {
   Trash2,
 } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
+import { SwalService } from '../../core/services/swal.service';
 import { EspecialidadesService } from '../../core/services/especialidades.service';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
@@ -66,7 +67,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   readonly Edit2 = Edit2;
   readonly Trash2 = Trash2;
 
-  pageSize: number = 7;
+  pageSize: number = 6;
   currentPage: number = 1;
 
   // Estados
@@ -169,6 +170,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   private appRef = inject(ApplicationRef);
   private route = inject(ActivatedRoute);
   private espService = inject(EspecialidadesService);
+  private swal = inject(SwalService);
 
   constructor(
     private api: ApiService,
@@ -481,13 +483,12 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     if (this.isAseguradorasView) {
       const nombreAseguradora = (this.nuevoPaciente.nombre || '').toString().trim();
       if (!nombreAseguradora) {
-        alert('Debe ingresar el nombre de la aseguradora');
+        this.swal.warning('Debe ingresar el nombre de la aseguradora');
         return;
       }
       this.isSaving = true;
 
       if (this.isEditMode && this.nuevoPaciente.id_cliente) {
-        // Editar aseguradora (si se implementara en el backend, por ahora solo crear)
         this.api
           .put(`admin/aseguradoras/${this.nuevoPaciente.id_cliente}`, { nombre: nombreAseguradora })
           .subscribe({
@@ -495,9 +496,10 @@ export class RecepcionComponent implements OnInit, OnDestroy {
               this.cargarAseguradoras();
               this.mostrarRegistro = false;
               this.isSaving = false;
+              this.swal.success('Aseguradora actualizada correctamente');
             },
             error: (err: any) => {
-              alert('Error al actualizar aseguradora');
+              this.swal.error('Error al actualizar aseguradora');
               this.isSaving = false;
             },
           });
@@ -507,9 +509,10 @@ export class RecepcionComponent implements OnInit, OnDestroy {
             this.cargarAseguradoras();
             this.mostrarRegistro = false;
             this.isSaving = false;
+            this.swal.success('Aseguradora registrada correctamente');
           },
           error: (err: any) => {
-            alert('Error al registrar aseguradora');
+            this.swal.error('Error al registrar aseguradora');
             this.isSaving = false;
           },
         });
@@ -519,23 +522,21 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
     // Validación estricta para asegurar que se cree la atención (ticket)
     if (!this.seleccion.id_responsable || !this.seleccion.id_servicio) {
-      alert('Debe seleccionar Responsable de Pago y el Servicio (Especialidad/Lab/Imagen)');
+      this.swal.warning('Debe seleccionar Responsable de Pago y el Servicio (Especialidad/Lab/Imagen)');
       return;
     }
 
     if (this.seleccion.id_responsable === 2 && !this.seleccion.id_cliente) {
-      alert('Debe seleccionar el nombre de la aseguradora');
+      this.swal.warning('Debe seleccionar el nombre de la aseguradora');
       return;
     }
 
     this.isSaving = true;
 
     if (this.isEditMode) {
-      // MODO EDICIÓN
       const id_paciente = this.nuevoPaciente.id_paciente;
       const id_atencion = this.seleccion.id_atencion;
 
-      // 1. Actualizar Paciente
       const datosPaciente = {
         cedula: (this.nuevoPaciente.cedula || '').toString().replace(/\D/g, '').trim(),
         nombre: (this.nuevoPaciente.nombre || '').toString().toUpperCase().trim(),
@@ -546,7 +547,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
       this.api.put(`recepcion/pacientes/${id_paciente}`, datosPaciente).subscribe({
         next: () => {
-          // 2. Actualizar Atención
           const bodyAtencion = {
             id_servicio: this.seleccion.id_servicio,
             id_responsable: this.seleccion.id_responsable,
@@ -556,17 +556,17 @@ export class RecepcionComponent implements OnInit, OnDestroy {
             next: () => {
               this.isSaving = false;
               this.mostrarRegistro = false;
-              alert('Cambios guardados con éxito');
+              this.swal.success('Cambios guardados con éxito');
               this.cargarUltimasAdmisiones();
             },
             error: (err: any) => {
-              alert('Error al actualizar la atención');
+              this.swal.error('Error al actualizar la atención');
               this.isSaving = false;
             },
           });
         },
         error: (err: any) => {
-          alert('Error al actualizar datos del paciente');
+          this.swal.error('Error al actualizar datos del paciente');
           this.isSaving = false;
         },
       });
@@ -596,7 +596,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
         error: (err: any) => {
           console.error('Error registrando:', err);
           this.isSaving = false;
-          alert('Error al registrar paciente');
+          this.swal.error('Error al registrar paciente');
         },
       });
     }
@@ -619,12 +619,12 @@ export class RecepcionComponent implements OnInit, OnDestroy {
         this.cedulaBusqueda = '';
         this.cdr.detectChanges();
 
-        alert('Ticket generado con éxito: ' + (res.numero || 'Listo'));
+        this.swal.success('Ticket generado con éxito: ' + (res.numero || 'Listo'));
         this.cargarUltimasAdmisiones();
       },
       error: (err: any) => {
         console.error('Error al generar turno directo:', err);
-        alert('Error al asignar el servicio / generar turno.');
+        this.swal.error('Error al asignar el servicio / generar turno.');
         this.isSaving = false;
         this.cdr.detectChanges();
       },
@@ -633,12 +633,12 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
   generarAtencion() {
     if (!this.seleccion.id_servicio || !this.seleccion.id_responsable) {
-      alert('Debe seleccionar Especialidad y Responsable de Pago');
+      this.swal.warning('Debe seleccionar Especialidad y Responsable de Pago');
       return;
     }
 
     if (this.seleccion.id_responsable === 2 && !this.seleccion.id_cliente) {
-      alert('Debe seleccionar el nombre de la aseguradora');
+      this.swal.warning('Debe seleccionar el nombre de la aseguradora');
       return;
     }
 
@@ -654,18 +654,17 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     this.api.post('recepcion/generar-turno', bodyTurno).subscribe({
       next: (res: any) => {
         this.isSaving = false;
-        this.pacienteEncontrado = null; // Cerrar modal al instante
+        this.pacienteEncontrado = null;
         this.mostrarRegistro = false;
         this.cedulaBusqueda = '';
         this.cdr.detectChanges();
 
-        // El alert viene después de cerrar visualmente
-        alert('Turno / Servicio asignado con éxito: ' + (res.numero || 'Listo'));
+        this.swal.success('Turno / Servicio asignado con éxito: ' + (res.numero || 'Listo'));
         this.cargarUltimasAdmisiones();
       },
       error: (err: any) => {
         console.error('Error al asignar servicio:', err);
-        alert('Error al asignar el servicio');
+        this.swal.error('Error al asignar el servicio');
         this.isSaving = false;
         this.cdr.detectChanges();
       },
@@ -766,8 +765,8 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       if (s) {
         this.seleccion.id_servicio = s.id || s.id_servicio;
       } else {
-        alert(
-          `Atención: El servicio de ${categoria} no está configurado para esta sede. Por favor, pida al administrador que lo cree.`,
+        this.swal.warning(
+          `El servicio de ${categoria} no está configurado para esta sede. Por favor, pida al administrador que lo cree.`,
         );
         this.categoriaServicio = '';
       }
@@ -871,30 +870,44 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     }
   }
 
-  eliminarFila(fila: any) {
+  async eliminarFila(fila: any) {
     const msg = this.isAseguradorasView
       ? `¿Eliminar aseguradora ${fila.aseguradora}?`
       : `¿Eliminar admisión de ${fila.nombre} ${fila.apellido}?`;
 
-    if (confirm(msg)) {
-      if (this.isAseguradorasView) {
-        this.api.delete(`admin/aseguradoras/${fila.id_cliente}`).subscribe({
-          next: () => this.cargarAseguradoras(),
-          error: () => alert('Error al eliminar'),
+    const result = await this.swal.confirmDelete(msg);
+    if (!result.isConfirmed) return;
+    if (this.isAseguradorasView) {
+      this.api.delete(`admin/aseguradoras/${fila.id_cliente}`).subscribe({
+        next: () => {
+          this.cargarAseguradoras();
+          this.swal.success('Aseguradora eliminada correctamente');
+        },
+        error: () => {
+          this.swal.error('Error al eliminar');
+        },
+      });
+    } else {
+      if (fila.id_atencion) {
+        this.api.delete(`recepcion/atencion/${fila.id_atencion}`).subscribe({
+          next: () => {
+            this.cargarUltimasAdmisiones();
+            this.swal.success('Atención eliminada correctamente');
+          },
+          error: () => {
+            this.swal.error('Error al eliminar atención');
+          },
         });
       } else {
-        if (fila.id_atencion) {
-          this.api.delete(`recepcion/atencion/${fila.id_atencion}`).subscribe({
-            next: () => this.cargarUltimasAdmisiones(),
-            error: () => alert('Error al eliminar atención'),
-          });
-        } else {
-          // Si no tiene atención, solo es un paciente registrado hoy
-          this.api.delete(`recepcion/pacientes/${fila.id_paciente}`).subscribe({
-            next: () => this.cargarUltimasAdmisiones(),
-            error: () => alert('Error al eliminar paciente'),
-          });
-        }
+        this.api.delete(`recepcion/pacientes/${fila.id_paciente}`).subscribe({
+          next: () => {
+            this.cargarUltimasAdmisiones();
+            this.swal.success('Paciente eliminado correctamente');
+          },
+          error: () => {
+            this.swal.error('Error al eliminar paciente');
+          },
+        });
       }
     }
   }
