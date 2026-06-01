@@ -12,7 +12,7 @@
     </div>
     <div class="flex items-center gap-4 text-4xl font-light text-slate-300">
       <lucide-icon [name]="Clock" class="w-8 h-8 text-teal-400"></lucide-icon>
-      {{ currentDate | date:'shortTime' }}
+      {{ currentDate | date:'h:mm a' }}
     </div>
   </header>
 
@@ -34,7 +34,7 @@
           <div class="inline-flex items-center gap-6 bg-slate-800/80 px-10 py-6 rounded-3xl border border-slate-700/50 backdrop-blur-sm">
             <lucide-icon [name]="ArrowRight" class="w-12 h-12 text-teal-400"></lucide-icon>
             <div class="text-left">
-              <div class="text-5xl font-bold text-teal-400 mb-2">{{ turnoActual.consultorio }}</div>
+              <div class="text-5xl font-bold text-teal-400 mb-2">{{ turnoActual.consultorio || 'Sin asignar' }}</div>
               <div class="text-3xl text-slate-300">Diríjase al consultorio indicado</div>
             </div>
           </div>

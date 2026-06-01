@@ -505,6 +505,12 @@ export class AdminPersonal implements OnInit {
     return forDropdown ? this.toTitleCase(sede.nombre) : sede.nombre.toUpperCase();
   }
 
+  formatPiso(piso?: string | null): string {
+    const p = (piso || '').toString();
+    const num = p.replace(/\D/g, '');
+    return num ? num : 'SIN ASIGNAR';
+  }
+
   toTitleCase(str: string): string {
     if (!str) return '';
     return str.toLowerCase().split(' ').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');

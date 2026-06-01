@@ -117,7 +117,7 @@ export class ImagenesComponent implements OnInit, OnDestroy {
           const esSeguro = modalidadPagoLower === 'seguro';
           const esParticular = modalidadPagoLower === 'particular';
 
-          if (esImagenes) return esParticular || esSeguro;
+          if (esImagenes) return esParticular;
           return false;
         });
       },

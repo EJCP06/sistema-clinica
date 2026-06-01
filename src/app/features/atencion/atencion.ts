@@ -170,44 +170,49 @@ export class Atencion implements OnInit, OnDestroy {
 
   cargarEstadoConsultorio() {
     const usuario = this.authService.usuarioActual;
-    // Si estamos atendiendo localmente (llamando o en atención), pausamos el refresco del estado del consultorio 
-    // para evitar que el servidor nos diga 'LIBRE' por un delay de DB
     if (!usuario || this.atendiendoLocalmente) return;
 
-    this.consultorioId = usuario.consultorio_id || 0;
+    // Lab/Imagenes
+    if (this.tipo === 'laboratorio' || this.tipo === 'imagenes') {
+      this.consultorioNombre = this.tipo === 'laboratorio' ? 'Laboratorio' : 'Imágenes';
+      this.servicioId = usuario.servicio_id || 0;
+      this.mensajeInfo = '';
+
+      this.apiService.getMiEstado().subscribe({
+        next: (estado: MiEstadoDTO) => {
+          this.consultorioEstado = estado.estado || 'LIBRE';
+
+          if (estado.turno_id && !this.atendiendoLocalmente) {
+            this.turnoActual = {
+              id: estado.turno_id!,
+              numero: estado.turno_numero!,
+              estado: estado.turno_estado!,
+              paciente: {
+                nombre: estado.nombre_paciente!,
+                apellido: estado.apellido_paciente!,
+                documento: estado.documento_paciente!
+              },
+              hora_llegada: estado.turno_hora_llegada!
+            };
+          if (estado.turno_estado === 'LLAMADO' && !this.timerSub) {
+            this.iniciarTemporizador(estado.hora_llamado);
+          }
+        } else if (!estado.turno_id && !this.atendiendoLocalmente) {
+          this.turnoActual = null;
+        }
+      },
+      error: () => {
+        this.consultorioEstado = 'LIBRE';
+        this.turnoActual = null;
+      }
+    });
+    return;
+  }
+
+  // Otros roles: requieren consultorio
+  this.consultorioId = usuario.consultorio_id || 0;
 
     if (this.consultorioId === 0) {
-      if (this.tipo === 'laboratorio' || this.tipo === 'imagenes') {
-        this.consultorioNombre = this.tipo === 'laboratorio' ? 'Laboratorio' : 'Imágenes';
-        this.consultorioEstado = 'LIBRE';
-        this.servicioId = usuario.servicio_id || 0;
-        this.mensajeInfo = '';
-        
-        // Intentar recuperar el estado del servicio en lugar del consultorio
-        this.apiService.getMiEstado().subscribe({
-          next: (estado: MiEstadoDTO) => {
-            if (estado.turno_id && !this.atendiendoLocalmente) {
-              this.turnoActual = {
-                id: estado.turno_id!,
-                numero: estado.turno_numero!,
-                estado: estado.turno_estado!,
-                paciente: {
-                  nombre: estado.nombre_paciente!,
-                  apellido: estado.apellido_paciente!,
-                  documento: estado.documento_paciente!
-                },
-                hora_llegada: estado.turno_hora_llegada!
-              };
-              if (estado.turno_estado === 'LLAMADO' && !this.timerSub) {
-                this.iniciarTemporizador();
-              }
-            }
-          },
-          error: () => {} // Ignorar si falla, ya tenemos valores por defecto
-        });
-        return;
-      }
-
       this.consultorioNombre = 'Sin Consultorio';
       this.consultorioEstado = 'EN_PAUSA';
       this.mensajeInfo = 'No tienes un consultorio asignado a tu perfil de usuario. Por favor, contacta al administrador o asigna uno desde el panel de gestión de médicos.';
@@ -221,7 +226,6 @@ export class Atencion implements OnInit, OnDestroy {
         this.consultorioNombre = estado.nombre || `Consultorio ${this.consultorioId}`;
         this.mensajeInfo = '';
 
-        // Recuperar turno activo si existe y no estamos en medio de una acción local
         if (estado.turno_id && !this.atendiendoLocalmente) {
           this.turnoActual = {
             id: estado.turno_id!,
@@ -234,10 +238,8 @@ export class Atencion implements OnInit, OnDestroy {
             },
             hora_llegada: estado.turno_hora_llegada!
           };
-          
-          // Si el turno está llamado pero no iniciado, reactivar temporizador
           if (estado.turno_estado === 'LLAMADO' && !this.timerSub) {
-            this.iniciarTemporizador();
+            this.iniciarTemporizador(estado.hora_llamado);
           }
         } else if (!estado.turno_id && !this.atendiendoLocalmente) {
           this.turnoActual = null;
@@ -255,17 +257,14 @@ export class Atencion implements OnInit, OnDestroy {
   llamarSiguiente() {
     if (this.cargando) return; // Prevenir doble click
     this.cargando = true;
-    this.mensajeInfo = 'Llamando paciente...';
     
     this.apiService.llamarSiguiente().subscribe({
       next: (res: LlamarSiguienteResponseDTO) => {
         this.cargando = false;
         if (!res.turno) {
-          this.mensajeInfo = res.mensaje || 'No hay pacientes en espera de este servicio.';
-          setTimeout(() => { this.mensajeInfo = ''; }, 2000);
+          this.swal.warning(res.mensaje || 'No hay pacientes en espera de este servicio.');
           return;
         }
-        this.mensajeInfo = '';
         this.turnoActual = { ...res.turno };
         this.consultorioEstado = 'OCUPADO';
         this.atendiendoLocalmente = true;
@@ -273,8 +272,7 @@ export class Atencion implements OnInit, OnDestroy {
       },
       error: (err: any) => {
         this.cargando = false;
-        this.mensajeInfo = err.error?.mensaje || 'Error al llamar paciente.';
-        setTimeout(() => { this.mensajeInfo = ''; }, 2000);
+        this.swal.error(err.error?.mensaje || 'Error al llamar paciente.');
       }
     });
   }
@@ -335,9 +333,18 @@ export class Atencion implements OnInit, OnDestroy {
     });
   }
 
-  iniciarTemporizador() {
+  iniciarTemporizador(horaLlamado?: string) {
     this.detenerTemporizador();
-    this.tiempoRestante = 120;
+
+    if (horaLlamado) {
+      const llamadoAt = new Date(horaLlamado).getTime();
+      const ahora = Date.now();
+      const segundosPasados = Math.floor((ahora - llamadoAt) / 1000);
+      this.tiempoRestante = Math.max(0, 120 - segundosPasados);
+    } else {
+      this.tiempoRestante = 120;
+    }
+
     this.timerSub = interval(1000).subscribe(() => {
       this.tiempoRestante--;
       if (this.tiempoRestante <= 0) {
@@ -425,6 +432,16 @@ export class Atencion implements OnInit, OnDestroy {
             const estadoMayus = (t.estado || '').toUpperCase();
             return turnoServId === miServicioId && estadoMayus === 'SALA DE ESPERA';
           }).length;
+        } else if (this.tipo === 'laboratorio') {
+          this.turnosEnEspera = turnosNormalizados.filter(t => {
+            const estadoMayus = (t.estado || '').toUpperCase();
+            return (t.nombre_servicio || '').toLowerCase().includes('laboratorio') && estadoMayus === 'SALA DE ESPERA';
+          }).length;
+        } else if (this.tipo === 'imagenes') {
+          this.turnosEnEspera = turnosNormalizados.filter(t => {
+            const estadoMayus = (t.estado || '').toUpperCase();
+            return ((t.nombre_servicio || '').toLowerCase().includes('imágenes') || (t.nombre_servicio || '').toLowerCase().includes('imagenes')) && estadoMayus === 'SALA DE ESPERA';
+          }).length;
         } else if (eid) {
           const miEspecialidadId = Number(eid);
           this.turnosEnEspera = turnosNormalizados.filter(t => {
@@ -506,10 +523,10 @@ export class Atencion implements OnInit, OnDestroy {
           const esSeguro = modalidadPagoLower === 'seguro';
 
           if (this.tipo === 'laboratorio') {
-            return servicioLower.includes('laboratorio') && (esParticular || esSeguro);
+            return servicioLower.includes('laboratorio') && esParticular;
           }
           if (this.tipo === 'imagenes') {
-            return (servicioLower.includes('imágenes') || servicioLower.includes('imagenes')) && (esParticular || esSeguro);
+            return (servicioLower.includes('imágenes') || servicioLower.includes('imagenes')) && esParticular;
           }
           return false;
         });

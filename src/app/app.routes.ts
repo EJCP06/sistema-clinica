@@ -41,11 +41,11 @@ export const routes: Routes = [
     }
   },
 
-   // Panel Médico de Atención (Solo Médico)
+   // Panel de Atención (Médico, Laboratorio, Imágenes)
    {
      path: 'atencion',
      loadComponent: () => import('./features/atencion/atencion').then(m => m.Atencion),
-     canActivate: [authGuard, roleGuard(['medico'])],
+     canActivate: [authGuard, roleGuard(['medico', 'laboratorio', 'imagenes'])],
      data: { tipo: 'medico' }
    },
 

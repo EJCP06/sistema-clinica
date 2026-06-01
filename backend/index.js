@@ -96,6 +96,7 @@ const recepcionRoutes = require('./src/routes/recepcion.routes');
 const sharedRoutes = require('./src/routes/shared.routes');
 const medicoRoutes = require('./src/routes/medico.routes');
 const especialidadesRoutes = require('./src/routes/especialidades.routes');
+const turneroRoutes = require('./src/routes/turnero.routes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
@@ -105,6 +106,7 @@ app.use('/api/consultorios', consultoriosRoutes);
 app.use('/api/recepcion', recepcionRoutes);
 app.use('/api/medico', medicoRoutes);
 app.use('/api/especialidades', especialidadesRoutes);
+app.use('/api/turnero', turneroRoutes);
 
 app.use((err, req, res, next) => {
   logger.error('Error no controlado', { error: err.message, stack: err.stack });

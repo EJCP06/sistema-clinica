@@ -22,7 +22,8 @@ import {
   Moon,
   ClipboardList,
   FlaskConical,
-  Image
+  Image,
+  Megaphone
 } from 'lucide-angular';
 
 @Component({
@@ -61,6 +62,7 @@ export class Sidebar {
   readonly ClipboardList = ClipboardList;
   readonly FlaskConical = FlaskConical;
   readonly Image = Image;
+  readonly Megaphone = Megaphone;
 
   // Collapsible states (persistidos en sessionStorage)
   get expandedPanel() { return sessionStorage.getItem('sb_panel') === '1'; }

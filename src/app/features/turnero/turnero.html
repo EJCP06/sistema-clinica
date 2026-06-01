@@ -1,87 +1,132 @@
 <div class="h-screen bg-slate-900 text-white overflow-hidden flex flex-col font-sans">
-  
+
   <!-- BARRA SUPERIOR: INFO CLÍNICA -->
   <div class="p-4 md:p-8 bg-slate-950 border-b border-slate-800 flex flex-col md:flex-row justify-between items-center shadow-2xl gap-4">
     <div class="flex items-center gap-4 md:gap-6">
-      <div class="w-12 h-12 md:w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center shadow-xl shadow-blue-600/20">
-        <span class="text-white font-black text-xl md:text-3xl italic">SC</span>
-      </div>
+      <img src="/logo-cnc.png" alt="Logo" class="w-12 h-12 md:w-16 md:h-16 rounded-xl bg-white/10 p-1.5 object-contain" />
       <div>
-        <h1 class="text-lg md:text-4xl font-black tracking-tight text-center md:text-left">CENTRO CLÍNICO PROFESIONAL</h1>
-        <p class="text-blue-500 font-bold text-[10px] md:text-sm uppercase tracking-[4px] text-center md:text-left">Sala de Espera y Turnos</p>
+        <h1 class="text-lg md:text-4xl font-black tracking-tight text-center md:text-left">SALA DE ESPERA Y TURNOS</h1>
       </div>
     </div>
-    
+
     <div class="flex items-center gap-4 md:gap-10">
-      <div class="text-right">
+      <div class="text-center md:text-right">
         <p class="text-slate-500 font-bold text-[10px] md:text-xs uppercase tracking-widest">{{ fechaActual | date:'fullDate' }}</p>
-        <p class="text-2xl md:text-5xl font-black font-mono text-white tracking-tighter">{{ fechaActual | date:'HH:mm:ss' }}</p>
+        <p class="text-2xl md:text-5xl font-black font-mono text-white tracking-tighter">{{ horaFormateada }}</p>
       </div>
     </div>
   </div>
 
-  <!-- CUERPO PRINCIPAL -->
-  <div class="flex-1 flex flex-col lg:flex-row p-4 md:p-10 gap-4 md:gap-10 overflow-hidden">
-    
-    <!-- LLAMADO ACTUAL (GRANDE) -->
-    <div class="flex-[3] flex flex-col justify-center items-center relative">
-      
-      <div *ngIf="!ultimoLlamado" class="text-center space-y-4">
-        <lucide-icon [name]="Clock" class="w-20 h-20 md:w-32 h-32 text-slate-800 mx-auto"></lucide-icon>
-        <p class="text-slate-600 text-lg md:text-2xl font-bold uppercase tracking-widest">En espera de llamados...</p>
-      </div>
+  <!-- BARRA DE NAVEGACIÓN DE SALAS -->
+  <div class="grid grid-cols-2 md:flex md:flex-wrap gap-2 px-4 md:px-8 pt-4 md:pt-6 pb-2 md:pb-4 border-b border-slate-800/50 justify-items-center md:justify-start">
+    <button *ngFor="let s of salasDisponibles"
+      (click)="cambiarSala(s.key)"
+      class="flex items-center gap-2 px-4 py-2 rounded-full font-black text-xs md:text-sm uppercase tracking-wider transition-all duration-200"
+      [class.bg-blue-600]="sala === s.key"
+      [class.text-white]="sala === s.key"
+      [class.bg-slate-800]="sala !== s.key"
+      [class.text-slate-400]="sala !== s.key"
+      [class.hover:bg-slate-700]="sala !== s.key"
+    >
+      <lucide-icon [name]="s.icon" class="w-4 h-4"></lucide-icon>
+      {{ s.label }}
+    </button>
+  </div>
 
-      <div *ngIf="ultimoLlamado" class="w-full animate-in zoom-in-95 duration-700">
-        <div class="bg-blue-600 rounded-[30px] md:rounded-[60px] p-6 md:p-20 shadow-2xl shadow-blue-600/30 text-center space-y-6 md:space-y-10 relative overflow-hidden">
-          
-          <!-- Decoración fondo -->
-          <lucide-icon [name]="Bell" class="absolute -right-10 -bottom-10 w-32 h-32 md:w-64 h-64 text-white/10 rotate-12"></lucide-icon>
-          
-          <p class="text-blue-100 font-black text-base md:text-2xl uppercase tracking-[4px] md:tracking-[8px] animate-bounce">Llamando Ahora</p>
-          
-          <h2 class="text-4xl md:text-[10rem] leading-none font-black text-white tracking-tighter uppercase truncate">
-            {{ ultimoLlamado.paciente.nombre }}
-          </h2>
-          
-          <div class="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-10">
-            <div class="bg-white/10 backdrop-blur-md px-6 md:px-12 py-4 md:py-6 rounded-[20px] md:rounded-[30px] border border-white/20">
-              <p class="text-blue-200 text-[10px] md:text-sm font-bold uppercase tracking-widest mb-1">Especialidad</p>
-              <p class="text-xl md:text-3xl font-black text-white">{{ ultimoLlamado.nombre_servicio }}</p>
-            </div>
-            
-            <div class="bg-teal-500 px-8 md:px-16 py-4 md:py-8 rounded-[24px] md:rounded-[40px] shadow-xl shadow-teal-950/20 border-2 md:border-4 border-teal-400">
-              <p class="text-teal-950 text-[10px] md:text-sm font-black uppercase tracking-widest mb-1">Diríjase a</p>
-              <p class="text-2xl md:text-5xl font-black text-white uppercase">{{ ultimoLlamado.consultorio_nombre || 'CONSULTORIO' }}</p>
+  <!-- CUERPO PRINCIPAL -->
+  <div class="flex-1 flex flex-col p-4 md:p-10 gap-4 md:gap-6 overflow-hidden">
+
+    <!-- TÍTULO DE LA SALA -->
+    <div class="flex items-center gap-4 px-2">
+      <lucide-icon [name]="config.icon" class="w-8 h-8 md:w-12 h-12 text-blue-400"></lucide-icon>
+      <div>
+        <h2 class="text-xl md:text-4xl font-black uppercase tracking-tight">{{ config.titulo }}</h2>
+        <p class="text-slate-500 font-bold text-xs md:text-sm uppercase tracking-widest">{{ config.subtitulo }}</p>
+      </div>
+    </div>
+
+    <!-- LAYOUT: LLAMADOS (tarjeta grande + historial lateral) -->
+    <div *ngIf="config.layout === 'llamados'" class="flex-1 flex flex-col lg:flex-row gap-4 md:gap-10 overflow-hidden">
+
+      <!-- Llamado actual -->
+      <div class="flex-[3] flex flex-col justify-center items-center relative">
+        <div *ngIf="turnos.length === 0" class="text-center space-y-4">
+          <lucide-icon [name]="Clock" class="w-20 h-20 md:w-32 h-32 text-slate-800 mx-auto"></lucide-icon>
+          <p class="text-slate-600 text-lg md:text-2xl font-bold uppercase tracking-widest">Sin llamados activos</p>
+        </div>
+
+        <div *ngIf="turnos.length > 0" class="w-full animate-in zoom-in-95 duration-700">
+          <div class="bg-blue-600 rounded-[30px] md:rounded-[60px] p-6 md:p-20 shadow-2xl shadow-blue-600/30 text-center space-y-6 md:space-y-10 relative overflow-hidden">
+            <lucide-icon [name]="Bell" class="absolute -right-10 -bottom-10 w-32 h-32 md:w-64 h-64 text-white/10 rotate-12"></lucide-icon>
+
+            <p class="text-blue-100 font-black text-base md:text-2xl uppercase tracking-[4px] md:tracking-[8px] animate-bounce">Llamando Ahora</p>
+
+            <h2 class="text-4xl md:text-[10rem] leading-none font-black text-white tracking-tighter uppercase truncate">
+              {{ turnos[0].paciente.nombre || 'Sin asignar' }} {{ turnos[0].paciente.apellido || '' }}
+            </h2>
+
+            <div class="flex items-center justify-center">
+              <div class="bg-teal-500 px-8 md:px-16 py-4 md:py-8 rounded-[24px] md:rounded-[60px] shadow-xl shadow-teal-950/20 border-2 md:border-4 border-teal-400 text-center">
+                <p class="text-teal-950 text-[10px] md:text-sm font-black uppercase tracking-widest mb-1">Diríjase a</p>
+                <p class="text-2xl md:text-5xl font-black text-white uppercase">{{ turnos[0].nombre_servicio || 'Sin asignar' }}</p>
+              </div>
             </div>
           </div>
+        </div>
+      </div>
 
+      <!-- Historial reciente -->
+      <div class="flex-1 flex flex-col gap-4 md:gap-6">
+        <h3 class="text-slate-500 font-black text-[10px] md:text-sm uppercase tracking-[4px] px-2 md:px-4 flex items-center gap-3">
+          <lucide-icon [name]="Volume2" class="w-4 h-4"></lucide-icon> Llamados Recientes
+        </h3>
+
+        <div class="flex-1 space-y-3 md:space-y-4 overflow-y-auto">
+          <ng-container *ngIf="turnos.length > 1">
+            <div *ngFor="let t of turnos.slice(1); trackBy: trackById"
+              class="bg-slate-800/40 border border-slate-700/50 p-4 md:p-8 rounded-[24px] md:rounded-[40px] flex justify-between items-center animate-in slide-in-from-right-10 duration-500"
+            >
+              <h4 class="text-base md:text-2xl font-black text-white uppercase truncate">{{ t.paciente.nombre || 'Sin asignar' }} {{ t.paciente.apellido || '' }}</h4>
+              <div class="text-center ml-2 md:ml-4 shrink-0">
+                <p class="text-slate-500 font-black text-[8px] md:text-[10px] uppercase tracking-widest leading-tight">Servicio</p>
+                <p class="text-sm md:text-xl font-black text-teal-400 uppercase truncate leading-tight">{{ t.nombre_servicio || 'Sin asignar' }}</p>
+              </div>
+            </div>
+          </ng-container>
+
+          <div *ngIf="turnos.length <= 1" class="h-full flex items-center justify-center border-2 border-dashed border-slate-800 rounded-[30px] md:rounded-[60px]">
+            <p class="text-slate-700 font-bold italic text-sm md:text-base">No hay historial disponible</p>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- HISTORIAL LATERAL -->
-    <div class="flex-1 flex flex-col gap-4 md:gap-6">
-      <h3 class="text-slate-500 font-black text-[10px] md:text-sm uppercase tracking-[4px] px-2 md:px-4 flex items-center gap-3">
-        <lucide-icon [name]="Volume2" class="w-4 h-4"></lucide-icon> Llamados Recientes
-      </h3>
-      
-      <div class="flex-1 space-y-3 md:space-y-4 overflow-hidden">
-        <div 
-          *ngFor="let t of turnosActivos; trackBy: trackById"
-          class="bg-slate-800/40 border border-slate-700/50 p-4 md:p-8 rounded-[24px] md:rounded-[40px] flex justify-between items-center animate-in slide-in-from-right-10 duration-500"
-        >
-          <div class="min-w-0 flex-1">
-            <h4 class="text-base md:text-2xl font-black text-white uppercase truncate">{{ t.paciente.nombre }} {{ t.paciente.apellido }}</h4>
-            <p class="text-blue-500 font-bold text-[10px] md:text-xs uppercase tracking-widest">{{ t.nombre_servicio }}</p>
-          </div>
-          <div class="text-right ml-2 md:ml-4 shrink-0">
-            <p class="text-slate-500 font-black text-[8px] md:text-[10px] uppercase tracking-widest mb-1">Consultorio</p>
-            <p class="text-sm md:text-xl font-black text-teal-400 uppercase">{{ t.consultorio_nombre }}</p>
-          </div>
+    <!-- LAYOUT: LISTA (recién llegados / sala de espera) -->
+    <div *ngIf="config.layout === 'lista'" class="flex-1 overflow-hidden">
+      <div *ngIf="turnos.length === 0" class="h-full flex items-center justify-center border-2 border-dashed border-slate-800 rounded-[30px] md:rounded-[60px]">
+        <div class="text-center space-y-4">
+          <lucide-icon [name]="Clock" class="w-20 h-20 md:w-32 h-32 text-slate-800 mx-auto"></lucide-icon>
+          <p class="text-slate-600 text-lg md:text-2xl font-bold uppercase tracking-widest">No hay pacientes en esta sala</p>
         </div>
-        
-        <div *ngIf="turnosActivos.length === 0" class="h-full flex items-center justify-center border-2 border-dashed border-slate-800 rounded-[30px] md:rounded-[60px]">
-          <p class="text-slate-700 font-bold italic text-sm md:text-base">No hay historial disponible</p>
+      </div>
+
+      <div *ngIf="turnos.length > 0" class="h-full overflow-y-auto grid gap-4 md:gap-6 content-start">
+        <div *ngFor="let t of turnos; trackBy: trackById"
+          class="bg-slate-800/40 border border-slate-700/50 p-5 md:p-8 rounded-[24px] md:rounded-[40px] flex items-center justify-between animate-in slide-in-from-bottom-5 duration-500"
+        >
+          <div class="flex items-center gap-4 md:gap-8 min-w-0">
+            <div class="w-14 h-14 md:w-20 md:h-20 rounded-full bg-blue-600/30 border-2 border-blue-500/50 flex items-center justify-center shrink-0">
+              <span class="text-xl md:text-3xl font-black text-blue-400">{{ (t.paciente.nombre || '?').charAt(0).toUpperCase() }}</span>
+            </div>
+            <div class="min-w-0">
+              <h3 class="text-lg md:text-3xl font-black text-white uppercase truncate">{{ t.paciente.nombre || 'Sin asignar' }} {{ t.paciente.apellido || '' }}</h3>
+              <p class="text-slate-400 font-bold text-xs md:text-base uppercase tracking-wider">{{ t.numero || '' }}</p>
+            </div>
+          </div>
+          <div class="text-right shrink-0 ml-4">
+            <p class="text-slate-500 font-black text-[8px] md:text-[10px] uppercase tracking-widest leading-tight">Servicio</p>
+            <p class="text-sm md:text-2xl font-black text-teal-400 uppercase truncate">{{ t.nombre_servicio || 'Sin asignar' }}</p>
+          </div>
         </div>
       </div>
     </div>
@@ -89,16 +134,24 @@
   </div>
 
   <!-- MARQUEE INFERIOR -->
-  <div class="bg-blue-600 p-4 overflow-hidden">
-    <div class="whitespace-nowrap animate-marquee flex items-center gap-10">
-      <p class="text-white font-black uppercase text-sm tracking-widest flex items-center gap-4">
-        <lucide-icon [name]="Bell" class="w-4 h-4"></lucide-icon>
-        BIENVENIDOS AL CENTRO CLÍNICO SISCOL - POR FAVOR ESPERE SU LLAMADO EN PANTALLA - RECUERDE TENER SU CÉDULA A MANO
-      </p>
-      <p class="text-white font-black uppercase text-sm tracking-widest flex items-center gap-4">
-        <lucide-icon [name]="Bell" class="w-4 h-4"></lucide-icon>
-        BIENVENIDOS AL CENTRO CLÍNICO SISCOL - POR FAVOR ESPERE SU LLAMADO EN PANTALLA - RECUERDE TENER SU CÉDULA A MANO
-      </p>
+  <div class="bg-blue-600 p-3 overflow-hidden">
+    <div class="whitespace-nowrap animate-marquee inline-flex items-center">
+      <span class="flex items-center gap-16 mx-8">
+        <lucide-icon [name]="Bell" class="w-5 h-5 shrink-0"></lucide-icon>
+        <span class="font-black uppercase text-base tracking-widest">BIENVENIDOS A LA CLINICA NUEVA CARACAS - POR FAVOR ESPERE SU LLAMADO EN PANTALLA</span>
+      </span>
+      <span class="flex items-center gap-16 mx-8">
+        <lucide-icon [name]="Bell" class="w-5 h-5 shrink-0"></lucide-icon>
+        <span class="font-black uppercase text-base tracking-widest">RECUERDE TENER SU CÉDULA A MANO</span>
+      </span>
+      <span class="flex items-center gap-16 mx-8">
+        <lucide-icon [name]="Bell" class="w-5 h-5 shrink-0"></lucide-icon>
+        <span class="font-black uppercase text-base tracking-widest">BIENVENIDOS A LA CLINICA NUEVA CARACAS - POR FAVOR ESPERE SU LLAMADO EN PANTALLA</span>
+      </span>
+      <span class="flex items-center gap-16 mx-8">
+        <lucide-icon [name]="Bell" class="w-5 h-5 shrink-0"></lucide-icon>
+        <span class="font-black uppercase text-base tracking-widest">RECUERDE TENER SU CÉDULA A MANO</span>
+      </span>
     </div>
   </div>
 
@@ -106,10 +159,10 @@
 
 <style>
   @keyframes marquee {
-    0% { transform: translateX(100%); }
+    0% { transform: translateX(100vw); }
     100% { transform: translateX(-100%); }
   }
   .animate-marquee {
-    animation: marquee 30s linear infinite;
+    animation: marquee 40s linear infinite;
   }
 </style>

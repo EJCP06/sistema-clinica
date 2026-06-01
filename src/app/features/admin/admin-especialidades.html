@@ -42,7 +42,7 @@
   <div class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
     <div class="flex flex-col justify-between">
       <div class="overflow-x-auto">
-<table class="w-full text-left text-sm ">
+<table class="w-full min-w-[800px] text-left text-sm ">
         <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
           <tr class="h-[52px] md:h-[64px] text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
             <th class="px-3 md:px-6 py-3 md:py-4 text-center">Prefijo</th>
@@ -58,8 +58,8 @@
         <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
           <ng-container *ngFor="let e of especialidadesFiltradas | paginate: currentPage : pageSize; trackBy: trackById">
             <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
-              <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ e.prefijo }}</td>
-              <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white tracking-tight uppercase text-center">{{ e.nombre }}</td>
+              <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ e.prefijo || 'Sin asignar' }}</td>
+              <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white tracking-tight uppercase text-center">{{ e.nombre || 'Sin asignar' }}</td>
               <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tighter text-center">{{ e.piso || 'SIN ASIGNAR' }}</td>
               <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ getConsultoriosEspLabel(e.consultorios_ids) }}</td>
               <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 dark:text-slate-400 font-bold text-center">{{ getSedeLabel(e.id_sede) }}</td>
