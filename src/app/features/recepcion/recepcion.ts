@@ -33,6 +33,7 @@ import {
 import { ApiService } from '../../core/services/api.service';
 import { SwalService } from '../../core/services/swal.service';
 import { EspecialidadesService } from '../../core/services/especialidades.service';
+import { ScrollService } from '../../core/services/scroll.service';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 
@@ -96,7 +97,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     apellido: '',
     telefono: '',
     status: true,
-    notificaciones_sms: true,
   };
 
   servicios: any[] = [];
@@ -155,7 +155,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   showAseguradoraDropdown: boolean = false;
 
   isSaving: boolean = false;
-  mostrarRegistro: boolean = false;
+  private _mostrarRegistro: boolean = false;
   isEditMode: boolean = false;
 
   esRegistroDirecto: boolean = false;
@@ -171,11 +171,22 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private espService = inject(EspecialidadesService);
   private swal = inject(SwalService);
+  private scrollService = inject(ScrollService);
 
   constructor(
     private api: ApiService,
     private router: Router,
   ) {}
+
+  get mostrarRegistro() {
+    return this._mostrarRegistro;
+  }
+
+  set mostrarRegistro(v: boolean) {
+    this._mostrarRegistro = v;
+    if (v) this.scrollService.block();
+    else this.scrollService.unblock();
+  }
 
   @HostListener('document:click', ['$event'])
   onClick(event: MouseEvent) {
@@ -391,7 +402,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       apellido: '',
       telefono: '',
       status: true,
-      notificaciones_sms: true,
     };
     this.seleccion = {
       id_servicio: null,
@@ -466,7 +476,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       apellido: paciente.apellido,
       telefono: paciente.telefono,
       status: true,
-      notificaciones_sms: paciente.notificaciones_sms ?? true,
     };
     this.seleccion = {
       id_servicio: null,
@@ -542,7 +551,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
         nombre: (this.nuevoPaciente.nombre || '').toString().toUpperCase().trim(),
         apellido: (this.nuevoPaciente.apellido || '').toString().toUpperCase().trim(),
         telefono: (this.nuevoPaciente.telefono || '').toString().replace(/\D/g, '').trim(),
-        notificaciones_sms: this.nuevoPaciente.notificaciones_sms,
       };
 
       this.api.put(`recepcion/pacientes/${id_paciente}`, datosPaciente).subscribe({
@@ -585,7 +593,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
         apellido: (this.nuevoPaciente.apellido || '').toUpperCase().trim(),
         telefono: (this.nuevoPaciente.telefono || '').toString().replace(/\D/g, ''),
         status: true,
-        notificaciones_sms: this.nuevoPaciente.notificaciones_sms,
       };
 
       this.api.post('recepcion/pacientes', datosPaciente).subscribe({
@@ -846,7 +853,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
         nombre: fila.nombre,
         apellido: fila.apellido,
         telefono: fila.telefono,
-        notificaciones_sms: fila.mensaje,
       };
 
       // Cargar selección de servicio y responsable

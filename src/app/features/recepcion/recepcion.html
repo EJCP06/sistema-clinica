@@ -148,8 +148,8 @@
                   class="px-4 py-4 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
                 >
                   <div class="flex flex-col">
-                    <span class="font-bold text-slate-800 dark:text-white uppercase">{{ p.nombre }} {{ p.apellido }}</span>
-                    <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">C.I: {{ p.cedula }}</span>
+                    <span class="font-bold text-slate-800 dark:text-white uppercase">{{ p.nombre || 'Sin asignar' }} {{ p.apellido || '' }}</span>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">C.I: {{ p.cedula || 'Sin asignar' }}</span>
                   </div>
                   <lucide-icon [name]="ChevronRight" class="w-4 h-4 text-slate-300 transition-colors"></lucide-icon>
                 </div>
@@ -330,52 +330,7 @@
                   </div>
                 </div>
 
-                <!-- NOTIFICACIONES SMS (Basado en imagen) -->
-                <ng-container *ngIf="!isAseguradorasView">
-                  <div
-                    class="md:col-span-2 mt-4 pt-6 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between"
-                  >
-                    <div class="flex items-center gap-3">
-                      <div
-                        class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center shadow-sm"
-                      >
-                        <lucide-icon [name]="Phone" class="w-5 h-5 text-blue-600"></lucide-icon>
-                      </div>
-                      <div>
-                        <h4 class="text-sm font-black text-slate-800 dark:text-white">
-                          Notificaciones SMS
-                        </h4>
-                        <p
-                          class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5"
-                        >
-                          Enviar mensaje de bienvenida al paciente
-                        </p>
-                      </div>
-                    </div>
-                    <div
-                      class="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 px-6 py-4 rounded-2xl shadow-inner"
-                    >
-                      <label class="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          [(ngModel)]="nuevoPaciente.notificaciones_sms"
-                          class="sr-only peer"
-                        />
-                        <div
-                          class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-teal-500 shadow-sm"
-                        ></div>
-                      </label>
-                      <span
-                        class="text-xs font-black uppercase tracking-widest"
-                        [ngClass]="
-                          nuevoPaciente.notificaciones_sms ? 'text-teal-600' : 'text-slate-400'
-                        "
-                      >
-                        {{ nuevoPaciente.notificaciones_sms ? 'sí' : 'no' }}
-                      </span>
-                    </div>
-                  </div>
-                </ng-container>
+                <!-- Notificaciones SMS eliminadas -->
               </div>
             </div>
 
@@ -405,8 +360,7 @@
               </button>
             </div>
           </div>
-          </div>
-
+        </div>
       </div>
 
       <!-- PANEL DE CONTROL -->
@@ -416,7 +370,7 @@
         >
           <div class="flex flex-col justify-between">
             <div class="overflow-x-auto">
-<table class="w-full text-left text-sm ">
+<table class="w-full min-w-[800px] text-left text-sm ">
               <thead
                 class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800"
               >
@@ -428,7 +382,6 @@
                     <th class="px-3 md:px-6 py-3 md:py-4 text-center">Teléfono</th>
                     <th class="px-3 md:px-6 py-3 md:py-4 text-center">Responsable</th>
                     <th class="px-3 md:px-6 py-3 md:py-4 text-center">Servicio</th>
-                    <th class="px-3 md:px-6 py-3 md:py-4 text-center">Mensaje</th>
                     <th class="px-3 md:px-6 py-3 md:py-4 text-center">Hora</th>
                     <th class="px-3 md:px-6 py-3 md:py-4 text-center">Acciones</th>
                   </ng-container>
@@ -443,18 +396,18 @@
                 <ng-container *ngFor="let a of admisionesFiltradas | paginate: currentPage : pageSize">
                   <tr class="h-[52px] md:h-[64px] hover:bg-slate-50 dark:hover:bg-slate-800">
                     <ng-container *ngIf="!isAseguradorasView; else aseguradoraRow">
-                      <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.nombre }}</td>
-                      <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.apellido }}</td>
-                      <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tight text-center">{{ a.cedula }}</td>
-                      <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.telefono }}</td>
+                      <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.nombre || 'Sin asignar' }}</td>
+                      <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.apellido || '' }}</td>
+                      <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tight text-center">{{ a.cedula || 'Sin asignar' }}</td>
+                      <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.telefono || 'Sin asignar' }}</td>
                       <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
                         {{ getResponsableLabel(a.modalidad_pago) }}
                       </td>
                       <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
                         {{ a.nombre_servicio !== 'SIN ASIGNAR' ? getServicioCategoria(a.nombre_servicio) : 'SIN ASIGNAR' }}
                       </td>
-                      <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.mensaje ? 'Sí' : 'No' }}</td>
-                      <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.fecha_creacion | date: 'shortTime' }}</td>
+                      <!-- Columna 'Mensaje' eliminada -->
+                      <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.fecha_creacion | date:'h:mm a' }}</td>
                       <td class="px-3 md:px-6 py-3 md:py-4 text-center">
                         <div class="flex items-center justify-center gap-2">
                           <button (click)="editarFila(a)" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all">
@@ -467,7 +420,7 @@
                       </td>
                     </ng-container>
                     <ng-template #aseguradoraRow>
-                      <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.aseguradora }}</td>
+                      <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.aseguradora || 'Sin asignar' }}</td>
                       <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
                         {{ a.tipo || 'Aseguradora' }}
                       </td>
@@ -485,12 +438,12 @@
                   </tr>
                 </ng-container>
                 <ng-container *ngIf="admisionesFiltradas.length > 0">
-                  <ng-container *ngFor="let _ of admisionesFiltradas | fillers: currentPage : pageSize">
-                    <tr><td [attr.colspan]="isAseguradorasView ? 3 : 9" class="h-[52px] md:h-[64px]"></td></tr>
+                    <ng-container *ngFor="let _ of admisionesFiltradas | fillers: currentPage : pageSize">
+                    <tr><td [attr.colspan]="isAseguradorasView ? 3 : 8" class="h-[52px] md:h-[64px]"></td></tr>
                   </ng-container>
                 </ng-container>
                 <tr *ngIf="admisionesFiltradas.length === 0">
-                  <td [attr.colspan]="isAseguradorasView ? 3 : 9" class="px-8 py-20 text-center align-middle">
+                  <td [attr.colspan]="isAseguradorasView ? 3 : 8" class="px-8 py-20 text-center align-middle">
                     <div class="flex flex-col items-center justify-center w-full">
                       <div class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 mx-auto">
                         <lucide-icon [name]="Search" class="w-8 h-8 text-slate-500 opacity-60"></lucide-icon>

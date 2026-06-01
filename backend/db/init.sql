@@ -100,7 +100,6 @@ CREATE TABLE "Usuarios" (
   "nombre" varchar NOT NULL,
   "apellido" varchar NOT NULL,
   "telefono" varchar,
-  "email" varchar UNIQUE,
   "piso" varchar,
   "id_consultorio" integer REFERENCES "Consultorios"("id_consultorio"),
   "id_servicio" integer REFERENCES "Servicio"("id_servicio"),
@@ -117,8 +116,6 @@ CREATE TABLE "Pacientes" (
   "nombre" varchar NOT NULL,
   "apellido" varchar NOT NULL,
   "telefono" varchar,
-  "email" varchar,
-  "notificaciones_sms" boolean DEFAULT true,
   "status" boolean DEFAULT true,
   "id_sede" integer REFERENCES "Sedes"("id_sede"),
   "fecha_creacion" timestamp DEFAULT (now())

@@ -28,7 +28,6 @@ const getUltimasAdmisiones = async (req, res) => {
         a.hora_salida,
         a.id_estado_actual, a.id_servicio, a.id_paciente, a.id_especialidad,
         p.id_paciente, p.cedula, p.nombre, p.apellido, p.telefono,
-        COALESCE(p.notificaciones_sms, true) as mensaje,
         s.nombre_servicio, s.prefijo,
         e.nombre_estado,
         rp.nombre as modalidad_pago,
@@ -71,7 +70,7 @@ const buscarPaciente = async (req, res) => {
     }
 
     const result = await pool.query(
-      `SELECT id_paciente, cedula, nombre, apellido, telefono, notificaciones_sms, status, id_sede
+      `SELECT id_paciente, cedula, nombre, apellido, telefono, status, id_sede
        FROM "Pacientes"
        WHERE ${whereColumna} AND id_sede = $2
        ORDER BY id_paciente DESC
@@ -91,17 +90,17 @@ const crearPaciente = async (req, res) => {
   if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
 
   try {
-    const { cedula, nombre, apellido, telefono, status, notificaciones_sms } = req.body;
+    const { cedula, nombre, apellido, telefono, status } = req.body;
 
     if (!cedula || !nombre || !apellido) {
       return res.status(400).json({ mensaje: 'Cédula, nombre y apellido son requeridos' });
     }
 
     const result = await pool.query(
-      `INSERT INTO "Pacientes" (cedula, nombre, apellido, telefono, status, notificaciones_sms, id_sede)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO "Pacientes" (cedula, nombre, apellido, telefono, status, id_sede)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id_paciente, cedula, nombre, apellido, telefono, status`,
-      [cedula, nombre, apellido, telefono || null, status !== false, notificaciones_sms !== false, sede],
+      [cedula, nombre, apellido, telefono || null, status !== false, sede],
     );
 
     res.status(201).json(result.rows[0]);
@@ -121,7 +120,7 @@ const actualizarPaciente = async (req, res) => {
 
   try {
     const { id } = req.params;
-    const { cedula, nombre, apellido, telefono, notificaciones_sms } = req.body;
+    const { cedula, nombre, apellido, telefono } = req.body;
 
     const result = await pool.query(
       `UPDATE "Pacientes"
@@ -129,10 +128,10 @@ const actualizarPaciente = async (req, res) => {
            nombre = COALESCE($2, nombre),
            apellido = COALESCE($3, apellido),
            telefono = COALESCE($4, telefono),
-           notificaciones_sms = COALESCE($5, notificaciones_sms)
+          
        WHERE id_paciente = $6 AND id_sede = $7
        RETURNING id_paciente, cedula, nombre, apellido, telefono`,
-      [cedula, nombre, apellido, telefono, notificaciones_sms, id, sede],
+      [cedula, nombre, apellido, telefono, id, sede],
     );
 
     if (result.rowCount === 0) {

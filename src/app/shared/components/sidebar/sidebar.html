@@ -8,7 +8,7 @@
 <aside class="w-80 h-screen bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col fixed left-0 top-0 z-50 transition-transform duration-300"
   [ngClass]="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'">
   <!-- Logo & Branding -->
-  <div class="p-8 flex items-center justify-start relative overflow-hidden">
+  <div class="p-8 flex items-center justify-start relative overflow-hidden sidebar-card">
     <div class="flex items-center gap-4 relative z-10">
       <div class="w-14 h-14 bg-[#ffffff] p-2 rounded-2xl flex items-center justify-center border border-slate-100 dark:border-slate-800 flex-shrink-0">
         <img src="logo-cnc.png" alt="Logo" class="w-full h-full object-contain" />
@@ -30,7 +30,7 @@
   </div>
 
   <!-- Navigation -->
-  <nav class="flex-1 overflow-y-auto p-4 custom-scrollbar">    <!-- PANEL CONTROL (Solo Admin) -->
+  <nav class="flex-1 overflow-y-auto p-4 custom-scrollbar touch-scroll">    <!-- PANEL CONTROL (Solo Admin) -->
     <div *ngIf="rol === 'admin'" class="mb-4">
       <button 
         (click)="toggleSection('panel')"
@@ -99,7 +99,7 @@
         </button>
 
         <button 
-          *ngIf="rol === 'admin' || (rol === 'laboratorio' && !usuario?.consultorio_id)"
+          *ngIf="['admin', 'laboratorio'].includes(rol)"
           (click)="navigate('atencion-laboratorio')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
@@ -108,16 +108,16 @@
         </button>
 
         <button 
-          *ngIf="rol === 'laboratorio' && usuario?.consultorio_id"
+          *ngIf="rol === 'laboratorio'"
           (click)="navigate('atencion', { tipo: 'laboratorio' })"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
-          <lucide-icon [name]="FlaskConical" class="w-5 h-5 text-slate-400 dark:text-slate-400"></lucide-icon>
-          <span class="font-bold text-[13px] uppercase tracking-wider">Llamados Laboratorio</span>
+          <lucide-icon [name]="Megaphone" class="w-5 h-5 text-slate-400 dark:text-slate-400"></lucide-icon>
+          <span class="font-bold text-[13px] uppercase tracking-wider">Llamado</span>
         </button>
 
         <button 
-          *ngIf="rol === 'admin' || (rol === 'imagenes' && !usuario?.consultorio_id)"
+          *ngIf="['admin', 'imagenes'].includes(rol)"
           (click)="navigate('atencion-imagenes')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
@@ -126,12 +126,12 @@
         </button>
 
         <button 
-          *ngIf="rol === 'imagenes' && usuario?.consultorio_id"
+          *ngIf="rol === 'imagenes'"
           (click)="navigate('atencion', { tipo: 'imagenes' })"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
-          <lucide-icon [name]="Image" class="w-5 h-5 text-slate-400 dark:text-slate-400"></lucide-icon>
-          <span class="font-bold text-[13px] uppercase tracking-wider">Llamados Imágenes</span>
+          <lucide-icon [name]="Megaphone" class="w-5 h-5 text-slate-400 dark:text-slate-400"></lucide-icon>
+          <span class="font-bold text-[13px] uppercase tracking-wider">Llamado</span>
         </button>
 
         <button 
@@ -164,7 +164,7 @@
         <div class="flex items-center gap-4">
           <lucide-icon [name]="ShieldCheck" class="w-5 h-5 text-slate-600 dark:text-slate-400"></lucide-icon>
           <p class="font-bold text-[13px] uppercase tracking-wider m-0 text-slate-500 dark:text-slate-400">
-            Administración
+            Roles
           </p>
         </div>
         <lucide-icon 
@@ -238,7 +238,7 @@
   <!-- Footer -->
   <div class="p-6 bg-transparent space-y-4 shrink-0">
     <!-- Perfil del Usuario (Visible solo en Mobile) -->
-    <div *ngIf="usuario" class="lg:hidden flex flex-col gap-4 p-5 relative overflow-hidden bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+    <div *ngIf="usuario" class="lg:hidden flex flex-col gap-4 p-5 mb-8 relative overflow-hidden bg-slate-50 dark:bg-slate-800/50 rounded-3xl border-t border-r border-l border-slate-200 dark:border-slate-800 shadow-sm mobile-profile-card">
       <!-- Badge de Sede (Centrado) -->
       <div class="flex justify-center">
         <span class="px-3 py-1 bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest rounded-xl shadow-sm">
@@ -272,15 +272,17 @@
       </div>
     </div>
 
-    <button
-      (click)="logout()"
-      class="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-rose-600 dark:text-rose-400 hover:bg-rose-500/5 dark:hover:bg-rose-500/10 transition-all duration-300 group text-left"
-    >
-      <lucide-icon
-        [name]="LogOut"
-        class="w-4 h-4 transition-transform group-hover:-translate-x-1"
-      ></lucide-icon>
-      <span class="font-bold text-sm tracking-tight">Cerrar Sesión</span>
-    </button>
+    <div class="sticky-footer">
+      <button
+        (click)="logout()"
+        class="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-rose-600 dark:text-rose-400 hover:bg-rose-500/5 dark:hover:bg-rose-500/10 transition-all duration-300 group text-left"
+      >
+        <lucide-icon
+          [name]="LogOut"
+          class="w-4 h-4 transition-transform group-hover:-translate-x-1"
+        ></lucide-icon>
+        <span class="font-bold text-sm tracking-tight">Cerrar Sesión</span>
+      </button>
+    </div>
   </div>
 </aside>

@@ -1,7 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { ThemeService } from '@core/services/theme.service';
 import { SwalService } from '../../core/services/swal.service';
@@ -10,7 +10,7 @@ import { LucideAngularModule, Eye, EyeOff, LogIn, Activity, User, Lock, Sun, Moo
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule, RouterLink],
   templateUrl: './login.html',
   styles: []
 })

@@ -13,7 +13,7 @@
   <main class="flex-1 flex flex-col min-w-0 overflow-hidden relative bg-slate-50 dark:bg-slate-950 lg:pl-80">
     <app-header 
       title="Atención Médica"
-      [subtitle]="medicoInfo.servicio_nombre + ' • Gestión de pacientes en espera'"
+      [subtitle]="(medicoInfo.servicio_nombre || 'Sin asignar') + ' • Gestión de pacientes en espera'"
       [showLogo]="false"
       [showMenuButton]="true"
       (toggleSidebar)="sidebarOpen = !sidebarOpen">
@@ -49,7 +49,7 @@
                     {{ i + 1 }}
                   </div>
                   <div>
-                    <h4 class="font-black text-slate-900 dark:text-white text-sm">{{ p.nombre }} {{ p.apellido }}</h4>
+                    <h4 class="font-black text-slate-900 dark:text-white text-sm">{{ p.nombre || 'Sin asignar' }} {{ p.apellido || '' }}</h4>
                     <p class="text-[10px] font-bold text-slate-400 uppercase">Espera: {{ getTiempoEspera(p.hora_llegada) }}</p>
                   </div>
                 </div>
@@ -90,7 +90,7 @@
                 </div>
                 <div class="flex items-center gap-2 text-slate-400 font-bold text-xs">
                   <lucide-icon [name]="Clock" class="w-4 h-4"></lucide-icon>
-                  Desde: {{ pacienteActual.hora_llegada | date:'shortTime' }}
+                  Desde: {{ pacienteActual.hora_llegada | date:'h:mm a' }}
                 </div>
               </div>
 
@@ -99,8 +99,8 @@
                   {{ pacienteActual.nombre[0] }}{{ pacienteActual.apellido[0] }}
                 </div>
                 <div class="space-y-2">
-                  <h2 class="text-5xl font-black text-slate-900 dark:text-white tracking-tight">{{ pacienteActual.nombre }} {{ pacienteActual.apellido }}</h2>
-                  <p class="text-xl font-bold text-slate-400 tracking-tight">CI: {{ pacienteActual.cedula }}</p>
+                  <h2 class="text-5xl font-black text-slate-900 dark:text-white tracking-tight">{{ pacienteActual.nombre || 'Sin asignar' }} {{ pacienteActual.apellido || '' }}</h2>
+                  <p class="text-xl font-bold text-slate-400 tracking-tight">CI: {{ pacienteActual.cedula || 'Sin asignar' }}</p>
                 </div>
               </div>
 
@@ -135,7 +135,7 @@
           <div class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
             <div class="flex flex-col justify-between">
               <div class="overflow-x-auto">
-<table class="w-full text-left text-sm ">
+<table class="w-full min-w-[800px] text-left text-sm ">
                 <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
                   <tr class="h-[52px] md:h-[64px] text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
                     <th class="px-3 md:px-6 py-3 md:py-4 text-center">Paciente</th>
@@ -148,13 +148,13 @@
                 <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
                   <ng-container *ngFor="let p of pacientesAtendidosHoy | paginate: currentPage : pageSize; trackBy: trackById">
                     <tr class="h-[52px] md:h-[64px] hover:bg-slate-50 dark:hover:bg-slate-800">
-                      <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ p.nombre }} {{ p.apellido }}</td>
-                      <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ p.cedula }}</td>
-                      <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white text-center">{{ p.nombre_especialidad || p.nombre_servicio }}</td>
+                      <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ p.nombre || 'Sin asignar' }} {{ p.apellido || '' }}</td>
+                      <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ p.cedula || 'Sin asignar' }}</td>
+                      <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white text-center">{{ p.nombre_especialidad || p.nombre_servicio || 'Sin asignar' }}</td>
                       <td class="px-3 md:px-6 py-3 md:py-4 text-center">
-                        <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest" [ngClass]="p.nombre_estado === 'Atendido' ? 'bg-teal-50 text-teal-600 border border-teal-200 dark:bg-teal-500/10 dark:text-teal-400' : 'bg-slate-50 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400'">{{ p.nombre_estado }}</span>
+                        <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest" [ngClass]="p.nombre_estado === 'Atendido' ? 'bg-teal-50 text-teal-600 border border-teal-200 dark:bg-teal-500/10 dark:text-teal-400' : 'bg-slate-50 text-slate-500 border border-slate-200 dark:bg-slate-800 dark:text-slate-400'">{{ p.nombre_estado || 'Sin asignar' }}</span>
                       </td>
-                      <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-600 text-center">{{ p.hora_salida | date:'HH:mm' }}</td>
+                      <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-600 text-center">{{ p.hora_salida | date:'h:mm a' }}</td>
                     </tr>
                   </ng-container>
                   <ng-container *ngIf="pacientesAtendidosHoy.length > 0">

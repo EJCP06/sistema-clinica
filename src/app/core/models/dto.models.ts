@@ -57,7 +57,6 @@ export interface AdmisionDTO {
   fecha_creacion: string;
   hora_llegada?: string;
   hora_salida?: string;
-  mensaje?: boolean;
 }
 
 export interface PacienteDTO {
@@ -66,7 +65,6 @@ export interface PacienteDTO {
   nombre: string;
   apellido: string;
   telefono?: string;
-  notificaciones_sms?: boolean;
   status?: boolean;
   id_sede?: number;
 }
@@ -78,7 +76,6 @@ export interface CrearPacienteRequest {
   apellido: string;
   telefono?: string;
   status?: boolean;
-  notificaciones_sms?: boolean;
 }
 
 export interface GenerarTurnoRequest {
@@ -141,6 +138,7 @@ export interface MiEstadoDTO {
   apellido_paciente?: string;
   documento_paciente?: string;
   turno_hora_llegada?: string;
+  hora_llamado?: string;
 }
 
 export interface ConsultorioDTO {

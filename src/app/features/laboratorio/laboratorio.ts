@@ -117,7 +117,7 @@ export class LaboratorioComponent implements OnInit, OnDestroy {
           const esSeguro = modalidadPagoLower === 'seguro';
           const esParticular = modalidadPagoLower === 'particular';
 
-          if (esLaboratorio) return esParticular || esSeguro;
+          if (esLaboratorio) return esParticular;
           return false;
         });
       },

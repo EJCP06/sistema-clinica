@@ -72,7 +72,7 @@
     <div class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
       <div class="flex flex-col justify-between">
         <div class="overflow-x-auto">
-<table class="w-full text-left text-sm ">
+<table class="w-full min-w-[800px] text-left text-sm ">
           <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
             <tr class="h-[52px] md:h-[64px] text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombre</th>
@@ -88,9 +88,9 @@
           <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
             <ng-container *ngFor="let m of medicosFiltrados | paginate: currentPageMedicos : pageSize; trackBy: trackById">
               <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ m.nombre }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ m.apellido }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ m.cedula }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ m.nombre || 'Sin asignar' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ m.apellido || '' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ m.cedula || 'Sin asignar' }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold uppercase text-center">{{ m.telefono || 'SIN ASIGNAR' }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ getNombreEsp(m.id_especialidad) || getNombreServicio(m.servicio_id) }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 dark:text-slate-400 font-bold text-center">{{ getSedeLabel(m.id_sede) }}</td>
@@ -136,7 +136,7 @@
     <div class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
       <div class="flex flex-col justify-between">
         <div class="overflow-x-auto">
-<table class="w-full text-left text-sm ">
+<table class="w-full min-w-[800px] text-left text-sm ">
           <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
             <tr class="h-[52px] md:h-[64px] text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombre</th>
@@ -152,12 +152,12 @@
           <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
             <ng-container *ngFor="let r of recepcionistasFiltradas | paginate: currentPageRecepcionistas : pageSize; trackBy: trackById">
               <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ r.nombre }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ r.apellido }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ r.cedula }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ r.nombre || 'Sin asignar' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ r.apellido || '' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ r.cedula || 'Sin asignar' }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 uppercase font-bold text-center">{{ r.telefono || 'SIN ASIGNAR' }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ getSedeLabel(r.id_sede) }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tighter text-center">{{ r.piso ? 'PISO ' + r.piso : 'SIN ASIGNAR' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tighter text-center">{{ formatPiso(r.piso) }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
                   <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [ngClass]="r.activo ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'">{{ r.activo ? 'Activo' : 'Inactivo' }}</span>
                 </td>
@@ -200,7 +200,7 @@
     <div class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
       <div class="flex flex-col justify-between">
         <div class="overflow-x-auto">
-<table class="w-full text-left text-sm ">
+<table class="w-full min-w-[800px] text-left text-sm ">
           <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
             <tr class="h-[52px] md:h-[64px] text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombre</th>
@@ -215,9 +215,9 @@
           <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
             <ng-container *ngFor="let a of administradoresFiltrados | paginate: currentPageAdmin : pageSize; trackBy: trackById">
               <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.nombre }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.apellido }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ a.cedula }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.nombre || 'Sin asignar' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.apellido || '' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ a.cedula || 'Sin asignar' }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold uppercase text-center">{{ a.telefono || 'SIN ASIGNAR' }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ getSedeLabel(a.id_sede) }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
@@ -262,7 +262,7 @@
     <div class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
       <div class="flex flex-col justify-between">
         <div class="overflow-x-auto">
-<table class="w-full text-left text-sm ">
+<table class="w-full min-w-[800px] text-left text-sm ">
           <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
             <tr class="h-[52px] md:h-[64px] text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombre</th>
@@ -277,9 +277,9 @@
           <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
             <ng-container *ngFor="let a of laboratorioFiltrados | paginate: currentPageLaboratorio : pageSize; trackBy: trackById">
               <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.nombre }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.apellido }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ a.cedula }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.nombre || 'Sin asignar' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.apellido || '' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ a.cedula || 'Sin asignar' }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold uppercase text-center">{{ a.telefono || 'SIN ASIGNAR' }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ getSedeLabel(a.id_sede) }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
@@ -324,7 +324,7 @@
     <div class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
       <div class="flex flex-col justify-between">
         <div class="overflow-x-auto">
-<table class="w-full text-left text-sm ">
+<table class="w-full min-w-[800px] text-left text-sm ">
           <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
             <tr class="h-[52px] md:h-[64px] text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombre</th>
@@ -339,9 +339,9 @@
           <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
             <ng-container *ngFor="let a of imagenesFiltrados | paginate: currentPageImagenes : pageSize; trackBy: trackById">
               <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.nombre }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.apellido }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ a.cedula }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.nombre || 'Sin asignar' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.apellido || '' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ a.cedula || 'Sin asignar' }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold uppercase text-center">{{ a.telefono || 'SIN ASIGNAR' }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ getSedeLabel(a.id_sede) }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
@@ -385,7 +385,7 @@
   <div *ngIf="activeTab === 'aps'" class="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
     <div class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
       <div class="overflow-x-auto flex flex-col justify-between">
-        <table class="w-full text-left text-sm ">
+        <table class="w-full min-w-[800px] text-left text-sm ">
           <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
             <tr class="h-[52px] md:h-[64px] text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombre</th>
@@ -400,9 +400,9 @@
           <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
             <ng-container *ngFor="let a of apsFiltrados | paginate: currentPageAps : pageSize; trackBy: trackById">
               <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.nombre }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.apellido }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ a.cedula }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.nombre || 'Sin asignar' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.apellido || '' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ a.cedula || 'Sin asignar' }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold uppercase text-center">{{ a.telefono || 'SIN ASIGNAR' }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ getSedeLabel(a.id_sede) }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">

@@ -178,3 +178,34 @@ body:has(.fixed.inset-0.z-\[100\]) {
   animation: dropDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   transform-origin: top;
 }
+
+
+/* Helpers para experiencia móvil */
+.touch-scroll {
+  -webkit-overflow-scrolling: touch; /* momentum scrolling en iOS */
+  touch-action: pan-y; /* permitir scroll vertical */
+}
+
+.sticky-footer {
+  position: sticky;
+  bottom: 0;
+  padding: 0.75rem;
+  background: inherit; /* mantiene color según tema */
+  /* border-top removed to avoid visible line above logout button on mobile */
+}
+
+/* Ajuste móvil: elevar un poco la tarjeta superior del sidebar para que se vea mejor en teléfonos */
+@media (max-width: 640px) {
+  .sidebar-card {
+    transform: translateY(-1.4rem); /* sube más en móvil */
+    transition: transform 160ms ease;
+  }
+
+  /* Perfil móvil: quitar borde que produce la línea sobre el botón */
+  .mobile-profile-card {
+    border: none !important;
+    box-shadow: none !important;
+    padding-bottom: 1rem; /* espacio visual entre card y logout */
+  }
+}
+
