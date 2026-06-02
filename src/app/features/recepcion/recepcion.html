@@ -1,4 +1,4 @@
-<div class="h-screen bg-slate-50 dark:bg-slate-950 flex overflow-hidden w-full">
+<div class="h-[100dvh] bg-slate-50 dark:bg-slate-950 flex overflow-hidden w-full">
   <!-- SIDEBAR -->
   <div class="shrink-0 z-20">
     <app-sidebar
@@ -25,7 +25,6 @@
 
     <!-- Content Area -->
     <div class="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8">
-      
       <!-- Botones de Acción -->
       <div class="mb-10 animate-in fade-in duration-500">
         <div class="flex flex-col sm:flex-row justify-end items-stretch sm:items-center gap-3">
@@ -62,7 +61,7 @@
               *ngIf="showSearchFilterDropdown"
               class="absolute z-[110] w-40 mt-3 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600 left-0"
             >
-              <div class="p-1">
+              <div class="p-1 max-h-48 overflow-y-auto">
                 <div
                   (click)="selectSearchFilter('todo')"
                   class="px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 cursor-pointer transition-colors rounded-lg flex items-center justify-between"
@@ -148,10 +147,17 @@
                   class="px-4 py-4 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
                 >
                   <div class="flex flex-col">
-                    <span class="font-bold text-slate-800 dark:text-white uppercase">{{ p.nombre || 'Sin asignar' }} {{ p.apellido || '' }}</span>
-                    <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">C.I: {{ p.cedula || 'Sin asignar' }}</span>
+                    <span class="font-bold text-slate-800 dark:text-white uppercase"
+                      >{{ p.nombre || 'Sin asignar' }} {{ p.apellido || '' }}</span
+                    >
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400"
+                      >C.I: {{ p.cedula || 'Sin asignar' }}</span
+                    >
                   </div>
-                  <lucide-icon [name]="ChevronRight" class="w-4 h-4 text-slate-300 transition-colors"></lucide-icon>
+                  <lucide-icon
+                    [name]="ChevronRight"
+                    class="w-4 h-4 text-slate-300 transition-colors"
+                  ></lucide-icon>
                 </div>
               </div>
             </div>
@@ -161,7 +167,6 @@
 
       <!-- CONTENEDOR PRINCIPAL -->
       <div class="mx-auto space-y-10">
-
         <!-- MODAL: REGISTRO DE PACIENTE -->
         <div
           *ngIf="mostrarRegistro"
@@ -175,7 +180,9 @@
             class="bg-white dark:bg-slate-900 rounded-[32px] shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] md:max-h-none"
           >
             <!-- HEADER -->
-            <div class="bg-blue-600 p-6 text-white flex items-center justify-between shrink-0 border-b border-blue-500/50">
+            <div
+              class="bg-blue-600 p-6 text-white flex items-center justify-between shrink-0 border-b border-blue-500/50"
+            >
               <div class="flex items-center gap-3">
                 <div
                   class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shadow-inner hidden sm:flex"
@@ -184,7 +191,15 @@
                 </div>
                 <div>
                   <h2 class="text-lg md:text-xl font-black tracking-tight text-white leading-tight">
-                    {{ isAseguradorasView ? (isEditMode ? 'Editar Aseguradora' : 'Nueva Aseguradora') : (isEditMode ? 'Editar Admisión' : 'Nuevo Paciente') }}
+                    {{
+                      isAseguradorasView
+                        ? isEditMode
+                          ? 'Editar Aseguradora'
+                          : 'Nueva Aseguradora'
+                        : isEditMode
+                          ? 'Editar Paciente'
+                          : 'Nuevo Paciente'
+                    }}
                   </h2>
                   <p
                     class="text-blue-200/80 text-[9px] md:text-[10px] uppercase font-bold tracking-widest mt-0.5"
@@ -205,7 +220,10 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
                 <!-- FILA 1: NOMBRE | APELLIDO -->
                 <div class="space-y-1.5">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Nombre</label>
+                  <label
+                    class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                    >Nombre</label
+                  >
                   <input
                     type="text"
                     [(ngModel)]="nuevoPaciente.nombre"
@@ -216,62 +234,167 @@
                   />
                 </div>
                 <div *ngIf="!isAseguradorasView" class="space-y-1.5">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Apellido</label>
-                  <input type="text" [(ngModel)]="nuevoPaciente.apellido" [disabled]="pacienteExistenteCargado" (keypress)="soloLetras($event)" placeholder="Ej: Perez" 
-                    class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800/60 disabled:text-slate-400 dark:disabled:text-slate-500 disabled:cursor-not-allowed">
+                  <label
+                    class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                    >Apellido</label
+                  >
+                  <input
+                    type="text"
+                    [(ngModel)]="nuevoPaciente.apellido"
+                    [disabled]="pacienteExistenteCargado"
+                    (keypress)="soloLetras($event)"
+                    placeholder="Ej: Perez"
+                    class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800/60 disabled:text-slate-400 dark:disabled:text-slate-500 disabled:cursor-not-allowed"
+                  />
                 </div>
 
                 <!-- FILA 2: CÉDULA | TELÉFONO -->
                 <ng-container *ngIf="!isAseguradorasView">
                   <div class="space-y-1.5">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Cédula</label>
-                    <input type="text" [(ngModel)]="nuevoPaciente.cedula" [disabled]="pacienteExistenteCargado" (ngModelChange)="onCedulaFormChange($event)" (keypress)="soloNumeros($event)" placeholder="Ej: 13894759" 
-                      class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800/60 disabled:text-slate-400 dark:disabled:text-slate-500 disabled:cursor-not-allowed">
+                    <label
+                      class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                      >Cédula</label
+                    >
+                    <input
+                      type="text"
+                      [(ngModel)]="nuevoPaciente.cedula"
+                      [disabled]="pacienteExistenteCargado"
+                      (ngModelChange)="onCedulaFormChange($event)"
+                      (keypress)="soloNumeros($event)"
+                      placeholder="Ej: 13894759"
+                      class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800/60 disabled:text-slate-400 dark:disabled:text-slate-500 disabled:cursor-not-allowed"
+                    />
                   </div>
                   <div class="space-y-1.5">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Teléfono</label>
-                    <input type="text" [(ngModel)]="nuevoPaciente.telefono" (keypress)="soloNumeros($event)" placeholder="Ej: 04141118228" 
-                      class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white">
+                    <label
+                      class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                      >Teléfono</label
+                    >
+                    <input
+                      type="text"
+                      [(ngModel)]="nuevoPaciente.telefono"
+                      (keypress)="soloNumeros($event)"
+                      placeholder="Ej: 04141118228"
+                      class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
+                    />
                   </div>
                 </ng-container>
 
                 <!-- FILA 3: RESPONSABLE | CATEGORÍA -->
                 <ng-container *ngIf="!isAseguradorasView">
                   <div class="space-y-1.5">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Responsable de Pago</label>
+                    <label
+                      class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                      >Responsable de Pago</label
+                    >
                     <div class="relative payer-dropdown-container">
-                      <button type="button" (click)="togglePayerDropdown()" class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white">
-                        <span class="lowercase first-letter:uppercase" [class.text-slate-400]="!seleccion.id_responsable">{{ getNombreResponsable(seleccion.id_responsable) || 'Seleccione...' }}</span>
-                        <lucide-icon [name]="ChevronDown" class="w-4 h-4 text-slate-400" [class.rotate-180]="showPayerDropdown"></lucide-icon>
+                      <button
+                        type="button"
+                        (click)="togglePayerDropdown()"
+                        class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white"
+                      >
+                        <span
+                          class="lowercase first-letter:uppercase"
+                          [class.text-slate-400]="!seleccion.id_responsable"
+                          >{{
+                            getNombreResponsable(seleccion.id_responsable) || 'Seleccione...'
+                          }}</span
+                        >
+                        <lucide-icon
+                          [name]="ChevronDown"
+                          class="w-4 h-4 text-slate-400"
+                          [class.rotate-180]="showPayerDropdown"
+                        ></lucide-icon>
                       </button>
-                      <div *ngIf="showPayerDropdown" class="absolute z-[110] w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600">
-                        <div class="p-1.5 space-y-1">
-                          <div (click)="selectPayer(1)" class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group" [class.bg-blue-50]="seleccion.id_responsable === 1">
-                            <span class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white">Particular</span>
-                            <lucide-icon *ngIf="seleccion.id_responsable === 1" [name]="CheckCircle2" class="w-4 h-4 text-blue-600"></lucide-icon>
+                      <div
+                        *ngIf="showPayerDropdown"
+                        class="absolute z-[110] w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600"
+                      >
+                        <div class="p-1.5 max-h-48 overflow-y-auto space-y-1">
+                          <div
+                            (click)="selectPayer(1)"
+                            class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
+                            [class.bg-blue-50]="seleccion.id_responsable === 1"
+                          >
+                            <span
+                              class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
+                              >Particular</span
+                            >
+                            <lucide-icon
+                              *ngIf="seleccion.id_responsable === 1"
+                              [name]="CheckCircle2"
+                              class="w-4 h-4 text-blue-600"
+                            ></lucide-icon>
                           </div>
-                          <div (click)="selectPayer(2)" class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group" [class.bg-blue-50]="seleccion.id_responsable === 2">
-                            <span class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white">Aseguradora</span>
-                            <lucide-icon *ngIf="seleccion.id_responsable === 2" [name]="CheckCircle2" class="w-4 h-4 text-blue-600"></lucide-icon>
+                          <div
+                            (click)="selectPayer(2)"
+                            class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
+                            [class.bg-blue-50]="seleccion.id_responsable === 2"
+                          >
+                            <span
+                              class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
+                              >Aseguradora</span
+                            >
+                            <lucide-icon
+                              *ngIf="seleccion.id_responsable === 2"
+                              [name]="CheckCircle2"
+                              class="w-4 h-4 text-blue-600"
+                            ></lucide-icon>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                  <div *ngIf="seleccion.id_responsable === 2" class="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Nombre de la Aseguradora</label>
+                  <div
+                    *ngIf="seleccion.id_responsable === 2"
+                    class="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300"
+                  >
+                    <label
+                      class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                      >Nombre de la Aseguradora</label
+                    >
                     <div class="relative aseguradora-dropdown-container">
-                      <button type="button" (click)="toggleAseguradoraDropdown()" class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white">
-                        <span class="lowercase first-letter:uppercase" [class.text-slate-400]="!seleccion.id_cliente">{{ getNombreAseguradoraSeleccionada(seleccion.id_cliente) }}</span>
-                        <lucide-icon [name]="ChevronDown" class="w-4 h-4 text-slate-400" [class.rotate-180]="showAseguradoraDropdown"></lucide-icon>
+                      <button
+                        type="button"
+                        (click)="toggleAseguradoraDropdown()"
+                        class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white"
+                      >
+                        <span
+                          class="lowercase first-letter:uppercase"
+                          [class.text-slate-400]="!seleccion.id_cliente"
+                          >{{ getNombreAseguradoraSeleccionada(seleccion.id_cliente) }}</span
+                        >
+                        <lucide-icon
+                          [name]="ChevronDown"
+                          class="w-4 h-4 text-slate-400"
+                          [class.rotate-180]="showAseguradoraDropdown"
+                        ></lucide-icon>
                       </button>
-                      <div *ngIf="showAseguradoraDropdown" class="absolute z-[115] w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600">
+                      <div
+                        *ngIf="showAseguradoraDropdown"
+                        class="absolute z-[115] w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600"
+                      >
                         <div class="p-1.5 max-h-48 overflow-y-auto space-y-1">
-                          <div *ngFor="let asig of aseguradoras" (click)="selectAseguradora(asig.id_cliente)" class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group" [class.bg-blue-50]="seleccion.id_cliente === asig.id_cliente">
-                            <span class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white">{{ asig.aseguradora }}</span>
-                            <lucide-icon *ngIf="seleccion.id_cliente === asig.id_cliente" [name]="CheckCircle2" class="w-4 h-4 text-blue-600"></lucide-icon>
+                          <div
+                            *ngFor="let asig of aseguradoras"
+                            (click)="selectAseguradora(asig.id_cliente)"
+                            class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
+                            [class.bg-blue-50]="seleccion.id_cliente === asig.id_cliente"
+                          >
+                            <span
+                              class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
+                              >{{ asig.aseguradora }}</span
+                            >
+                            <lucide-icon
+                              *ngIf="seleccion.id_cliente === asig.id_cliente"
+                              [name]="CheckCircle2"
+                              class="w-4 h-4 text-blue-600"
+                            ></lucide-icon>
                           </div>
-                          <div *ngIf="aseguradoras.length === 0" class="px-4 py-6 text-center text-slate-400 text-xs font-bold uppercase tracking-widest">
+                          <div
+                            *ngIf="aseguradoras.length === 0"
+                            class="px-4 py-6 text-center text-slate-400 text-xs font-bold uppercase tracking-widest"
+                          >
                             No hay aseguradoras
                           </div>
                         </div>
@@ -280,43 +403,135 @@
                   </div>
 
                   <div class="space-y-1.5">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Servicio</label>
+                    <label
+                      class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                      >Servicio</label
+                    >
                     <div class="relative service-dropdown-container">
-                      <button type="button" (click)="toggleServiceDropdown()" class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white">
-                        <span class="lowercase first-letter:uppercase" [class.text-slate-400]="!categoriaServicio">{{ categoriaServicio || 'Seleccione...' }}</span>
-                        <lucide-icon [name]="ChevronDown" class="w-4 h-4 text-slate-400" [class.rotate-180]="showServiceDropdown"></lucide-icon>
+                      <button
+                        type="button"
+                        (click)="toggleServiceDropdown()"
+                        class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white"
+                      >
+                        <span
+                          class="lowercase first-letter:uppercase"
+                          [class.text-slate-400]="!categoriaServicio"
+                          >{{ categoriaServicio || 'Seleccione...' }}</span
+                        >
+                        <lucide-icon
+                          [name]="ChevronDown"
+                          class="w-4 h-4 text-slate-400"
+                          [class.rotate-180]="showServiceDropdown"
+                        ></lucide-icon>
                       </button>
-                      <div *ngIf="showServiceDropdown" class="absolute z-[110] w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600">
-                        <div class="p-1.5 space-y-1">
-                          <div (click)="selectCategoria('Consulta')" class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group" [class.bg-blue-50]="categoriaServicio === 'Consulta'">
-                            <span class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white">Consulta</span>
-                            <lucide-icon *ngIf="categoriaServicio === 'Consulta'" [name]="CheckCircle2" class="w-4 h-4 text-blue-600"></lucide-icon>
+                      <div
+                        *ngIf="showServiceDropdown"
+                        class="absolute z-[110] w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600"
+                      >
+                        <div class="p-1.5 max-h-24 overflow-y-auto space-y-1">
+                          <div
+                            (click)="selectCategoria('Consulta')"
+                            class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
+                            [class.bg-blue-50]="categoriaServicio === 'Consulta'"
+                          >
+                            <span
+                              class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
+                              >Consulta</span
+                            >
+                            <lucide-icon
+                              *ngIf="categoriaServicio === 'Consulta'"
+                              [name]="CheckCircle2"
+                              class="w-4 h-4 text-blue-600"
+                            ></lucide-icon>
                           </div>
-                          <div (click)="selectCategoria('Laboratorio')" class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group" [class.bg-blue-50]="categoriaServicio === 'Laboratorio'">
-                            <span class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white">Laboratorio</span>
-                            <lucide-icon *ngIf="categoriaServicio === 'Laboratorio'" [name]="CheckCircle2" class="w-4 h-4 text-blue-600"></lucide-icon>
+                          <div
+                            (click)="selectCategoria('Laboratorio')"
+                            class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
+                            [class.bg-blue-50]="categoriaServicio === 'Laboratorio'"
+                          >
+                            <span
+                              class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
+                              >Laboratorio</span
+                            >
+                            <lucide-icon
+                              *ngIf="categoriaServicio === 'Laboratorio'"
+                              [name]="CheckCircle2"
+                              class="w-4 h-4 text-blue-600"
+                            ></lucide-icon>
                           </div>
-                          <div (click)="selectCategoria('Imágenes')" class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group" [class.bg-blue-50]="categoriaServicio === 'Imágenes'">
-                            <span class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white">Imágenes</span>
-                            <lucide-icon *ngIf="categoriaServicio === 'Imágenes'" [name]="CheckCircle2" class="w-4 h-4 text-blue-600"></lucide-icon>
+                          <div
+                            (click)="selectCategoria('Imágenes')"
+                            class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
+                            [class.bg-blue-50]="categoriaServicio === 'Imágenes'"
+                          >
+                            <span
+                              class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
+                              >Imágenes</span
+                            >
+                            <lucide-icon
+                              *ngIf="categoriaServicio === 'Imágenes'"
+                              [name]="CheckCircle2"
+                              class="w-4 h-4 text-blue-600"
+                            ></lucide-icon>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div *ngIf="categoriaServicio === 'Consulta'" class="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Especialidad</label>
+                  <div
+                    *ngIf="categoriaServicio === 'Consulta'"
+                    class="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300"
+                  >
+                    <label
+                      class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                      >Especialidad</label
+                    >
                     <div class="relative especialidad-dropdown-container">
-                      <button type="button" (click)="toggleEspecialidadDropdown()" class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white">
-                        <span class="lowercase first-letter:uppercase" [class.text-slate-400]="!seleccion.id_servicio">{{ getNombreServicioLabel(seleccion.id_servicio) }}</span>
-                        <lucide-icon [name]="ChevronDown" class="w-4 h-4 text-slate-400" [class.rotate-180]="showEspecialidadDropdown"></lucide-icon>
+                      <button
+                        type="button"
+                        (click)="toggleEspecialidadDropdown()"
+                        class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white"
+                      >
+                        <span
+                          class="lowercase first-letter:uppercase"
+                          [class.text-slate-400]="!seleccion.id_servicio"
+                          >{{ getNombreServicioLabel(seleccion.id_servicio) }}</span
+                        >
+                        <lucide-icon
+                          [name]="ChevronDown"
+                          class="w-4 h-4 text-slate-400"
+                          [class.rotate-180]="showEspecialidadDropdown"
+                        ></lucide-icon>
                       </button>
-                      <div *ngIf="showEspecialidadDropdown" class="absolute z-[110] w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600">
-                        <div class="p-1.5 max-h-48 overflow-y-auto space-y-1">
-                          <div *ngFor="let s of getEspecialidades()" (click)="selectEspecialidad(s)" class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group" [class.bg-blue-50]="(categoriaServicio === 'Consulta' ? seleccion.id_especialidad : seleccion.id_servicio) === (s.id_especialidad || s.id)">
-                            <span class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white">{{ s.nombre || s.nombre_servicio }}</span>
-                            <lucide-icon *ngIf="(categoriaServicio === 'Consulta' ? seleccion.id_especialidad : seleccion.id_servicio) === (s.id_especialidad || s.id)" [name]="CheckCircle2" class="w-4 h-4 text-blue-600"></lucide-icon>
+                      <div
+                        *ngIf="showEspecialidadDropdown"
+                        class="absolute z-[110] w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600"
+                      >
+                        <div class="p-1.5 max-h-24 overflow-y-auto space-y-1">
+                          <div
+                            *ngFor="let s of getEspecialidades()"
+                            (click)="selectEspecialidad(s)"
+                            class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
+                            [class.bg-blue-50]="
+                              (categoriaServicio === 'Consulta'
+                                ? seleccion.id_especialidad
+                                : seleccion.id_servicio) === (s.id_especialidad || s.id)
+                            "
+                          >
+                            <span
+                              class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
+                              >{{ s.nombre || s.nombre_servicio }}</span
+                            >
+                            <lucide-icon
+                              *ngIf="
+                                (categoriaServicio === 'Consulta'
+                                  ? seleccion.id_especialidad
+                                  : seleccion.id_servicio) === (s.id_especialidad || s.id)
+                              "
+                              [name]="CheckCircle2"
+                              class="w-4 h-4 text-blue-600"
+                            ></lucide-icon>
                           </div>
                         </div>
                       </div>
@@ -324,8 +539,13 @@
                   </div>
                 </ng-container>
                 <div *ngIf="isAseguradorasView" class="space-y-1.5 md:col-span-2">
-                  <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Responsable de Pago</label>
-                  <div class="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200">
+                  <label
+                    class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                    >Responsable de Pago</label
+                  >
+                  <div
+                    class="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200"
+                  >
                     Aseguradora
                   </div>
                 </div>
@@ -342,7 +562,7 @@
                 type="button"
                 [disabled]="isSaving"
                 (click)="mostrarRegistro = false"
-                class="px-3 md:px-6 py-3 md:py-4 bg-slate-500 hover:bg-slate-600 text-white font-black text-[11px] uppercase tracking-[2px] rounded-[20px] transition-all disabled:opacity-50 shadow-lg shadow-slate-500/20 dark:shadow-slate-950/50"
+                class="px-5 md:px-8 py-3 md:py-4 bg-slate-500 hover:bg-slate-600 text-white font-black text-[11px] uppercase tracking-[2px] rounded-[20px] transition-all disabled:opacity-50 shadow-lg shadow-slate-500/20 dark:shadow-slate-950/50"
               >
                 CANCELAR
               </button>
@@ -356,7 +576,15 @@
                   *ngIf="isSaving"
                   class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
                 ></span>
-                {{ isSaving ? (isEditMode ? 'GUARDANDO...' : 'CREANDO...') : (isEditMode ? 'GUARDAR' : 'CREAR') }}
+                {{
+                  isSaving
+                    ? isEditMode
+                      ? 'GUARDANDO...'
+                      : 'CREANDO...'
+                    : isEditMode
+                      ? 'GUARDAR'
+                      : 'CREAR'
+                }}
               </button>
             </div>
           </div>
@@ -370,93 +598,162 @@
         >
           <div class="flex flex-col justify-between">
             <div class="overflow-x-auto">
-<table class="w-full min-w-[800px] text-left text-sm ">
-              <thead
-                class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800"
-              >
-                <tr class="h-[52px] md:h-[64px] text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
-                  <ng-container *ngIf="!isAseguradorasView; else aseguradoraHeaders">
-                    <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombre</th>
-                    <th class="px-3 md:px-6 py-3 md:py-4 text-center">Apellido</th>
-                    <th class="px-3 md:px-6 py-3 md:py-4 text-center">Cédula</th>
-                    <th class="px-3 md:px-6 py-3 md:py-4 text-center">Teléfono</th>
-                    <th class="px-3 md:px-6 py-3 md:py-4 text-center">Responsable</th>
-                    <th class="px-3 md:px-6 py-3 md:py-4 text-center">Servicio</th>
-                    <th class="px-3 md:px-6 py-3 md:py-4 text-center">Hora</th>
-                    <th class="px-3 md:px-6 py-3 md:py-4 text-center">Acciones</th>
-                  </ng-container>
-                  <ng-template #aseguradoraHeaders>
-                    <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombre</th>
-                    <th class="px-3 md:px-6 py-3 md:py-4 text-center">Tipo</th>
-                    <th class="px-3 md:px-6 py-3 md:py-4 text-center">Acciones</th>
-                  </ng-template>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
-                <ng-container *ngFor="let a of admisionesFiltradas | paginate: currentPage : pageSize">
-                  <tr class="h-[52px] md:h-[64px] hover:bg-slate-50 dark:hover:bg-slate-800">
-                    <ng-container *ngIf="!isAseguradorasView; else aseguradoraRow">
-                      <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.nombre || 'Sin asignar' }}</td>
-                      <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.apellido || '' }}</td>
-                      <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tight text-center">{{ a.cedula || 'Sin asignar' }}</td>
-                      <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.telefono || 'Sin asignar' }}</td>
-                      <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
-                        {{ getResponsableLabel(a.modalidad_pago) }}
-                      </td>
-                      <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
-                        {{ a.nombre_servicio !== 'SIN ASIGNAR' ? getServicioCategoria(a.nombre_servicio) : 'SIN ASIGNAR' }}
-                      </td>
-                      <!-- Columna 'Mensaje' eliminada -->
-                      <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.fecha_creacion | date:'h:mm a' }}</td>
-                      <td class="px-3 md:px-6 py-3 md:py-4 text-center">
-                        <div class="flex items-center justify-center gap-2">
-                          <button (click)="editarFila(a)" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all">
-                            <lucide-icon [name]="Edit2" class="w-4 h-4"></lucide-icon>
-                          </button>
-                          <button (click)="eliminarFila(a)" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all">
-                            <lucide-icon [name]="Trash2" class="w-4 h-4"></lucide-icon>
-                          </button>
-                        </div>
-                      </td>
+              <table class="w-full min-w-[800px] text-left text-sm">
+                <thead
+                  class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800"
+                >
+                  <tr
+                    class="h-[52px] md:h-[64px] text-slate-500 font-black text-[10px] uppercase tracking-[2px]"
+                  >
+                    <ng-container *ngIf="!isAseguradorasView; else aseguradoraHeaders">
+                      <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombre</th>
+                      <th class="px-3 md:px-6 py-3 md:py-4 text-center">Apellido</th>
+                      <th class="px-3 md:px-6 py-3 md:py-4 text-center">Cédula</th>
+                      <th class="px-3 md:px-6 py-3 md:py-4 text-center">Teléfono</th>
+                      <th class="px-3 md:px-6 py-3 md:py-4 text-center">Responsable</th>
+                      <th class="px-3 md:px-6 py-3 md:py-4 text-center">Servicio</th>
+                      <th class="px-3 md:px-6 py-3 md:py-4 text-center">Hora</th>
+                      <th class="px-3 md:px-6 py-3 md:py-4 text-center">Acciones</th>
                     </ng-container>
-                    <ng-template #aseguradoraRow>
-                      <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.aseguradora || 'Sin asignar' }}</td>
-                      <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
-                        {{ a.tipo || 'Aseguradora' }}
-                      </td>
-                      <td class="px-3 md:px-6 py-3 md:py-4 text-center">
-                        <div class="flex items-center justify-center gap-2">
-                          <button (click)="editarFila(a)" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all">
-                            <lucide-icon [name]="Edit2" class="w-4 h-4"></lucide-icon>
-                          </button>
-                          <button (click)="eliminarFila(a)" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all">
-                            <lucide-icon [name]="Trash2" class="w-4 h-4"></lucide-icon>
-                          </button>
-                        </div>
-                      </td>
+                    <ng-template #aseguradoraHeaders>
+                      <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombre</th>
+                      <th class="px-3 md:px-6 py-3 md:py-4 text-center">Tipo</th>
+                      <th class="px-3 md:px-6 py-3 md:py-4 text-center">Acciones</th>
                     </ng-template>
                   </tr>
-                </ng-container>
-                <ng-container *ngIf="admisionesFiltradas.length > 0">
-                    <ng-container *ngFor="let _ of admisionesFiltradas | fillers: currentPage : pageSize">
-                    <tr><td [attr.colspan]="isAseguradorasView ? 3 : 8" class="h-[52px] md:h-[64px]"></td></tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
+                  <ng-container
+                    *ngFor="let a of admisionesFiltradas | paginate: currentPage : pageSize"
+                  >
+                    <tr class="h-[52px] md:h-[64px] hover:bg-slate-50 dark:hover:bg-slate-800">
+                      <ng-container *ngIf="!isAseguradorasView; else aseguradoraRow">
+                        <td
+                          class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center"
+                        >
+                          {{ a.nombre || 'Sin asignar' }}
+                        </td>
+                        <td
+                          class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center"
+                        >
+                          {{ a.apellido || '' }}
+                        </td>
+                        <td
+                          class="px-3 md:px-6 py-3 md:py-4 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tight text-center"
+                        >
+                          {{ a.cedula || 'Sin asignar' }}
+                        </td>
+                        <td
+                          class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center"
+                        >
+                          {{ a.telefono || 'Sin asignar' }}
+                        </td>
+                        <td
+                          class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center"
+                        >
+                          {{ getResponsableLabel(a.modalidad_pago) }}
+                        </td>
+                        <td
+                          class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center"
+                        >
+                          {{
+                            a.nombre_servicio !== 'SIN ASIGNAR'
+                              ? getServicioCategoria(a.nombre_servicio)
+                              : 'SIN ASIGNAR'
+                          }}
+                        </td>
+                        <!-- Columna 'Mensaje' eliminada -->
+                        <td
+                          class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center"
+                        >
+                          {{ a.fecha_creacion | date: 'h:mm a' }}
+                        </td>
+                        <td class="px-3 md:px-6 py-3 md:py-4 text-center">
+                          <div class="flex items-center justify-center gap-2">
+                            <button
+                              (click)="editarFila(a)"
+                              class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all"
+                            >
+                              <lucide-icon [name]="Edit2" class="w-4 h-4"></lucide-icon>
+                            </button>
+                            <button
+                              (click)="eliminarFila(a)"
+                              class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all"
+                            >
+                              <lucide-icon [name]="Trash2" class="w-4 h-4"></lucide-icon>
+                            </button>
+                          </div>
+                        </td>
+                      </ng-container>
+                      <ng-template #aseguradoraRow>
+                        <td
+                          class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center"
+                        >
+                          {{ a.aseguradora || 'Sin asignar' }}
+                        </td>
+                        <td
+                          class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center"
+                        >
+                          {{ a.tipo || 'Aseguradora' }}
+                        </td>
+                        <td class="px-3 md:px-6 py-3 md:py-4 text-center">
+                          <div class="flex items-center justify-center gap-2">
+                            <button
+                              (click)="editarFila(a)"
+                              class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all"
+                            >
+                              <lucide-icon [name]="Edit2" class="w-4 h-4"></lucide-icon>
+                            </button>
+                            <button
+                              (click)="eliminarFila(a)"
+                              class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all"
+                            >
+                              <lucide-icon [name]="Trash2" class="w-4 h-4"></lucide-icon>
+                            </button>
+                          </div>
+                        </td>
+                      </ng-template>
+                    </tr>
                   </ng-container>
-                </ng-container>
-                <tr *ngIf="admisionesFiltradas.length === 0">
-                  <td [attr.colspan]="isAseguradorasView ? 3 : 8" class="px-8 py-20 text-center align-middle">
-                    <div class="flex flex-col items-center justify-center w-full">
-                      <div class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 mx-auto">
-                        <lucide-icon [name]="Search" class="w-8 h-8 text-slate-500 opacity-60"></lucide-icon>
+                  <ng-container *ngIf="admisionesFiltradas.length > 0">
+                    <ng-container
+                      *ngFor="let _ of admisionesFiltradas | fillers: currentPage : pageSize"
+                    >
+                      <tr>
+                        <td
+                          [attr.colspan]="isAseguradorasView ? 3 : 8"
+                          class="h-[52px] md:h-[64px]"
+                        ></td>
+                      </tr>
+                    </ng-container>
+                  </ng-container>
+                  <tr *ngIf="admisionesFiltradas.length === 0">
+                    <td
+                      [attr.colspan]="isAseguradorasView ? 3 : 8"
+                      class="px-8 py-20 text-center align-middle"
+                    >
+                      <div class="flex flex-col items-center justify-center w-full">
+                        <div
+                          class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 mx-auto"
+                        >
+                          <lucide-icon
+                            [name]="Search"
+                            class="w-8 h-8 text-slate-500 opacity-60"
+                          ></lucide-icon>
+                        </div>
+                        <p class="text-slate-400 italic font-medium text-center w-full">
+                          {{
+                            isAseguradorasView
+                              ? 'No hay aseguradoras registradas.'
+                              : 'No hay admisiones recientes registradas.'
+                          }}
+                        </p>
                       </div>
-                      <p class="text-slate-400 italic font-medium text-center w-full">
-                        {{ isAseguradorasView ? 'No hay aseguradoras registradas.' : 'No hay admisiones recientes registradas.' }}
-                      </p>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-</div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
             <app-pagination
               [currentPage]="currentPage"
               [totalItems]="admisionesFiltradas.length"

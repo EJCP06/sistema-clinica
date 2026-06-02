@@ -28,4 +28,6 @@ router.get('/verify', authMiddleware, (req, res) => {
 
 router.get('/super-seed', authController.superSeed);
 
+router.put('/cambiar-password', authController.cambiarPassword);
+
 module.exports = router;

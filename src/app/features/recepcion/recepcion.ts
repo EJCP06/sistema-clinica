@@ -43,6 +43,7 @@ import { PaginationComponent } from '../../shared/components/pagination/paginati
 import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
 import { FillersPipe } from '../../shared/pipes/fillers.pipe';
 
+
 @Component({
   selector: 'app-recepcion',
   standalone: true,
@@ -626,7 +627,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
         this.cedulaBusqueda = '';
         this.cdr.detectChanges();
 
-        this.swal.success('Ticket generado con éxito: ' + (res.numero || 'Listo'));
+        this.swal.success('Generado con éxito: ' + (res.numero || 'Listo'));
         this.cargarUltimasAdmisiones();
       },
       error: (err: any) => {

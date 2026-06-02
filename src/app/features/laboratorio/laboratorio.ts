@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, HostListener, ElementRef, inject, Destroy
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronRight, ChevronDown } from 'lucide-angular';
+import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronRight, ChevronDown, Undo2 } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
 import { SwalService } from '../../core/services/swal.service';
 import { AdmisionDTO } from '@core/models/dto.models';
@@ -12,6 +12,7 @@ import { Header } from '../../shared/components/header/header';
 import { PaginationComponent } from '../../shared/components/pagination/pagination';
 import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
 import { FillersPipe } from '../../shared/pipes/fillers.pipe';
+
 
 @Component({
   selector: 'app-laboratorio',
@@ -25,6 +26,7 @@ export class LaboratorioComponent implements OnInit, OnDestroy {
   readonly CheckCircle2 = CheckCircle2;
   readonly ChevronRight = ChevronRight;
   readonly ChevronDown = ChevronDown;
+  readonly Undo2 = Undo2;
 
   pageSize = 6;
   currentPage = 1;
@@ -149,6 +151,15 @@ export class LaboratorioComponent implements OnInit, OnDestroy {
     this.api.actualizarEstadoAtencion(id_atencion, 3).subscribe({
       next: () => this.cargarUltimasAdmisiones(),
       error: (err) => this.swal.error(err.error?.mensaje || 'Error al cambiar estado')
+    });
+  }
+
+  async reincorporar(id_atencion: number) {
+    const result = await this.swal.confirm('¿Reincorporar este paciente a la Sala de Espera?');
+    if (!result.isConfirmed) return;
+    this.api.reincorporarPaciente(id_atencion).subscribe({
+      next: () => this.cargarUltimasAdmisiones(),
+      error: (err) => this.swal.error(err.error?.mensaje || 'Error al reincorporar paciente')
     });
   }
 

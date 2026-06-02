@@ -23,6 +23,7 @@ import { PaginationComponent } from '../../shared/components/pagination/paginati
 import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
 import { FillersPipe } from '../../shared/pipes/fillers.pipe';
 
+
 @Component({
   selector: 'app-admin-especialidades',
   standalone: true,
@@ -130,7 +131,7 @@ export class AdminEspecialidades implements OnInit {
         codigo: esp.codigo || '',
         prefijo: esp.prefijo || '',
         piso: esp.piso || '',
-        consultorios_ids: esp.consultorios_ids || [],
+        consultorios_ids: [...(esp.consultorios_ids || [])],
         descripcion: '',
         activo: esp.activo ?? true,
         id_sede: esp.id_sede || '',
@@ -148,7 +149,7 @@ export class AdminEspecialidades implements OnInit {
         descripcion: '',
         activo: true,
         id_sede: '',
-        id_servicio: 1,
+      id_servicio: this.formEsp.id_servicio,
       };
     }
     this.showModalEspecialidad = true;

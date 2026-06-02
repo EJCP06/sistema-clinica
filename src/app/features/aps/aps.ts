@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, HostListener, ElementRef, inject, Destroy
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronRight, ChevronDown } from 'lucide-angular';
+import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronRight, ChevronDown, Undo2 } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
 import { SwalService } from '../../core/services/swal.service';
 import { AdmisionDTO } from '@core/models/dto.models';
@@ -12,6 +12,7 @@ import { Header } from '../../shared/components/header/header';
 import { PaginationComponent } from '../../shared/components/pagination/pagination';
 import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
 import { FillersPipe } from '../../shared/pipes/fillers.pipe';
+
 
 @Component({
   selector: 'app-aps',
@@ -25,6 +26,7 @@ export class ApsComponent implements OnInit, OnDestroy {
   readonly CheckCircle2 = CheckCircle2;
   readonly ChevronRight = ChevronRight;
   readonly ChevronDown = ChevronDown;
+  readonly Undo2 = Undo2;
 
   pageSize = 6;
   currentPage = 1;
@@ -129,10 +131,18 @@ export class ApsComponent implements OnInit, OnDestroy {
   onSearchChange(value: string | undefined) {
   }
 
-  async enviarAPresupuesto(id_atencion: number) {
-    const result = await this.swal.confirm('¿Deseas enviar este paciente a Presupuesto/Caja?');
+  async enviarAPresupuesto(admision: any) {
+    const modalidadPago = (admision.modalidad_pago || '').toString().trim().toLowerCase();
+    const esAseguradora = modalidadPago.includes('seguro') || modalidadPago.includes('asegur');
+    const question = esAseguradora
+      ? '¿Ya fue aprobada la clave de la Aseguradora?'
+      : '¿Deseas enviar este paciente a Presupuesto/Caja?';
+
+    const result = await this.swal.confirm(question);
     if (!result.isConfirmed) return;
-    this.api.actualizarEstadoAtencion(id_atencion, 2).subscribe({
+
+    const nuevoEstado = esAseguradora ? 3 : 2;
+    this.api.actualizarEstadoAtencion(admision.id_atencion, nuevoEstado).subscribe({
       next: () => this.cargarUltimasAdmisiones(),
       error: (err) => this.swal.error(err.error?.mensaje || 'Error al cambiar estado')
     });
@@ -145,6 +155,20 @@ export class ApsComponent implements OnInit, OnDestroy {
       next: () => this.cargarUltimasAdmisiones(),
       error: (err) => this.swal.error(err.error?.mensaje || 'Error al cambiar estado')
     });
+  }
+
+  async reincorporar(id_atencion: number) {
+    const result = await this.swal.confirm('¿Reincorporar este paciente a la Sala de Espera?');
+    if (!result.isConfirmed) return;
+    this.api.reincorporarPaciente(id_atencion).subscribe({
+      next: () => this.cargarUltimasAdmisiones(),
+      error: (err) => this.swal.error(err.error?.mensaje || 'Error al reincorporar paciente')
+    });
+  }
+
+  esAseguradora(dto: { modalidad_pago?: string }): boolean {
+    const modalidad = (dto.modalidad_pago || '').toString().trim().toLowerCase();
+    return modalidad.includes('seguro') || modalidad.includes('asegur');
   }
 
   getResponsableLabel(value: string | undefined): string {

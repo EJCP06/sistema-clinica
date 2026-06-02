@@ -1,4 +1,4 @@
-import { Component, inject, Input, OnInit, HostListener, DestroyRef } from '@angular/core';
+import { Component, inject, Input, OnInit, OnChanges, SimpleChanges, HostListener, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -42,6 +42,7 @@ import { PaginationComponent } from '../../shared/components/pagination/paginati
 import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
 import { FillersPipe } from '../../shared/pipes/fillers.pipe';
 
+
 @Component({
   selector: 'app-admin-personal',
   standalone: true,
@@ -49,7 +50,7 @@ import { FillersPipe } from '../../shared/pipes/fillers.pipe';
   templateUrl: './admin-personal.html',
   styles: [],
 })
-export class AdminPersonal implements OnInit {
+export class AdminPersonal implements OnInit, OnChanges {
   readonly Plus = Plus;
   readonly Trash2 = Trash2;
   readonly ChevronDown = ChevronDown;
@@ -158,6 +159,13 @@ export class AdminPersonal implements OnInit {
     this.cargarEspecialidades();
     this.cargarConsultorios();
     this.cargarPersonal();
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['activeTab'] && !changes['activeTab'].firstChange) {
+      this.cargarEspecialidades();
+      this.cargarConsultorios();
+    }
   }
 
   cargarSedes() {

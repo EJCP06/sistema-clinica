@@ -60,9 +60,6 @@ export class Header {
   get isDarkMode() {
     return this.themeService.isDarkMode();
   }
-  set isDarkMode(val: boolean) {
-    this.themeService.setTheme(val);
-  }
 
   toggleDarkMode() {
     this.themeService.toggleTheme();

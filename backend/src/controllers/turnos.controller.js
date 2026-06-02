@@ -173,9 +173,40 @@ const transferirPaciente = async (req, res) => {
   }
 };
 
+const reincorporarPaciente = async (req, res) => {
+  const { id } = req.params;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const result = await client.query(
+      'UPDATE "Atencion" SET id_estado_actual = 3, hora_salida = NULL WHERE id_atencion = $1 AND id_estado_actual = 6 RETURNING *',
+      [id]
+    );
+
+    if (result.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ mensaje: 'Paciente no encontrado o no está en estado Ausente' });
+    }
+
+    await client.query('INSERT INTO "Historial_Atencion" (id_atencion, id_estado) VALUES ($1, 3)', [id]);
+
+    await client.query('COMMIT');
+    if (req.io) req.io.emit('estado-actualizado', { id_atencion: Number(id) });
+    res.json({ mensaje: 'Paciente reincorporado a Sala de Espera' });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error en reincorporarPaciente:', error);
+    res.status(500).json({ mensaje: 'Error al reincorporar paciente' });
+  } finally {
+    client.release();
+  }
+};
+
 module.exports = {
   getTodosLosTurnos,
   crearTurno,
   marcarAusente,
   transferirPaciente,
+  reincorporarPaciente,
 };

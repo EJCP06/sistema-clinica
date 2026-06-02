@@ -9,5 +9,6 @@ router.get('/', turnosController.getTodosLosTurnos);
 router.get('/todos', turnosController.getTodosLosTurnos);
 router.post('/', turnosController.crearTurno);
 router.put('/:id/ausente', turnosController.marcarAusente);
+router.put('/:id/reincorporar', turnosController.reincorporarPaciente);
 
 module.exports = router;

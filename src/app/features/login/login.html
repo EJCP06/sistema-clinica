@@ -1,58 +1,33 @@
-<div
-  class="min-h-screen w-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden"
->
+<div class="min-h-[100dvh] w-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
   <!-- Decorative background elements -->
-  <div
-    class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 dark:bg-blue-600/5 rounded-full blur-[120px] animate-pulse"
-  ></div>
-  <div
-    class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-teal-500/10 dark:bg-teal-500/5 rounded-full blur-[120px] animate-pulse delay-700"
-  ></div>
+  <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 dark:bg-blue-600/5 rounded-full blur-[120px] lg:animate-pulse"></div>
+  <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-teal-500/10 dark:bg-teal-500/5 rounded-full blur-[120px] lg:animate-pulse lg:delay-700"></div>
 
-  <!-- Theme Toggle (Top Right) -->
-  <div
-    class="absolute top-8 right-8 z-50 flex items-center gap-3 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md p-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm"
-  >
+  <!-- Theme Toggle (Desktop) -->
+  <div class="hidden lg:flex absolute top-8 right-8 z-50 items-center gap-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md px-4 py-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
     <lucide-icon [name]="Sun" class="w-4 h-4 text-amber-500"></lucide-icon>
     <label class="relative inline-flex items-center cursor-pointer group">
       <input type="checkbox" [checked]="isDarkMode" (change)="toggleDarkMode()" class="sr-only peer" />
-      <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 peer-checked:bg-slate-800 shadow-inner"></div>
+      <div [class.after:transition-all]="!initialTransitionDisabled" class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full dark:bg-slate-700 peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all after:duration-300 peer-checked:bg-slate-800 shadow-inner"></div>
     </label>
     <lucide-icon [name]="Moon" class="w-4 h-4 text-slate-300 dark:text-blue-400"></lucide-icon>
   </div>
 
-  <div
-    class="w-full max-w-5xl flex flex-col lg:flex-row rounded-[24px] md:rounded-[40px] overflow-hidden shadow-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 relative z-10 backdrop-blur-xl"
-  >
+  <div class="w-full max-w-5xl flex flex-col lg:flex-row rounded-[24px] md:rounded-[40px] overflow-hidden shadow-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 relative z-10 backdrop-blur-xl">
     <!-- Panel Izquierdo (Branding & Info) -->
-    <div
-      class="hidden lg:flex lg:w-[45%] flex-col justify-between p-14 bg-blue-600 relative overflow-hidden"
-    >
+    <div class="hidden lg:flex lg:w-[45%] flex-col justify-between p-14 bg-blue-600 relative overflow-hidden">
       <!-- Background pattern -->
       <div class="absolute inset-0 opacity-10">
-        <div
-          class="absolute top-0 left-0 w-full h-full"
-          style="
-            background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0);
-            background-size: 24px 24px;
-          "
-        ></div>
+        <div class="absolute top-0 left-0 w-full h-full" style="background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 24px 24px;"></div>
       </div>
 
       <div class="relative z-10">
         <div class="flex items-center gap-4 mb-16">
           <div class="w-14 h-14 bg-[#ffffff] p-2 rounded-2xl flex items-center justify-center shadow-xl">
-            <img
-              src="/logo-cnc.png"
-              alt="CNC Logo"
-              class="w-full h-full object-contain"
-              onerror="
-                this.src = 'https://ui-avatars.com/api/?name=CNC&background=0D9488&color=fff'
-              "
-            />
+            <img src="/logo-cnc.png" alt="CNC Logo" class="w-full h-full object-contain" onerror="this.src = 'https://ui-avatars.com/api/?name=CNC&background=0D9488&color=fff'" />
           </div>
-          <div class="flex flex-col items-center">
-            <span class="text-xl font-black tracking-tighter text-white leading-none uppercase">Clinica</span>
+          <div class="flex flex-col items-center text-center">
+            <span class="text-xl font-black tracking-tighter text-white leading-none uppercase">Clínica</span>
             <span class="text-xl font-black tracking-tighter text-white leading-none uppercase">Nueva Caracas</span>
           </div>
         </div>
@@ -68,115 +43,162 @@
     </div>
 
     <!-- Panel Derecho (Login Form) -->
-    <div
-      class="w-full lg:w-[55%] p-6 md:p-10 lg:p-20 flex flex-col justify-center bg-white dark:bg-transparent transition-colors"
-    >
+    <div class="w-full lg:w-[55%] p-6 md:p-10 lg:p-20 flex flex-col justify-center bg-white dark:bg-transparent">
       <div class="max-w-sm mx-auto w-full">
-        <div class="mb-8 md:mb-12">
-          <div class="flex items-center gap-3 lg:hidden mb-8">
-            <div class="w-10 h-10 md:w-12 md:h-12 bg-[#ffffff] p-2 rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/20">
-              <img
-                src="/logo-cnc.png"
-                alt="CNC Logo"
-                class="w-full h-full object-contain"
-                onerror="
-                  this.src = 'https://ui-avatars.com/api/?name=CNC&background=0D9488&color=fff'
-                "
-              />
+        <!-- Contenedor de Bienvenida Centrado -->
+        <div *ngIf="!mostrarResetPassword" class="mb-8 md:mb-12 text-center flex flex-col items-center">
+          <div class="flex items-center lg:hidden mb-8 w-full justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 md:w-12 md:h-12 bg-[#ffffff] p-2 rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/20">
+                <img src="/logo-cnc.png" alt="CNC Logo" class="w-full h-full object-contain" onerror="this.src = 'https://ui-avatars.com/api/?name=CNC&background=0D9488&color=fff'" />
+              </div>
+              <div class="flex flex-col items-center text-center">
+                <span class="text-sm md:text-base font-black tracking-tighter text-slate-900 dark:text-white leading-none uppercase">Clínica</span>
+                <span class="text-sm md:text-base font-black tracking-tighter text-slate-900 dark:text-white leading-none uppercase">Nueva Caracas</span>
+              </div>
             </div>
-            <div class="flex flex-col items-center">
-              <span class="text-sm md:text-base font-black tracking-tighter text-slate-900 dark:text-white leading-none uppercase">Clinica</span>
+            <!-- Theme Toggle (Mobile) -->
+            <div class="flex items-center gap-2 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+              <lucide-icon [name]="Sun" class="w-3.5 h-3.5 text-amber-500"></lucide-icon>
+              <label class="relative inline-flex items-center cursor-pointer group">
+                <input type="checkbox" [checked]="isDarkMode" (change)="toggleDarkMode()" class="sr-only peer" />
+                <div [class.after:transition-all]="!initialTransitionDisabled" class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full dark:bg-slate-700 peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all after:duration-300 peer-checked:bg-slate-800 shadow-inner"></div>
+              </label>
+              <lucide-icon [name]="Moon" class="w-3.5 h-3.5 text-slate-300 dark:text-blue-400"></lucide-icon>
+            </div>
+          </div>
+          <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight w-full">Bienvenido</h2>
+          <p class="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-2 md:mt-3 font-medium w-full">Ingresa tus credenciales para acceder</p>
+        </div>
+
+        <!-- Encabezado Móvil solo para Reset Password -->
+        <div *ngIf="mostrarResetPassword" class="flex items-center lg:hidden mb-8 w-full justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 md:w-12 md:h-12 bg-[#ffffff] p-2 rounded-xl md:rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/20">
+              <img src="/logo-cnc.png" alt="CNC Logo" class="w-full h-full object-contain" onerror="this.src = 'https://ui-avatars.com/api/?name=CNC&background=0D9488&color=fff'" />
+            </div>
+            <div class="flex flex-col items-center text-center">
+              <span class="text-sm md:text-base font-black tracking-tighter text-slate-900 dark:text-white leading-none uppercase">Clínica</span>
               <span class="text-sm md:text-base font-black tracking-tighter text-slate-900 dark:text-white leading-none uppercase">Nueva Caracas</span>
             </div>
           </div>
-          <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
-            Bienvenido
-          </h2>
-          <p class="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-2 md:mt-3 font-medium">
-            Ingresa tus credenciales para acceder
-          </p>
+          <!-- Theme Toggle (Mobile) -->
+          <div class="flex items-center gap-2 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <lucide-icon [name]="Sun" class="w-3.5 h-3.5 text-amber-500"></lucide-icon>
+            <label class="relative inline-flex items-center cursor-pointer group">
+              <input type="checkbox" [checked]="isDarkMode" (change)="toggleDarkMode()" class="sr-only peer" />
+              <div [class.after:transition-all]="!initialTransitionDisabled" class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full dark:bg-slate-700 peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all after:duration-300 peer-checked:bg-slate-800 shadow-inner"></div>
+            </label>
+            <lucide-icon [name]="Moon" class="w-3.5 h-3.5 text-slate-300 dark:text-blue-400"></lucide-icon>
+          </div>
         </div>
 
-        <form (ngSubmit)="iniciarSesion()" class="space-y-6">
-          <div class="space-y-2">
-            <label
-              class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[2px] ml-1"
-              >Cédula</label
-            >
-            <div class="relative group">
-              <div
-                class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors"
-              >
-                <lucide-icon [name]="User" class="w-5 h-5"></lucide-icon>
+        <div *ngIf="!mostrarResetPassword">
+          <form (ngSubmit)="iniciarSesion()" class="space-y-6">
+            <div class="space-y-2">
+              <label class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[2px] ml-1">Cédula</label>
+              <div class="relative group">
+                <div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors">
+                  <lucide-icon [name]="User" class="w-5 h-5"></lucide-icon>
+                </div>
+                <input type="text" [(ngModel)]="cedula" name="cedula" (keydown.space)="$event.preventDefault()" placeholder="Ej: 31596888" class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
               </div>
-              <input
-                type="text"
-                [(ngModel)]="cedula"
-                name="cedula"
-                (keydown.space)="$event.preventDefault()"
-                (input)="cedula = cedula.replace(/\s/g, '')"
-                placeholder="Ej: 31596888"
-                class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-all font-medium"
-              />
             </div>
-          </div>
 
-          <div class="space-y-2">
-            <label
-              class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[2px] ml-1"
-              >Contraseña</label
-            >
-            <div class="relative group">
-              <div
-                class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors"
-              >
-                <lucide-icon [name]="Lock" class="w-5 h-5"></lucide-icon>
+            <div class="space-y-2">
+              <label class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[2px] ml-1">Contraseña</label>
+              <div class="relative group">
+                <div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors">
+                  <lucide-icon [name]="Lock" class="w-5 h-5"></lucide-icon>
+                </div>
+                <input [type]="mostrarPassword ? 'text' : 'password'" [(ngModel)]="password" name="password" (keydown.space)="$event.preventDefault()" placeholder="••••••••" class="w-full pl-14 pr-14 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
+                <button type="button" (click)="mostrarPassword = !mostrarPassword" class="absolute inset-y-0 right-0 pr-5 flex items-center text-slate-400 hover:text-blue-600 transition-colors">
+                  <lucide-icon [name]="mostrarPassword ? EyeOff : Eye" class="w-5 h-5"></lucide-icon>
+                </button>
               </div>
-              <input
-                [type]="mostrarPassword ? 'text' : 'password'"
-                [(ngModel)]="password"
-                name="password"
-                (keydown.space)="$event.preventDefault()"
-                (input)="password = password.replace(/\s/g, '')"
-                placeholder="••••••••"
-                class="w-full pl-14 pr-14 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-all font-medium"
-              />
-              <button
-                type="button"
-                (click)="mostrarPassword = !mostrarPassword"
-                aria-label="Mostrar u ocultar contraseña"
-                class="absolute inset-y-0 right-0 pr-5 flex items-center text-slate-400 hover:text-blue-600 transition-colors"
-              >
-                <lucide-icon [name]="mostrarPassword ? EyeOff : Eye" class="w-5 h-5"></lucide-icon>
+            </div>
+
+            <div class="text-center">
+              <button type="button" (click)="toggleResetPassword()" class="text-[10px] font-bold text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 uppercase tracking-[2px] transition-colors">¿Olvidó la contraseña?</button>
+            </div>
+
+            <div class="pt-2">
+              <button type="submit" [disabled]="cargando" class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-0.5 active:translate-y-0 transition-transform flex items-center justify-center gap-3 text-sm uppercase tracking-widest">
+                <span *ngIf="!cargando" class="flex items-center gap-2">
+                  Iniciar Sesión
+                  <lucide-icon [name]="LogIn" class="w-5 h-5"></lucide-icon>
+                </span>
+                <div *ngIf="cargando" class="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                  <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <span class="animate-pulse">Cargando...</span>
+                </div>
               </button>
             </div>
-          </div>
-
-          <div class="pt-10">
-            <button
-              type="submit"
-              [disabled]="cargando"
-              class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-3 text-sm uppercase tracking-widest"
-            >
-              <span *ngIf="!cargando" class="flex items-center gap-2">
-                Iniciar Sesión
-                <lucide-icon [name]="LogIn" class="w-5 h-5"></lucide-icon>
-              </span>
-              <div *ngIf="cargando" class="flex items-center gap-3">
-                <div
-                  class="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin"
-                ></div>
-                <span>Validando...</span>
-              </div>
-            </button>
-          </div>
-        </form>
+          </form>
 
           <div class="mt-6 text-center">
             <a routerLink="/turnero" [queryParams]="{sala: 'llegada'}" class="text-[10px] font-bold text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 uppercase tracking-[2px] transition-colors">
               Acceder al Turnero
             </a>
           </div>
+        </div>
+
+        <!-- Formulario Cambiar Contraseña -->
+        <div *ngIf="mostrarResetPassword" class="space-y-6">
+          <div class="flex flex-col items-center text-center gap-3 mb-6">
+            <button type="button" (click)="toggleResetPassword()" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
+              <lucide-icon [name]="ArrowLeft" class="w-6 h-6 text-slate-500 dark:text-slate-400"></lucide-icon>
+            </button>
+            <div>
+              <h3 class="text-lg font-black text-slate-900 dark:text-white tracking-tight">Cambiar Contraseña</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Ingrese su nueva contraseña</p>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <label class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[2px] ml-1">Cédula</label>
+            <div class="relative group">
+              <div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors">
+                <lucide-icon [name]="User" class="w-5 h-5"></lucide-icon>
+              </div>
+              <input type="text" [(ngModel)]="resetCedula" name="resetCedula" placeholder="Ej: 31596888" class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <label class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[2px] ml-1">Nueva Contraseña</label>
+            <div class="relative group">
+              <div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors">
+                <lucide-icon [name]="Lock" class="w-5 h-5"></lucide-icon>
+              </div>
+              <input [type]="mostrarNewPassword ? 'text' : 'password'" [(ngModel)]="newPassword" name="newPassword" placeholder="••••••••" class="w-full pl-14 pr-14 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
+              <button type="button" (click)="mostrarNewPassword = !mostrarNewPassword" class="absolute inset-y-0 right-0 pr-5 flex items-center text-slate-400 hover:text-blue-600 transition-colors">
+                <lucide-icon [name]="mostrarNewPassword ? EyeOff : Eye" class="w-5 h-5"></lucide-icon>
+              </button>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <label class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[2px] ml-1">Confirmar Contraseña</label>
+            <div class="relative group">
+              <div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors">
+                <lucide-icon [name]="KeyRound" class="w-5 h-5"></lucide-icon>
+              </div>
+              <input [type]="mostrarNewPassword ? 'text' : 'password'" [(ngModel)]="confirmPassword" name="confirmPassword" placeholder="••••••••" class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
+            </div>
+          </div>
+
+          <button (click)="cambiarPassword()" [disabled]="cargandoReset" class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-0.5 active:translate-y-0 transition-transform flex items-center justify-center gap-3 text-sm uppercase tracking-widest">
+            <span *ngIf="!cargandoReset" class="flex items-center gap-2">
+              Cambiar Contraseña
+              <lucide-icon [name]="KeyRound" class="w-5 h-5"></lucide-icon>
+            </span>
+            <div *ngIf="cargandoReset" class="flex items-center gap-3">
+              <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              <span class="animate-pulse">Cargando...</span>
+            </div>
+          </button>
+        </div>
       </div>
     </div>
   </div>
