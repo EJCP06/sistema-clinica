@@ -1,6 +1,5 @@
 import { ApplicationConfig, LOCALE_ID, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { provideOverlay } from '@angular/cdk/overlay';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { registerLocaleData } from '@angular/common';
 import es from '@angular/common/locales/es';
@@ -18,7 +17,6 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
-    provideOverlay(),
     provideHttpClient(withInterceptors([authInterceptor, retryInterceptor, zoneInterceptor, errorInterceptor])),
     { provide: LOCALE_ID, useValue: 'es' },
   ],

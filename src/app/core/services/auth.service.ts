@@ -62,6 +62,10 @@ export class AuthService {
     );
   }
 
+  cambiarPassword(cedula: string, newPassword: string): Observable<any> {
+    return this.http.put(`${environment.apiUrl}/auth/cambiar-password`, { cedula, newPassword });
+  }
+
   logout() {
     sessionStorage.removeItem(this.STORAGE_KEY);
     sessionStorage.removeItem(this.TOKEN_KEY);

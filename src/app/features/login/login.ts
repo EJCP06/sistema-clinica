@@ -5,7 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { ThemeService } from '@core/services/theme.service';
 import { SwalService } from '../../core/services/swal.service';
-import { LucideAngularModule, Eye, EyeOff, LogIn, Activity, User, Lock, Sun, Moon, XCircle } from 'lucide-angular';
+import { LucideAngularModule, Eye, EyeOff, LogIn, Activity, User, Lock, Sun, Moon, XCircle, KeyRound, ArrowLeft, MonitorSpeaker } from 'lucide-angular';
 
 @Component({
   selector: 'app-login',
@@ -24,6 +24,9 @@ export class Login {
   readonly Sun = Sun;
   readonly Moon = Moon;
   readonly XCircle = XCircle;
+  readonly KeyRound = KeyRound;
+  readonly ArrowLeft = ArrowLeft;
+  readonly MonitorSpeaker = MonitorSpeaker;
 
   private auth = inject(AuthService);
   private themeService = inject(ThemeService);
@@ -34,12 +37,61 @@ export class Login {
   password = '';
   mostrarPassword = false;
   cargando = false;
+  mostrarResetPassword = false;
+  resetCedula = '';
+  newPassword = '';
+  confirmPassword = '';
+  mostrarNewPassword = false;
+  cargandoReset = false;
+  initialTransitionDisabled = true;
 
-  get isDarkMode() { return this.themeService.isDarkMode(); }
-  set isDarkMode(val: boolean) { this.themeService.setTheme(val); }
+  constructor() {
+    // Deshabilitar la transición inicial para evitar el efecto de "recarga" del toggle
+    setTimeout(() => this.initialTransitionDisabled = false, 100);
+  }
+
+  get isDarkMode() {
+    return this.themeService.isDarkMode();
+  }
 
   toggleDarkMode() {
     this.themeService.toggleTheme();
+  }
+
+  toggleResetPassword() {
+    this.mostrarResetPassword = !this.mostrarResetPassword;
+    this.resetCedula = '';
+    this.newPassword = '';
+    this.confirmPassword = '';
+  }
+
+  cambiarPassword() {
+    if (!this.resetCedula || !this.newPassword || !this.confirmPassword) {
+      this.swal.warning('Complete todos los campos');
+      return;
+    }
+    if (this.newPassword.length < 4) {
+      this.swal.warning('La contraseña debe tener al menos 4 caracteres');
+      return;
+    }
+    if (this.newPassword !== this.confirmPassword) {
+      this.swal.warning('Las contraseñas no coinciden');
+      return;
+    }
+    this.cargandoReset = true;
+    this.auth.cambiarPassword(this.resetCedula, this.newPassword).subscribe({
+      next: () => {
+        this.swal.success('Contraseña actualizada exitosamente');
+        this.mostrarResetPassword = false;
+        this.newPassword = '';
+        this.confirmPassword = '';
+        this.cargandoReset = false;
+      },
+      error: (err) => {
+        this.swal.error(err.error?.mensaje || 'Error al cambiar contraseña');
+        this.cargandoReset = false;
+      }
+    });
   }
 
   iniciarSesion() {
@@ -47,9 +99,9 @@ export class Login {
       this.swal.warning('Por favor ingrese su cédula y contraseña.');
       return;
     }
+    this.cargando = true;
     this.auth.login(this.cedula, this.password).subscribe({
       next: (response) => {
-        this.cargando = false;
         const usuario = this.auth.usuarioActual;
         if (usuario) {
           const rol = usuario.rol;

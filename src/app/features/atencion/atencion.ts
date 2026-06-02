@@ -16,6 +16,7 @@ import { PaginationComponent } from '../../shared/components/pagination/paginati
 import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
 import { FillersPipe } from '../../shared/pipes/fillers.pipe';
 
+
 @Component({
   selector: 'app-atencion',
   standalone: true,

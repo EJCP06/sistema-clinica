@@ -77,7 +77,34 @@ const superSeed = async (req, res) => {
   }
 };
 
+const cambiarPassword = async (req, res) => {
+  const { cedula, newPassword } = req.body;
+
+  if (!cedula || !newPassword) {
+    return res.status(400).json({ mensaje: 'Cédula y nueva contraseña requeridas' });
+  }
+
+  if (newPassword.length < 4) {
+    return res.status(400).json({ mensaje: 'La contraseña debe tener al menos 4 caracteres' });
+  }
+
+  try {
+    const result = await pool.query('SELECT id_usuario FROM "Usuarios" WHERE cedula = $1', [cedula]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ mensaje: 'Usuario no encontrado' });
+    }
+
+    const password_hash = await bcrypt.hash(newPassword, 10);
+    await pool.query('UPDATE "Usuarios" SET password_hash = $1 WHERE cedula = $2', [password_hash, cedula]);
+
+    res.json({ mensaje: 'Contraseña actualizada exitosamente' });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error interno' });
+  }
+};
+
 module.exports = {
   login,
-  superSeed
+  superSeed,
+  cambiarPassword
 };

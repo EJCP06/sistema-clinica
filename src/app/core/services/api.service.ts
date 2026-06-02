@@ -82,6 +82,10 @@ export class ApiService {
     });
   }
 
+  reincorporarPaciente(idAtencion: number): Observable<ApiResponse> {
+    return this.http.put<ApiResponse>(`${this.base}/turnos/${idAtencion}/reincorporar`, {});
+  }
+
   // =========================
   // CONSULTORIOS
   // =========================

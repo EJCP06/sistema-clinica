@@ -1,12 +1,12 @@
-<div class="flex items-center justify-between px-8 py-4 border-t border-slate-100 dark:border-slate-800">
-  <div class="text-xs text-slate-400 font-bold">
+<div class="flex items-center justify-between px-4 md:px-8 py-4 border-t border-slate-100 dark:border-slate-800 gap-2">
+  <div class="text-xs text-slate-400 font-bold whitespace-nowrap">
     {{ endItem }} de {{ totalItems }}
   </div>
-  <div class="flex items-center gap-1">
+  <div class="flex items-center gap-1 shrink-0">
     <button
       (click)="goToPage(currentPage - 1, $event)"
       [disabled]="currentPage <= 1"
-      class="px-3 py-1.5 text-xs font-bold rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+      class="px-2 md:px-3 py-1.5 text-xs font-bold rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0 whitespace-nowrap"
       [class.hover:bg-slate-100]="currentPage > 1"
       [class.text-slate-500]="currentPage > 1"
       [class.text-slate-300]="currentPage <= 1"
@@ -18,7 +18,7 @@
       <button
         *ngIf="p !== -1"
         (click)="goToPage(p, $event)"
-        class="w-8 h-8 text-xs font-bold rounded-lg transition-colors"
+        class="w-7 h-7 md:w-8 md:h-8 text-[10px] md:text-xs font-bold rounded-lg transition-colors"
         [class.bg-blue-600]="p === currentPage"
         [class.text-white]="p === currentPage"
         [class.text-slate-500]="p !== currentPage"
@@ -26,13 +26,13 @@
       >
         {{ p }}
       </button>
-      <span *ngIf="p === -1" class="w-8 text-center text-xs text-slate-300 font-bold">...</span>
+      <span *ngIf="p === -1" class="w-7 md:w-8 text-center text-[10px] md:text-xs text-slate-300 font-bold">...</span>
     </ng-container>
 
     <button
       (click)="goToPage(currentPage + 1, $event)"
       [disabled]="currentPage >= totalPages"
-      class="px-3 py-1.5 text-xs font-bold rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+      class="px-2 md:px-3 py-1.5 text-xs font-bold rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0 whitespace-nowrap"
       [class.hover:bg-slate-100]="currentPage < totalPages"
       [class.text-slate-500]="currentPage < totalPages"
       [class.text-slate-300]="currentPage >= totalPages"

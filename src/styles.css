@@ -205,7 +205,6 @@ body:has(.fixed.inset-0.z-\[100\]) {
   .mobile-profile-card {
     border: none !important;
     box-shadow: none !important;
-    padding-bottom: 1rem; /* espacio visual entre card y logout */
   }
 }
 
