@@ -263,7 +263,7 @@
          <lucide-icon [name]="Sun" class="w-4 h-4 text-amber-500"></lucide-icon>
          <label class="relative inline-flex items-center cursor-pointer group">
            <input type="checkbox" [checked]="isDarkMode" (change)="toggleDarkMode()" class="sr-only peer" />
-           <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full dark:bg-slate-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all after:duration-300 peer-checked:bg-slate-800 shadow-inner"></div>
+           <div [class.after:transition-all]="!initialTransitionDisabled" [class.after:duration-300]="!initialTransitionDisabled" class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full dark:bg-slate-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 peer-checked:bg-slate-800 shadow-inner"></div>
          </label>
          <lucide-icon [name]="Moon" class="w-4 h-4 text-slate-300 dark:text-blue-400"></lucide-icon>
        </div>
@@ -273,15 +273,22 @@
 
   <!-- Footer -->
   <div class="p-6 bg-transparent space-y-4 shrink-0">
-    <button
-      (click)="logout()"
-      class="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-rose-600 dark:text-rose-400 hover:bg-rose-500/5 dark:hover:bg-rose-500/10 transition-all duration-300 group text-left"
-    >
-      <lucide-icon
-        [name]="LogOut"
-        class="w-4 h-4 transition-transform group-hover:-translate-x-1"
-      ></lucide-icon>
-      <span class="font-bold text-sm tracking-tight">Cerrar Sesión</span>
-    </button>
+      <button
+        (click)="logout()"
+        [disabled]="cargando"
+        class="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-rose-600 dark:text-rose-400 hover:bg-rose-500/5 dark:hover:bg-rose-500/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 group text-left"
+      >
+        <span *ngIf="!cargando" class="flex items-center gap-3">
+          <lucide-icon
+            [name]="LogOut"
+            class="w-4 h-4 transition-transform group-hover:-translate-x-1"
+          ></lucide-icon>
+          <span class="font-bold text-sm tracking-tight">Cerrar Sesión</span>
+        </span>
+        <div *ngIf="cargando" class="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <div class="w-5 h-5 border-2 border-rose-600/30 dark:border-rose-400/30 border-t-rose-600 dark:border-t-rose-400 rounded-full animate-spin"></div>
+          <span class="animate-pulse font-bold text-sm tracking-tight">Cargando...</span>
+        </div>
+      </button>
   </div>
 </aside>

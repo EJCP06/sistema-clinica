@@ -3,9 +3,7 @@ const PROXY_CONFIG = {
     "target": "http://127.0.0.1:3001",
     "secure": false,
     "changeOrigin": true,
-    "onProxyRes": (proxyRes, req, res) => {
-      // Opcional: Manejo de respuestas
-    },
+    "logLevel": "silent",
     "onError": (err, req, res) => {
       if (err.code === 'ECONNRESET' || err.code === 'ECONNREFUSED') {
         if (res && !res.headersSent) {
@@ -21,6 +19,7 @@ const PROXY_CONFIG = {
     "secure": false,
     "changeOrigin": true,
     "ws": true,
+    "logLevel": "silent",
     "onError": (err, req, res) => {
       if (err.code === 'ECONNRESET' || err.code === 'ECONNREFUSED') {
         if (res && !res.headersSent) {

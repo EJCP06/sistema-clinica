@@ -66,6 +66,18 @@ export class AuthService {
     return this.http.put(`${environment.apiUrl}/auth/cambiar-password`, { cedula, newPassword });
   }
 
+  solicitarRecuperacion(email: string, cedula: string): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/auth/recuperacion/solicitar`, { email, cedula });
+  }
+
+  verificarOTP(email: string, cedula: string, codigo: string): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/auth/recuperacion/verificar`, { email, cedula, codigo });
+  }
+
+  restablecerPassword(email: string, cedula: string, codigo: string, newPassword: string): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/auth/recuperacion/restablecer`, { email, cedula, codigo, newPassword });
+  }
+
   logout() {
     sessionStorage.removeItem(this.STORAGE_KEY);
     sessionStorage.removeItem(this.TOKEN_KEY);

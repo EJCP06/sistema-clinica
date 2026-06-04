@@ -76,6 +76,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   sidebarOpen: boolean = false;
   cedulaBusqueda: string = '';
   buscando: boolean = false;
+  filaEnEdicion: any = null;
 
   // Filtro de Búsqueda
   searchFilter: string = 'todo'; // 'todo', 'nombre', 'apellido', 'cedula'
@@ -316,15 +317,34 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     });
   }
 
-  cargarUltimasAdmisiones() {
-    this.api.get<any[]>('recepcion/ultimas-admisiones').subscribe({
-      next: (data) => {
-        this.ultimasAdmisiones = (data || []).filter((a: any) => (a.nombre_estado || '').toUpperCase() !== 'ATENDIDO');
-        this.appRef.tick();
-      },
-      error: (err: any) => console.error('Error cargando ultimas admisiones:', err),
-    });
-  }
+   cargarUltimasAdmisiones() {
+     this.api.get<any[]>('recepcion/ultimas-admisiones').subscribe({
+       next: (data) => {
+         const ahora = new Date();
+         const inicioDeHoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+
+         this.ultimasAdmisiones = (data || []).filter((admision: any) => {
+           const estado = (admision.nombre_estado || '').toUpperCase();
+           
+           // Siempre incluir si NO está atendido (espera, llamado, etc.)
+           if (estado !== 'ATENDIDO') {
+             return true;
+           }
+           
+           // Si está atendido, solo incluir si es de hoy
+           if (estado === 'ATENDIDO' && admision.fecha_creacion) {
+             const fechaAdmision = new Date(admision.fecha_creacion);
+             return fechaAdmision >= inicioDeHoy;
+           }
+           
+           return false;
+         });
+
+         this.appRef.tick();
+       },
+       error: (err: any) => console.error('Error cargando ultimas admisiones:', err),
+     });
+   }
 
   cargarAseguradoras() {
     this.api.getAseguradoras().subscribe({
@@ -834,48 +854,49 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   }
 
   // --- ACCIONES DE TABLA ---
-  editarFila(fila: any) {
-    this.isEditMode = true;
-    if (this.isAseguradorasView) {
-      this.isSaving = false;
-      this.mostrarRegistro = true;
-      this.pacienteExistenteCargado = false;
-      this.nuevoPaciente = {
-        id_cliente: fila.id_cliente,
-        nombre: fila.aseguradora,
-        status: true,
-      };
-    } else {
-      this.pacienteExistenteCargado = true;
-      this.mostrarRegistro = true;
-      this.nuevoPaciente = {
-        id_paciente: fila.id_paciente,
-        cedula: fila.cedula,
-        nombre: fila.nombre,
-        apellido: fila.apellido,
-        telefono: fila.telefono,
-      };
+   editarFila(fila: any) {
+     this.filaEnEdicion = fila;
+     this.isEditMode = true;
+     if (this.isAseguradorasView) {
+       this.isSaving = false;
+       this.mostrarRegistro = true;
+       this.pacienteExistenteCargado = false;
+       this.nuevoPaciente = {
+         id_cliente: fila.id_cliente,
+         nombre: fila.aseguradora,
+         status: true,
+       };
+     } else {
+       this.pacienteExistenteCargado = true;
+       this.mostrarRegistro = true;
+       this.nuevoPaciente = {
+         id_paciente: fila.id_paciente,
+         cedula: fila.cedula,
+         nombre: fila.nombre,
+         apellido: fila.apellido,
+         telefono: fila.telefono,
+       };
 
-      // Cargar selección de servicio y responsable
-      this.seleccion = {
-        id_servicio: fila.id_servicio,
-        id_responsable: fila.id_responsable,
-        id_cliente: fila.id_cliente,
-        id_atencion: fila.id_atencion,
-        id_especialidad: fila.id_especialidad,
-      };
+       // Cargar selección de servicio y responsable
+       this.seleccion = {
+         id_servicio: fila.id_servicio,
+         id_responsable: fila.id_responsable,
+         id_cliente: fila.id_cliente,
+         id_atencion: fila.id_atencion,
+         id_especialidad: fila.id_especialidad,
+       };
 
-      this.categoriaServicio = this.getServicioCategoria(fila.nombre_servicio);
-      
-      // Intentar encontrar el nombre de la especialidad para el label
-      if (fila.id_especialidad) {
-        const esp = this.especialidades.find(e => (e.id_especialidad || e.id) === fila.id_especialidad);
-        if (esp) {
-          this.seleccion.nombre_servicio_label = esp.nombre;
-        }
-      }
-    }
-  }
+       this.categoriaServicio = this.getServicioCategoria(fila.nombre_servicio);
+       
+       // Intentar encontrar el nombre de la especialidad para el label
+       if (fila.id_especialidad) {
+         const esp = this.especialidades.find(e => (e.id_especialidad || e.id) === fila.id_especialidad);
+         if (esp) {
+           this.seleccion.nombre_servicio_label = esp.nombre;
+         }
+       }
+     }
+   }
 
   async eliminarFila(fila: any) {
     const msg = this.isAseguradorasView

@@ -1,0 +1,3 @@
+BEGIN;
+ALTER TABLE "Usuarios" ADD COLUMN IF NOT EXISTS "email" varchar;
+COMMIT;

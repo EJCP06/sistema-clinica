@@ -7,15 +7,15 @@ import { ApiService } from '@core/services/api.service';
 import { AuthService } from '@core/services/auth.service';
 import { ThemeService } from '@core/services/theme.service';
 import { SwalService } from '@core/services/swal.service';
-import { TurnoDTO, MiEstadoDTO, LlamarSiguienteResponseDTO, ApiResponse, AdmisionDTO } from '@core/models/dto.models';
+import { TurnoDTO, MiEstadoDTO, LlamarSiguienteResponseDTO, ApiResponse } from '@core/models/dto.models';
 import { Subscription, interval } from 'rxjs';
-import { LucideAngularModule, Play, Pause, Coffee, Volume2, CheckCircle2, ArrowRightLeft, UserX, MonitorSpeaker, IdCard, X, Search, Calendar, Clock, Download, ChevronRight, ChevronDown, FileText } from 'lucide-angular';
+import { LucideAngularModule, Play, Pause, Coffee, Volume2, CheckCircle2, ArrowRightLeft, UserX, MonitorSpeaker, IdCard, X, Search, Calendar, Clock, Download, ChevronRight, ChevronDown, FileText, RefreshCcw } from 'lucide-angular';
 import { Header } from '../../shared/components/header/header';
 import { Sidebar } from '../../shared/components/sidebar/sidebar';
 import { PaginationComponent } from '../../shared/components/pagination/pagination';
 import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
 import { FillersPipe } from '../../shared/pipes/fillers.pipe';
-
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-atencion',
@@ -42,9 +42,9 @@ export class Atencion implements OnInit, OnDestroy {
   readonly ChevronRight = ChevronRight;
   readonly ChevronDown = ChevronDown;
   readonly FileText = FileText;
+  readonly RefreshCcw = RefreshCcw;
 
   tipo: string = 'medico';
-  activeView: 'atencion' | 'recepcion' = 'atencion';
   pageSize = 6;
   historialPageSize = 7;
   currentHistorialPage = 1;
@@ -111,30 +111,7 @@ export class Atencion implements OnInit, OnDestroy {
   totalAtendidosHoy: number = 0;
   tiempoPromedioConsulta: string = '0 min';
 
-  // Pacientes en sala (APS-like para lab/imagenes)
-  ultimasAdmisiones: AdmisionDTO[] = [];
-  cedulaBusquedaPacientes: string = '';
-  searchFilterPacientes: string = 'todo';
-  showSearchFilterDropdownPacientes: boolean = false;
-
-  get pacientesFiltrados(): AdmisionDTO[] {
-    return this.ultimasAdmisiones.filter(a => {
-      const query = (this.cedulaBusquedaPacientes || '').trim().toLowerCase();
-      if (!query) return true;
-      const matchNombre = (a.nombre || '').toLowerCase().includes(query);
-      const matchApellido = (a.apellido || '').toLowerCase().includes(query);
-      const matchCedula = (a.cedula || '').toLowerCase().includes(query);
-      if (this.searchFilterPacientes === 'nombre') return matchNombre;
-      if (this.searchFilterPacientes === 'apellido') return matchApellido;
-      if (this.searchFilterPacientes === 'cedula') return matchCedula;
-      return matchNombre || matchApellido || matchCedula;
-    });
-  }
-
-  trackById = (index: number, item: TurnoDTO | AdmisionDTO) => {
-    if ('id_atencion' in item) return item.id_atencion ?? index;
-    return (item as TurnoDTO).id ?? index;
-  };
+  trackById = (index: number, item: TurnoDTO) => item.id ?? index;
 
   ngOnInit() {
     this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
@@ -154,14 +131,12 @@ export class Atencion implements OnInit, OnDestroy {
       
       this.cargarEstadoConsultorio();
       this.cargarHistorial();
-      if (this.tipo !== 'medico') this.cargarPacientes();
     });
     
     // Escuchar cambios en tiempo real
     this.apiService.cambios$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.cargarEstadoConsultorio();
       this.cargarHistorial();
-      if (this.tipo !== 'medico') this.cargarPacientes();
     });
   }
 
@@ -184,23 +159,31 @@ export class Atencion implements OnInit, OnDestroy {
           this.consultorioEstado = estado.estado || 'LIBRE';
 
           if (estado.turno_id && !this.atendiendoLocalmente) {
-            this.turnoActual = {
-              id: estado.turno_id!,
-              numero: estado.turno_numero!,
-              estado: estado.turno_estado!,
-              paciente: {
-                nombre: estado.nombre_paciente!,
-                apellido: estado.apellido_paciente!,
-                documento: estado.documento_paciente!
-              },
-              hora_llegada: estado.turno_hora_llegada!
-            };
-          if (estado.turno_estado === 'LLAMADO' && !this.timerSub) {
-            this.iniciarTemporizador(estado.hora_llamado);
+            let status = estado.turno_estado || '';
+            // Normalizar el estado: en la DB 'Atendido' (6) se usa para la atención en curso
+            if (status === 'ATENDIDO') status = 'EN_ATENCION';
+
+            if (status === 'LLAMADO' || status === 'EN_ATENCION') {
+              this.turnoActual = {
+                id: estado.turno_id!,
+                numero: estado.turno_numero!,
+                estado: status,
+                paciente: {
+                  nombre: estado.nombre_paciente!,
+                  apellido: estado.apellido_paciente!,
+                  documento: estado.documento_paciente!
+                },
+                hora_llegada: estado.turno_hora_llegada!
+              };
+              if (status === 'LLAMADO' && !this.timerSub) {
+                this.iniciarTemporizador(estado.hora_llamado);
+              }
+            } else {
+              this.turnoActual = null;
+            }
+          } else if (!estado.turno_id && !this.atendiendoLocalmente) {
+            this.turnoActual = null;
           }
-        } else if (!estado.turno_id && !this.atendiendoLocalmente) {
-          this.turnoActual = null;
-        }
       },
       error: () => {
         this.consultorioEstado = 'LIBRE';
@@ -228,19 +211,25 @@ export class Atencion implements OnInit, OnDestroy {
         this.mensajeInfo = '';
 
         if (estado.turno_id && !this.atendiendoLocalmente) {
-          this.turnoActual = {
-            id: estado.turno_id!,
-            numero: estado.turno_numero!,
-            estado: estado.turno_estado!,
-            paciente: {
-              nombre: estado.nombre_paciente!,
-              apellido: estado.apellido_paciente!,
-              documento: estado.documento_paciente!
-            },
-            hora_llegada: estado.turno_hora_llegada!
-          };
-          if (estado.turno_estado === 'LLAMADO' && !this.timerSub) {
-            this.iniciarTemporizador(estado.hora_llamado);
+          const status = estado.turno_estado || '';
+          // Solo considerar turno actual si está en un estado activo
+          if (status === 'LLAMADO' || status === 'EN_ATENCION') {
+            this.turnoActual = {
+              id: estado.turno_id!,
+              numero: estado.turno_numero!,
+              estado: status,
+              paciente: {
+                nombre: estado.nombre_paciente!,
+                apellido: estado.apellido_paciente!,
+                documento: estado.documento_paciente!
+              },
+              hora_llegada: estado.turno_hora_llegada!
+            };
+            if (status === 'LLAMADO' && !this.timerSub) {
+              this.iniciarTemporizador(estado.hora_llamado);
+            }
+          } else {
+            this.turnoActual = null;
           }
         } else if (!estado.turno_id && !this.atendiendoLocalmente) {
           this.turnoActual = null;
@@ -256,7 +245,7 @@ export class Atencion implements OnInit, OnDestroy {
   }
 
   llamarSiguiente() {
-    if (this.cargando) return; // Prevenir doble click
+    if (this.cargando) return;
     this.cargando = true;
     
     this.apiService.llamarSiguiente().subscribe({
@@ -273,7 +262,38 @@ export class Atencion implements OnInit, OnDestroy {
       },
       error: (err: any) => {
         this.cargando = false;
-        this.swal.error(err.error?.mensaje || 'Error al llamar paciente.');
+        const msg = err.error?.mensaje || '';
+        if (msg.includes('LIBRE')) {
+          Swal.fire({
+            title: 'Consultorio Ocupado',
+            text: 'El sistema detecta que el consultorio aún está ocupado. Si no tiene un paciente activo, puede forzar la liberación.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Liberar Consultorio',
+            cancelButtonText: 'Cancelar'
+          }).then((result: any) => {
+            if (result.isConfirmed) {
+              this.liberarConsultorio();
+            }
+          });
+        } else {
+          this.swal.error(msg || 'Error al llamar paciente.');
+        }
+      }
+    });
+  }
+
+  liberarConsultorio() {
+    this.cargando = true;
+    this.apiService.liberarConsultorio().subscribe({
+      next: () => {
+        this.cargando = false;
+        this.swal.success('Consultorio liberado correctamente.');
+        this.cargarEstadoConsultorio();
+      },
+      error: (err) => {
+        this.cargando = false;
+        this.swal.error(err.error?.mensaje || 'Error al liberar consultorio.');
       }
     });
   }
@@ -298,6 +318,7 @@ export class Atencion implements OnInit, OnDestroy {
         this.consultorioEstado = 'LIBRE';
         this.atendiendoLocalmente = false;
         this.cargarEstadoConsultorio();
+        this.cargarHistorial();
       },
       error: (err: any) => this.swal.error(err.error?.mensaje)
     });
@@ -377,11 +398,14 @@ export class Atencion implements OnInit, OnDestroy {
         }));
 
         // 1. Filtrar HISTORIAL según el tipo
-        const estadoMayusAusente = (estado: string) => estado.toUpperCase() === 'AUSENTE';
+        const estadoValido = (estado: string) => {
+          const e = (estado || '').toUpperCase();
+          return e === 'ATENDIDO' || e === 'AUSENTE';
+        };
 
         if (this.tipo === 'laboratorio') {
           this.turnosAtendidos = turnosNormalizados.filter(t =>
-            estadoMayusAusente(t.estado) &&
+            estadoValido(t.estado) &&
             (t.nombre_servicio || '').toLowerCase().includes('laboratorio')
           ).sort((a, b) => {
             const dateA = new Date(a.updated_at || a.hora_llegada).getTime();
@@ -391,7 +415,7 @@ export class Atencion implements OnInit, OnDestroy {
           this.totalAtendidosHoy = this.turnosAtendidos.length;
         } else if (this.tipo === 'imagenes') {
           this.turnosAtendidos = turnosNormalizados.filter(t =>
-            estadoMayusAusente(t.estado) &&
+            estadoValido(t.estado) &&
             ((t.nombre_servicio || '').toLowerCase().includes('imágenes') ||
              (t.nombre_servicio || '').toLowerCase().includes('imagenes'))
           ).sort((a, b) => {
@@ -406,7 +430,7 @@ export class Atencion implements OnInit, OnDestroy {
             const turnoConId = t.id_consultorio ? Number(t.id_consultorio) : null;
             const esDeMiEspecialidad = turnoEspId === Number(eid);
             const esDeMiConsultorio = turnoConId === Number(cid);
-            return esDeMiEspecialidad && esDeMiConsultorio && estadoMayusAusente(t.estado);
+            return esDeMiEspecialidad && esDeMiConsultorio && estadoValido(t.estado);
           }).sort((a, b) => {
             const dateA = new Date(a.updated_at || a.hora_llegada).getTime();
             const dateB = new Date(b.updated_at || b.hora_llegada).getTime();
@@ -415,7 +439,7 @@ export class Atencion implements OnInit, OnDestroy {
           this.totalAtendidosHoy = this.turnosAtendidos.length;
         } else if (cid) {
           this.turnosAtendidos = turnosNormalizados.filter(t => 
-            t.id_consultorio == cid && estadoMayusAusente(t.estado)
+            t.id_consultorio == cid && estadoValido(t.estado)
           ).sort((a, b) => {
             const dateA = new Date(a.updated_at || a.hora_llegada).getTime();
             const dateB = new Date(b.updated_at || b.hora_llegada).getTime();
@@ -492,81 +516,4 @@ export class Atencion implements OnInit, OnDestroy {
 
   // === MÉTODOS PARA TAB PACIENTES (lab/imagenes) ===
 
-  toggleSearchFilterPacientes() {
-    this.showSearchFilterDropdownPacientes = !this.showSearchFilterDropdownPacientes;
-  }
-
-  selectSearchFilterPacientes(filter: string) {
-    this.searchFilterPacientes = filter;
-    this.showSearchFilterDropdownPacientes = false;
-  }
-
-  getSearchFilterLabelPacientes(): string {
-    const labels: Record<string, string> = {
-      'todo': 'TODO',
-      'nombre': 'NOMBRE',
-      'apellido': 'APELLIDO',
-      'cedula': 'CÉDULA'
-    };
-    return labels[this.searchFilterPacientes] || 'TODO';
-  }
-
-  cargarPacientes() {
-    this.apiService.get<AdmisionDTO[]>('recepcion/ultimas-admisiones').subscribe({
-      next: (data) => {
-        const items = data || [];
-        this.ultimasAdmisiones = items.filter(a => {
-          if ((a.nombre_estado || '').toUpperCase() === 'ATENDIDO') return false;
-
-          const servicioLower = (a.nombre_servicio || '').toLowerCase();
-          const modalidadPagoLower = (a.modalidad_pago || '').toLowerCase();
-          const esParticular = modalidadPagoLower === 'particular';
-          const esSeguro = modalidadPagoLower === 'seguro';
-
-          if (this.tipo === 'laboratorio') {
-            return servicioLower.includes('laboratorio') && esParticular;
-          }
-          if (this.tipo === 'imagenes') {
-            return (servicioLower.includes('imágenes') || servicioLower.includes('imagenes')) && esParticular;
-          }
-          return false;
-        });
-      },
-      error: () => console.error('Error cargando pacientes')
-    });
-  }
-
-  async enviarAPresupuesto(id_atencion: number) {
-    const result = await this.swal.confirm('¿Deseas enviar este paciente a Presupuesto/Caja?');
-    if (!result.isConfirmed) return;
-    this.apiService.actualizarEstadoAtencion(id_atencion, 2).subscribe({
-      next: () => this.cargarPacientes(),
-      error: (err) => this.swal.error(err.error?.mensaje || 'Error al cambiar estado')
-    });
-  }
-
-  async enviarASalaEspera(id_atencion: number) {
-    const result = await this.swal.confirm('¿Deseas enviar este paciente a la Sala de Espera (Ya pagó)?');
-    if (!result.isConfirmed) return;
-    this.apiService.actualizarEstadoAtencion(id_atencion, 3).subscribe({
-      next: () => this.cargarPacientes(),
-      error: (err) => this.swal.error(err.error?.mensaje || 'Error al cambiar estado')
-    });
-  }
-
-  getResponsableLabel(value: string | undefined): string {
-    const modalidad = (value || '').toString().trim().toLowerCase();
-    if (modalidad.includes('particular')) return 'Particular';
-    if (modalidad.includes('seguro') || modalidad.includes('asegur')) return 'Aseguradora';
-    return 'SIN ASIGNAR';
-  }
-
-  getServicioCategoria(value: string | undefined): string {
-    const servicio = (value || '').toString().trim().toLowerCase();
-    if (servicio.includes('laboratorio')) return 'Laboratorio';
-    if (servicio.includes('imágenes') || servicio.includes('imagenes')) return 'Imágenes';
-    return 'Consulta';
-  }
-
-  onSearchChange(value: string | undefined) {}
 }

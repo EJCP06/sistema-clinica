@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const logger = require('../config/logger');
 
 const obtenerMiEstado = async (req, res) => {
   if (!req.usuario) {
@@ -24,11 +25,11 @@ const obtenerMiEstado = async (req, res) => {
       const result = await pool.query(`
         SELECT 'LIBRE' as estado, s.id_servicio as servicio_id, s.nombre_servicio as nombre, s.nombre_servicio as servicio_nombre,
           a.id_atencion as turno_id, a.numero as turno_numero,
-          CASE WHEN e.nombre_estado = 'En Atención' THEN 'EN_ATENCION' WHEN e.nombre_estado = 'Llamado' THEN 'LLAMADO' ELSE UPPER(e.nombre_estado) END as turno_estado,
+          CASE WHEN e.nombre_estado = 'En Atencion' THEN 'EN_ATENCION' WHEN e.nombre_estado = 'Llamado' THEN 'LLAMADO' ELSE UPPER(e.nombre_estado) END as turno_estado,
           p.nombre as nombre_paciente, p.apellido as apellido_paciente, p.cedula as documento_paciente, a.hora_llegada as turno_hora_llegada,
-          (SELECT h.fecha_hora FROM "Historial_Atencion" h WHERE h.id_atencion = a.id_atencion AND h.id_estado = 7 ORDER BY h.fecha_hora DESC LIMIT 1) as hora_llamado
+          (SELECT h.fecha_hora FROM "Historial_Atencion" h WHERE h.id_atencion = a.id_atencion AND h.id_estado = 4 ORDER BY h.fecha_hora DESC LIMIT 1) as hora_llamado
         FROM "Servicio" s
-        LEFT JOIN "Atencion" a ON a.id_servicio = s.id_servicio AND a.id_estado_actual IN (4, 7)
+        LEFT JOIN "Atencion" a ON a.id_servicio = s.id_servicio AND a.id_estado_actual IN (5, 4) AND a.hora_salida IS NULL
         LEFT JOIN "Estado" e ON a.id_estado_actual = e.id_estado
         LEFT JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
         WHERE s.id_servicio = $1 ORDER BY a.id_atencion DESC LIMIT 1
@@ -44,12 +45,12 @@ const obtenerMiEstado = async (req, res) => {
     const result = await pool.query(`
       SELECT c.estado_fisico as estado, c.id_servicio as servicio_id, c.nombre, s.nombre_servicio as servicio_nombre,
         a.id_atencion as turno_id, a.numero as turno_numero,
-        CASE WHEN e.nombre_estado = 'En Atención' THEN 'EN_ATENCION' WHEN e.nombre_estado = 'Llamado' THEN 'LLAMADO' ELSE UPPER(e.nombre_estado) END as turno_estado,
+        CASE WHEN e.nombre_estado = 'En Atencion' THEN 'EN_ATENCION' WHEN e.nombre_estado = 'Llamado' THEN 'LLAMADO' ELSE UPPER(e.nombre_estado) END as turno_estado,
         p.nombre as nombre_paciente, p.apellido as apellido_paciente, p.cedula as documento_paciente, a.hora_llegada as turno_hora_llegada,
-        (SELECT h.fecha_hora FROM "Historial_Atencion" h WHERE h.id_atencion = a.id_atencion AND h.id_estado = 7 ORDER BY h.fecha_hora DESC LIMIT 1) as hora_llamado
+        (SELECT h.fecha_hora FROM "Historial_Atencion" h WHERE h.id_atencion = a.id_atencion AND h.id_estado = 4 ORDER BY h.fecha_hora DESC LIMIT 1) as hora_llamado
       FROM "Consultorios" c
       LEFT JOIN "Servicio" s ON c.id_servicio = s.id_servicio
-      LEFT JOIN "Atencion" a ON a.id_consultorio = c.id_consultorio AND a.id_estado_actual IN (4, 7)
+      LEFT JOIN "Atencion" a ON a.id_consultorio = c.id_consultorio AND a.id_estado_actual IN (5, 4) AND a.hora_salida IS NULL
       LEFT JOIN "Estado" e ON a.id_estado_actual = e.id_estado
       LEFT JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
       WHERE c.id_consultorio = $1 ORDER BY a.id_atencion DESC LIMIT 1
@@ -60,7 +61,7 @@ const obtenerMiEstado = async (req, res) => {
     }
     res.json(result.rows[0]);
   } catch (error) {
-    console.error('Error en obtenerMiEstado:', error);
+    logger.error('Error en obtenerMiEstado:', error);
     res.status(500).json({ mensaje: 'Error al obtener estado' });
   }
 };
@@ -134,14 +135,14 @@ const llamarSiguiente = async (req, res) => {
 
     const turno = turnoRes.rows[0];
 
-    // Actualizar Atencion (estado 7 = Llamado)
+    // Actualizar Atencion (estado 4 = Llamado)
     await client.query(
-      "UPDATE \"Atencion\" SET id_estado_actual = 7, id_consultorio = $1 WHERE id_atencion = $2",
+      "UPDATE \"Atencion\" SET id_estado_actual = 4, id_consultorio = $1 WHERE id_atencion = $2",
       [rol === 'laboratorio' || rol === 'imagenes' ? null : consultorioId, turno.id]
     );
 
     await client.query(
-      "INSERT INTO \"Historial_Atencion\" (id_atencion, id_estado) VALUES ($1, 7)", [turno.id]
+      "INSERT INTO \"Historial_Atencion\" (id_atencion, id_estado) VALUES ($1, 4)", [turno.id]
     );
 
     if (consultorioId && rol !== 'laboratorio' && rol !== 'imagenes') {
@@ -178,8 +179,8 @@ const llamarSiguiente = async (req, res) => {
 
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('Error en llamarSiguiente:', error);
-    res.status(500).json({ mensaje: error.message || 'Error al procesar el llamado' });
+    logger.error('Error en llamarSiguiente:', error);
+    res.status(500).json({ mensaje: 'Error al procesar el llamado' });
   } finally {
     client.release();
   }
@@ -205,10 +206,10 @@ const iniciarAtencion = async (req, res) => {
     let query, params;
     
     if (rol === 'laboratorio' || rol === 'imagenes') {
-      query = 'SELECT id_atencion FROM "Atencion" WHERE id_servicio = $1 AND id_estado_actual = 7 LIMIT 1 FOR UPDATE';
+      query = 'SELECT id_atencion FROM "Atencion" WHERE id_servicio = $1 AND id_estado_actual = 4 LIMIT 1 FOR UPDATE';
       params = [servicioId];
     } else {
-      query = 'SELECT id_atencion FROM "Atencion" WHERE id_consultorio = $1 AND id_estado_actual = 7 LIMIT 1 FOR UPDATE';
+      query = 'SELECT id_atencion FROM "Atencion" WHERE id_consultorio = $1 AND id_estado_actual = 4 LIMIT 1 FOR UPDATE';
       params = [consultorioId];
     }
 
@@ -221,8 +222,8 @@ const iniciarAtencion = async (req, res) => {
     
     const atencionId = atencionRes.rows[0].id_atencion;
     
-    await client.query('UPDATE "Atencion" SET id_estado_actual = 4 WHERE id_atencion = $1', [atencionId]);
-    await client.query("INSERT INTO \"Historial_Atencion\" (id_atencion, id_estado) VALUES ($1, 4)", [atencionId]);
+    await client.query('UPDATE "Atencion" SET id_estado_actual = 5 WHERE id_atencion = $1', [atencionId]);
+    await client.query("INSERT INTO \"Historial_Atencion\" (id_atencion, id_estado) VALUES ($1, 5)", [atencionId]);
     await client.query('COMMIT');
 
     if (req.io) req.io.emit('estado-actualizado', { id_atencion: atencionId });
@@ -230,8 +231,8 @@ const iniciarAtencion = async (req, res) => {
     res.json({ mensaje: 'Atención iniciada correctamente', id_atencion: atencionId });
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('Error en iniciarAtencion:', error);
-    res.status(500).json({ mensaje: 'Error al iniciar atención: ' + error.message });
+    logger.error('Error en iniciarAtencion:', error);
+    res.status(500).json({ mensaje: 'Error al iniciar atención' });
   } finally {
     client.release();
   }
@@ -257,10 +258,10 @@ const finalizarAtencion = async (req, res) => {
     let query, params;
     
     if (rol === 'laboratorio' || rol === 'imagenes') {
-      query = 'UPDATE "Atencion" SET id_estado_actual = 5, hora_salida = NOW() WHERE id_servicio = $1 AND id_estado_actual = 4 RETURNING id_atencion';
+      query = 'UPDATE "Atencion" SET id_estado_actual = 6, hora_salida = NOW() WHERE id_servicio = $1 AND id_estado_actual = 5 RETURNING id_atencion';
       params = [servicioId];
     } else {
-      query = 'UPDATE "Atencion" SET id_estado_actual = 5, hora_salida = NOW() WHERE id_consultorio = $1 AND id_estado_actual = 4 RETURNING id_atencion';
+      query = 'UPDATE "Atencion" SET id_estado_actual = 6, hora_salida = NOW() WHERE id_consultorio = $1 AND id_estado_actual = 5 RETURNING id_atencion';
       params = [consultorioId];
     }
 
@@ -272,7 +273,7 @@ const finalizarAtencion = async (req, res) => {
     }
 
     const atencionId = turnoRes.rows[0].id_atencion;
-    await client.query("INSERT INTO \"Historial_Atencion\" (id_atencion, id_estado) VALUES ($1, 5)", [atencionId]);
+    await client.query("INSERT INTO \"Historial_Atencion\" (id_atencion, id_estado) VALUES ($1, 6)", [atencionId]);
 
     if (consultorioId && rol !== 'laboratorio' && rol !== 'imagenes') {
       await client.query("UPDATE \"Consultorios\" SET estado_fisico = 'LIBRE' WHERE id_consultorio = $1", [consultorioId]);
@@ -285,8 +286,43 @@ const finalizarAtencion = async (req, res) => {
     res.json({ mensaje: 'Atención finalizada' });
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('Error en finalizarAtencion:', error);
-    res.status(500).json({ mensaje: 'Error al finalizar atención: ' + error.message });
+    logger.error('Error en finalizarAtencion:', error);
+    res.status(500).json({ mensaje: 'Error al finalizar atención' });
+  } finally {
+    client.release();
+  }
+};
+
+const liberarConsultorio = async (req, res) => {
+  const consultorioId = req.usuario.consultorio_id;
+  const rol = req.usuario.rol;
+  let servicioId = req.usuario.servicio_id;
+  
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 1. Si es consultorio físico, ponerlo en LIBRE
+    if (consultorioId && rol !== 'laboratorio' && rol !== 'imagenes') {
+      await client.query("UPDATE \"Consultorios\" SET estado_fisico = 'LIBRE' WHERE id_consultorio = $1", [consultorioId]);
+    }
+
+    // 2. Marcar como finalizadas cualquier atención que esté en curso para este consultorio/servicio
+    if (rol === 'laboratorio' || rol === 'imagenes') {
+      servicioId = await resolverServicioId(rol, servicioId);
+      await client.query('UPDATE "Atencion" SET id_estado_actual = 6, hora_salida = NOW() WHERE id_servicio = $1 AND id_estado_actual IN (4, 5)', [servicioId]);
+    } else if (consultorioId) {
+      await client.query('UPDATE "Atencion" SET id_estado_actual = 6, hora_salida = NOW() WHERE id_consultorio = $1 AND id_estado_actual IN (4, 5)', [consultorioId]);
+    }
+
+    await client.query('COMMIT');
+    if (req.io) req.io.emit('estado-actualizado', { tipo: 'liberacion' });
+    
+    res.json({ mensaje: 'Consultorio liberado correctamente' });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    logger.error('Error en liberarConsultorio:', error);
+    res.status(500).json({ mensaje: 'Error al liberar consultorio' });
   } finally {
     client.release();
   }
@@ -297,4 +333,5 @@ module.exports = {
   llamarSiguiente,
   iniciarAtencion,
   finalizarAtencion,
+  liberarConsultorio,
 };

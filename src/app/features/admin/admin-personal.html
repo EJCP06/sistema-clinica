@@ -79,6 +79,7 @@
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Apellido</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Cédula</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Teléfono</th>
+              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Correo</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Especialidad</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Sede</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Estado</th>
@@ -88,10 +89,11 @@
           <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
             <ng-container *ngFor="let m of medicosFiltrados | paginate: currentPageMedicos : pageSize; trackBy: trackById">
               <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ m.nombre || 'Sin asignar' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ m.apellido || '' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ m.cedula || 'Sin asignar' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ m.nombre || 'SIN ASIGNAR' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ m.apellido || 'SIN ASIGNAR' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ m.cedula || 'SIN ASIGNAR' }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold uppercase text-center">{{ m.telefono || 'SIN ASIGNAR' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ (m.email || '').toLowerCase() || 'SIN ASIGNAR' }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ getNombreEsp(m.id_especialidad) || getNombreServicio(m.servicio_id) }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 dark:text-slate-400 font-bold text-center">{{ getSedeLabel(m.id_sede) }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
@@ -107,11 +109,11 @@
             </ng-container>
             <ng-container *ngIf="medicosFiltrados.length > 0">
               <ng-container *ngFor="let _ of medicosFiltrados | fillers: currentPageMedicos : pageSize">
-                <tr><td colspan="8" class="h-[52px] md:h-[64px]"></td></tr>
+                <tr><td colspan="9" class="h-[52px] md:h-[64px]"></td></tr>
               </ng-container>
             </ng-container>
             <tr *ngIf="medicosFiltrados.length === 0">
-              <td colspan="8" class="px-8 py-20 text-center align-middle">
+              <td colspan="9" class="px-8 py-20 text-center align-middle">
                 <div class="flex flex-col items-center justify-center w-full">
                   <div class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 mx-auto"><lucide-icon [name]="Search" class="w-8 h-8 text-slate-500 opacity-60"></lucide-icon></div>
                   <p class="text-slate-400 italic font-medium text-center w-full">No se encontraron médicos registrados.</p>
@@ -143,6 +145,7 @@
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Apellido</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Cédula</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Teléfono</th>
+              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Correo</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Sede</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Piso</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Estado</th>
@@ -152,10 +155,11 @@
           <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
             <ng-container *ngFor="let r of recepcionistasFiltradas | paginate: currentPageRecepcionistas : pageSize; trackBy: trackById">
               <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ r.nombre || 'Sin asignar' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ r.apellido || '' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ r.cedula || 'Sin asignar' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ r.nombre || 'SIN ASIGNAR' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ r.apellido || 'SIN ASIGNAR' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ r.cedula || 'SIN ASIGNAR' }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 uppercase font-bold text-center">{{ r.telefono || 'SIN ASIGNAR' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ (r.email || '').toLowerCase() || 'SIN ASIGNAR' }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ getSedeLabel(r.id_sede) }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tighter text-center">{{ formatPiso(r.piso) }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
@@ -171,11 +175,11 @@
             </ng-container>
             <ng-container *ngIf="recepcionistasFiltradas.length > 0">
               <ng-container *ngFor="let _ of recepcionistasFiltradas | fillers: currentPageRecepcionistas : pageSize">
-                <tr><td colspan="8" class="h-[52px] md:h-[64px]"></td></tr>
+                <tr><td colspan="9" class="h-[52px] md:h-[64px]"></td></tr>
               </ng-container>
             </ng-container>
             <tr *ngIf="recepcionistasFiltradas.length === 0">
-              <td colspan="8" class="px-8 py-20 text-center align-middle">
+              <td colspan="9" class="px-8 py-20 text-center align-middle">
                 <div class="flex flex-col items-center justify-center w-full">
                   <div class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 mx-auto"><lucide-icon [name]="Search" class="w-8 h-8 text-slate-500 opacity-60"></lucide-icon></div>
                   <p class="text-slate-400 italic font-medium text-center w-full">No se encontraron recepcionistas registradas.</p>
@@ -207,6 +211,7 @@
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Apellido</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Cédula</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Teléfono</th>
+              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Correo</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Sede</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Estado</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center border-b border-slate-200 dark:border-slate-800">Acciones</th>
@@ -215,10 +220,11 @@
           <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
             <ng-container *ngFor="let a of administradoresFiltrados | paginate: currentPageAdmin : pageSize; trackBy: trackById">
               <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.nombre || 'Sin asignar' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.apellido || '' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ a.cedula || 'Sin asignar' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.nombre || 'SIN ASIGNAR' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.apellido || 'SIN ASIGNAR' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ a.cedula || 'SIN ASIGNAR' }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold uppercase text-center">{{ a.telefono || 'SIN ASIGNAR' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ (a.email || '').toLowerCase() || 'SIN ASIGNAR' }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ getSedeLabel(a.id_sede) }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
                   <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [ngClass]="a.activo ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'">{{ a.activo ? 'Activo' : 'Inactivo' }}</span>
@@ -233,11 +239,11 @@
             </ng-container>
             <ng-container *ngIf="administradoresFiltrados.length > 0">
               <ng-container *ngFor="let _ of administradoresFiltrados | fillers: currentPageAdmin : pageSize">
-                <tr><td colspan="7" class="h-[52px] md:h-[64px]"></td></tr>
+                <tr><td colspan="8" class="h-[52px] md:h-[64px]"></td></tr>
               </ng-container>
             </ng-container>
             <tr *ngIf="administradoresFiltrados.length === 0">
-              <td colspan="7" class="px-8 py-20 text-center align-middle">
+              <td colspan="8" class="px-8 py-20 text-center align-middle">
                 <div class="flex flex-col items-center justify-center w-full">
                   <div class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 mx-auto"><lucide-icon [name]="Search" class="w-8 h-8 text-slate-500 opacity-60"></lucide-icon></div>
                   <p class="text-slate-400 italic font-medium text-center w-full">No se encontraron administradores registrados.</p>
@@ -269,6 +275,7 @@
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Apellido</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Cédula</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Teléfono</th>
+              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Correo</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Sede</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Estado</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center border-b border-slate-200 dark:border-slate-800">Acciones</th>
@@ -277,10 +284,11 @@
           <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
             <ng-container *ngFor="let a of laboratorioFiltrados | paginate: currentPageLaboratorio : pageSize; trackBy: trackById">
               <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.nombre || 'Sin asignar' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.apellido || '' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ a.cedula || 'Sin asignar' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.nombre || 'SIN ASIGNAR' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.apellido || 'SIN ASIGNAR' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ a.cedula || 'SIN ASIGNAR' }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold uppercase text-center">{{ a.telefono || 'SIN ASIGNAR' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ (a.email || '').toLowerCase() || 'SIN ASIGNAR' }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ getSedeLabel(a.id_sede) }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
                   <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [ngClass]="a.activo ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'">{{ a.activo ? 'Activo' : 'Inactivo' }}</span>
@@ -295,11 +303,11 @@
             </ng-container>
             <ng-container *ngIf="laboratorioFiltrados.length > 0">
               <ng-container *ngFor="let _ of laboratorioFiltrados | fillers: currentPageLaboratorio : pageSize">
-                <tr><td colspan="7" class="h-[52px] md:h-[64px]"></td></tr>
+                <tr><td colspan="8" class="h-[52px] md:h-[64px]"></td></tr>
               </ng-container>
             </ng-container>
             <tr *ngIf="laboratorioFiltrados.length === 0">
-              <td colspan="7" class="px-8 py-20 text-center align-middle">
+              <td colspan="8" class="px-8 py-20 text-center align-middle">
                 <div class="flex flex-col items-center justify-center w-full">
                   <div class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 mx-auto"><lucide-icon [name]="Search" class="w-8 h-8 text-slate-500 opacity-60"></lucide-icon></div>
                   <p class="text-slate-400 italic font-medium text-center w-full">No se encontraron registros de laboratorio.</p>
@@ -331,6 +339,7 @@
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Apellido</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Cédula</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Teléfono</th>
+              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Correo</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Sede</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Estado</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center border-b border-slate-200 dark:border-slate-800">Acciones</th>
@@ -339,10 +348,11 @@
           <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
             <ng-container *ngFor="let a of imagenesFiltrados | paginate: currentPageImagenes : pageSize; trackBy: trackById">
               <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.nombre || 'Sin asignar' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.apellido || '' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ a.cedula || 'Sin asignar' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.nombre || 'SIN ASIGNAR' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.apellido || 'SIN ASIGNAR' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ a.cedula || 'SIN ASIGNAR' }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold uppercase text-center">{{ a.telefono || 'SIN ASIGNAR' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ (a.email || '').toLowerCase() || 'SIN ASIGNAR' }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ getSedeLabel(a.id_sede) }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
                   <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [ngClass]="a.activo ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'">{{ a.activo ? 'Activo' : 'Inactivo' }}</span>
@@ -357,11 +367,11 @@
             </ng-container>
             <ng-container *ngIf="imagenesFiltrados.length > 0">
               <ng-container *ngFor="let _ of imagenesFiltrados | fillers: currentPageImagenes : pageSize">
-                <tr><td colspan="7" class="h-[52px] md:h-[64px]"></td></tr>
+                <tr><td colspan="8" class="h-[52px] md:h-[64px]"></td></tr>
               </ng-container>
             </ng-container>
             <tr *ngIf="imagenesFiltrados.length === 0">
-              <td colspan="7" class="px-8 py-20 text-center align-middle">
+              <td colspan="8" class="px-8 py-20 text-center align-middle">
                 <div class="flex flex-col items-center justify-center w-full">
                   <div class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 mx-auto"><lucide-icon [name]="Search" class="w-8 h-8 text-slate-500 opacity-60"></lucide-icon></div>
                   <p class="text-slate-400 italic font-medium text-center w-full">No se encontraron registros de imágenes.</p>
@@ -392,6 +402,7 @@
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Apellido</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Cédula</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Teléfono</th>
+              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Correo</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Sede</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center">Estado</th>
               <th class="px-3 md:px-6 py-3 md:py-4 text-center border-b border-slate-200 dark:border-slate-800">Acciones</th>
@@ -400,10 +411,11 @@
           <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
             <ng-container *ngFor="let a of apsFiltrados | paginate: currentPageAps : pageSize; trackBy: trackById">
               <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.nombre || 'Sin asignar' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.apellido || '' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ a.cedula || 'Sin asignar' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.nombre || 'SIN ASIGNAR' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.apellido || 'SIN ASIGNAR' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ a.cedula || 'SIN ASIGNAR' }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold uppercase text-center">{{ a.telefono || 'SIN ASIGNAR' }}</td>
+                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ (a.email || '').toLowerCase() || 'SIN ASIGNAR' }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ getSedeLabel(a.id_sede) }}</td>
                 <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
                   <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [ngClass]="a.activo ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'">{{ a.activo ? 'Activo' : 'Inactivo' }}</span>
@@ -418,11 +430,11 @@
             </ng-container>
             <ng-container *ngIf="apsFiltrados.length > 0">
               <ng-container *ngFor="let _ of apsFiltrados | fillers: currentPageAps : pageSize">
-                <tr><td colspan="7" class="h-[52px] md:h-[64px]"></td></tr>
+                <tr><td colspan="8" class="h-[52px] md:h-[64px]"></td></tr>
               </ng-container>
             </ng-container>
             <tr *ngIf="apsFiltrados.length === 0">
-              <td colspan="7" class="px-8 py-20 text-center align-middle">
+              <td colspan="8" class="px-8 py-20 text-center align-middle">
                 <div class="flex flex-col items-center justify-center w-full">
                   <div class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 mx-auto"><lucide-icon [name]="Search" class="w-8 h-8 text-slate-500 opacity-60"></lucide-icon></div>
                   <p class="text-slate-400 italic font-medium text-center w-full">No se encontraron registros de APS.</p>
@@ -473,6 +485,10 @@
         <div class="lg:col-span-2 space-y-1.5">
           <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Teléfono</label>
           <input [(ngModel)]="formPersonal.telefono" (keypress)="soloNumeros($event)" placeholder="Ej: 04141118228" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
+        </div>
+        <div class="lg:col-span-2 space-y-1.5">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Correo</label>
+          <input [(ngModel)]="formPersonal.email" (keypress)="sinEspacios($event)" placeholder="Ej: clinicacaracas@gmail.com" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
         </div>
         <div class="lg:col-span-2 space-y-1.5">
           <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Sede</label>

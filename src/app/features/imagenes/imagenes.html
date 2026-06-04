@@ -150,11 +150,12 @@
                         [ngClass]="{
                           'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20': a.id_estado_actual === 1,
                           'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20': a.id_estado_actual === 2,
-                          'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20': a.id_estado_actual === 3,
-                          'bg-[#faf6f0] text-[#8d6e63] border-[#d7ccc8] dark:bg-[#8d6e63]/10 dark:text-[#d7ccc8] dark:border-[#8d6e63]/20': a.id_estado_actual === 7,
-                          'bg-sky-50 text-sky-600 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20': a.id_estado_actual === 4,
-                          'bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20': a.id_estado_actual === 5,
-                          'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20': a.id_estado_actual === 6
+                          'bg-teal-50 text-teal-600 border-teal-200 dark:bg-teal-500/10 dark:text-teal-400 dark:border-teal-500/20': a.id_estado_actual === 3,
+                          'bg-[#faf6f0] text-[#8d6e63] border-[#d7ccc8] dark:bg-[#8d6e63]/10 dark:text-[#d7ccc8] dark:border-[#8d6e63]/20': a.id_estado_actual === 4,
+                          'bg-sky-50 text-sky-600 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20': a.id_estado_actual === 5,
+                          'bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20': a.id_estado_actual === 6,
+                          'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20': a.id_estado_actual === 7,
+                          'bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20': a.id_estado_actual === 8
                         }">
                         {{ a.nombre_estado || 'Sin asignar' }}
                       </span>
@@ -163,16 +164,14 @@
                     <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.fecha_creacion | date:'h:mm a' }}</td>
                     <td class="px-3 md:px-6 py-3 md:py-4 text-center border-b border-slate-100/30 dark:border-slate-800/10">
                       <div class="flex items-center justify-center gap-2">
-                        <button *ngIf="a.id_estado_actual === 1" (click)="enviarAPresupuesto(a.id_atencion)" aria-label="Enviar a presupuesto" title="Enviar a Presupuesto" class="p-2 text-amber-500 hover:bg-amber-50 rounded-xl transition-all">
+                        <button *ngIf="a.id_estado_actual === 1" (click)="enviarAPresupuesto(a.id_atencion)" aria-label="¿Ya se creó el presupuesto?" title="¿Ya se creó el presupuesto?" class="p-2 text-amber-500 hover:bg-amber-50 rounded-xl transition-all">
                           <lucide-icon [name]="FileText" class="w-4 h-4"></lucide-icon>
                         </button>
-                        <button *ngIf="a.id_estado_actual === 2" (click)="enviarASalaEspera(a.id_atencion)" aria-label="Confirmar pago y enviar a sala de espera" title="Confirmar Pago y Enviar a Sala de Espera" class="p-2 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all">
+                        <button *ngIf="a.id_estado_actual === 2" (click)="enviarACaja(a.id_atencion)" aria-label="Enviar a sala de espera" title="Enviar a Sala de Espera" class="p-2 text-teal-500 hover:bg-teal-50 rounded-xl transition-all">
                           <lucide-icon [name]="CheckCircle2" class="w-4 h-4"></lucide-icon>
                         </button>
-                        <button *ngIf="a.id_estado_actual === 1" (click)="enviarASalaEspera(a.id_atencion)" aria-label="Enviar directo a sala de espera" title="Enviar directo a Sala de Espera" class="p-2 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all">
-                          <lucide-icon [name]="ChevronRight" class="w-4 h-4"></lucide-icon>
-                        </button>
-                        <button *ngIf="a.id_estado_actual === 6" (click)="reincorporar(a.id_atencion)" aria-label="Reincorporar a sala de espera" title="Reincorporar a Sala de Espera" class="p-2 text-orange-500 hover:bg-orange-50 rounded-xl transition-all">
+
+                        <button *ngIf="a.id_estado_actual === 7" (click)="reincorporar(a.id_atencion)" aria-label="Reincorporar a sala de espera" title="Reincorporar a Sala de Espera" class="p-2 text-orange-500 hover:bg-orange-50 rounded-xl transition-all">
                           <lucide-icon [name]="Undo2" class="w-4 h-4"></lucide-icon>
                         </button>
                       </div>

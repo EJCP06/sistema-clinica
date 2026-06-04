@@ -30,7 +30,11 @@ export class ApiService {
   public cambios$ = new Subject<{ tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; id_sede?: number }>();
 
   constructor() {
-    this.socket = io(environment.socketUrl);
+    const token = sessionStorage.getItem('clinica_token');
+    this.socket = io(environment.socketUrl, {
+      auth: { token },
+      transports: ['websocket', 'polling'],
+    });
     this.socket.on('estado-actualizado', (data: unknown) => {
       this.cambios$.next(data as { tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; id_sede?: number });
     });
@@ -108,8 +112,12 @@ export class ApiService {
     return this.http.post<ApiResponse>(`${this.base}/consultorios/finalizar-atencion`, {});
   }
 
+  liberarConsultorio(): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(`${this.base}/consultorios/liberar-consultorio`, {});
+  }
+
   // =========================
-  // TURNOS ACCIONES
+  // SERVICIOS / ESPECIALIDADES
   // =========================
   marcarAusente(turnoId: number): Observable<ApiResponse> {
     return this.http.put<ApiResponse>(`${this.base}/turnos/${turnoId}/ausente`, {});

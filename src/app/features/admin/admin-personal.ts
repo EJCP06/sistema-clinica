@@ -131,6 +131,7 @@ export class AdminPersonal implements OnInit, OnChanges {
     apellido: string;
     cedula: string;
     telefono: string;
+    email: string;
     activo: boolean;
     servicio_id: string | number;
     especialidad_id: string | number;
@@ -145,6 +146,7 @@ export class AdminPersonal implements OnInit, OnChanges {
     apellido: '',
     cedula: '',
     telefono: '',
+    email: '',
     activo: true,
     servicio_id: '',
     especialidad_id: '',
@@ -219,6 +221,7 @@ export class AdminPersonal implements OnInit, OnChanges {
         apellido: user.apellido || '',
         cedula: user.cedula || '',
         telefono: user.telefono || '',
+        email: user.email || '',
         activo: !!user.activo,
         servicio_id: user.servicio_id || '',
         especialidad_id: user.id_especialidad || '',
@@ -240,6 +243,7 @@ export class AdminPersonal implements OnInit, OnChanges {
         apellido: '',
         cedula: '',
         telefono: '',
+        email: '',
         activo: true,
         servicio_id: '',
         especialidad_id: '',
@@ -265,6 +269,7 @@ export class AdminPersonal implements OnInit, OnChanges {
       cedula: cedulaFinal,
       username: cedulaFinal,
       telefono: (this.formPersonal.telefono || '').toString().replace(/\D/g, ''),
+      email: this.formPersonal.email ? this.formPersonal.email.toLowerCase().trim() : null,
       password: this.formPersonal.password ? this.formPersonal.password.replace(/\s/g, '') : null,
       piso: (rol === 'medico' || rol === 'recepcionista' || rol === 'aps' || rol === 'laboratorio' || rol === 'imagenes') && this.formPersonal.piso
         ? this.formPersonal.piso.toString().trim() : null,

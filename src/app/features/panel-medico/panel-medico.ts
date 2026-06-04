@@ -136,9 +136,9 @@ export class PanelMedicoComponent implements OnInit, OnDestroy {
             sessionStorage.setItem('paciente_atendiendo_data', JSON.stringify(enAtencionServer));
           }
         } else {
-          if (!sessionStorage.getItem('paciente_atendiendo_data')) {
-            this.pacienteActual = null;
-          }
+          // Si el servidor ya no reporta un paciente en atención, limpiamos el estado local.
+          this.pacienteActual = null;
+          sessionStorage.removeItem('paciente_atendiendo_data');
         }
 
         this.loading = false;

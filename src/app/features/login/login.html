@@ -8,7 +8,7 @@
     <lucide-icon [name]="Sun" class="w-4 h-4 text-amber-500"></lucide-icon>
     <label class="relative inline-flex items-center cursor-pointer group">
       <input type="checkbox" [checked]="isDarkMode" (change)="toggleDarkMode()" class="sr-only peer" />
-      <div [class.after:transition-all]="!initialTransitionDisabled" class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full dark:bg-slate-700 peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all after:duration-300 peer-checked:bg-slate-800 shadow-inner"></div>
+      <div [class.after:transition-all]="!initialTransitionDisabled" [class.after:duration-300]="!initialTransitionDisabled" class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full dark:bg-slate-700 peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 peer-checked:bg-slate-800 shadow-inner"></div>
     </label>
     <lucide-icon [name]="Moon" class="w-4 h-4 text-slate-300 dark:text-blue-400"></lucide-icon>
   </div>
@@ -62,7 +62,7 @@
               <lucide-icon [name]="Sun" class="w-3.5 h-3.5 text-amber-500"></lucide-icon>
               <label class="relative inline-flex items-center cursor-pointer group">
                 <input type="checkbox" [checked]="isDarkMode" (change)="toggleDarkMode()" class="sr-only peer" />
-                <div [class.after:transition-all]="!initialTransitionDisabled" class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full dark:bg-slate-700 peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all after:duration-300 peer-checked:bg-slate-800 shadow-inner"></div>
+                <div [class.after:transition-all]="!initialTransitionDisabled" [class.after:duration-300]="!initialTransitionDisabled" class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full dark:bg-slate-700 peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 peer-checked:bg-slate-800 shadow-inner"></div>
               </label>
               <lucide-icon [name]="Moon" class="w-3.5 h-3.5 text-slate-300 dark:text-blue-400"></lucide-icon>
             </div>
@@ -87,7 +87,7 @@
             <lucide-icon [name]="Sun" class="w-3.5 h-3.5 text-amber-500"></lucide-icon>
             <label class="relative inline-flex items-center cursor-pointer group">
               <input type="checkbox" [checked]="isDarkMode" (change)="toggleDarkMode()" class="sr-only peer" />
-              <div [class.after:transition-all]="!initialTransitionDisabled" class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full dark:bg-slate-700 peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all after:duration-300 peer-checked:bg-slate-800 shadow-inner"></div>
+              <div [class.after:transition-all]="!initialTransitionDisabled" [class.after:duration-300]="!initialTransitionDisabled" class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full dark:bg-slate-700 peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 peer-checked:bg-slate-800 shadow-inner"></div>
             </label>
             <lucide-icon [name]="Moon" class="w-3.5 h-3.5 text-slate-300 dark:text-blue-400"></lucide-icon>
           </div>
@@ -143,61 +143,131 @@
           </div>
         </div>
 
-        <!-- Formulario Cambiar Contraseña -->
+        <!-- Recuperación de Contraseña (3 pasos) -->
         <div *ngIf="mostrarResetPassword" class="space-y-6">
-          <div class="flex flex-col items-center text-center gap-3 mb-6">
-            <button type="button" (click)="toggleResetPassword()" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
+          <div class="relative flex items-center justify-center mb-6">
+            <button type="button" (click)="toggleResetPassword()" class="absolute left-0 p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
               <lucide-icon [name]="ArrowLeft" class="w-6 h-6 text-slate-500 dark:text-slate-400"></lucide-icon>
             </button>
-            <div>
-              <h3 class="text-lg font-black text-slate-900 dark:text-white tracking-tight">Cambiar Contraseña</h3>
-              <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Ingrese su nueva contraseña</p>
+            <div class="text-center">
+              <h3 class="text-lg font-black text-slate-900 dark:text-white tracking-tight">Recuperar Contraseña</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">{{ paso === 1 ? 'Verifica tu identidad' : paso === 2 ? 'Ingresa el código recibido' : 'Crea una nueva contraseña' }}</p>
             </div>
           </div>
 
-          <div class="space-y-2">
-            <label class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[2px] ml-1">Cédula</label>
-            <div class="relative group">
-              <div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors">
-                <lucide-icon [name]="User" class="w-5 h-5"></lucide-icon>
-              </div>
-              <input type="text" [(ngModel)]="resetCedula" name="resetCedula" placeholder="Ej: 31596888" class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
-            </div>
+          <!-- Step indicator -->
+          <div class="flex justify-center gap-2 mb-4">
+            <div class="w-8 h-1.5 rounded-full transition-all" [class.bg-blue-600]="paso >= 1" [class.bg-slate-200]="paso < 1"></div>
+            <div class="w-8 h-1.5 rounded-full transition-all" [class.bg-blue-600]="paso >= 2" [class.bg-slate-200]="paso < 2"></div>
+            <div class="w-8 h-1.5 rounded-full transition-all" [class.bg-blue-600]="paso >= 3" [class.bg-slate-200]="paso < 3"></div>
           </div>
 
-          <div class="space-y-2">
-            <label class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[2px] ml-1">Nueva Contraseña</label>
-            <div class="relative group">
-              <div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors">
-                <lucide-icon [name]="Lock" class="w-5 h-5"></lucide-icon>
+          <!-- PASO 1: Correo + Cédula -->
+          <div *ngIf="paso === 1" class="space-y-4">
+            <div class="space-y-2">
+              <label class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[2px] ml-1">Correo</label>
+              <div class="relative group">
+                <div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors">
+                  <lucide-icon [name]="Mail" class="w-5 h-5"></lucide-icon>
+                </div>
+                <input type="email" [(ngModel)]="recuperacionEmail" name="recuperacionEmail" (keydown.space)="$event.preventDefault()" placeholder="Ej: correo@ejemplo.com" class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
               </div>
-              <input [type]="mostrarNewPassword ? 'text' : 'password'" [(ngModel)]="newPassword" name="newPassword" placeholder="••••••••" class="w-full pl-14 pr-14 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
-              <button type="button" (click)="mostrarNewPassword = !mostrarNewPassword" class="absolute inset-y-0 right-0 pr-5 flex items-center text-slate-400 hover:text-blue-600 transition-colors">
-                <lucide-icon [name]="mostrarNewPassword ? EyeOff : Eye" class="w-5 h-5"></lucide-icon>
+            </div>
+            <div class="space-y-2">
+              <label class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[2px] ml-1">Cédula</label>
+              <div class="relative group">
+                <div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors">
+                  <lucide-icon [name]="User" class="w-5 h-5"></lucide-icon>
+                </div>
+                <input type="text" [(ngModel)]="recuperacionCedula" name="recuperacionCedula" (keydown.space)="$event.preventDefault()" placeholder="Ej: 31596888" class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
+              </div>
+            </div>
+            <button (click)="solicitarCodigo()" [disabled]="cargandoReset" class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-0.5 active:translate-y-0 transition-transform flex items-center justify-center gap-3 text-sm uppercase tracking-widest">
+              <span *ngIf="!cargandoReset" class="flex items-center gap-2">
+                Enviar Código
+                <lucide-icon [name]="Mail" class="w-5 h-5"></lucide-icon>
+              </span>
+              <div *ngIf="cargandoReset" class="flex items-center gap-3">
+                <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <span class="animate-pulse">Enviando...</span>
+              </div>
+            </button>
+          </div>
+
+          <!-- PASO 2: Código OTP -->
+          <div *ngIf="paso === 2" class="space-y-4">
+            <div class="text-center mb-4">
+              <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Enviamos un código a <strong class="text-slate-700 dark:text-slate-300">{{ recuperacionEmail }}</strong></p>
+            </div>
+            <div class="space-y-2">
+              <label class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[2px] ml-1">Código de verificación</label>
+              <div class="relative group">
+                <div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors">
+                  <lucide-icon [name]="Shield" class="w-5 h-5"></lucide-icon>
+                </div>
+                <input type="text" [(ngModel)]="recuperacionCodigo" name="recuperacionCodigo" (keypress)="soloNumeros($event)" maxlength="6" placeholder="000000" class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium text-center text-2xl tracking-[8px]" />
+              </div>
+            </div>
+            <div class="flex items-center justify-center gap-2 text-sm">
+              <lucide-icon [name]="Clock" class="w-4 h-4" [class.text-red-500]="tiempoAgotado" [class.text-amber-500]="!tiempoAgotado"></lucide-icon>
+              <span class="font-bold" [class.text-red-500]="tiempoAgotado" [class.text-amber-500]="!tiempoAgotado">
+                {{ tiempoAgotado ? 'Código expirado' : tiempoFormateado }}
+              </span>
+            </div>
+            <div *ngIf="tiempoAgotado" class="text-center">
+              <button (click)="solicitarCodigo()" [disabled]="cargandoReset" class="text-[10px] font-bold text-blue-600 hover:text-blue-700 uppercase tracking-[2px] transition-colors">
+                {{ cargandoReset ? 'Enviando...' : 'Reenviar código' }}
               </button>
             </div>
-          </div>
-
-          <div class="space-y-2">
-            <label class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[2px] ml-1">Confirmar Contraseña</label>
-            <div class="relative group">
-              <div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors">
-                <lucide-icon [name]="KeyRound" class="w-5 h-5"></lucide-icon>
+            <button (click)="verificarCodigo()" [disabled]="cargandoReset || tiempoAgotado" class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-0.5 active:translate-y-0 transition-transform flex items-center justify-center gap-3 text-sm uppercase tracking-widest">
+              <span *ngIf="!cargandoReset" class="flex items-center gap-2">
+                Verificar Código
+                <lucide-icon [name]="CheckCircle2" class="w-5 h-5"></lucide-icon>
+              </span>
+              <div *ngIf="cargandoReset" class="flex items-center gap-3">
+                <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <span class="animate-pulse">Verificando...</span>
               </div>
-              <input [type]="mostrarNewPassword ? 'text' : 'password'" [(ngModel)]="confirmPassword" name="confirmPassword" placeholder="••••••••" class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
-            </div>
+            </button>
           </div>
 
-          <button (click)="cambiarPassword()" [disabled]="cargandoReset" class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-0.5 active:translate-y-0 transition-transform flex items-center justify-center gap-3 text-sm uppercase tracking-widest">
-            <span *ngIf="!cargandoReset" class="flex items-center gap-2">
-              Cambiar Contraseña
-              <lucide-icon [name]="KeyRound" class="w-5 h-5"></lucide-icon>
-            </span>
-            <div *ngIf="cargandoReset" class="flex items-center gap-3">
-              <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-              <span class="animate-pulse">Cargando...</span>
-            </div>
-          </button>
+           <!-- PASO 3: Nueva Contraseña -->
+           <div *ngIf="paso === 3" class="space-y-4">
+             <div class="space-y-2">
+               <label class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[2px] ml-1">Nueva Contraseña</label>
+               <div class="relative group">
+                 <div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors">
+                   <lucide-icon [name]="Lock" class="w-5 h-5"></lucide-icon>
+                 </div>
+                 <input [type]="mostrarNewPassword ? 'text' : 'password'" [(ngModel)]="newPassword" name="newPassword" placeholder="••••••••" class="w-full pl-14 pr-14 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
+                 <button type="button" (click)="mostrarNewPassword = !mostrarNewPassword" class="absolute inset-y-0 right-0 pr-5 flex items-center text-slate-400 hover:text-blue-600 transition-colors">
+                   <lucide-icon [name]="mostrarNewPassword ? EyeOff : Eye" class="w-5 h-5"></lucide-icon>
+                 </button>
+               </div>
+             </div>
+             <div class="space-y-2">
+               <label class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[2px] ml-1">Confirmar Contraseña</label>
+               <div class="relative group">
+                 <div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors">
+                   <lucide-icon [name]="KeyRound" class="w-5 h-5"></lucide-icon>
+                 </div>
+                 <input [type]="mostrarConfirmPassword ? 'text' : 'password'" [(ngModel)]="confirmPassword" name="confirmPassword" placeholder="••••••••" class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
+                 <button type="button" (click)="mostrarConfirmPassword = !mostrarConfirmPassword" class="absolute inset-y-0 right-0 pr-5 flex items-center text-slate-400 hover:text-blue-600 transition-colors">
+                   <lucide-icon [name]="mostrarConfirmPassword ? EyeOff : Eye" class="w-5 h-5"></lucide-icon>
+                 </button>
+               </div>
+             </div>
+            <button (click)="restablecerPassword()" [disabled]="cargandoReset" class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-0.5 active:translate-y-0 transition-transform flex items-center justify-center gap-3 text-sm uppercase tracking-widest">
+              <span *ngIf="!cargandoReset" class="flex items-center gap-2">
+                Restablecer Contraseña
+                <lucide-icon [name]="KeyRound" class="w-5 h-5"></lucide-icon>
+              </span>
+              <div *ngIf="cargandoReset" class="flex items-center gap-3">
+                <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <span class="animate-pulse">Restableciendo...</span>
+              </div>
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -179,6 +179,7 @@ export interface PersonalDTO {
   nombre: string;
   apellido?: string;
   telefono?: string;
+  email?: string;
   rol: string;
   piso?: string;
   id_consultorio?: number;

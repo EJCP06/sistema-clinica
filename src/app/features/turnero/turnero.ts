@@ -1,12 +1,23 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { LucideAngularModule, Bell, Volume2, Clock, Users, Stethoscope, FlaskConical, ScanLine, Megaphone, LucideIconData } from 'lucide-angular';
+import { LucideAngularModule, Bell, Volume2, Clock, Users, Stethoscope, FlaskConical, ScanLine, Megaphone, ClipboardList, LucideIconData } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
 import { TurnoDTO } from '../../core/models/dto.models';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription, interval } from 'rxjs';
+import { ApsScrollDirective } from './aps-scroll.directive';
 
-type SalaMode = 'llegada' | 'consulta' | 'lab-espera' | 'lab-llamados' | 'img-espera' | 'img-llamados';
+type SalaMode = 'llegada' | 'consulta' | 'lab-espera' | 'img-espera' | 'aps';
+
+interface APSSeccion {
+  id: number;
+  titulo: string;
+  filtro: {
+    estados?: number[];
+    servicios?: number[];
+    responsable?: number[];
+  };
+}
 
 interface SalaConfig {
   titulo: string;
@@ -14,7 +25,7 @@ interface SalaConfig {
   estados: number[];
   servicios: number[] | null;
   icon: LucideIconData;
-  layout: 'llamados' | 'lista';
+  layout: 'llamados' | 'lista' | 'aps' | 'lab' | 'img';
 }
 
 const SALAS: Record<SalaMode, SalaConfig> = {
@@ -29,49 +40,41 @@ const SALAS: Record<SalaMode, SalaConfig> = {
   consulta: {
     titulo: 'LLAMADOS CONSULTA',
     subtitulo: 'Pacientes llamados a consulta médica',
-    estados: [7],
+    estados: [5],
     servicios: [1],
     icon: Stethoscope,
     layout: 'llamados',
   },
   'lab-espera': {
-    titulo: 'SALA DE ESPERA - LABORATORIO',
-    subtitulo: 'Pacientes esperando en laboratorio',
-    estados: [3],
-    servicios: [2],
+    titulo: 'LABORATORIO',
+    subtitulo: 'Pacientes en laboratorio',
+    estados: [],
+    servicios: null,
     icon: FlaskConical,
-    layout: 'lista',
-  },
-  'lab-llamados': {
-    titulo: 'ORDEN SERVICIO - LABORATORIO',
-    subtitulo: 'Pacientes llamados a laboratorio',
-    estados: [7],
-    servicios: [2],
-    icon: Megaphone,
-    layout: 'llamados',
+    layout: 'lab',
   },
   'img-espera': {
-    titulo: 'SALA DE ESPERA - IMÁGENES',
-    subtitulo: 'Pacientes esperando en imágenes',
-    estados: [3],
-    servicios: [3],
+    titulo: 'IMÁGENES',
+    subtitulo: 'Pacientes en imágenes',
+    estados: [],
+    servicios: null,
     icon: ScanLine,
-    layout: 'lista',
+    layout: 'img',
   },
-  'img-llamados': {
-    titulo: 'ORDEN SERVICIO - IMÁGENES',
-    subtitulo: 'Pacientes llamados a imágenes',
-    estados: [7],
-    servicios: [3],
-    icon: Megaphone,
-    layout: 'llamados',
+  aps: {
+    titulo: 'PANEL APS',
+    subtitulo: 'Pacientes de aseguradoras',
+    estados: [],
+    servicios: null,
+    icon: ClipboardList,
+    layout: 'aps',
   },
 };
 
 @Component({
   selector: 'app-turnero',
   standalone: true,
-  imports: [CommonModule, LucideAngularModule],
+  imports: [CommonModule, LucideAngularModule, ApsScrollDirective],
   templateUrl: './turnero.html'
 })
 export class TurneroComponent implements OnInit, OnDestroy {
@@ -88,14 +91,66 @@ export class TurneroComponent implements OnInit, OnDestroy {
   readonly salasDisponibles: { key: SalaMode; label: string; icon: LucideIconData }[] = [
     { key: 'llegada', label: 'Recién Llegados', icon: Users },
     { key: 'consulta', label: 'Consulta', icon: Stethoscope },
-    { key: 'lab-espera', label: 'Lab Espera', icon: FlaskConical },
-    { key: 'lab-llamados', label: 'Lab Llamados', icon: Megaphone },
-    { key: 'img-espera', label: 'Img Espera', icon: ScanLine },
-    { key: 'img-llamados', label: 'Img Llamados', icon: Megaphone },
+    { key: 'lab-espera', label: 'Laboratorio', icon: FlaskConical },
+    { key: 'img-espera', label: 'Imágenes', icon: ScanLine },
+    { key: 'aps', label: 'APS', icon: ClipboardList },
   ];
+
+  readonly seccionesAPS: APSSeccion[] = [
+    {
+      id: 1,
+      titulo: 'ASEGURADORAS',
+      filtro: {
+        estados: [1, 2, 4, 5, 7],
+        servicios: [1, 2, 3],
+        responsable: [2],
+      }
+    },
+    {
+      id: 2,
+      titulo: 'PARTICULARES CONSULTA',
+      filtro: {
+        estados: [1, 2, 4, 5, 7],
+        servicios: [1],
+        responsable: [1],
+      }
+    },
+  ];
+
+  apsData: TurnoDTO[][] = [];
+  apsLoading: boolean[] = [];
+
+  readonly labSections: APSSeccion[] = [
+    {
+      id: 1,
+      titulo: 'PARTICULARES',
+      filtro: {
+        estados: [1, 2, 4, 5, 7],
+        servicios: [2],
+        responsable: [1],
+      }
+    },
+  ];
+  labData: TurnoDTO[][] = [];
+  labLoading: boolean[] = [];
+
+  readonly imgSections: APSSeccion[] = [
+    {
+      id: 1,
+      titulo: 'PARTICULARES',
+      filtro: {
+        estados: [1, 2, 4, 5, 7],
+        servicios: [3],
+        responsable: [1],
+      }
+    },
+  ];
+  imgData: TurnoDTO[][] = [];
+  imgLoading: boolean[] = [];
 
   trackById = (index: number, item: TurnoDTO) => item?.id_atencion ?? item?.id ?? index;
 
+  private queryParamsSub: Subscription | null = null;
   private timerSub: Subscription | null = null;
   private clockSub: Subscription | null = null;
   private cambiosSub: Subscription | null = null;
@@ -107,15 +162,46 @@ export class TurneroComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    this.route.queryParams.subscribe(params => {
+    this.queryParamsSub = this.route.queryParams.subscribe(params => {
       const sala = params['sala'] as SalaMode;
       this.sala = SALAS[sala] ? sala : 'llegada';
       this.config = SALAS[this.sala];
-      this.cargarTurnos();
+      if (this.sala === 'aps') {
+        this.apsLoading = this.seccionesAPS.map(() => true);
+        this.cargarAPS();
+      } else if (this.sala === 'lab-espera') {
+        this.labLoading = this.labSections.map(() => true);
+        this.cargarLab();
+      } else if (this.sala === 'img-espera') {
+        this.imgLoading = this.imgSections.map(() => true);
+        this.cargarImg();
+      } else {
+        this.cargarTurnos();
+      }
     });
 
-    this.cambiosSub = this.api.cambios$.subscribe(() => this.cargarTurnos());
-    this.timerSub = interval(5000).subscribe(() => this.cargarTurnos());
+    this.cambiosSub = this.api.cambios$.subscribe(() => {
+      if (this.sala === 'aps') {
+        this.cargarAPS();
+      } else if (this.sala === 'lab-espera') {
+        this.cargarLab();
+      } else if (this.sala === 'img-espera') {
+        this.cargarImg();
+      } else {
+        this.cargarTurnos();
+      }
+    });
+    this.timerSub = interval(5000).subscribe(() => {
+      if (this.sala === 'aps') {
+        this.cargarAPS();
+      } else if (this.sala === 'lab-espera') {
+        this.cargarLab();
+      } else if (this.sala === 'img-espera') {
+        this.cargarImg();
+      } else {
+        this.cargarTurnos();
+      }
+    });
     this.clockSub = interval(1000).subscribe(() => {
       this.fechaActual = new Date();
       this.horaFormateada = this.fechaActual.toLocaleTimeString('en-US', {
@@ -126,6 +212,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.queryParamsSub?.unsubscribe();
     this.cambiosSub?.unsubscribe();
     this.timerSub?.unsubscribe();
     this.clockSub?.unsubscribe();
@@ -145,4 +232,82 @@ export class TurneroComponent implements OnInit, OnDestroy {
       error: () => console.error('Error turnero:'),
     });
   }
+
+  cargarAPS() {
+    for (let i = 0; i < this.seccionesAPS.length; i++) {
+      const seccion = this.seccionesAPS[i];
+      const params = new URLSearchParams();
+      if (seccion.filtro.estados?.length) params.set('estados', seccion.filtro.estados.join(','));
+      if (seccion.filtro.servicios?.length) params.set('servicios', seccion.filtro.servicios.join(','));
+      if (seccion.filtro.responsable?.length) params.set('responsable', seccion.filtro.responsable.join(','));
+
+      this.api.get<TurnoDTO[]>(`turnero/pacientes?${params.toString()}`).subscribe({
+        next: (data) => {
+          this.apsData[i] = data;
+          if (this.apsLoading[i]) this.apsLoading[i] = false;
+        },
+        error: () => {
+          if (!this.apsData[i]) {
+            this.apsData[i] = [];
+            this.apsLoading[i] = false;
+          }
+        },
+      });
+    }
+  }
+
+  cargarLab() {
+    for (let i = 0; i < this.labSections.length; i++) {
+      const seccion = this.labSections[i];
+      const params = new URLSearchParams();
+      if (seccion.filtro.estados?.length) params.set('estados', seccion.filtro.estados.join(','));
+      if (seccion.filtro.servicios?.length) params.set('servicios', seccion.filtro.servicios.join(','));
+      if (seccion.filtro.responsable?.length) params.set('responsable', seccion.filtro.responsable.join(','));
+
+      this.api.get<TurnoDTO[]>(`turnero/pacientes?${params.toString()}`).subscribe({
+        next: (data) => {
+          this.labData[i] = data;
+          if (this.labLoading[i]) this.labLoading[i] = false;
+        },
+        error: () => {
+          if (!this.labData[i]) {
+            this.labData[i] = [];
+            this.labLoading[i] = false;
+          }
+        },
+      });
+    }
+  }
+
+  cargarImg() {
+    for (let i = 0; i < this.imgSections.length; i++) {
+      const seccion = this.imgSections[i];
+      const params = new URLSearchParams();
+      if (seccion.filtro.estados?.length) params.set('estados', seccion.filtro.estados.join(','));
+      if (seccion.filtro.servicios?.length) params.set('servicios', seccion.filtro.servicios.join(','));
+      if (seccion.filtro.responsable?.length) params.set('responsable', seccion.filtro.responsable.join(','));
+
+      this.api.get<TurnoDTO[]>(`turnero/pacientes?${params.toString()}`).subscribe({
+        next: (data) => {
+          this.imgData[i] = data;
+          if (this.imgLoading[i]) this.imgLoading[i] = false;
+        },
+        error: () => {
+          if (!this.imgData[i]) {
+            this.imgData[i] = [];
+            this.imgLoading[i] = false;
+          }
+        },
+      });
+    }
+  }
+
+  private readonly MAX_VISIBLE = 4;
+  private readonly CARD_H = 90;
+  private readonly GAP = 12;
+
+  get viewportH(): number {
+    return this.MAX_VISIBLE * this.CARD_H + (this.MAX_VISIBLE - 1) * this.GAP;
+  }
+
 }

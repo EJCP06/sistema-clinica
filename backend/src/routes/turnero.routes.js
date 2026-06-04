@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
+const logger = require('../config/logger');
 
 router.get('/pacientes', async (req, res) => {
   try {
-    const { estados, servicios } = req.query;
+    const { estados, servicios, responsable } = req.query;
 
     const condiciones = [`a.hora_llegada >= CURRENT_DATE`];
     const params = [];
@@ -32,6 +33,17 @@ router.get('/pacientes', async (req, res) => {
       }
     }
 
+    if (responsable) {
+      const ids = responsable.split(',').map(Number).filter(n => !isNaN(n));
+      if (ids.length > 0) {
+        const placeholders = ids.map((id) => {
+          params.push(id);
+          return `$${paramIndex++}`;
+        });
+        condiciones.push(`a.id_responsable IN (${placeholders.join(',')})`);
+      }
+    }
+
     const where = condiciones.length > 0 ? `WHERE ${condiciones.join(' AND ')}` : '';
 
     const result = await pool.query(
@@ -40,19 +52,22 @@ router.get('/pacientes', async (req, res) => {
         a.hora_llegada,
         a.hora_salida,
         a.id_estado_actual,
+        a.id_responsable,
         p.nombre, p.apellido, p.cedula,
         s.nombre_servicio, s.prefijo, s.id_servicio,
         e.nombre_estado,
-        c.nombre as consultorio_nombre
+        c.nombre as consultorio_nombre,
+        rp.nombre as modalidad_pago
       FROM "Atencion" a
       JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
       JOIN "Servicio" s ON a.id_servicio = s.id_servicio
       JOIN "Estado" e ON a.id_estado_actual = e.id_estado
       LEFT JOIN "Consultorios" c ON a.id_consultorio = c.id_consultorio
       LEFT JOIN "Historial_Atencion" h ON a.id_atencion = h.id_atencion
+      LEFT JOIN "Responsable_Pago" rp ON a.id_responsable = rp.id_responsable
       ${where}
       ORDER BY a.id_atencion, h.fecha_hora DESC NULLS LAST
-      LIMIT 20`,
+      LIMIT 50`,
       params
     );
 
@@ -62,6 +77,8 @@ router.get('/pacientes', async (req, res) => {
       hora_llegada: r.hora_llegada,
       estado: r.nombre_estado,
       id_estado_actual: r.id_estado_actual,
+      id_responsable: r.id_responsable,
+      modalidad_pago: r.modalidad_pago,
       nombre_servicio: r.nombre_servicio,
       id_servicio: r.id_servicio,
       consultorio_nombre: r.consultorio_nombre,
@@ -74,12 +91,12 @@ router.get('/pacientes', async (req, res) => {
 
     res.json(pacientes);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error al obtener datos del turnero' });
   }
 });
 
-// Mantiene compatibilidad con código anterior (estado=7, todos los servicios)
+// Mantiene compatibilidad con código anterior (estado=5, todos los servicios)
 router.get('/sala-espera', async (req, res) => {
   try {
     const result = await pool.query(
@@ -99,7 +116,7 @@ router.get('/sala-espera', async (req, res) => {
       LEFT JOIN "Consultorios" c ON a.id_consultorio = c.id_consultorio
       LEFT JOIN "Historial_Atencion" h ON a.id_atencion = h.id_atencion
       WHERE a.hora_llegada >= CURRENT_DATE
-        AND a.id_estado_actual = 7
+        AND a.id_estado_actual = 4
       ORDER BY a.id_atencion, h.fecha_hora DESC NULLS LAST
       LIMIT 20`
     );
@@ -122,7 +139,7 @@ router.get('/sala-espera', async (req, res) => {
 
     res.json(pacientes);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error al obtener datos del turnero' });
   }
 });

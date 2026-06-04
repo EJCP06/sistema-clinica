@@ -5,8 +5,8 @@ import { Injectable, signal, effect } from '@angular/core';
 })
 export class ThemeService {
   isDarkMode = signal<boolean>(
-    sessionStorage.getItem('theme') === 'dark' || 
-    (!sessionStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)
+    localStorage.getItem('theme') === 'dark' || 
+    (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)
   );
 
   constructor() {
@@ -20,7 +20,7 @@ export class ThemeService {
         document.documentElement.classList.remove('dark');
       }
       
-      sessionStorage.setItem('theme', isDark ? 'dark' : 'light');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
     });
   }
 

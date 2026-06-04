@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const logger = require('../config/logger');
 
 const getAseguradoras = async (req, res) => {
   const sede = req.usuario?.id_sede;
@@ -14,7 +15,7 @@ const getAseguradoras = async (req, res) => {
     );
     res.json(result.rows);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error al obtener aseguradoras' });
   }
 };
@@ -34,7 +35,7 @@ const crearAseguradora = async (req, res) => {
 
     res.status(201).json({ mensaje: 'Aseguradora creada', id: result.rows[0].id_cliente });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error al crear aseguradora' });
   }
 };
@@ -56,7 +57,7 @@ const eliminarAseguradora = async (req, res) => {
 
     res.json({ mensaje: 'Aseguradora eliminada' });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error al eliminar aseguradora' });
   }
 };

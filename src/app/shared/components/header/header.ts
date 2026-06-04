@@ -1,4 +1,4 @@
-import { Component, inject, Input, Output, EventEmitter } from '@angular/core';
+import { Component, inject, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -26,7 +26,7 @@ import {
   templateUrl: './header.html',
   styles: [],
 })
-export class Header {
+export class Header implements OnInit {
   readonly Activity = Activity;
   readonly LogOut = LogOut;
   readonly User = User;
@@ -48,6 +48,8 @@ export class Header {
   private auth = inject(AuthService);
   private themeService = inject(ThemeService);
 
+  initialTransitionDisabled = true;
+
   get usuario() {
     return this.auth.usuarioActual;
   }
@@ -63,6 +65,11 @@ export class Header {
 
   toggleDarkMode() {
     this.themeService.toggleTheme();
+  }
+
+  ngOnInit() {
+    // Deshabilitar la transición inicial para evitar el efecto de "recarga" del toggle
+    setTimeout(() => this.initialTransitionDisabled = false, 100);
   }
 
   logout() {

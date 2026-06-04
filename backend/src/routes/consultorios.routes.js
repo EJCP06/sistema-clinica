@@ -14,6 +14,7 @@ router.get('/mi-estado', roleMiddleware('medico', 'admin', 'laboratorio', 'image
 router.post('/llamar-siguiente', roleMiddleware('medico', 'admin', 'laboratorio', 'imagenes'), consultoriosController.llamarSiguiente);
 router.post('/iniciar-atencion', roleMiddleware('medico', 'admin', 'laboratorio', 'imagenes'), consultoriosController.iniciarAtencion);
 router.post('/finalizar-atencion', roleMiddleware('medico', 'admin', 'laboratorio', 'imagenes'), consultoriosController.finalizarAtencion);
+router.post('/liberar-consultorio', roleMiddleware('medico', 'admin', 'laboratorio', 'imagenes'), consultoriosController.liberarConsultorio);
 
 // --- Rutas CRUD admin (requieren rol admin) ---
 router.get('/', roleMiddleware('admin', 'medico', 'recepcionista'), adminController.getConsultorios);
