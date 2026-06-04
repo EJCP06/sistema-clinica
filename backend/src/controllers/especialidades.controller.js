@@ -30,7 +30,7 @@ const getEspecialidades = async (req, res) => {
 
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ mensaje: 'Error interno del servidor' });
   }
 };
 
@@ -60,7 +60,7 @@ const createEspecialidad = async (req, res) => {
     res.status(201).json({ ...result.rows[0], consultorios_ids: consultorios_ids || [] });
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ mensaje: 'Error interno del servidor' });
   } finally {
     client.release();
   }
@@ -114,7 +114,7 @@ const updateEspecialidad = async (req, res) => {
     });
   } catch (err) {
     await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ mensaje: 'Error interno del servidor' });
   } finally {
     client.release();
   }
@@ -127,7 +127,7 @@ const deleteEspecialidad = async (req, res) => {
     await db.query('DELETE FROM "Especialidades" WHERE id_especialidad = $1', [id]);
     res.json({ mensaje: 'Especialidad eliminada' });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ mensaje: 'Error interno del servidor' });
   }
 };
 

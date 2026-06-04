@@ -34,7 +34,12 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       }
 
       console.error(`[HTTP ${error.status}]`, mensaje, error);
-      Swal.fire({ icon: 'error', title: 'Error', text: mensaje, confirmButtonColor: '#2563eb' });
+
+      const url = req.url.toLowerCase();
+      const esAuth = url.includes('/auth/login') || url.includes('/auth/recuperacion/');
+      if (!esAuth) {
+        Swal.fire({ icon: 'error', title: 'Error', text: mensaje, confirmButtonColor: '#2563eb' });
+      }
 
       return throwError(() => error);
     }),

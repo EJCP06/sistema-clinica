@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const logger = require('../config/logger');
 
 const getTodosLosTurnos = async (req, res) => {
   // Verificar que el usuario y su sede existan
@@ -50,7 +51,7 @@ const getTodosLosTurnos = async (req, res) => {
     
     res.json(turnos);
   } catch (error) {
-    console.error('Error en getTodosLosTurnos:', error);
+    logger.error('Error en getTodosLosTurnos:', error);
     res.status(500).json({ mensaje: 'Error al obtener turnos' });
   }
 };
@@ -77,12 +78,12 @@ const crearTurno = async (req, res) => {
     const nuevoNumero = `${prefijo}-${String(countResult.rows[0].next).padStart(3, '0')}`;
     
     const result = await pool.query(
-      'INSERT INTO "Atencion" (id_paciente, id_servicio, id_especialidad, id_responsable, id_estado_actual, id_sede, numero) VALUES ($1, $2, $3, $4, 2, $5, $6) RETURNING *',
+      'INSERT INTO "Atencion" (id_paciente, id_servicio, id_especialidad, id_responsable, id_estado_actual, id_sede, numero) VALUES ($1, $2, $3, $4, 1, $5, $6) RETURNING *',
       [id_paciente, id_servicio, id_especialidad, id_responsable, req.usuario.id_sede, nuevoNumero]
     );
     res.status(201).json(result.rows[0]);
   } catch (error) {
-    console.error('Error en crearTurno:', error);
+    logger.error('Error en crearTurno:', error);
     res.status(500).json({ mensaje: 'Error al crear turno' });
   }
 };
@@ -93,9 +94,9 @@ const marcarAusente = async (req, res) => {
   try {
     await client.query('BEGIN');
     
-    // Estado 6 = Ausente
+    // Estado 7 = Ausente
     const result = await client.query(
-      'UPDATE "Atencion" SET id_estado_actual = 6, hora_salida = NOW() WHERE id_atencion = $1 RETURNING id_consultorio',
+      'UPDATE "Atencion" SET id_estado_actual = 7, hora_salida = NOW() WHERE id_atencion = $1 RETURNING id_consultorio',
       [id]
     );
     
@@ -109,14 +110,14 @@ const marcarAusente = async (req, res) => {
       await client.query('UPDATE "Consultorios" SET estado_fisico = \'LIBRE\' WHERE id_consultorio = $1', [consultorioId]);
     }
     
-    await client.query('INSERT INTO "Historial_Atencion" (id_atencion, id_estado) VALUES ($1, 6)', [id]);
+    await client.query('INSERT INTO "Historial_Atencion" (id_atencion, id_estado) VALUES ($1, 7)', [id]);
     
     await client.query('COMMIT');
     if (req.io) req.io.emit('estado-actualizado', { id_atencion: Number(id) });
     res.json({ mensaje: 'Turno marcado como ausente' });
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('Error en marcarAusente:', error);
+    logger.error('Error en marcarAusente:', error);
     res.status(500).json({ mensaje: 'Error al marcar ausente' });
   } finally {
     client.release();
@@ -130,9 +131,9 @@ const transferirPaciente = async (req, res) => {
   try {
     await client.query('BEGIN');
     
-    // 1. Finalizar atención actual
+    // 1. Finalizar atención actual (Estado 6 = Atendido)
     const originalRes = await client.query(
-      'UPDATE "Atencion" SET id_estado_actual = 5, hora_salida = NOW() WHERE id_atencion = $1 RETURNING *',
+      'UPDATE "Atencion" SET id_estado_actual = 6, hora_salida = NOW() WHERE id_atencion = $1 RETURNING *',
       [id]
     );
     
@@ -148,7 +149,7 @@ const transferirPaciente = async (req, res) => {
       await client.query('UPDATE "Consultorios" SET estado_fisico = \'LIBRE\' WHERE id_consultorio = $1', [original.id_consultorio]);
     }
     
-    // 3. Crear nuevo turno en el nuevo servicio
+    // 3. Crear nuevo turno en el nuevo servicio (Estado 2 = En Caja)
     const countResult = await client.query(
       'SELECT COUNT(*) + 1 as next FROM "Atencion" WHERE id_servicio = $1 AND hora_llegada >= CURRENT_DATE',
       [nuevo_servicio_id]
@@ -166,7 +167,7 @@ const transferirPaciente = async (req, res) => {
     res.json({ mensaje: 'Paciente transferido con éxito', nuevo_turno: nuevoTurnoRes.rows[0] });
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('Error en transferirPaciente:', error);
+    logger.error('Error en transferirPaciente:', error);
     res.status(500).json({ mensaje: 'Error al transferir paciente' });
   } finally {
     client.release();
@@ -179,8 +180,9 @@ const reincorporarPaciente = async (req, res) => {
   try {
     await client.query('BEGIN');
 
+    // Estado 3 = Sala de Espera
     const result = await client.query(
-      'UPDATE "Atencion" SET id_estado_actual = 3, hora_salida = NULL WHERE id_atencion = $1 AND id_estado_actual = 6 RETURNING *',
+      'UPDATE "Atencion" SET id_estado_actual = 3, hora_salida = NULL, hora_llegada = NOW() WHERE id_atencion = $1 AND id_estado_actual = 7 RETURNING *',
       [id]
     );
 
@@ -196,7 +198,7 @@ const reincorporarPaciente = async (req, res) => {
     res.json({ mensaje: 'Paciente reincorporado a Sala de Espera' });
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('Error en reincorporarPaciente:', error);
+    logger.error('Error en reincorporarPaciente:', error);
     res.status(500).json({ mensaje: 'Error al reincorporar paciente' });
   } finally {
     client.release();

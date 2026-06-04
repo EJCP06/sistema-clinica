@@ -2,10 +2,11 @@ import { Component, OnInit, OnDestroy, HostListener, ElementRef, inject, Destroy
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronRight, ChevronDown, Undo2 } from 'lucide-angular';
+import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronDown, Undo2, KeyRound, ShieldCheck, DollarSign } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
 import { SwalService } from '../../core/services/swal.service';
 import { AdmisionDTO } from '@core/models/dto.models';
+import Swal from 'sweetalert2';
 
 import { Sidebar } from '../../shared/components/sidebar/sidebar';
 import { Header } from '../../shared/components/header/header';
@@ -24,9 +25,11 @@ export class ApsComponent implements OnInit, OnDestroy {
   readonly Search = Search;
   readonly FileText = FileText;
   readonly CheckCircle2 = CheckCircle2;
-  readonly ChevronRight = ChevronRight;
   readonly ChevronDown = ChevronDown;
   readonly Undo2 = Undo2;
+  readonly KeyRound = KeyRound;
+  readonly ShieldCheck = ShieldCheck;
+  readonly DollarSign = DollarSign;
 
   pageSize = 6;
   currentPage = 1;
@@ -132,24 +135,37 @@ export class ApsComponent implements OnInit, OnDestroy {
   }
 
   async enviarAPresupuesto(admision: any) {
-    const modalidadPago = (admision.modalidad_pago || '').toString().trim().toLowerCase();
-    const esAseguradora = modalidadPago.includes('seguro') || modalidadPago.includes('asegur');
-    const question = esAseguradora
-      ? '¿Ya fue aprobada la clave de la Aseguradora?'
-      : '¿Deseas enviar este paciente a Presupuesto/Caja?';
-
-    const result = await this.swal.confirm(question);
+    const result = await this.swal.confirm('¿Ya se creó el presupuesto al paciente?');
     if (!result.isConfirmed) return;
 
-    const nuevoEstado = esAseguradora ? 3 : 2;
-    this.api.actualizarEstadoAtencion(admision.id_atencion, nuevoEstado).subscribe({
+    this.api.actualizarEstadoAtencion(admision.id_atencion, 2).subscribe({
+      next: () => {
+        Swal.fire({
+          icon: 'success',
+          title: 'El presupuesto fue creado con éxito',
+          text: 'El paciente ya esta en Caja',
+          timer: 3000,
+          timerProgressBar: true,
+          showConfirmButton: false
+        });
+        this.cargarUltimasAdmisiones();
+      },
+      error: (err) => this.swal.error(err.error?.mensaje || 'Error al cambiar estado')
+    });
+  }
+
+  async solicitarClave(admision: any) {
+    const result = await this.swal.confirm('¿Deseas solicitar la clave de aseguradora?');
+    if (!result.isConfirmed) return;
+
+    this.api.actualizarEstadoAtencion(admision.id_atencion, 8).subscribe({
       next: () => this.cargarUltimasAdmisiones(),
       error: (err) => this.swal.error(err.error?.mensaje || 'Error al cambiar estado')
     });
   }
 
-  async enviarASalaEspera(id_atencion: number) {
-    const result = await this.swal.confirm('¿Deseas enviar este paciente a la Sala de Espera (Ya pagó)?');
+  async enviarACaja(id_atencion: number) {
+    const result = await this.swal.confirm('¿Deseas enviar este paciente a la Sala de Espera?');
     if (!result.isConfirmed) return;
     this.api.actualizarEstadoAtencion(id_atencion, 3).subscribe({
       next: () => this.cargarUltimasAdmisiones(),
@@ -157,8 +173,27 @@ export class ApsComponent implements OnInit, OnDestroy {
     });
   }
 
+  async aprobarClave(admision: any) {
+    const result = await this.swal.confirm('¿La aseguradora aprobó la clave?');
+    if (!result.isConfirmed) return;
+
+    this.api.actualizarEstadoAtencion(admision.id_atencion, 4).subscribe({
+      next: () => this.cargarUltimasAdmisiones(),
+      error: (err) => this.swal.error(err.error?.mensaje || 'Error al cambiar estado')
+    });
+  }
+
+  async enviarASalaEspera(id_atencion: number) {
+    const result = await this.swal.confirm('¿Deseas enviar este paciente a Sala de Espera?');
+    if (!result.isConfirmed) return;
+    this.api.actualizarEstadoAtencion(id_atencion, 4).subscribe({
+      next: () => this.cargarUltimasAdmisiones(),
+      error: (err) => this.swal.error(err.error?.mensaje || 'Error al cambiar estado')
+    });
+  }
+
   async reincorporar(id_atencion: number) {
-    const result = await this.swal.confirm('¿Reincorporar este paciente a la Sala de Espera?');
+    const result = await this.swal.confirm('¿Deseas reincorporar este paciente a la Sala de Espera?');
     if (!result.isConfirmed) return;
     this.api.reincorporarPaciente(id_atencion).subscribe({
       next: () => this.cargarUltimasAdmisiones(),

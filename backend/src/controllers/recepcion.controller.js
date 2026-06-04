@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const logger = require('../config/logger');
 
 const getSede = (req) => req.usuario?.id_sede;
 
@@ -10,7 +11,7 @@ const getResponsablesPago = async (req, res) => {
     );
     res.json(result.rows);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error al obtener responsables de pago' });
   }
 };
@@ -44,7 +45,7 @@ const getUltimasAdmisiones = async (req, res) => {
     );
     res.json(result.rows);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error al obtener últimas admisiones' });
   }
 };
@@ -79,7 +80,7 @@ const buscarPaciente = async (req, res) => {
     );
     res.json(result.rows);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error al buscar paciente' });
   }
 };
@@ -105,7 +106,7 @@ const crearPaciente = async (req, res) => {
 
     res.status(201).json(result.rows[0]);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     if (error.code === '23505') {
       return res.status(400).json({ mensaje: 'Ya existe un paciente con esa cédula' });
     }
@@ -127,9 +128,8 @@ const actualizarPaciente = async (req, res) => {
        SET cedula = COALESCE($1, cedula),
            nombre = COALESCE($2, nombre),
            apellido = COALESCE($3, apellido),
-           telefono = COALESCE($4, telefono),
-          
-       WHERE id_paciente = $6 AND id_sede = $7
+           telefono = COALESCE($4, telefono)
+       WHERE id_paciente = $5 AND id_sede = $6
        RETURNING id_paciente, cedula, nombre, apellido, telefono`,
       [cedula, nombre, apellido, telefono, id, sede],
     );
@@ -140,7 +140,7 @@ const actualizarPaciente = async (req, res) => {
 
     res.json(result.rows[0]);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     if (error.code === '23505') {
       return res.status(400).json({ mensaje: 'Ya existe otro paciente con esa cédula' });
     }
@@ -166,7 +166,7 @@ const eliminarPaciente = async (req, res) => {
 
     res.json({ mensaje: 'Paciente eliminado' });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error al eliminar paciente' });
   }
 };
@@ -192,7 +192,7 @@ const actualizarAtencion = async (req, res) => {
 
     res.json({ mensaje: 'Atención actualizada' });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error al actualizar atención' });
   }
 };
@@ -207,7 +207,7 @@ const eliminarAtencion = async (req, res) => {
     await pool.query('DELETE FROM "Atencion" WHERE id_atencion = $1 AND id_sede = $2', [id, sede]);
     res.json({ mensaje: 'Atención eliminada' });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error al eliminar atención' });
   }
 };
@@ -243,7 +243,7 @@ const actualizarEstadoAtencion = async (req, res) => {
 
     res.json({ mensaje: 'Estado actualizado', id_estado_actual: id_estado_nuevo });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error al actualizar estado de atención' });
   }
 };
@@ -286,7 +286,7 @@ const generarTurno = async (req, res) => {
 
     res.status(201).json(result.rows[0]);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error al generar turno' });
   }
 };

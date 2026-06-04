@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const logger = require('../config/logger');
 
 const getPacientesEnEspera = async (req, res) => {
   const { id_servicio, id_especialidad } = req.query;
@@ -43,7 +44,7 @@ const getPacientesEnEspera = async (req, res) => {
 
     res.json(result.rows);
   } catch (error) {
-    console.error('Error al obtener lista de espera:', error);
+    logger.error('Error al obtener lista de espera:', error);
     res.status(500).json({ mensaje: 'Error al obtener lista de espera' });
   }
 };
@@ -57,7 +58,7 @@ const llamarPaciente = async (req, res) => {
 
     const estadoResult = await client.query(
       'SELECT id_estado FROM "Estado" WHERE nombre_estado = $1',
-      ['En Atención'],
+      ['En Atencion'],
     );
 
     const id_estado_nuevo = estadoResult.rows[0].id_estado;
@@ -165,7 +166,7 @@ const getAtendidosHoy = async (req, res) => {
 
     res.json(result.rows);
   } catch (error) {
-    console.error('Error al obtener atendidos hoy:', error);
+    logger.error('Error al obtener atendidos hoy:', error);
     res.status(500).json({ mensaje: 'Error al obtener pacientes atendidos' });
   }
 };

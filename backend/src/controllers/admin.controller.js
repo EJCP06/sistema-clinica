@@ -1,5 +1,7 @@
 const pool = require('../config/db');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const logger = require('../config/logger');
 
 /* =========================================================
    UTILIDAD SEGURA (EVITA 500 POR req.usuario UNDEFINED)
@@ -81,7 +83,7 @@ const getReporteDiario = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error interno al generar el reporte diario' });
   }
 };
@@ -100,7 +102,7 @@ const getServicios = async (req, res) => {
 
     res.json(result.rows);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error al obtener servicios' });
   }
 };
@@ -117,7 +119,7 @@ const crearServicio = async (req, res) => {
 
     res.status(201).json({ mensaje: 'Servicio creado' });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error al crear servicio' });
   }
 };
@@ -139,7 +141,7 @@ const actualizarServicio = async (req, res) => {
 
     res.json({ mensaje: 'Servicio actualizado' });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error al actualizar servicio' });
   }
 };
@@ -154,7 +156,7 @@ const eliminarServicio = async (req, res) => {
 
     res.json({ mensaje: 'Servicio eliminado' });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error al eliminar servicio' });
   }
 };
@@ -177,7 +179,7 @@ const getConsultorios = async (req, res) => {
 
     res.json(result.rows);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error al obtener consultorios' });
   }
 };
@@ -197,7 +199,7 @@ const crearConsultorio = async (req, res) => {
 
     res.json({ mensaje: 'Consultorio creado' });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error al crear consultorio' });
   }
 };
@@ -219,7 +221,7 @@ const actualizarConsultorio = async (req, res) => {
 
     res.json({ mensaje: 'Consultorio actualizado' });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error al actualizar consultorio' });
   }
 };
@@ -237,7 +239,7 @@ const eliminarConsultorio = async (req, res) => {
 
     res.json({ mensaje: 'Consultorio eliminado' });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error al eliminar consultorio' });
   }
 };
@@ -258,7 +260,7 @@ const getSedes = async (req, res) => {
     const result = await pool.query(`SELECT id_sede, nombre FROM "Sedes" ORDER BY id_sede`);
     res.json(result.rows);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error al obtener sedes' });
   }
 };
@@ -280,6 +282,7 @@ const getPersonal = async (req, res) => {
         u.nombre,
         u.apellido,
         u.telefono,
+        u.email,
         u.piso,
         u.id_consultorio,
         u.id_servicio,
@@ -299,7 +302,7 @@ const getPersonal = async (req, res) => {
 
     res.json(result.rows);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error al obtener personal' });
   }
 };
@@ -314,6 +317,7 @@ const crearPersonal = async (req, res) => {
       nombre,
       apellido,
       telefono,
+      email,
       password,
       rol,
       piso,
@@ -331,18 +335,20 @@ const crearPersonal = async (req, res) => {
 
     const password_hash = password
       ? await bcrypt.hash(password, 10)
-      : await bcrypt.hash(cedula, 10);
+      : await bcrypt.hash(crypto.randomBytes(6).toString('hex'), 10);
     const sedeFinal = id_sede ? Number(id_sede) : sedeToken;
+    const emailFinal = email ? email.toLowerCase().trim() : null;
 
     const result = await pool.query(
-      `INSERT INTO "Usuarios" (cedula, nombre, apellido, telefono, password_hash, rol, piso, id_consultorio, id_servicio, id_especialidad, id_sede, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      `INSERT INTO "Usuarios" (cedula, nombre, apellido, telefono, email, password_hash, rol, piso, id_consultorio, id_servicio, id_especialidad, id_sede, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        RETURNING id_usuario`,
       [
         cedula,
         nombre,
         apellido || '',
         telefono || '',
+        emailFinal,
         password_hash,
         rol,
         piso || null,
@@ -356,7 +362,7 @@ const crearPersonal = async (req, res) => {
 
     res.status(201).json({ mensaje: 'Personal creado', id: result.rows[0].id_usuario });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     if (error.code === '23505') {
       return res.status(400).json({ mensaje: 'Ya existe un usuario con esa cédula' });
     }
@@ -375,6 +381,7 @@ const actualizarPersonal = async (req, res) => {
       nombre,
       apellido,
       telefono,
+      email,
       password,
       rol,
       piso,
@@ -404,6 +411,10 @@ const actualizarPersonal = async (req, res) => {
     if (telefono !== undefined) {
       sets.push(`telefono = $${idx++}`);
       values.push(telefono);
+    }
+    if (email !== undefined) {
+      sets.push(`email = $${idx++}`);
+      values.push(email ? email.toLowerCase().trim() : null);
     }
     if (password) {
       sets.push(`password_hash = $${idx++}`);
@@ -450,7 +461,7 @@ const actualizarPersonal = async (req, res) => {
 
     res.json({ mensaje: 'Personal actualizado' });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     if (error.code === '23505') {
       return res.status(400).json({ mensaje: 'Ya existe un usuario con esa cédula' });
     }
@@ -476,7 +487,7 @@ const eliminarPersonal = async (req, res) => {
 
     res.json({ mensaje: 'Personal eliminado' });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error al eliminar personal' });
   }
 };

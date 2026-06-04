@@ -61,6 +61,9 @@ const login = async (req, res) => {
 
 // Función de emergencia para resetear el admin si nada funciona
 const superSeed = async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ mensaje: 'No disponible' });
+  }
   try {
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash('123456', salt);
@@ -73,7 +76,7 @@ const superSeed = async (req, res) => {
     
     res.json({ mensaje: 'Admin restaurado. Cédula: 00000000, Pass: 123456' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ mensaje: 'Error interno del servidor' });
   }
 };
 

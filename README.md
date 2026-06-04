@@ -105,10 +105,18 @@ Ver `.env.example` para la lista completa:
 |----------|-------------|---------|
 | `PORT` | Puerto del backend | `3001` |
 | `DB_HOST` | Host PostgreSQL | `localhost` |
+| `DB_PORT` | Puerto PostgreSQL | `5432` |
+| `DB_USER` | Usuario de PostgreSQL | `postgres` |
 | `DB_PASSWORD` | Contraseña DB | *(secreto)* |
+| `DB_NAME` | Nombre de la base de datos | `clinica_colas` |
 | `JWT_SECRET` | Secreto para tokens JWT | *(secreto)* |
-| `CORS_ORIGIN` | Orígenes CORS permitidos | `http://localhost:4200` |
+| `CORS_ORIGIN` | Orígenes CORS permitidos | `http://localhost:4200,http://localhost:4201` |
 | `NODE_ENV` | Entorno | `development` |
+| `EMAIL_HOST` | Servidor SMTP para emails (ej: smtp.gmail.com) | `smtp.gmail.com` |
+| `EMAIL_PORT` | Puerto SMTP (ej: 587 para TLS) | `587` |
+| `EMAIL_USER` | Usuario para autenticación SMTP | `tuemail@gmail.com` |
+| `EMAIL_PASS` | Contraseña o App Password para SMTP | *(secreto)* |
+| `EMAIL_FROM` | Email remitente que aparece en los correos | `clinica@tuemail.com` |
 
 ## Pruebas
 

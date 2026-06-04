@@ -2,6 +2,7 @@
 const { Pool } = require('pg');
 const path = require('path');
 const dotenv = require('dotenv');
+const logger = require('./logger');
 
 // Cargar variables de entorno desde .env en raíz del proyecto
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -19,21 +20,21 @@ const pool = new Pool({
 
 pool.on('connect', () => {
   if (process.env.NODE_ENV !== 'test') {
-    console.log('🔗 Conexión a la base de datos PostgreSQL establecida');
+    logger.info('Conexión a la base de datos PostgreSQL establecida');
   }
 });
 
 pool.on('error', (err) => {
-  console.error('❌ Error inesperado en el pool de la base de datos', err);
+  logger.error('Error inesperado en el pool de la base de datos', { error: err.message });
   // No hacer process.exit aquí, dejar que el manejador global lo gestione
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection en promesa:', reason);
+  logger.error('Unhandled Rejection en promesa:', reason);
 });
 
 process.on('uncaughtException', (err) => {
-  console.error('❌ Uncaught Exception:', err);
+  logger.error('Uncaught Exception:', err);
 });
 
 module.exports = pool;

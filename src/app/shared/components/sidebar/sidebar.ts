@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -33,7 +33,7 @@ import {
   templateUrl: './sidebar.html',
   styleUrls: []
 })
-export class Sidebar {
+export class Sidebar implements OnInit {
   @Input() activeTab: string = '';
   @Input() sidebarOpen: boolean = true;
   @Output() tabChange = new EventEmitter<string>();
@@ -42,6 +42,10 @@ export class Sidebar {
   private auth = inject(AuthService);
   private themeService = inject(ThemeService);
   private router = inject(Router);
+  
+  // Loading state for logout
+  cargando = false;
+  initialTransitionDisabled = true;
 
   // Icons
   readonly LayoutDashboard = LayoutDashboard;
@@ -129,8 +133,16 @@ export class Sidebar {
     this.tabChange.emit(tab);
   }
 
+  ngOnInit() {
+    // Deshabilitar la transición inicial para evitar el efecto de "recarga" del toggle
+    setTimeout(() => this.initialTransitionDisabled = false, 100);
+  }
+
   logout() {
-    this.auth.logout();
+    this.cargando = true;
+    setTimeout(() => {
+      this.auth.logout();
+    }, 800);
   }
 
   onClose() {

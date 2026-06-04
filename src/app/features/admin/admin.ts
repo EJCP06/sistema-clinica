@@ -44,17 +44,6 @@ export class Admin implements OnInit {
   configExpanded = true;
   sidebarOpen = false;
 
-  get isDarkMode() {
-    return this.themeService.isDarkMode();
-  }
-  set isDarkMode(val: boolean) {
-    this.themeService.setTheme(val);
-  }
-
-  toggleDarkMode() {
-    this.themeService.toggleTheme();
-  }
-
   ngOnInit() {
     const savedTab = sessionStorage.getItem('admin_activeTab');
     if (savedTab) {
