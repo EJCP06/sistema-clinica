@@ -26,7 +26,7 @@ export const routes: Routes = [
   {
     path: 'aps',
     loadComponent: () => import('./features/aps/aps').then(m => m.ApsComponent),
-    canActivate: [authGuard, roleGuard(['aps', 'admin'])]
+    canActivate: [authGuard, roleGuard(['aps', 'admin', 'laboratorio', 'imagenes'])]
   },
 
   // Pantalla de Aseguradoras (APS y Admin)

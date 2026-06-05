@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const pool = require('../config/db');
+const usuarioRepo = require('../repositories/usuario.repository');
 
 const login = async (req, res) => {
   const { username, password } = req.body;
@@ -11,29 +11,17 @@ const login = async (req, res) => {
   }
 
   try {
-    // 1. Buscar al usuario por cédula
-    const result = await pool.query(`
-      SELECT u.id_usuario as id, u.cedula, u.password_hash, u.rol, u.nombre, u.apellido,
-             u.id_servicio as servicio_id, u.id_consultorio as consultorio_id, u.id_sede,
-             u.id_especialidad, e.nombre as especialidad_nombre
-      FROM "Usuarios" u
-      LEFT JOIN "Especialidades" e ON u.id_especialidad = e.id_especialidad
-      WHERE u.cedula = $1
-    `, [cedula]);
+    const usuario = await usuarioRepo.findByCedula(cedula);
 
-    if (result.rows.length === 0) {
+    if (!usuario) {
       return res.status(401).json({ mensaje: 'Usuario inválido' });
     }
 
-    const usuario = result.rows[0];
-
-    // 2. Verificar password
     const esPasswordValido = await bcrypt.compare(password, usuario.password_hash);
     if (!esPasswordValido) {
       return res.status(401).json({ mensaje: 'Contraseña inválida' });
     }
 
-    // 3. Crear Token
     const payload = {
       id: usuario.id,
       cedula: usuario.cedula,
@@ -59,7 +47,6 @@ const login = async (req, res) => {
   }
 };
 
-// Función de emergencia para resetear el admin si nada funciona
 const superSeed = async (req, res) => {
   if (process.env.NODE_ENV === 'production') {
     return res.status(404).json({ mensaje: 'No disponible' });
@@ -67,13 +54,10 @@ const superSeed = async (req, res) => {
   try {
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash('123456', salt);
-    
-    await pool.query('DELETE FROM "Usuarios" WHERE cedula = $1', ['00000000']);
-    await pool.query(
-      'INSERT INTO "Usuarios" (password_hash, rol, nombre, apellido, cedula, id_sede, status) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-      [hash, 'admin', 'ADMIN', 'SISTEMA', '00000000', 1, true]
-    );
-    
+
+    await usuarioRepo.deleteByCedula('00000000');
+    await usuarioRepo.insertAdmin(hash, 'admin', 'ADMIN', 'SISTEMA', '00000000', 1, true);
+
     res.json({ mensaje: 'Admin restaurado. Cédula: 00000000, Pass: 123456' });
   } catch (error) {
     res.status(500).json({ mensaje: 'Error interno del servidor' });
@@ -92,13 +76,13 @@ const cambiarPassword = async (req, res) => {
   }
 
   try {
-    const result = await pool.query('SELECT id_usuario FROM "Usuarios" WHERE cedula = $1', [cedula]);
-    if (result.rows.length === 0) {
+    const usuario = await usuarioRepo.findByCedulaSimple(cedula);
+    if (!usuario) {
       return res.status(404).json({ mensaje: 'Usuario no encontrado' });
     }
 
     const password_hash = await bcrypt.hash(newPassword, 10);
-    await pool.query('UPDATE "Usuarios" SET password_hash = $1 WHERE cedula = $2', [password_hash, cedula]);
+    await usuarioRepo.updatePasswordByCedula(cedula, password_hash);
 
     res.json({ mensaje: 'Contraseña actualizada exitosamente' });
   } catch (error) {

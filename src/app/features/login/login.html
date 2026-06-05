@@ -32,11 +32,13 @@
           </div>
         </div>
 
-        <h1 class="text-5xl font-black leading-tight text-white mb-8 tracking-tighter">
-          Gestión de <br />
-          <span class="text-blue-200">Salud Inteligente</span>
+        <h1 class="text-5xl font-black leading-tight text-white mt-32 mb-8 tracking-tighter">
+          Gestión Integral <br />
+          <div class="text-center w-full">
+            <span class="text-white">de Salud</span>
+          </div>
         </h1>
-        <p class="text-blue-100 text-lg leading-relaxed font-medium opacity-90 max-w-sm">
+        <p class="text-blue-100 text-lg leading-relaxed font-medium opacity-90 max-w-sm mt-32">
           Optimiza la atención de tus pacientes con nuestro sistema de colas de última generación.
         </p>
       </div>
@@ -182,12 +184,12 @@
                 <input type="text" [(ngModel)]="recuperacionCedula" name="recuperacionCedula" (keydown.space)="$event.preventDefault()" placeholder="Ej: 31596888" class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
               </div>
             </div>
-            <button (click)="solicitarCodigo()" [disabled]="cargandoReset" class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-0.5 active:translate-y-0 transition-transform flex items-center justify-center gap-3 text-sm uppercase tracking-widest">
+            <button (click)="solicitarCodigo()" [disabled]="cargandoReset" class="!mt-8 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-0.5 active:translate-y-0 transition-transform flex items-center justify-center gap-3 text-sm uppercase tracking-widest">
               <span *ngIf="!cargandoReset" class="flex items-center gap-2">
                 Enviar Código
                 <lucide-icon [name]="Mail" class="w-5 h-5"></lucide-icon>
               </span>
-              <div *ngIf="cargandoReset" class="flex items-center gap-3">
+               <div *ngIf="cargandoReset" class="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
                 <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 <span class="animate-pulse">Enviando...</span>
               </div>
@@ -224,7 +226,7 @@
                 Verificar Código
                 <lucide-icon [name]="CheckCircle2" class="w-5 h-5"></lucide-icon>
               </span>
-              <div *ngIf="cargandoReset" class="flex items-center gap-3">
+              <div *ngIf="cargandoReset" class="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
                 <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 <span class="animate-pulse">Verificando...</span>
               </div>
@@ -257,12 +259,12 @@
                  </button>
                </div>
              </div>
-            <button (click)="restablecerPassword()" [disabled]="cargandoReset" class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-0.5 active:translate-y-0 transition-transform flex items-center justify-center gap-3 text-sm uppercase tracking-widest">
+             <button (click)="restablecerPassword()" [disabled]="cargandoReset" class="!mt-8 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-0.5 active:translate-y-0 transition-transform flex items-center justify-center gap-3 text-sm uppercase tracking-widest">
               <span *ngIf="!cargandoReset" class="flex items-center gap-2">
                 Restablecer Contraseña
                 <lucide-icon [name]="KeyRound" class="w-5 h-5"></lucide-icon>
               </span>
-              <div *ngIf="cargandoReset" class="flex items-center gap-3">
+              <div *ngIf="cargandoReset" class="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
                 <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 <span class="animate-pulse">Restableciendo...</span>
               </div>

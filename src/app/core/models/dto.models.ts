@@ -114,6 +114,7 @@ export interface TurnoDTO {
   id_sede?: number;
   id_estado_actual?: number;
   nombre_servicio?: string;
+  especialidad_nombre?: string;
   consultorio_nombre?: string;
   updated_at?: string;
 }

@@ -11,7 +11,7 @@ export class ApsScrollDirective implements AfterViewInit, OnDestroy, OnChanges {
 
   private anim: Animation | null = null;
   private viewReady = false;
-  private readonly CARD_H = 90;
+  private readonly CARD_H = 86;
   private readonly GAP = 12;
   private readonly MAX_VISIBLE = 4;
 

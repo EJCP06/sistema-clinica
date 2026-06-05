@@ -164,10 +164,10 @@
                     <th class="px-3 md:px-6 py-3 md:py-4 text-center">Paciente</th>
                     <th class="px-3 md:px-6 py-3 md:py-4 text-center">Estado</th>
                     <th class="px-3 md:px-6 py-3 md:py-4 text-center">Hora</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
-                  <ng-container *ngFor="let t of historialFiltrado | paginate: currentHistorialPage : historialPageSize; trackBy: trackById">
+                    </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
+                    <ng-container *ngFor="let t of historialFiltrado | paginate: currentHistorialPage : historialPageSize; trackBy: trackById">
                     <tr class="h-[52px] md:h-[64px] hover:bg-slate-50 dark:hover:bg-slate-800">
                       <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-900 dark:text-white text-center">{{ t?.numero || '---' }}</td>
                       <td class="px-3 md:px-6 py-3 md:py-4 text-center">
@@ -178,13 +178,13 @@
                       </td>
                       <td class="px-3 md:px-6 py-3 md:py-4 text-slate-500 dark:text-slate-400 font-medium text-center">{{ (t?.hora_llegada) | date:'h:mm a' }}</td>
                     </tr>
-                  </ng-container>
-                  <ng-container *ngIf="historialFiltrado.length > 0">
-                    <ng-container *ngFor="let _ of historialFiltrado | fillers: currentHistorialPage : historialPageSize">
-                      <tr><td colspan="4" class="h-[52px] md:h-[64px]"></td></tr>
                     </ng-container>
-                  </ng-container>
-                  <tr *ngIf="historialFiltrado.length === 0">
+                    <ng-container *ngIf="historialFiltrado.length > 0">
+                    <ng-container *ngFor="let _ of historialFiltrado | fillers: currentHistorialPage : historialPageSize">
+                    <tr><td colspan="4" class="h-[52px] md:h-[64px]"></td></tr>
+                    </ng-container>
+                    </ng-container>
+                    <tr *ngIf="historialFiltrado.length === 0">
                     <td colspan="4" class="px-6 py-20 text-center align-middle">
                       <div class="flex flex-col items-center justify-center w-full">
                         <div class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 mx-auto">

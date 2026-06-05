@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, HostListener, ElementRef, inject, Destroy
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronDown, Undo2, KeyRound, ShieldCheck, DollarSign } from 'lucide-angular';
+import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronDown, Undo2, KeyRound, DollarSign } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
 import { SwalService } from '../../core/services/swal.service';
 import { AdmisionDTO } from '@core/models/dto.models';
@@ -28,7 +28,6 @@ export class ApsComponent implements OnInit, OnDestroy {
   readonly ChevronDown = ChevronDown;
   readonly Undo2 = Undo2;
   readonly KeyRound = KeyRound;
-  readonly ShieldCheck = ShieldCheck;
   readonly DollarSign = DollarSign;
 
   pageSize = 6;
@@ -111,7 +110,7 @@ export class ApsComponent implements OnInit, OnDestroy {
       next: (data) => {
         const items = data || [];
         this.ultimasAdmisiones = items.filter(a => {
-          if ((a.nombre_estado || '').toUpperCase() === 'ATENDIDO') return false;
+          if (a.id_estado_actual === 5 || a.id_estado_actual === 6) return false;
           
           const servicioLower = (a.nombre_servicio || '').toLowerCase();
           const esLaboratorio = servicioLower.includes('laboratorio');
@@ -138,12 +137,13 @@ export class ApsComponent implements OnInit, OnDestroy {
     const result = await this.swal.confirm('¿Ya se creó el presupuesto al paciente?');
     if (!result.isConfirmed) return;
 
-    this.api.actualizarEstadoAtencion(admision.id_atencion, 2).subscribe({
+    const targetState = this.esAseguradora(admision) ? 8 : 2;
+    this.api.actualizarEstadoAtencion(admision.id_atencion, targetState).subscribe({
       next: () => {
         Swal.fire({
           icon: 'success',
           title: 'El presupuesto fue creado con éxito',
-          text: 'El paciente ya esta en Caja',
+          text: this.esAseguradora(admision) ? 'El paciente está en Espera de Clave' : 'El paciente ya esta en Caja',
           timer: 3000,
           timerProgressBar: true,
           showConfirmButton: false
@@ -174,10 +174,10 @@ export class ApsComponent implements OnInit, OnDestroy {
   }
 
   async aprobarClave(admision: any) {
-    const result = await this.swal.confirm('¿La aseguradora aprobó la clave?');
+    const result = await this.swal.confirm('¿Deseas enviar este paciente a la Sala de Espera?');
     if (!result.isConfirmed) return;
 
-    this.api.actualizarEstadoAtencion(admision.id_atencion, 4).subscribe({
+    this.api.actualizarEstadoAtencion(admision.id_atencion, 3).subscribe({
       next: () => this.cargarUltimasAdmisiones(),
       error: (err) => this.swal.error(err.error?.mensaje || 'Error al cambiar estado')
     });

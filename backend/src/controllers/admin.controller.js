@@ -1,7 +1,11 @@
-const pool = require('../config/db');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const logger = require('../config/logger');
+const atencionRepo = require('../repositories/atencion.repository');
+const servicioRepo = require('../repositories/servicio.repository');
+const consultorioRepo = require('../repositories/consultorio.repository');
+const sharedRepo = require('../repositories/shared.repository');
+const usuarioRepo = require('../repositories/usuario.repository');
 
 /* =========================================================
    UTILIDAD SEGURA (EVITA 500 POR req.usuario UNDEFINED)
@@ -24,33 +28,9 @@ const getReporteDiario = async (req, res) => {
   if (!sede) return;
 
   try {
-    const result = await pool.query(
-      `
-      SELECT 
-        a.id_atencion as id, 
-        a.numero,
-        e.nombre_estado as estado, 
-        a.hora_llegada, 
-        a.hora_salida as hora_fin,
-        p.nombre as paciente_nombre, 
-        p.apellido as paciente_apellido, 
-        p.cedula as paciente_documento, 
-        p.telefono as paciente_telefono,
-        s.nombre_servicio as servicio, 
-        a.id_sede
-      FROM "Atencion" a
-      JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
-      JOIN "Servicio" s ON a.id_servicio = s.id_servicio
-      JOIN "Estado" e ON a.id_estado_actual = e.id_estado
-      WHERE a.hora_llegada >= CURRENT_DATE 
-      AND a.hora_llegada < (CURRENT_DATE + interval '1 day')
-      AND a.id_sede = $1
-      ORDER BY a.hora_llegada DESC
-    `,
-      [sede],
-    );
+    const rows = await atencionRepo.getReporteDiario(sede);
 
-    const turnos = result.rows.map((r) => ({
+    const turnos = rows.map((r) => ({
       id: r.id,
       numero: r.numero,
       estado: r.estado,
@@ -66,7 +46,6 @@ const getReporteDiario = async (req, res) => {
       },
     }));
 
-    // Calcular estadísticas por estado
     const atendidos = turnos.filter((t) => t.estado === 'Atendido').length;
     const ausentes = turnos.filter((t) => t.estado === 'Ausente').length;
     const enEspera = turnos.filter(
@@ -94,13 +73,8 @@ const getReporteDiario = async (req, res) => {
 
 const getServicios = async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT id_servicio as id, nombre_servicio as nombre, prefijo, status as activo
-       FROM "Servicio"
-       ORDER BY id_servicio`,
-    );
-
-    res.json(result.rows);
+    const rows = await servicioRepo.getAll();
+    res.json(rows);
   } catch (error) {
     logger.error(error);
     res.status(500).json({ mensaje: 'Error al obtener servicios' });
@@ -111,12 +85,7 @@ const crearServicio = async (req, res) => {
   try {
     let { nombre, prefijo, piso, activo } = req.body;
 
-    await pool.query(
-      `INSERT INTO "Servicio" (nombre_servicio, prefijo, piso, status)
-       VALUES ($1, $2, $3, $4)`,
-      [nombre, prefijo || null, piso || null, activo !== false],
-    );
-
+    await servicioRepo.create(nombre, prefijo, piso, activo);
     res.status(201).json({ mensaje: 'Servicio creado' });
   } catch (error) {
     logger.error(error);
@@ -129,16 +98,7 @@ const actualizarServicio = async (req, res) => {
     const { id } = req.params;
     const { nombre, prefijo, piso, activo } = req.body;
 
-    await pool.query(
-      `UPDATE "Servicio"
-       SET nombre_servicio = COALESCE($1, nombre_servicio),
-           prefijo = COALESCE($2, prefijo),
-           piso = COALESCE($3, piso),
-           status = COALESCE($4, status)
-       WHERE id_servicio = $5`,
-      [nombre, prefijo || null, piso || null, activo !== undefined ? activo : null, id],
-    );
-
+    await servicioRepo.update(id, nombre, prefijo, piso, activo);
     res.json({ mensaje: 'Servicio actualizado' });
   } catch (error) {
     logger.error(error);
@@ -148,12 +108,7 @@ const actualizarServicio = async (req, res) => {
 
 const eliminarServicio = async (req, res) => {
   try {
-    await pool.query(
-      `DELETE FROM "Servicio"
-       WHERE id_servicio = $1`,
-      [req.params.id],
-    );
-
+    await servicioRepo.remove(req.params.id);
     res.json({ mensaje: 'Servicio eliminado' });
   } catch (error) {
     logger.error(error);
@@ -170,14 +125,8 @@ const getConsultorios = async (req, res) => {
   if (!sede) return;
 
   try {
-    const result = await pool.query(
-      `SELECT id_consultorio as id, nombre, estado_fisico as estado, id_servicio as servicio_id
-       FROM "Consultorios"
-       WHERE id_sede = $1`,
-      [sede],
-    );
-
-    res.json(result.rows);
+    const rows = await consultorioRepo.getConsultoriosBySede(sede);
+    res.json(rows);
   } catch (error) {
     logger.error(error);
     res.status(500).json({ mensaje: 'Error al obtener consultorios' });
@@ -190,13 +139,7 @@ const crearConsultorio = async (req, res) => {
 
   try {
     const { nombre } = req.body;
-
-    await pool.query(
-      `INSERT INTO "Consultorios" (nombre, id_sede)
-       VALUES ($1, $2)`,
-      [nombre, sede],
-    );
-
+    await consultorioRepo.createConsultorio(nombre, sede);
     res.json({ mensaje: 'Consultorio creado' });
   } catch (error) {
     logger.error(error);
@@ -212,13 +155,7 @@ const actualizarConsultorio = async (req, res) => {
     const { id } = req.params;
     const { nombre } = req.body;
 
-    await pool.query(
-      `UPDATE "Consultorios"
-       SET nombre = $1
-       WHERE id_consultorio = $2 AND id_sede = $3`,
-      [nombre, id, sede],
-    );
-
+    await consultorioRepo.updateConsultorio(id, sede, nombre);
     res.json({ mensaje: 'Consultorio actualizado' });
   } catch (error) {
     logger.error(error);
@@ -231,12 +168,7 @@ const eliminarConsultorio = async (req, res) => {
   if (!sede) return;
 
   try {
-    await pool.query(
-      `DELETE FROM "Consultorios"
-       WHERE id_consultorio = $1 AND id_sede = $2`,
-      [req.params.id, sede],
-    );
-
+    await consultorioRepo.deleteConsultorio(req.params.id, sede);
     res.json({ mensaje: 'Consultorio eliminado' });
   } catch (error) {
     logger.error(error);
@@ -257,8 +189,8 @@ const getSedes = async (req, res) => {
   if (!sede) return;
 
   try {
-    const result = await pool.query(`SELECT id_sede, nombre FROM "Sedes" ORDER BY id_sede`);
-    res.json(result.rows);
+    const rows = await sharedRepo.getSedes();
+    res.json(rows);
   } catch (error) {
     logger.error(error);
     res.status(500).json({ mensaje: 'Error al obtener sedes' });
@@ -274,33 +206,8 @@ const getPersonal = async (req, res) => {
   if (!sede) return;
 
   try {
-    const result = await pool.query(
-      `SELECT
-        u.id_usuario,
-        u.cedula,
-        u.rol,
-        u.nombre,
-        u.apellido,
-        u.telefono,
-        u.email,
-        u.piso,
-        u.id_consultorio,
-        u.id_servicio,
-        u.id_especialidad,
-        u.id_sede,
-        u.status,
-        u.fecha_creacion,
-        c.nombre AS consultorio_nombre,
-        s.nombre_servicio AS servicio_nombre
-      FROM "Usuarios" u
-      LEFT JOIN "Consultorios" c ON u.id_consultorio = c.id_consultorio
-      LEFT JOIN "Servicio" s ON u.id_servicio = s.id_servicio
-      WHERE u.id_sede = $1
-      ORDER BY u.nombre, u.apellido`,
-      [sede],
-    );
-
-    res.json(result.rows);
+    const rows = await usuarioRepo.getPersonal(sede);
+    res.json(rows);
   } catch (error) {
     logger.error(error);
     res.status(500).json({ mensaje: 'Error al obtener personal' });
@@ -339,28 +246,23 @@ const crearPersonal = async (req, res) => {
     const sedeFinal = id_sede ? Number(id_sede) : sedeToken;
     const emailFinal = email ? email.toLowerCase().trim() : null;
 
-    const result = await pool.query(
-      `INSERT INTO "Usuarios" (cedula, nombre, apellido, telefono, email, password_hash, rol, piso, id_consultorio, id_servicio, id_especialidad, id_sede, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-       RETURNING id_usuario`,
-      [
-        cedula,
-        nombre,
-        apellido || '',
-        telefono || '',
-        emailFinal,
-        password_hash,
-        rol,
-        piso || null,
-        id_consultorio || null,
-        id_servicio || null,
-        id_especialidad || null,
-        sedeFinal,
-        status !== false,
-      ],
-    );
+    const result = await usuarioRepo.crearPersonal({
+      cedula,
+      nombre,
+      apellido: apellido || '',
+      telefono: telefono || '',
+      email: emailFinal,
+      password_hash,
+      rol,
+      piso: piso || null,
+      id_consultorio: id_consultorio || null,
+      id_servicio: id_servicio || null,
+      id_especialidad: id_especialidad || null,
+      sede: sedeFinal,
+      status: status !== false,
+    });
 
-    res.status(201).json({ mensaje: 'Personal creado', id: result.rows[0].id_usuario });
+    res.status(201).json({ mensaje: 'Personal creado', id: result.id_usuario });
   } catch (error) {
     logger.error(error);
     if (error.code === '23505') {
@@ -453,12 +355,7 @@ const actualizarPersonal = async (req, res) => {
       return res.status(400).json({ mensaje: 'No hay campos para actualizar' });
     }
 
-    values.push(id, sede);
-    await pool.query(
-      `UPDATE "Usuarios" SET ${sets.join(', ')} WHERE id_usuario = $${idx} AND id_sede = $${idx + 1}`,
-      values,
-    );
-
+    await usuarioRepo.actualizarPersonal(id, sede, sets, values, idx);
     res.json({ mensaje: 'Personal actualizado' });
   } catch (error) {
     logger.error(error);
@@ -476,12 +373,8 @@ const eliminarPersonal = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const result = await pool.query(
-      `DELETE FROM "Usuarios" WHERE id_usuario = $1 AND id_sede = $2 RETURNING id_usuario`,
-      [id, sede],
-    );
-
-    if (result.rowCount === 0) {
+    const eliminado = await usuarioRepo.eliminarPersonal(id, sede);
+    if (!eliminado) {
       return res.status(404).json({ mensaje: 'Usuario no encontrado' });
     }
 

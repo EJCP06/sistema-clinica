@@ -323,22 +323,10 @@ export class RecepcionComponent implements OnInit, OnDestroy {
          const ahora = new Date();
          const inicioDeHoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
 
-         this.ultimasAdmisiones = (data || []).filter((admision: any) => {
-           const estado = (admision.nombre_estado || '').toUpperCase();
-           
-           // Siempre incluir si NO está atendido (espera, llamado, etc.)
-           if (estado !== 'ATENDIDO') {
-             return true;
-           }
-           
-           // Si está atendido, solo incluir si es de hoy
-           if (estado === 'ATENDIDO' && admision.fecha_creacion) {
-             const fechaAdmision = new Date(admision.fecha_creacion);
-             return fechaAdmision >= inicioDeHoy;
-           }
-           
-           return false;
-         });
+          this.ultimasAdmisiones = (data || []).filter((admision: any) => {
+             const estadoActual = admision.id_estado_actual;
+             return estadoActual !== 5 && estadoActual !== 6 && estadoActual !== 7;
+           });
 
          this.appRef.tick();
        },

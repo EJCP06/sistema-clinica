@@ -1,37 +1,18 @@
 const pool = require('../config/db');
 const logger = require('../config/logger');
+const atencionRepo = require('../repositories/atencion.repository');
+const consultorioRepo = require('../repositories/consultorio.repository');
+const historialRepo = require('../repositories/historial.repository');
 
 const getTodosLosTurnos = async (req, res) => {
-  // Verificar que el usuario y su sede existan
   if (!req.usuario || !req.usuario.id_sede) {
     return res.status(400).json({ mensaje: 'Datos de usuario insuficientes' });
   }
   
   try {
-    const result = await pool.query(`
-      SELECT 
-        a.id_atencion as id, 
-        a.numero, 
-        p.nombre as paciente_nombre, 
-        p.apellido as paciente_apellido, 
-        p.cedula as paciente_documento, 
-        s.nombre_servicio, 
-        e.nombre_estado as estado, 
-        a.id_especialidad,
-        a.id_consultorio,
-        a.id_servicio,
-        a.id_sede,
-        a.id_estado_actual,
-        a.hora_llegada
-      FROM "Atencion" a
-      JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
-      JOIN "Servicio" s ON a.id_servicio = s.id_servicio
-      JOIN "Estado" e ON a.id_estado_actual = e.id_estado
-      WHERE a.id_sede = $1 AND a.hora_llegada >= CURRENT_DATE
-      ORDER BY a.hora_llegada DESC
-    `, [req.usuario.id_sede]);
+    const rows = await atencionRepo.getTodosLosTurnos(req.usuario.id_sede);
     
-    const turnos = result.rows.map(r => ({
+    const turnos = rows.map(r => ({
       id: r.id,
       numero: r.numero,
       estado: r.estado,
@@ -57,31 +38,22 @@ const getTodosLosTurnos = async (req, res) => {
 };
 
 const crearTurno = async (req, res) => {
-  // Nota: recepcion.controller.js ya tiene generarTurno, pero implementamos este por compatibilidad
   const { id_paciente, id_servicio, id_especialidad, id_responsable } = req.body;
   
-  // Verificar que el usuario y su sede existan
   if (!req.usuario || !req.usuario.id_sede) {
     return res.status(400).json({ mensaje: 'Datos de usuario insuficientes' });
   }
   
   try {
-    // Obtener el siguiente número de turno para el servicio
-    const countResult = await pool.query(
-      'SELECT COUNT(*) + 1 as next FROM "Atencion" WHERE id_servicio = $1 AND hora_llegada >= CURRENT_DATE',
-      [id_servicio]
-    );
-    
-    // Obtener el prefijo del servicio
-    const prefijoRes = await pool.query('SELECT prefijo FROM "Servicio" WHERE id_servicio = $1', [id_servicio]);
-    const prefijo = prefijoRes.rows[0]?.prefijo || 'T';
-    const nuevoNumero = `${prefijo}-${String(countResult.rows[0].next).padStart(3, '0')}`;
-    
-    const result = await pool.query(
-      'INSERT INTO "Atencion" (id_paciente, id_servicio, id_especialidad, id_responsable, id_estado_actual, id_sede, numero) VALUES ($1, $2, $3, $4, 1, $5, $6) RETURNING *',
-      [id_paciente, id_servicio, id_especialidad, id_responsable, req.usuario.id_sede, nuevoNumero]
-    );
-    res.status(201).json(result.rows[0]);
+    const next = await atencionRepo.getConteoServicioHoy(id_servicio);
+    const prefijo = await atencionRepo.getServicioPrefijo(id_servicio);
+    const nuevoNumero = `${prefijo}-${String(next).padStart(2, '0')}`;
+
+    const turno = await atencionRepo.insertarTurno({
+      id_paciente, id_servicio, id_especialidad, id_responsable,
+      id_sede: req.usuario.id_sede, numero: nuevoNumero,
+    });
+    res.status(201).json(turno);
   } catch (error) {
     logger.error('Error en crearTurno:', error);
     res.status(500).json({ mensaje: 'Error al crear turno' });
@@ -94,23 +66,18 @@ const marcarAusente = async (req, res) => {
   try {
     await client.query('BEGIN');
     
-    // Estado 7 = Ausente
-    const result = await client.query(
-      'UPDATE "Atencion" SET id_estado_actual = 7, hora_salida = NOW() WHERE id_atencion = $1 RETURNING id_consultorio',
-      [id]
-    );
+    const atencion = await atencionRepo.marcarAusente(client, id);
     
-    if (result.rowCount === 0) {
+    if (!atencion) {
       await client.query('ROLLBACK');
       return res.status(404).json({ mensaje: 'Turno no encontrado' });
     }
     
-    const consultorioId = result.rows[0].id_consultorio;
-    if (consultorioId) {
-      await client.query('UPDATE "Consultorios" SET estado_fisico = \'LIBRE\' WHERE id_consultorio = $1', [consultorioId]);
+    if (atencion.id_consultorio) {
+      await consultorioRepo.setEstadoFisico(client, atencion.id_consultorio, 'LIBRE');
     }
     
-    await client.query('INSERT INTO "Historial_Atencion" (id_atencion, id_estado) VALUES ($1, 7)', [id]);
+    await historialRepo.insert(client, id, 7);
     
     await client.query('COMMIT');
     if (req.io) req.io.emit('estado-actualizado', { id_atencion: Number(id) });
@@ -131,32 +98,20 @@ const transferirPaciente = async (req, res) => {
   try {
     await client.query('BEGIN');
     
-    // 1. Finalizar atención actual (Estado 6 = Atendido)
-    const originalRes = await client.query(
-      'UPDATE "Atencion" SET id_estado_actual = 6, hora_salida = NOW() WHERE id_atencion = $1 RETURNING *',
-      [id]
-    );
+    const original = await atencionRepo.finalizarAtencionTransferencia(client, id);
     
-    if (originalRes.rowCount === 0) {
+    if (!original) {
       await client.query('ROLLBACK');
       return res.status(404).json({ mensaje: 'Turno no encontrado' });
     }
     
-    const original = originalRes.rows[0];
-    
-    // 2. Liberar consultorio si tenía uno
     if (original.id_consultorio) {
-      await client.query('UPDATE "Consultorios" SET estado_fisico = \'LIBRE\' WHERE id_consultorio = $1', [original.id_consultorio]);
+      await consultorioRepo.setEstadoFisico(client, original.id_consultorio, 'LIBRE');
     }
     
-    // 3. Crear nuevo turno en el nuevo servicio (Estado 2 = En Caja)
-    const countResult = await client.query(
-      'SELECT COUNT(*) + 1 as next FROM "Atencion" WHERE id_servicio = $1 AND hora_llegada >= CURRENT_DATE',
-      [nuevo_servicio_id]
-    );
-    const prefijoRes = await client.query('SELECT prefijo FROM "Servicio" WHERE id_servicio = $1', [nuevo_servicio_id]);
-    const prefijo = prefijoRes.rows[0]?.prefijo || 'T';
-    const nuevoNumero = `${prefijo}-${String(countResult.rows[0].next).padStart(3, '0')}`;
+    const next = await atencionRepo.getConteoServicioHoy(nuevo_servicio_id);
+    const prefijo = await atencionRepo.getServicioPrefijo(nuevo_servicio_id);
+    const nuevoNumero = `${prefijo}-${String(next).padStart(2, '0')}`;
     
     const nuevoTurnoRes = await client.query(
       'INSERT INTO "Atencion" (id_paciente, id_servicio, id_responsable, id_estado_actual, id_sede, numero) VALUES ($1, $2, $3, 2, $4, $5) RETURNING *',
@@ -180,18 +135,14 @@ const reincorporarPaciente = async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    // Estado 3 = Sala de Espera
-    const result = await client.query(
-      'UPDATE "Atencion" SET id_estado_actual = 3, hora_salida = NULL, hora_llegada = NOW() WHERE id_atencion = $1 AND id_estado_actual = 7 RETURNING *',
-      [id]
-    );
+    const result = await atencionRepo.reincorporarPaciente(client, id);
 
-    if (result.rowCount === 0) {
+    if (!result) {
       await client.query('ROLLBACK');
       return res.status(404).json({ mensaje: 'Paciente no encontrado o no está en estado Ausente' });
     }
 
-    await client.query('INSERT INTO "Historial_Atencion" (id_atencion, id_estado) VALUES ($1, 3)', [id]);
+    await historialRepo.insert(client, id, 3);
 
     await client.query('COMMIT');
     if (req.io) req.io.emit('estado-actualizado', { id_atencion: Number(id) });

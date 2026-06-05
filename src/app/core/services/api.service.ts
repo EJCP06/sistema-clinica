@@ -33,13 +33,18 @@ export class ApiService {
     const token = sessionStorage.getItem('clinica_token');
     this.socket = io(environment.socketUrl, {
       auth: { token },
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
+      reconnectionAttempts: 10,
+      reconnectionDelay: 2000,
     });
     this.socket.on('estado-actualizado', (data: unknown) => {
       this.cambios$.next(data as { tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; id_sede?: number });
     });
     this.socket.on('nuevo-llamado', (data: unknown) => {
       this.cambios$.next(data as { tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; id_sede?: number });
+    });
+    this.socket.on('connect_error', () => {
+      setTimeout(() => { if (!this.socket.connected) this.socket.connect(); }, 3000);
     });
   }
 

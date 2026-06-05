@@ -45,204 +45,341 @@
       </div>
     </div>
 
-    <!-- LAYOUT: LLAMADOS (tarjeta grande + historial lateral) -->
-    <div *ngIf="config.layout === 'llamados'" class="flex-1 flex flex-col lg:flex-row gap-4 md:gap-10 overflow-hidden">
-
-      <!-- Llamado actual -->
-      <div class="flex-[3] flex flex-col justify-center items-center relative">
-        <div *ngIf="turnos.length === 0" class="text-center space-y-4">
-          <lucide-icon [name]="Clock" class="w-20 h-20 md:w-32 h-32 text-slate-800 mx-auto"></lucide-icon>
-          <p class="text-slate-600 text-lg md:text-2xl font-bold uppercase tracking-widest">Sin llamados activos</p>
-        </div>
-
-        <div *ngIf="turnos.length > 0" class="w-full animate-in zoom-in-95 duration-700">
-          <div class="bg-blue-600 rounded-[30px] md:rounded-[60px] p-6 md:p-20 shadow-2xl shadow-blue-600/30 text-center space-y-6 md:space-y-10 relative overflow-hidden">
-            <lucide-icon [name]="Bell" class="absolute -right-10 -bottom-10 w-32 h-32 md:w-64 h-64 text-white/10 rotate-12"></lucide-icon>
-
-            <p class="text-blue-100 font-black text-base md:text-2xl uppercase tracking-[4px] md:tracking-[8px] animate-bounce">Llamando Ahora</p>
-
-            <h2 class="text-4xl md:text-[10rem] leading-none font-black text-white tracking-tighter uppercase truncate">
-              {{ turnos[0].paciente.nombre || 'Sin asignar' }} {{ turnos[0].paciente.apellido || '' }}
-            </h2>
-
-            <div class="flex items-center justify-center">
-              <div class="bg-teal-500 px-8 md:px-16 py-4 md:py-8 rounded-[24px] md:rounded-[60px] shadow-xl shadow-teal-950/20 border-2 md:border-4 border-teal-400 text-center">
-                <p class="text-teal-950 text-[10px] md:text-sm font-black uppercase tracking-widest mb-1">Diríjase a</p>
-                <p class="text-2xl md:text-5xl font-black text-white uppercase">{{ turnos[0].nombre_servicio || 'Sin asignar' }}</p>
-              </div>
+    <!-- LAYOUT: APS -->
+    <ng-container *ngIf="config.layout === 'aps'">
+      <!-- APS (panel principal) -->
+      <div *ngIf="sala === 'aps'" class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 overflow-visible md:overflow-hidden">
+        <div *ngFor="let seccion of seccionesAPS; let i = index" class="flex flex-col bg-slate-800/20 rounded-[24px] md:rounded-[40px] border border-slate-700/30 p-4 md:p-6 overflow-hidden">
+          <h3 class="text-slate-400 font-black text-xs md:text-sm uppercase tracking-widest mb-7 shrink-0 text-center">{{ seccion.titulo }}</h3>
+          <div *ngIf="apsLoading[i]" class="flex-1 flex items-center justify-center">
+            <div class="w-8 h-8 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
+          </div>
+          <div *ngIf="!apsLoading[i] && (!apsData[i] || apsData[i].length === 0)" class="flex-1 flex items-center justify-center">
+            <p class="text-slate-600 text-sm md:text-base font-bold uppercase tracking-widest">Sin pacientes</p>
+          </div>
+          <div *ngIf="!apsLoading[i] && apsData[i] && apsData[i].length > 0" class="overflow-hidden relative"
+               [style.height.px]="viewportH"
+               [style.display]="apsData[i].length <= 4 ? 'flex' : 'block'"
+               [style.flex-direction]="apsData[i].length <= 4 ? 'column' : null"
+               [class.justify-center]="apsData[i].length <= 4">
+            <div class="space-y-2 md:space-y-3"
+                 [apsScroll]="apsData[i].length"
+                 [apsScrollViewportH]="viewportH">
+               <div *ngFor="let t of apsData[i]; trackBy: trackById"
+                   class="bg-slate-800/40 border border-slate-700/50 p-2 md:p-3 rounded-[16px] md:rounded-[24px] flex flex-col md:flex-row items-center md:justify-between gap-2"
+                 >
+                   <div class="flex items-center gap-2 md:gap-4">
+                     <div class="w-10 h-10 md:w-14 md:h-14 rounded-full bg-blue-600/30 border-2 border-blue-500/50 flex items-center justify-center shrink-0">
+                       <span class="text-base md:text-xl font-black text-blue-400">{{ (t.paciente.nombre || '?').charAt(0).toUpperCase() }}</span>
+                     </div>
+                     <h4 class="text-sm md:text-xl font-black text-white uppercase">{{ t.paciente.nombre || 'Sin asignar' }} {{ t.paciente.apellido || '' }}</h4>
+                   </div>
+                   <p class="text-[10px] md:text-base font-black text-slate-400">{{ t.nombre_servicio || '' }} / {{ t.numero || '' }}</p>
+                   <div class="flex flex-col items-center gap-0">
+                     <span class="text-[8px] md:text-[10px] font-bold text-white uppercase tracking-wider">ESTADO</span>
+                     <span class="text-[10px] md:text-xs font-black uppercase tracking-widest"
+                       [class.text-blue-400]="t.id_estado_actual === 1"
+                       [class.text-amber-400]="t.id_estado_actual === 2"
+                       [class.text-teal-400]="t.id_estado_actual === 3"
+                       [class.text-[#8d6e63]]="t.id_estado_actual === 4"
+                       [class.text-sky-400]="t.id_estado_actual === 5"
+                       [class.text-purple-400]="t.id_estado_actual === 6"
+                       [class.text-rose-400]="t.id_estado_actual === 7"
+                       [class.text-orange-400]="t.id_estado_actual === 8"
+                     >{{ t.estado || '' }}</span>
+                   </div>
+                 </div>
             </div>
           </div>
         </div>
       </div>
-
-      <!-- Historial reciente -->
-      <div class="flex-1 flex flex-col gap-4 md:gap-6">
-        <h3 class="text-slate-500 font-black text-[10px] md:text-sm uppercase tracking-[4px] px-2 md:px-4 flex items-center gap-3">
-          <lucide-icon [name]="Volume2" class="w-4 h-4"></lucide-icon> Llamados Recientes
-        </h3>
-
-        <div class="flex-1 space-y-3 md:space-y-4 overflow-y-auto">
-          <ng-container *ngIf="turnos.length > 1">
-            <div *ngFor="let t of turnos.slice(1); trackBy: trackById"
-              class="bg-slate-800/40 border border-slate-700/50 p-4 md:p-8 rounded-[24px] md:rounded-[40px] flex justify-between items-center animate-in slide-in-from-right-10 duration-500"
-            >
-              <h4 class="text-base md:text-2xl font-black text-white uppercase truncate">{{ t.paciente.nombre || 'Sin asignar' }} {{ t.paciente.apellido || '' }}</h4>
-              <div class="text-center ml-2 md:ml-4 shrink-0">
-                <p class="text-slate-500 font-black text-[8px] md:text-[10px] uppercase tracking-widest leading-tight">Servicio</p>
-                <p class="text-sm md:text-xl font-black text-teal-400 uppercase truncate leading-tight">{{ t.nombre_servicio || 'Sin asignar' }}</p>
-              </div>
-            </div>
-          </ng-container>
-
-          <div *ngIf="turnos.length <= 1" class="h-full flex items-center justify-center border-2 border-dashed border-slate-800 rounded-[30px] md:rounded-[60px]">
-            <p class="text-slate-700 font-bold italic text-sm md:text-base">No hay historial disponible</p>
+      <!-- APS en espera -->
+      <div *ngIf="sala === 'aps-espera'" class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 overflow-visible md:overflow-hidden">
+        <div *ngFor="let seccion of seccionesAPSEspera; let i = index" class="flex flex-col bg-slate-800/20 rounded-[24px] md:rounded-[40px] border border-slate-700/30 p-4 md:p-6 overflow-hidden">
+          <h3 class="text-slate-400 font-black text-xs md:text-sm uppercase tracking-widest mb-7 shrink-0 text-center">{{ seccion.titulo }}</h3>
+          <div *ngIf="apsEsperaLoading[i]" class="flex-1 flex items-center justify-center">
+            <div class="w-8 h-8 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- LAYOUT: APS (4 secciones) -->
-    <div *ngIf="config.layout === 'aps'" class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 overflow-visible md:overflow-hidden">
-      <div *ngFor="let seccion of seccionesAPS; let i = index" class="flex flex-col bg-slate-800/20 rounded-[24px] md:rounded-[40px] border border-slate-700/30 p-4 md:p-6 overflow-hidden">
-        <h3 class="text-slate-400 font-black text-xs md:text-sm uppercase tracking-widest mb-7 shrink-0 text-center">{{ seccion.titulo }}</h3>
-        <div *ngIf="apsLoading[i]" class="flex-1 flex items-center justify-center">
-          <div class="w-8 h-8 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
-        </div>
-        <div *ngIf="!apsLoading[i] && (!apsData[i] || apsData[i].length === 0)" class="flex-1 flex items-center justify-center">
-          <p class="text-slate-600 text-sm md:text-base font-bold uppercase tracking-widest">Sin pacientes</p>
-        </div>
-        <div *ngIf="!apsLoading[i] && apsData[i] && apsData[i].length > 0" class="overflow-hidden relative"
-             [style.height.px]="viewportH"
-             [style.display]="apsData[i].length <= 4 ? 'flex' : 'block'"
-             [style.flex-direction]="apsData[i].length <= 4 ? 'column' : null"
-             [class.justify-center]="apsData[i].length <= 4">
-          <div class="space-y-2 md:space-y-3"
-               [apsScroll]="apsData[i].length"
-               [apsScrollViewportH]="viewportH">
-            <div *ngFor="let t of apsData[i]; trackBy: trackById"
-              class="bg-slate-800/40 border border-slate-700/50 p-3 md:p-4 rounded-[16px] md:rounded-[24px] flex items-center justify-between"
-            >
-              <div class="flex items-center gap-3 md:gap-4 min-w-0">
-                <div class="w-10 h-10 md:w-14 md:h-14 rounded-full bg-blue-600/30 border-2 border-blue-500/50 flex items-center justify-center shrink-0">
-                  <span class="text-base md:text-xl font-black text-blue-400">{{ (t.paciente.nombre || '?').charAt(0).toUpperCase() }}</span>
-                </div>
-                <div class="min-w-0">
-                  <h4 class="text-sm md:text-xl font-black text-white uppercase truncate">{{ t.paciente.nombre || 'Sin asignar' }} {{ t.paciente.apellido || '' }}</h4>
-                  <p class="text-slate-400 font-bold text-[10px] md:text-xs uppercase tracking-wider">{{ t.numero || '' }} · {{ t.nombre_servicio || '' }}</p>
-                </div>
-              </div>
-              <div class="text-right shrink-0 ml-2">
-                <span class="text-[10px] md:text-xs font-black uppercase tracking-widest"
-                  [class.text-blue-400]="t.id_estado_actual === 1"
-                  [class.text-amber-400]="t.id_estado_actual === 2"
-                  [class.text-teal-400]="t.id_estado_actual === 3"
-                  [class.text-[#8d6e63]]="t.id_estado_actual === 4"
-                  [class.text-sky-400]="t.id_estado_actual === 5"
-                  [class.text-purple-400]="t.id_estado_actual === 6"
-                  [class.text-rose-400]="t.id_estado_actual === 7"
-                  [class.text-orange-400]="t.id_estado_actual === 8"
-                >{{ t.estado || '' }}</span>
-              </div>
+          <div *ngIf="!apsEsperaLoading[i] && (!apsEsperaData[i] || apsEsperaData[i].length === 0)" class="flex-1 flex items-center justify-center">
+            <p class="text-slate-600 text-sm md:text-base font-bold uppercase tracking-widest">Sin pacientes</p>
+          </div>
+          <div *ngIf="!apsEsperaLoading[i] && apsEsperaData[i] && apsEsperaData[i].length > 0" class="overflow-hidden relative"
+               [style.height.px]="viewportH"
+               [style.display]="apsEsperaData[i].length <= 4 ? 'flex' : 'block'"
+               [style.flex-direction]="apsEsperaData[i].length <= 4 ? 'column' : null"
+               [class.justify-center]="apsEsperaData[i].length <= 4">
+            <div class="space-y-2 md:space-y-3"
+                 [apsScroll]="apsEsperaData[i].length"
+                 [apsScrollViewportH]="viewportH">
+               <div *ngFor="let t of apsEsperaData[i]; trackBy: trackById"
+                   class="bg-slate-800/40 border border-slate-700/50 p-2 md:p-3 rounded-[16px] md:rounded-[24px] flex flex-col md:flex-row items-center md:justify-between gap-2"
+                 >
+                   <div class="flex items-center gap-2 md:gap-4">
+                     <div class="w-10 h-10 md:w-14 md:h-14 rounded-full bg-blue-600/30 border-2 border-blue-500/50 flex items-center justify-center shrink-0">
+                       <span class="text-base md:text-xl font-black text-blue-400">{{ (t.paciente.nombre || '?').charAt(0).toUpperCase() }}</span>
+                     </div>
+                     <h4 class="text-sm md:text-xl font-black text-white uppercase">{{ t.paciente.nombre || 'Sin asignar' }} {{ t.paciente.apellido || '' }}</h4>
+                   </div>
+                   <p class="text-[10px] md:text-base font-black text-slate-400">{{ t.nombre_servicio || '' }} / {{ t.numero || '' }}</p>
+                   <div class="flex flex-col items-center gap-0">
+                     <span class="text-[8px] md:text-[10px] font-bold text-white uppercase tracking-wider">ESTADO</span>
+                     <span class="text-[10px] md:text-xs font-black uppercase tracking-widest"
+                       [class.text-blue-400]="t.id_estado_actual === 1"
+                       [class.text-amber-400]="t.id_estado_actual === 2"
+                       [class.text-teal-400]="t.id_estado_actual === 3"
+                       [class.text-[#8d6e63]]="t.id_estado_actual === 4"
+                       [class.text-sky-400]="t.id_estado_actual === 5"
+                       [class.text-purple-400]="t.id_estado_actual === 6"
+                       [class.text-rose-400]="t.id_estado_actual === 7"
+                       [class.text-orange-400]="t.id_estado_actual === 8"
+                     >{{ t.estado || '' }}</span>
+                   </div>
+                 </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </ng-container>
 
-    <!-- LAYOUT: LAB (particulares) -->
+    <!-- LAYOUT: LAB -->
     <div *ngIf="config.layout === 'lab'" class="flex-1 flex flex-col items-center overflow-visible md:overflow-hidden">
-      <div *ngFor="let seccion of labSections; let i = index" class="w-[90%] flex flex-col bg-slate-800/20 rounded-[24px] md:rounded-[40px] border border-slate-700/30 p-4 md:p-6 overflow-hidden">
-        <h3 class="text-slate-400 font-black text-xs md:text-sm uppercase tracking-widest mb-7 shrink-0 text-center">{{ seccion.titulo }}</h3>
-        <div *ngIf="labLoading[i]" class="flex-1 flex items-center justify-center">
-          <div class="w-8 h-8 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
-        </div>
-        <div *ngIf="!labLoading[i] && (!labData[i] || labData[i].length === 0)" class="flex-1 flex items-center justify-center">
-          <p class="text-slate-600 text-sm md:text-base font-bold uppercase tracking-widest">Sin pacientes</p>
-        </div>
-        <div *ngIf="!labLoading[i] && labData[i] && labData[i].length > 0" class="overflow-hidden relative"
-             [style.height.px]="viewportH"
-             [style.display]="labData[i].length <= 4 ? 'flex' : 'block'"
-             [style.flex-direction]="labData[i].length <= 4 ? 'column' : null"
-             [class.justify-center]="labData[i].length <= 4">
-          <div class="space-y-2 md:space-y-3"
-               [apsScroll]="labData[i].length"
-               [apsScrollViewportH]="viewportH">
-            <div *ngFor="let t of labData[i]; trackBy: trackById"
-              class="bg-slate-800/40 border border-slate-700/50 p-3 md:p-4 rounded-[16px] md:rounded-[24px] flex items-center justify-between"
-            >
-              <div class="flex items-center gap-3 md:gap-4 min-w-0">
-                <div class="w-10 h-10 md:w-14 md:h-14 rounded-full bg-blue-600/30 border-2 border-blue-500/50 flex items-center justify-center shrink-0">
-                  <span class="text-base md:text-xl font-black text-blue-400">{{ (t.paciente.nombre || '?').charAt(0).toUpperCase() }}</span>
+      <ng-container *ngIf="sala === 'lab-espera'">
+        <div *ngFor="let seccion of labSections; let i = index" class="w-[90%] flex flex-col bg-slate-800/20 rounded-[24px] md:rounded-[40px] border border-slate-700/30 p-4 md:p-6 overflow-hidden">
+          <h3 class="text-slate-400 font-black text-xs md:text-sm uppercase tracking-widest mb-7 shrink-0 text-center">{{ seccion.titulo }}</h3>
+          <div *ngIf="labLoading[i]" class="flex-1 flex items-center justify-center">
+            <div class="w-8 h-8 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
+          </div>
+          <div *ngIf="!labLoading[i] && (!labData[i] || labData[i].length === 0)" class="flex-1 flex items-center justify-center">
+            <p class="text-slate-600 text-sm md:text-base font-bold uppercase tracking-widest">Sin pacientes</p>
+          </div>
+          <div *ngIf="!labLoading[i] && labData[i] && labData[i].length > 0" class="overflow-hidden relative"
+               [style.height.px]="viewportH"
+               [style.display]="labData[i].length <= 4 ? 'flex' : 'block'"
+               [style.flex-direction]="labData[i].length <= 4 ? 'column' : null"
+               [class.justify-center]="labData[i].length <= 4">
+            <div class="space-y-2 md:space-y-3"
+                 [apsScroll]="labData[i].length"
+                 [apsScrollViewportH]="viewportH">
+               <div *ngFor="let t of labData[i]; trackBy: trackById"
+                  class="bg-slate-800/40 border border-slate-700/50 p-2 md:p-3 rounded-[16px] md:rounded-[24px] flex flex-col md:flex-row items-center md:justify-between gap-2"
+                >
+                  <div class="flex items-center gap-2 md:gap-4">
+                    <div class="w-10 h-10 md:w-14 md:h-14 rounded-full bg-blue-600/30 border-2 border-blue-500/50 flex items-center justify-center shrink-0">
+                      <span class="text-base md:text-xl font-black text-blue-400">{{ (t.paciente.nombre || '?').charAt(0).toUpperCase() }}</span>
+                    </div>
+                    <h4 class="text-sm md:text-xl font-black text-white uppercase">{{ t.paciente.nombre || 'Sin asignar' }} {{ t.paciente.apellido || '' }}</h4>
+                  </div>
+                  <p class="text-sm md:text-xl font-black text-slate-400">{{ t.nombre_servicio || '' }} / {{ t.numero || '' }}</p>
+                  <div class="flex flex-col items-center gap-0">
+                    <span class="text-[8px] md:text-[10px] font-bold text-white uppercase tracking-wider">ESTADO</span>
+                    <span class="text-[10px] md:text-xs font-black uppercase tracking-widest"
+                      [class.text-blue-400]="t.id_estado_actual === 1"
+                      [class.text-amber-400]="t.id_estado_actual === 2"
+                      [class.text-teal-400]="t.id_estado_actual === 3"
+                      [class.text-[#8d6e63]]="t.id_estado_actual === 4"
+                      [class.text-sky-400]="t.id_estado_actual === 5"
+                      [class.text-purple-400]="t.id_estado_actual === 6"
+                      [class.text-rose-400]="t.id_estado_actual === 7"
+                      [class.text-orange-400]="t.id_estado_actual === 8"
+                    >{{ t.estado || '' }}</span>
+                  </div>
                 </div>
-                <div class="min-w-0">
-                  <h4 class="text-sm md:text-xl font-black text-white uppercase truncate">{{ t.paciente.nombre || 'Sin asignar' }} {{ t.paciente.apellido || '' }}</h4>
-                  <p class="text-slate-400 font-bold text-[10px] md:text-xs uppercase tracking-wider">{{ t.numero || '' }} · {{ t.nombre_servicio || '' }}</p>
-                </div>
-              </div>
-              <div class="text-right shrink-0 ml-2">
-                <span class="text-[10px] md:text-xs font-black uppercase tracking-widest"
-                  [class.text-blue-400]="t.id_estado_actual === 1"
-                  [class.text-amber-400]="t.id_estado_actual === 2"
-                  [class.text-teal-400]="t.id_estado_actual === 3"
-                  [class.text-[#8d6e63]]="t.id_estado_actual === 4"
-                  [class.text-sky-400]="t.id_estado_actual === 5"
-                  [class.text-purple-400]="t.id_estado_actual === 6"
-                  [class.text-rose-400]="t.id_estado_actual === 7"
-                  [class.text-orange-400]="t.id_estado_actual === 8"
-                >{{ t.estado || '' }}</span>
-              </div>
             </div>
           </div>
         </div>
-      </div>
+      </ng-container>
+      <ng-container *ngIf="sala === 'lab-en-espera'">
+        <div *ngFor="let seccion of labEsperaSections; let i = index" class="w-[90%] flex flex-col bg-slate-800/20 rounded-[24px] md:rounded-[40px] border border-slate-700/30 p-4 md:p-6 overflow-hidden">
+          <h3 class="text-slate-400 font-black text-xs md:text-sm uppercase tracking-widest mb-7 shrink-0 text-center">{{ seccion.titulo }}</h3>
+          <div *ngIf="labEsperaLoading[i]" class="flex-1 flex items-center justify-center">
+            <div class="w-8 h-8 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
+          </div>
+          <div *ngIf="!labEsperaLoading[i] && (!labEsperaData[i] || labEsperaData[i].length === 0)" class="flex-1 flex items-center justify-center">
+            <p class="text-slate-600 text-sm md:text-base font-bold uppercase tracking-widest">Sin pacientes</p>
+          </div>
+          <div *ngIf="!labEsperaLoading[i] && labEsperaData[i] && labEsperaData[i].length > 0" class="overflow-hidden relative"
+               [style.height.px]="viewportH"
+               [style.display]="labEsperaData[i].length <= 4 ? 'flex' : 'block'"
+               [style.flex-direction]="labEsperaData[i].length <= 4 ? 'column' : null"
+               [class.justify-center]="labEsperaData[i].length <= 4">
+            <div class="space-y-2 md:space-y-3"
+                 [apsScroll]="labEsperaData[i].length"
+                 [apsScrollViewportH]="viewportH">
+               <div *ngFor="let t of labEsperaData[i]; trackBy: trackById"
+                  class="bg-slate-800/40 border border-slate-700/50 p-2 md:p-3 rounded-[16px] md:rounded-[24px] flex flex-col md:flex-row items-center md:justify-between gap-2"
+                >
+                  <div class="flex items-center gap-2 md:gap-4">
+                    <div class="w-10 h-10 md:w-14 md:h-14 rounded-full bg-blue-600/30 border-2 border-blue-500/50 flex items-center justify-center shrink-0">
+                      <span class="text-base md:text-xl font-black text-blue-400">{{ (t.paciente.nombre || '?').charAt(0).toUpperCase() }}</span>
+                    </div>
+                    <h4 class="text-sm md:text-xl font-black text-white uppercase">{{ t.paciente.nombre || 'Sin asignar' }} {{ t.paciente.apellido || '' }}</h4>
+                  </div>
+                  <p class="text-sm md:text-xl font-black text-slate-400">{{ t.nombre_servicio || '' }} / {{ t.numero || '' }}</p>
+                  <div class="flex flex-col items-center gap-0">
+                    <span class="text-[8px] md:text-[10px] font-bold text-white uppercase tracking-wider">ESTADO</span>
+                    <span class="text-[10px] md:text-xs font-black uppercase tracking-widest"
+                      [class.text-blue-400]="t.id_estado_actual === 1"
+                      [class.text-amber-400]="t.id_estado_actual === 2"
+                      [class.text-teal-400]="t.id_estado_actual === 3"
+                      [class.text-[#8d6e63]]="t.id_estado_actual === 4"
+                      [class.text-sky-400]="t.id_estado_actual === 5"
+                      [class.text-purple-400]="t.id_estado_actual === 6"
+                      [class.text-rose-400]="t.id_estado_actual === 7"
+                      [class.text-orange-400]="t.id_estado_actual === 8"
+                    >{{ t.estado || '' }}</span>
+                  </div>
+                </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
     </div>
 
-    <!-- LAYOUT: IMG (particulares) -->
+    <!-- LAYOUT: IMG -->
     <div *ngIf="config.layout === 'img'" class="flex-1 flex flex-col items-center overflow-visible md:overflow-hidden">
-      <div *ngFor="let seccion of imgSections; let i = index" class="w-[90%] flex flex-col bg-slate-800/20 rounded-[24px] md:rounded-[40px] border border-slate-700/30 p-4 md:p-6 overflow-hidden">
-        <h3 class="text-slate-400 font-black text-xs md:text-sm uppercase tracking-widest mb-7 shrink-0 text-center">{{ seccion.titulo }}</h3>
-        <div *ngIf="imgLoading[i]" class="flex-1 flex items-center justify-center">
-          <div class="w-8 h-8 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
-        </div>
-        <div *ngIf="!imgLoading[i] && (!imgData[i] || imgData[i].length === 0)" class="flex-1 flex items-center justify-center">
-          <p class="text-slate-600 text-sm md:text-base font-bold uppercase tracking-widest">Sin pacientes</p>
-        </div>
-        <div *ngIf="!imgLoading[i] && imgData[i] && imgData[i].length > 0" class="overflow-hidden relative"
-             [style.height.px]="viewportH"
-             [style.display]="imgData[i].length <= 4 ? 'flex' : 'block'"
-             [style.flex-direction]="imgData[i].length <= 4 ? 'column' : null"
-             [class.justify-center]="imgData[i].length <= 4">
-          <div class="space-y-2 md:space-y-3"
-               [apsScroll]="imgData[i].length"
-               [apsScrollViewportH]="viewportH">
-            <div *ngFor="let t of imgData[i]; trackBy: trackById"
-              class="bg-slate-800/40 border border-slate-700/50 p-3 md:p-4 rounded-[16px] md:rounded-[24px] flex items-center justify-between"
-            >
-              <div class="flex items-center gap-3 md:gap-4 min-w-0">
-                <div class="w-10 h-10 md:w-14 md:h-14 rounded-full bg-blue-600/30 border-2 border-blue-500/50 flex items-center justify-center shrink-0">
-                  <span class="text-base md:text-xl font-black text-blue-400">{{ (t.paciente.nombre || '?').charAt(0).toUpperCase() }}</span>
+      <ng-container *ngIf="sala === 'img-espera'">
+        <div *ngFor="let seccion of imgSections; let i = index" class="w-[90%] flex flex-col bg-slate-800/20 rounded-[24px] md:rounded-[40px] border border-slate-700/30 p-4 md:p-6 overflow-hidden">
+          <h3 class="text-slate-400 font-black text-xs md:text-sm uppercase tracking-widest mb-7 shrink-0 text-center">{{ seccion.titulo }}</h3>
+          <div *ngIf="imgLoading[i]" class="flex-1 flex items-center justify-center">
+            <div class="w-8 h-8 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
+          </div>
+          <div *ngIf="!imgLoading[i] && (!imgData[i] || imgData[i].length === 0)" class="flex-1 flex items-center justify-center">
+            <p class="text-slate-600 text-sm md:text-base font-bold uppercase tracking-widest">Sin pacientes</p>
+          </div>
+          <div *ngIf="!imgLoading[i] && imgData[i] && imgData[i].length > 0" class="overflow-hidden relative"
+               [style.height.px]="viewportH"
+               [style.display]="imgData[i].length <= 4 ? 'flex' : 'block'"
+               [style.flex-direction]="imgData[i].length <= 4 ? 'column' : null"
+               [class.justify-center]="imgData[i].length <= 4">
+            <div class="space-y-2 md:space-y-3"
+                 [apsScroll]="imgData[i].length"
+                 [apsScrollViewportH]="viewportH">
+               <div *ngFor="let t of imgData[i]; trackBy: trackById"
+                  class="bg-slate-800/40 border border-slate-700/50 p-2 md:p-3 rounded-[16px] md:rounded-[24px] flex flex-col md:flex-row items-center md:justify-between gap-2"
+                >
+                  <div class="flex items-center gap-2 md:gap-4">
+                    <div class="w-10 h-10 md:w-14 md:h-14 rounded-full bg-blue-600/30 border-2 border-blue-500/50 flex items-center justify-center shrink-0">
+                      <span class="text-base md:text-xl font-black text-blue-400">{{ (t.paciente.nombre || '?').charAt(0).toUpperCase() }}</span>
+                    </div>
+                    <h4 class="text-sm md:text-xl font-black text-white uppercase">{{ t.paciente.nombre || 'Sin asignar' }} {{ t.paciente.apellido || '' }}</h4>
+                  </div>
+                  <p class="text-sm md:text-xl font-black text-slate-400">{{ t.nombre_servicio || '' }} / {{ t.numero || '' }}</p>
+                  <div class="flex flex-col items-center gap-0">
+                    <span class="text-[8px] md:text-[10px] font-bold text-white uppercase tracking-wider">ESTADO</span>
+                    <span class="text-[10px] md:text-xs font-black uppercase tracking-widest"
+                      [class.text-blue-400]="t.id_estado_actual === 1"
+                      [class.text-amber-400]="t.id_estado_actual === 2"
+                      [class.text-teal-400]="t.id_estado_actual === 3"
+                      [class.text-[#8d6e63]]="t.id_estado_actual === 4"
+                      [class.text-sky-400]="t.id_estado_actual === 5"
+                      [class.text-purple-400]="t.id_estado_actual === 6"
+                      [class.text-rose-400]="t.id_estado_actual === 7"
+                      [class.text-orange-400]="t.id_estado_actual === 8"
+                    >{{ t.estado || '' }}</span>
+                  </div>
                 </div>
-                <div class="min-w-0">
-                  <h4 class="text-sm md:text-xl font-black text-white uppercase truncate">{{ t.paciente.nombre || 'Sin asignar' }} {{ t.paciente.apellido || '' }}</h4>
-                  <p class="text-slate-400 font-bold text-[10px] md:text-xs uppercase tracking-wider">{{ t.numero || '' }} · {{ t.nombre_servicio || '' }}</p>
-                </div>
-              </div>
-              <div class="text-right shrink-0 ml-2">
-                <span class="text-[10px] md:text-xs font-black uppercase tracking-widest"
-                  [class.text-blue-400]="t.id_estado_actual === 1"
-                  [class.text-amber-400]="t.id_estado_actual === 2"
-                  [class.text-teal-400]="t.id_estado_actual === 3"
-                  [class.text-[#8d6e63]]="t.id_estado_actual === 4"
-                  [class.text-sky-400]="t.id_estado_actual === 5"
-                  [class.text-purple-400]="t.id_estado_actual === 6"
-                  [class.text-rose-400]="t.id_estado_actual === 7"
-                  [class.text-orange-400]="t.id_estado_actual === 8"
-                >{{ t.estado || '' }}</span>
-              </div>
             </div>
           </div>
         </div>
-      </div>
+      </ng-container>
+      <ng-container *ngIf="sala === 'img-en-espera'">
+        <div *ngFor="let seccion of imgEsperaSections; let i = index" class="w-[90%] flex flex-col bg-slate-800/20 rounded-[24px] md:rounded-[40px] border border-slate-700/30 p-4 md:p-6 overflow-hidden">
+          <h3 class="text-slate-400 font-black text-xs md:text-sm uppercase tracking-widest mb-7 shrink-0 text-center">{{ seccion.titulo }}</h3>
+          <div *ngIf="imgEsperaLoading[i]" class="flex-1 flex items-center justify-center">
+            <div class="w-8 h-8 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
+          </div>
+          <div *ngIf="!imgEsperaLoading[i] && (!imgEsperaData[i] || imgEsperaData[i].length === 0)" class="flex-1 flex items-center justify-center">
+            <p class="text-slate-600 text-sm md:text-base font-bold uppercase tracking-widest">Sin pacientes</p>
+          </div>
+          <div *ngIf="!imgEsperaLoading[i] && imgEsperaData[i] && imgEsperaData[i].length > 0" class="overflow-hidden relative"
+               [style.height.px]="viewportH"
+               [style.display]="imgEsperaData[i].length <= 4 ? 'flex' : 'block'"
+               [style.flex-direction]="imgEsperaData[i].length <= 4 ? 'column' : null"
+               [class.justify-center]="imgEsperaData[i].length <= 4">
+            <div class="space-y-2 md:space-y-3"
+                 [apsScroll]="imgEsperaData[i].length"
+                 [apsScrollViewportH]="viewportH">
+               <div *ngFor="let t of imgEsperaData[i]; trackBy: trackById"
+                  class="bg-slate-800/40 border border-slate-700/50 p-2 md:p-3 rounded-[16px] md:rounded-[24px] flex flex-col md:flex-row items-center md:justify-between gap-2"
+                >
+                  <div class="flex items-center gap-2 md:gap-4">
+                    <div class="w-10 h-10 md:w-14 md:h-14 rounded-full bg-blue-600/30 border-2 border-blue-500/50 flex items-center justify-center shrink-0">
+                      <span class="text-base md:text-xl font-black text-blue-400">{{ (t.paciente.nombre || '?').charAt(0).toUpperCase() }}</span>
+                    </div>
+                    <h4 class="text-sm md:text-xl font-black text-white uppercase">{{ t.paciente.nombre || 'Sin asignar' }} {{ t.paciente.apellido || '' }}</h4>
+                  </div>
+                  <p class="text-sm md:text-xl font-black text-slate-400">{{ t.nombre_servicio || '' }} / {{ t.numero || '' }}</p>
+                  <div class="flex flex-col items-center gap-0">
+                    <span class="text-[8px] md:text-[10px] font-bold text-white uppercase tracking-wider">ESTADO</span>
+                    <span class="text-[10px] md:text-xs font-black uppercase tracking-widest"
+                      [class.text-blue-400]="t.id_estado_actual === 1"
+                      [class.text-amber-400]="t.id_estado_actual === 2"
+                      [class.text-teal-400]="t.id_estado_actual === 3"
+                      [class.text-[#8d6e63]]="t.id_estado_actual === 4"
+                      [class.text-sky-400]="t.id_estado_actual === 5"
+                      [class.text-purple-400]="t.id_estado_actual === 6"
+                      [class.text-rose-400]="t.id_estado_actual === 7"
+                      [class.text-orange-400]="t.id_estado_actual === 8"
+                    >{{ t.estado || '' }}</span>
+                  </div>
+                </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+      <ng-container *ngIf="sala === 'consulta'">
+        <div *ngFor="let seccion of consultaSections; let i = index" class="w-[90%] flex flex-col bg-slate-800/20 rounded-[24px] md:rounded-[40px] border border-slate-700/30 p-4 md:p-6 overflow-hidden">
+          <h3 class="text-slate-400 font-black text-xs md:text-sm uppercase tracking-widest mb-7 shrink-0 text-center">{{ seccion.titulo }}</h3>
+          <div *ngIf="consultaLoading[i]" class="flex-1 flex items-center justify-center">
+            <div class="w-8 h-8 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
+          </div>
+          <div *ngIf="!consultaLoading[i] && (!consultaData[i] || consultaData[i].length === 0)" class="flex-1 flex items-center justify-center">
+            <p class="text-slate-600 text-sm md:text-base font-bold uppercase tracking-widest">Sin pacientes</p>
+          </div>
+          <div *ngIf="!consultaLoading[i] && consultaData[i] && consultaData[i].length > 0" class="overflow-hidden relative"
+               [style.height.px]="viewportH"
+               [style.display]="consultaData[i].length <= 4 ? 'flex' : 'block'"
+               [style.flex-direction]="consultaData[i].length <= 4 ? 'column' : null"
+               [class.justify-center]="consultaData[i].length <= 4">
+            <div class="space-y-2 md:space-y-3"
+                 [apsScroll]="consultaData[i].length"
+                 [apsScrollViewportH]="viewportH">
+               <div *ngFor="let t of consultaData[i]; trackBy: trackById"
+                  class="bg-slate-800/40 border border-slate-700/50 p-2 md:p-3 rounded-[16px] md:rounded-[24px] flex flex-wrap items-center md:justify-between gap-x-4 gap-y-1"
+                >
+                  <div class="flex items-center gap-2 md:gap-4">
+                    <div class="w-10 h-10 md:w-14 md:h-14 rounded-full bg-blue-600/30 border-2 border-blue-500/50 flex items-center justify-center shrink-0">
+                      <span class="text-base md:text-xl font-black text-blue-400">{{ (t.paciente.nombre || '?').charAt(0).toUpperCase() }}</span>
+                    </div>
+                    <h4 class="text-sm md:text-xl font-black text-white uppercase">{{ t.paciente.nombre || 'Sin asignar' }} {{ t.paciente.apellido || '' }}</h4>
+                  </div>
+                  <div class="flex flex-col items-center gap-0">
+                    <span class="text-[8px] md:text-[10px] font-bold text-white uppercase tracking-wider">ESPECIALIDAD</span>
+                    <p class="text-[10px] md:text-sm font-black text-sky-400 uppercase">{{ t.especialidad_nombre || '' }}</p>
+                  </div>
+                  <p class="text-[10px] md:text-base font-black text-slate-400">{{ t.nombre_servicio || '' }} / {{ t.numero || '' }}</p>
+                  <div class="flex flex-col items-center gap-0">
+                    <span class="text-[8px] md:text-[10px] font-bold text-white uppercase tracking-wider">ESTADO</span>
+                    <span class="text-[10px] md:text-xs font-black uppercase tracking-widest"
+                      [class.text-blue-400]="t.id_estado_actual === 1"
+                      [class.text-amber-400]="t.id_estado_actual === 2"
+                      [class.text-teal-400]="t.id_estado_actual === 3"
+                      [class.text-[#8d6e63]]="t.id_estado_actual === 4"
+                      [class.text-sky-400]="t.id_estado_actual === 5"
+                      [class.text-purple-400]="t.id_estado_actual === 6"
+                      [class.text-rose-400]="t.id_estado_actual === 7"
+                      [class.text-orange-400]="t.id_estado_actual === 8"
+                    >{{ t.estado || '' }}</span>
+                  </div>
+                  <div *ngIf="t.id_estado_actual === 4" class="flex flex-col items-center gap-0 me-2 md:me-4">
+                    <span class="text-[8px] md:text-[10px] font-bold text-white uppercase tracking-wider">CONSULTORIO</span>
+                    <span class="text-sm md:text-xl font-black text-white uppercase tracking-widest">{{ t.consultorio_nombre || '' }}</span>
+                  </div>
+                </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
     </div>
 
     <!-- LAYOUT: LISTA (recién llegados / sala de espera) -->
@@ -256,22 +393,30 @@
 
       <div *ngIf="turnos.length > 0" class="h-full overflow-y-auto grid gap-4 md:gap-6 content-start">
         <div *ngFor="let t of turnos; trackBy: trackById"
-          class="bg-slate-800/40 border border-slate-700/50 p-5 md:p-8 rounded-[24px] md:rounded-[40px] flex items-center justify-between animate-in slide-in-from-bottom-5 duration-500"
+          class="bg-slate-800/40 border border-slate-700/50 p-3 md:p-5 rounded-[24px] md:rounded-[40px] flex flex-col md:flex-row items-center md:justify-between gap-3 md:gap-6 animate-in slide-in-from-bottom-5 duration-500"
         >
-          <div class="flex items-center gap-4 md:gap-8 min-w-0">
+          <div class="flex items-center gap-3 md:gap-6">
             <div class="w-14 h-14 md:w-20 md:h-20 rounded-full bg-blue-600/30 border-2 border-blue-500/50 flex items-center justify-center shrink-0">
               <span class="text-xl md:text-3xl font-black text-blue-400">{{ (t.paciente.nombre || '?').charAt(0).toUpperCase() }}</span>
             </div>
-            <div class="min-w-0">
-              <h3 class="text-lg md:text-3xl font-black text-white uppercase truncate">{{ t.paciente.nombre || 'Sin asignar' }} {{ t.paciente.apellido || '' }}</h3>
-              <p class="text-slate-400 font-bold text-xs md:text-base uppercase tracking-wider">{{ t.numero || '' }}</p>
-            </div>
+            <h3 class="text-lg md:text-3xl font-black text-white uppercase">{{ t.paciente.nombre || 'Sin asignar' }} {{ t.paciente.apellido || '' }}</h3>
           </div>
-          <div class="text-right shrink-0 ml-4">
-            <p class="text-slate-500 font-black text-[8px] md:text-[10px] uppercase tracking-widest leading-tight">Servicio</p>
-            <p class="text-sm md:text-2xl font-black text-teal-400 uppercase truncate">{{ t.nombre_servicio || 'Sin asignar' }}</p>
+          <p class="text-sm md:text-xl font-black text-slate-400">{{ t.nombre_servicio || '' }} / {{ t.numero || '' }}</p>
+          <div class="flex flex-col items-center gap-0">
+            <span class="text-[8px] md:text-[10px] font-bold text-white uppercase tracking-wider">ESTADO</span>
+            <span class="text-[10px] md:text-xs font-black uppercase tracking-widest"
+              [class.text-blue-400]="t.id_estado_actual === 1"
+              [class.text-amber-400]="t.id_estado_actual === 2"
+              [class.text-teal-400]="t.id_estado_actual === 3"
+              [class.text-[#8d6e63]]="t.id_estado_actual === 4"
+              [class.text-sky-400]="t.id_estado_actual === 5"
+              [class.text-purple-400]="t.id_estado_actual === 6"
+              [class.text-rose-400]="t.id_estado_actual === 7"
+              [class.text-orange-400]="t.id_estado_actual === 8"
+            >{{ t.estado || '' }}</span>
           </div>
-        </div>
+                  <span *ngIf="t.id_estado_actual === 4" class="text-sm md:text-xl font-black text-white uppercase tracking-widest me-2 md:me-4">{{ t.consultorio_nombre || 'Consultorio' }}</span>
+                </div>
       </div>
     </div>
 
