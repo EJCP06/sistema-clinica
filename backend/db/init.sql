@@ -198,8 +198,8 @@ INSERT INTO "Responsable_Pago" ("id_responsable", "nombre") VALUES
 -- ESTADOS
 INSERT INTO "Estado" ("id_estado", "nombre_estado") VALUES
   (1, 'Registrado'),
-  (2, 'En caja'),
-  (3, 'Sala de espera'),
+  (2, 'En Caja'),
+  (3, 'Sala de Espera'),
   (4, 'Llamado'),
   (5, 'En Atencion'),
   (6, 'Atendido'),

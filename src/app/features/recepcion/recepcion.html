@@ -671,6 +671,7 @@
                         <td class="px-3 md:px-6 py-3 md:py-4 text-center">
                           <div class="flex items-center justify-center gap-2">
                             <button
+                              *ngIf="a.id_estado_actual === 1 || a.id_estado_actual === 2 || a.id_estado_actual === 3 || a.id_estado_actual === 8"
                               (click)="editarFila(a)"
                               class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all"
                             >

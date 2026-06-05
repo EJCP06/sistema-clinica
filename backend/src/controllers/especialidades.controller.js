@@ -1,29 +1,20 @@
 const db = require('../config/db');
+const espRepo = require('../repositories/especialidad.repository');
 
 const getEspecialidades = async (req, res) => {
   try {
-    const result = await db.query(`
-      SELECT e.*, e.id_especialidad as id,
-             s.nombre_servicio
-      FROM "Especialidades" e
-      JOIN "Servicio" s ON e.id_servicio = s.id_servicio
-      ORDER BY e.nombre ASC
-    `);
-
-    // Para cada especialidad, obtener sus consultorios desde la junction table
-    const espConIds = await db.query(`
-      SELECT id_especialidad, id_consultorio FROM "Especialidad_Consultorio"
-    `);
+    const especialidades = await espRepo.getAll();
+    const relaciones = await espRepo.getConsultoriosByEspecialidad();
 
     const consultoriosPorEsp = {};
-    for (const row of espConIds.rows) {
+    for (const row of relaciones) {
       if (!consultoriosPorEsp[row.id_especialidad]) {
         consultoriosPorEsp[row.id_especialidad] = [];
       }
       consultoriosPorEsp[row.id_especialidad].push(row.id_consultorio);
     }
 
-    const rows = result.rows.map((e) => ({
+    const rows = especialidades.map((e) => ({
       ...e,
       consultorios_ids: consultoriosPorEsp[e.id_especialidad] || [],
     }));
@@ -40,24 +31,17 @@ const createEspecialidad = async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    const result = await client.query(
-      `INSERT INTO "Especialidades" (nombre, prefijo, id_servicio, id_sede, piso, activo)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [nombre, prefijo, id_servicio, id_sede, piso, activo !== false],
-    );
-    const espId = result.rows[0].id_especialidad;
+    const esp = await espRepo.create(client, { nombre, prefijo, id_servicio, id_sede, piso, activo });
+    const espId = esp.id_especialidad;
 
     if (consultorios_ids && consultorios_ids.length > 0) {
       for (const conId of consultorios_ids) {
-        await client.query(
-          `INSERT INTO "Especialidad_Consultorio" (id_especialidad, id_consultorio) VALUES ($1, $2)`,
-          [espId, conId],
-        );
+        await espRepo.insertConsultorioRelation(client, espId, conId);
       }
     }
 
     await client.query('COMMIT');
-    res.status(201).json({ ...result.rows[0], consultorios_ids: consultorios_ids || [] });
+    res.status(201).json({ ...esp, consultorios_ids: consultorios_ids || [] });
   } catch (err) {
     await client.query('ROLLBACK');
     res.status(500).json({ mensaje: 'Error interno del servidor' });
@@ -85,32 +69,23 @@ const updateEspecialidad = async (req, res) => {
     if (activo !== undefined) { sets.push(`activo = $${idx++}`); values.push(activo); }
 
     if (sets.length > 0) {
-      values.push(id);
-      await client.query(
-        `UPDATE "Especialidades" SET ${sets.join(', ')} WHERE id_especialidad = $${idx} RETURNING *`,
-        values,
-      );
+      await espRepo.update(client, id, sets, values, idx);
     }
 
     if (consultorios_ids !== undefined) {
-      await client.query(`DELETE FROM "Especialidad_Consultorio" WHERE id_especialidad = $1`, [id]);
+      await espRepo.deleteConsultorioRelations(client, id);
       for (const conId of consultorios_ids) {
-        await client.query(
-          `INSERT INTO "Especialidad_Consultorio" (id_especialidad, id_consultorio) VALUES ($1, $2)`,
-          [id, conId],
-        );
+        await espRepo.insertConsultorioRelation(client, id, conId);
       }
     }
 
     await client.query('COMMIT');
 
-    const result = await db.query(`SELECT * FROM "Especialidades" WHERE id_especialidad = $1`, [id]);
-    const consultorios = await db.query(
-      `SELECT id_consultorio FROM "Especialidad_Consultorio" WHERE id_especialidad = $1`, [id],
-    );
+    const result = await espRepo.getById(id);
+    const consultoriosIds = await espRepo.getConsultorioIdsByEspecialidad(id);
     res.json({
-      ...result.rows[0],
-      consultorios_ids: consultorios.rows.map((r) => r.id_consultorio),
+      ...result,
+      consultorios_ids: consultoriosIds,
     });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -123,8 +98,7 @@ const updateEspecialidad = async (req, res) => {
 const deleteEspecialidad = async (req, res) => {
   const { id } = req.params;
   try {
-    await db.query('DELETE FROM "Especialidad_Consultorio" WHERE id_especialidad = $1', [id]);
-    await db.query('DELETE FROM "Especialidades" WHERE id_especialidad = $1', [id]);
+    await espRepo.remove(id);
     res.json({ mensaje: 'Especialidad eliminada' });
   } catch (err) {
     res.status(500).json({ mensaje: 'Error interno del servidor' });
