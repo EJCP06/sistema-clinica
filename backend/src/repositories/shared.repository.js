@@ -34,6 +34,31 @@ const eliminarAseguradora = async (id, sede) => {
   return result.rowCount > 0;
 };
 
+const importarAseguradoras = async (nombres, sede) => {
+  const existentes = await pool.query(
+    `SELECT nombre FROM "cliente" WHERE id_tipo_cliente = 2 AND id_sede = $1 AND nombre = ANY($2)`,
+    [sede, nombres],
+  );
+  const nombresExistentes = new Set(existentes.rows.map((r) => r.nombre));
+
+  let importados = 0;
+  let omitidos = 0;
+
+  for (const nombre of nombres) {
+    if (nombresExistentes.has(nombre)) {
+      omitidos++;
+      continue;
+    }
+    await pool.query(
+      `INSERT INTO "cliente" (id_tipo_cliente, nombre, id_sede) VALUES (2, $1, $2)`,
+      [nombre, sede],
+    );
+    importados++;
+  }
+
+  return { importados, omitidos };
+};
+
 const getSedes = async () => {
   const result = await pool.query(`SELECT id_sede, nombre FROM "Sedes" ORDER BY id_sede`);
   return result.rows;
@@ -44,5 +69,6 @@ module.exports = {
   getAseguradoras,
   crearAseguradora,
   eliminarAseguradora,
+  importarAseguradoras,
   getSedes,
 };

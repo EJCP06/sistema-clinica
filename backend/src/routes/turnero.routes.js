@@ -48,6 +48,7 @@ router.get('/sala-espera', async (req, res) => {
       nombre_servicio: r.nombre_servicio,
       id_servicio: r.id_servicio,
       consultorio_nombre: r.consultorio_nombre,
+      especialidad_nombre: r.nombre_especialidad,
       paciente: {
         nombre: r.nombre,
         apellido: r.apellido,

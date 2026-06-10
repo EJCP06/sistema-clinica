@@ -327,6 +327,25 @@ export interface ErrorResponse {
   error?: string;
 }
 
+// ==========================================
+// ROLES DTOs
+// ==========================================
+export interface RolDTO {
+  id: number;
+  nombre: string;
+  key: string;
+  id_sede: number | null;
+  activo: boolean;
+  sede_nombre?: string;
+}
+
+export interface CrearRolRequest {
+  nombre: string;
+  key?: string;
+  id_sede?: number | null;
+  activo?: boolean;
+}
+
 export interface HealthResponse {
   status: string;
   message: string;

@@ -32,7 +32,7 @@
   <!-- Navigation -->
   <nav class="flex-1 overflow-y-auto p-4 custom-scrollbar touch-scroll">
     <!-- PANEL CONTROL (Solo Admin) -->
-    <div *ngIf="rol === 'admin'" class="mb-4">
+    <div *ngIf="rol === 'administrador'" class="mb-4">
       <button 
         (click)="toggleSection('panel')"
         class="w-full flex items-center justify-between gap-3 mb-1 px-5 py-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all duration-200 group text-left"
@@ -62,7 +62,7 @@
     </div>
 
     <!-- OPERACIONES -->
-    <div *ngIf="['admin', 'recepcionista', 'medico', 'aps', 'laboratorio', 'imagenes'].includes(rol)" class="mb-4">
+    <div *ngIf="['administrador', 'recepcionista', 'medico', 'coordinador', 'analista', 'laboratorio', 'imagenes'].includes(rol)" class="mb-4">
       <button 
         (click)="toggleSection('operaciones')"
         class="w-full flex items-center justify-between gap-3 mb-1 px-5 py-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all duration-200 group text-left"
@@ -82,7 +82,7 @@
       
       <div class="space-y-1 overflow-hidden transition-all duration-300 px-2" [ngClass]="expandedOperaciones ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'">
         <button 
-          *ngIf="['admin', 'recepcionista'].includes(rol)"
+          *ngIf="['administrador', 'recepcionista'].includes(rol)"
           (click)="navigate('recepcion')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
@@ -91,7 +91,7 @@
         </button>
 
         <button 
-          *ngIf="['admin', 'aps'].includes(rol)"
+          *ngIf="['administrador', 'coordinador', 'analista'].includes(rol)"
           (click)="navigate('aps')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
@@ -100,7 +100,7 @@
         </button>
 
         <button 
-          *ngIf="['admin', 'laboratorio'].includes(rol)"
+          *ngIf="['administrador', 'laboratorio'].includes(rol)"
           (click)="navigate('atencion-laboratorio')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
@@ -118,7 +118,7 @@
         </button>
 
         <button 
-          *ngIf="['admin', 'imagenes'].includes(rol)"
+          *ngIf="['administrador', 'imagenes'].includes(rol)"
           (click)="navigate('atencion-imagenes')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
@@ -136,7 +136,7 @@
         </button>
 
         <button 
-          *ngIf="['aps', 'admin'].includes(rol)"
+          *ngIf="['coordinador', 'analista', 'administrador'].includes(rol)"
           (click)="navigate('aseguradoras')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
@@ -153,19 +153,28 @@
           <span class="font-bold text-[13px] uppercase tracking-wider">Atención Médica</span>
         </button>
 
+        <button 
+          *ngIf="rol === 'administrador'"
+          (click)="navigate('admin', 'especialidades')"
+          class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
+        >
+          <lucide-icon [name]="LayoutGrid" class="w-5 h-5 text-slate-400 dark:text-slate-400"></lucide-icon>
+          <span class="font-bold text-[13px] uppercase tracking-wider">Especialidades</span>
+        </button>
+
       </div>
     </div>
 
     <!-- ADMINISTRACIÓN -->
-    <div *ngIf="rol === 'admin'" class="mb-4">
+    <div *ngIf="rol === 'administrador'" class="mb-4">
       <button 
         (click)="toggleSection('admin')"
         class="w-full flex items-center justify-between gap-3 mb-1 px-5 py-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all duration-200 group text-left"
       >
         <div class="flex items-center gap-4">
-          <lucide-icon [name]="ShieldCheck" class="w-5 h-5 text-slate-600 dark:text-slate-400"></lucide-icon>
+          <lucide-icon [name]="User" class="w-5 h-5 text-slate-600 dark:text-slate-400"></lucide-icon>
           <p class="font-bold text-[13px] uppercase tracking-wider m-0 text-slate-500 dark:text-slate-400">
-            Roles
+            Usuarios
           </p>
         </div>
         <lucide-icon 
@@ -176,60 +185,20 @@
       </button>
       
       <div class="space-y-1 overflow-hidden transition-all duration-300 px-2" [ngClass]="expandedAdmin ? 'max-h-[500px] opacity-100 mt-1' : 'max-h-0 opacity-0'">
-        <button 
-          (click)="navigate('admin', 'medicos')"
-          class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
-        >
-          <lucide-icon [name]="UserCog" class="w-5 h-5 text-slate-400 dark:text-slate-400"></lucide-icon>
-          <span class="font-bold text-[13px] uppercase tracking-wider">Médicos</span>
-        </button>
-
-        <button 
-          (click)="navigate('admin', 'recepcionistas')"
+        <button
+          (click)="navigate('admin', 'personal')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
           <lucide-icon [name]="Users" class="w-5 h-5 text-slate-400 dark:text-slate-400"></lucide-icon>
-          <span class="font-bold text-[13px] uppercase tracking-wider">Recepcionistas</span>
+          <span class="font-bold text-[13px] uppercase tracking-wider">Personal</span>
         </button>
 
-        <button 
-          (click)="navigate('admin', 'administradores')"
+        <button
+          (click)="navigate('admin', 'roles')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
           <lucide-icon [name]="ShieldCheck" class="w-5 h-5 text-slate-400 dark:text-slate-400"></lucide-icon>
-          <span class="font-bold text-[13px] uppercase tracking-wider">Administradores</span>
-        </button>
-
-        <button 
-          (click)="navigate('admin', 'especialidades')"
-          class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
-        >
-          <lucide-icon [name]="LayoutGrid" class="w-5 h-5 text-slate-400 dark:text-slate-400"></lucide-icon>
-          <span class="font-bold text-[13px] uppercase tracking-wider">Especialidades</span>
-        </button>
-
-        <button 
-          (click)="navigate('admin', 'aps')"
-          class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
-        >
-          <lucide-icon [name]="ClipboardList" class="w-5 h-5 text-slate-400 dark:text-slate-400"></lucide-icon>
-          <span class="font-bold text-[13px] uppercase tracking-wider">APS</span>
-        </button>
-
-        <button 
-          (click)="navigate('admin', 'laboratorio')"
-          class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
-        >
-          <lucide-icon [name]="FlaskConical" class="w-5 h-5 text-slate-400 dark:text-slate-400"></lucide-icon>
-          <span class="font-bold text-[13px] uppercase tracking-wider">Laboratorio</span>
-        </button>
-
-        <button 
-          (click)="navigate('admin', 'imagenes')"
-          class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
-        >
-          <lucide-icon [name]="Image" class="w-5 h-5 text-slate-400 dark:text-slate-400"></lucide-icon>
-          <span class="font-bold text-[13px] uppercase tracking-wider">Imágenes</span>
+          <span class="font-bold text-[13px] uppercase tracking-wider">Roles</span>
         </button>
 
       </div>
@@ -253,7 +222,7 @@
           </div>
         </div>
         <div class="w-10 h-10 rounded-xl bg-blue-600/10 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 flex items-center justify-center shrink-0">
-          <lucide-icon [name]="rol === 'admin' ? Users : (rol === 'recepcionista' ? Ticket : (rol === 'aps' ? ClipboardList : (rol === 'laboratorio' ? FlaskConical : (rol === 'imagenes' ? Image : Activity))))" class="w-5 h-5 text-blue-600 dark:text-blue-400"></lucide-icon>
+          <lucide-icon [name]="rol === 'administrador' ? Users : (rol === 'recepcionista' ? Ticket : (rol === 'coordinador' || rol === 'analista' ? ClipboardList : (rol === 'laboratorio' ? FlaskConical : (rol === 'imagenes' ? Image : Activity))))" class="w-5 h-5 text-blue-600 dark:text-blue-400"></lucide-icon>
         </div>
       </div>
 

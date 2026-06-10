@@ -1,11 +1,18 @@
 const pool = require('../config/db');
 
-const getAll = async () => {
-  const result = await pool.query(
-    `SELECT id_servicio as id, nombre_servicio as nombre, prefijo, status as activo
-     FROM "Servicio"
-     ORDER BY id_servicio`,
-  );
+const getAll = async (sede) => {
+  let query = `SELECT id_servicio as id, nombre_servicio as nombre, prefijo, status as activo
+     FROM "Servicio"`;
+  const params = [];
+  
+  if (sede) {
+    query += ` WHERE id_sede = $1`;
+    params.push(Number(sede));
+  }
+  
+  query += ` ORDER BY id_servicio`;
+  
+  const result = await pool.query(query, params);
   return result.rows;
 };
 

@@ -1,10 +1,10 @@
-import { Component, inject, Input, OnInit, OnChanges, SimpleChanges, HostListener, DestroyRef } from '@angular/core';
+import { Component, inject, OnInit, HostListener, DestroyRef, ElementRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '@core/services/api.service';
 import { SwalService } from '../../core/services/swal.service';
-import { ServicioDTO, EspecialidadDTO, ConsultorioDTO, PersonalDTO, SedeDTO } from '@core/models/dto.models';
+import { ServicioDTO, EspecialidadDTO, ConsultorioDTO, PersonalDTO, SedeDTO, RolDTO } from '@core/models/dto.models';
 import {
   LucideAngularModule,
   LayoutDashboard,
@@ -37,6 +37,7 @@ import {
   Calendar,
   Sun,
   Moon,
+  Upload,
 } from 'lucide-angular';
 import { PaginationComponent } from '../../shared/components/pagination/pagination';
 import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
@@ -50,7 +51,7 @@ import { FillersPipe } from '../../shared/pipes/fillers.pipe';
   templateUrl: './admin-personal.html',
   styles: [],
 })
-export class AdminPersonal implements OnInit, OnChanges {
+export class AdminPersonal implements OnInit {
   readonly Plus = Plus;
   readonly Trash2 = Trash2;
   readonly ChevronDown = ChevronDown;
@@ -81,31 +82,22 @@ export class AdminPersonal implements OnInit, OnChanges {
   readonly LogOut = LogOut;
   readonly Sun = Sun;
   readonly Moon = Moon;
+  readonly Upload = Upload;
 
   private apiService = inject(ApiService);
+  private el = inject(ElementRef);
   private destroyRef = inject(DestroyRef);
   private swal = inject(SwalService);
 
   pageSize = 6;
-  currentPageMedicos = 1;
-  currentPageRecepcionistas = 1;
-  currentPageAdmin = 1;
-  currentPageLaboratorio = 1;
-  currentPageImagenes = 1;
-  currentPageAps = 1;
-
-  @Input() activeTab: string = 'medicos';
+  currentPage = 1;
 
   servicios: ServicioDTO[] = [];
   especialidades: EspecialidadDTO[] = [];
   consultorios: ConsultorioDTO[] = [];
   sedes: SedeDTO[] = [];
-  medicos: PersonalDTO[] = [];
-  recepcionistas: PersonalDTO[] = [];
-  administradores: PersonalDTO[] = [];
-  laboratorio: PersonalDTO[] = [];
-  imagenes: PersonalDTO[] = [];
-  aps: PersonalDTO[] = [];
+  rolesLista: RolDTO[] = [];
+  todoPersonal: PersonalDTO[] = [];
 
   searchQuery = '';
   searchFilter = 'todo';
@@ -118,9 +110,13 @@ export class AdminPersonal implements OnInit, OnChanges {
   showSearchFilterDropdown = false;
 
   showModalPersonal = false;
+  private modalTrigger: HTMLElement | null = null;
+
   isEditing = false;
   editingId: number | null = null;
   isSaving = false;
+  private inicioGuardado: number = 0;
+  private readonly MIN_GUARDADO = 800;
   showPassword = false;
 
   formPersonal: {
@@ -139,7 +135,7 @@ export class AdminPersonal implements OnInit, OnChanges {
     piso: string;
     id_sede: string | number;
   } = {
-    rol: 'medico',
+    rol: '',
     username: '',
     password: '',
     nombre: '',
@@ -161,13 +157,6 @@ export class AdminPersonal implements OnInit, OnChanges {
     this.cargarEspecialidades();
     this.cargarConsultorios();
     this.cargarPersonal();
-  }
-
-  ngOnChanges(changes: SimpleChanges) {
-    if (changes['activeTab'] && !changes['activeTab'].firstChange) {
-      this.cargarEspecialidades();
-      this.cargarConsultorios();
-    }
   }
 
   cargarSedes() {
@@ -192,23 +181,20 @@ export class AdminPersonal implements OnInit, OnChanges {
   }
 
   cargarPersonal() {
+    this.apiService.getRoles().subscribe((roles) => {
+      this.rolesLista = roles.filter(r => r.activo);
+    });
     this.apiService.getPersonal().subscribe((pers) => {
-      const personalMapeado = pers.map((p) => ({
+      this.todoPersonal = pers.map((p) => ({
         ...p,
         id: p.id || p.id_usuario,
         activo: p.activo !== undefined ? p.activo : p.status,
       }));
-      this.medicos = personalMapeado.filter((p) => p.rol === 'medico');
-      this.recepcionistas = personalMapeado.filter((p) => p.rol === 'recepcionista');
-      this.administradores = personalMapeado.filter((p) => p.rol === 'admin');
-      this.laboratorio = personalMapeado.filter((p) => p.rol === 'laboratorio');
-      this.imagenes = personalMapeado.filter((p) => p.rol === 'imagenes');
-      this.aps = personalMapeado.filter((p) => p.rol === 'aps');
     });
   }
 
   // --- Modal Logic ---
-  openModalPersonal(user?: PersonalDTO | null, rol?: string) {
+  openModalPersonal(user?: PersonalDTO | null, trigger?: EventTarget | null) {
     this.showPassword = false;
     this.isEditing = !!user;
     this.editingId = user?.id || user?.id_usuario || null;
@@ -236,7 +222,7 @@ export class AdminPersonal implements OnInit, OnChanges {
       }
     } else {
       this.formPersonal = {
-        rol: rol || 'medico',
+        rol: '',
         username: '',
         password: '',
         nombre: '',
@@ -252,13 +238,52 @@ export class AdminPersonal implements OnInit, OnChanges {
         id_sede: '',
       };
     }
+    this.abrirModalPersonal(trigger);
+  }
+
+  abrirModalPersonal(trigger?: EventTarget | null) {
+    this.modalTrigger = trigger instanceof HTMLElement ? trigger : null;
     this.showModalPersonal = true;
+    setTimeout(() => this.focusFirstInput(), 50);
+  }
+
+  cerrarModalPersonal() {
+    this.showModalPersonal = false;
+    this.returnFocusToTrigger();
+  }
+
+  private focusFirstInput() {
+    const modal = this.el.nativeElement.querySelector('[role="dialog"]');
+    if (!modal) return;
+    const firstInput = modal.querySelector(
+      'input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])'
+    ) as HTMLElement | null;
+    if (firstInput) {
+      firstInput.focus();
+    }
+  }
+
+  private returnFocusToTrigger() {
+    if (this.modalTrigger instanceof HTMLElement) {
+      this.modalTrigger.focus();
+      this.modalTrigger = null;
+    }
+  }
+
+  private finalizarGuardado(accion?: () => void) {
+    const transcurrido = Date.now() - this.inicioGuardado;
+    const restante = Math.max(0, this.MIN_GUARDADO - transcurrido);
+    setTimeout(() => {
+      if (accion) accion();
+      this.isSaving = false;
+    }, restante);
   }
 
   // --- CRUD PERSONAL ---
   guardarPersonal() {
     if (this.isSaving) return;
     this.isSaving = true;
+    this.inicioGuardado = Date.now();
     const rol = this.formPersonal.rol;
     const cedulaFinal = (this.formPersonal.cedula || this.formPersonal.username || '')
       .toString().replace(/\D/g, '');
@@ -271,7 +296,7 @@ export class AdminPersonal implements OnInit, OnChanges {
       telefono: (this.formPersonal.telefono || '').toString().replace(/\D/g, ''),
       email: this.formPersonal.email ? this.formPersonal.email.toLowerCase().trim() : null,
       password: this.formPersonal.password ? this.formPersonal.password.replace(/\s/g, '') : null,
-      piso: (rol === 'medico' || rol === 'recepcionista' || rol === 'aps' || rol === 'laboratorio' || rol === 'imagenes') && this.formPersonal.piso
+      piso: (rol === 'medico' || rol === 'recepcionista' || rol === 'coordinador' || rol === 'analista' || rol === 'laboratorio' || rol === 'imagenes') && this.formPersonal.piso
         ? this.formPersonal.piso.toString().trim() : null,
       id_sede: this.formPersonal.id_sede ? Number(this.formPersonal.id_sede) : 1,
       id_consultorio: rol === 'medico'
@@ -287,117 +312,53 @@ export class AdminPersonal implements OnInit, OnChanges {
       : this.apiService.crearPersonal(body as Partial<PersonalDTO>);
     call.subscribe({
       next: () => {
-        this.showModalPersonal = false;
-        this.isSaving = false;
-        this.cargarPersonal();
-        this.swal.success('Personal guardado correctamente');
+        this.finalizarGuardado(() => {
+          this.showModalPersonal = false;
+          this.cargarPersonal();
+          this.swal.success('Personal guardado correctamente');
+        });
       },
       error: (err) => {
-        this.isSaving = false;
-        console.error('Error al guardar:', err);
-        this.swal.error(err.error?.mensaje || 'Error al guardar personal');
+        this.finalizarGuardado(() => {
+          console.error('Error al guardar:', err);
+          this.swal.error(err.error?.mensaje || 'Error al guardar personal');
+        });
       },
     });
   }
 
   async eliminarPersonal(id: number) {
-    const result = await this.swal.confirmDelete('¿Eliminar este usuario del personal?');
+    const result = await this.swal.confirmDelete('¿Desactivar este usuario?');
     if (!result.isConfirmed) return;
     this.apiService.eliminarPersonal(id).subscribe({
       next: () => {
         this.cargarPersonal();
-        this.swal.success('Personal eliminado correctamente');
+        this.swal.success('Personal desactivado correctamente');
       },
       error: () => {
-        this.swal.error('Error al eliminar personal');
+        this.swal.error('Error al desactivar personal');
       },
     });
   }
 
   // --- Filtered Getters ---
-  get medicosFiltrados() {
-    return this.medicos.filter((m) => {
-      const query = this.searchQuery.toLowerCase();
-      if (!query) return true;
-      const matchNombre = (m.nombre || '').toLowerCase().includes(query);
-      const matchApellido = (m.apellido || '').toLowerCase().includes(query);
-      const matchCedula = (m.cedula || '').toLowerCase().includes(query);
-      const matchEsp = this.getNombreEsp(m.servicio_id).toLowerCase().includes(query);
-      if (this.searchFilter === 'nombre') return matchNombre;
-      if (this.searchFilter === 'apellido') return matchApellido;
-      if (this.searchFilter === 'cedula') return matchCedula;
-      if (this.searchFilter === 'especialidad') return matchEsp;
-      return matchNombre || matchApellido || matchCedula || matchEsp;
-    });
+  private normalize(str: string): string {
+    return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   }
 
-  get recepcionistasFiltradas() {
-    return this.recepcionistas.filter((r) => {
-      const query = this.searchQuery.toLowerCase();
+  get personalFiltrados() {
+    return this.todoPersonal.filter((p) => {
+      const query = this.normalize(this.searchQuery || '');
       if (!query) return true;
-      const matchNombre = (r.nombre || '').toLowerCase().includes(query);
-      const matchApellido = (r.apellido || '').toLowerCase().includes(query);
-      const matchCedula = (r.cedula || '').toLowerCase().includes(query);
+      const matchNombre = this.normalize(p.nombre || '').includes(query);
+      const matchApellido = this.normalize(p.apellido || '').includes(query);
+      const matchCedula = (p.cedula || '').toLowerCase().includes(this.searchQuery.toLowerCase());
+      const matchRol = this.normalize(this.getRolLabel(p.rol)).includes(query);
       if (this.searchFilter === 'nombre') return matchNombre;
       if (this.searchFilter === 'apellido') return matchApellido;
       if (this.searchFilter === 'cedula') return matchCedula;
-      return matchNombre || matchApellido || matchCedula;
-    });
-  }
-
-  get laboratorioFiltrados() {
-    return this.laboratorio.filter((a) => {
-      const query = this.searchQuery.toLowerCase();
-      if (!query) return true;
-      const matchNombre = (a.nombre || '').toLowerCase().includes(query);
-      const matchApellido = (a.apellido || '').toLowerCase().includes(query);
-      const matchCedula = (a.cedula || '').toLowerCase().includes(query);
-      if (this.searchFilter === 'nombre') return matchNombre;
-      if (this.searchFilter === 'apellido') return matchApellido;
-      if (this.searchFilter === 'cedula') return matchCedula;
-      return matchNombre || matchApellido || matchCedula;
-    });
-  }
-
-  get apsFiltrados() {
-    return this.aps.filter((a) => {
-      const query = this.searchQuery.toLowerCase();
-      if (!query) return true;
-      const matchNombre = (a.nombre || '').toLowerCase().includes(query);
-      const matchApellido = (a.apellido || '').toLowerCase().includes(query);
-      const matchCedula = (a.cedula || '').toLowerCase().includes(query);
-      if (this.searchFilter === 'nombre') return matchNombre;
-      if (this.searchFilter === 'apellido') return matchApellido;
-      if (this.searchFilter === 'cedula') return matchCedula;
-      return matchNombre || matchApellido || matchCedula;
-    });
-  }
-
-  get imagenesFiltrados() {
-    return this.imagenes.filter((a) => {
-      const query = this.searchQuery.toLowerCase();
-      if (!query) return true;
-      const matchNombre = (a.nombre || '').toLowerCase().includes(query);
-      const matchApellido = (a.apellido || '').toLowerCase().includes(query);
-      const matchCedula = (a.cedula || '').toLowerCase().includes(query);
-      if (this.searchFilter === 'nombre') return matchNombre;
-      if (this.searchFilter === 'apellido') return matchApellido;
-      if (this.searchFilter === 'cedula') return matchCedula;
-      return matchNombre || matchApellido || matchCedula;
-    });
-  }
-
-  get administradoresFiltrados() {
-    return this.administradores.filter((a) => {
-      const query = this.searchQuery.toLowerCase();
-      if (!query) return true;
-      const matchNombre = (a.nombre || '').toLowerCase().includes(query);
-      const matchApellido = (a.apellido || '').toLowerCase().includes(query);
-      const matchCedula = (a.cedula || '').toLowerCase().includes(query);
-      if (this.searchFilter === 'nombre') return matchNombre;
-      if (this.searchFilter === 'apellido') return matchApellido;
-      if (this.searchFilter === 'cedula') return matchCedula;
-      return matchNombre || matchApellido || matchCedula;
+      if (this.searchFilter === 'rol') return matchRol;
+      return matchNombre || matchApellido || matchCedula || matchRol;
     });
   }
 
@@ -480,7 +441,7 @@ export class AdminPersonal implements OnInit, OnChanges {
   }
 
   getSearchFilterLabel(val: string): string {
-    const map: Record<string, string> = { todo: 'Todo', nombre: 'Nombre', apellido: 'Apellido', cedula: 'Cédula', especialidad: 'Especialidad', prefijo: 'Prefijo', servicio: 'Servicio' };
+    const map: Record<string, string> = { todo: 'Todo', nombre: 'Nombre', apellido: 'Apellido', cedula: 'Cédula', rol: 'Rol' };
     return map[val] || 'Filtrar';
   }
 
@@ -518,6 +479,14 @@ export class AdminPersonal implements OnInit, OnChanges {
     return forDropdown ? this.toTitleCase(sede.nombre) : sede.nombre.toUpperCase();
   }
 
+  getSedeNombre(id: number | string | null | undefined): string {
+    if (id === undefined || id === null || id === '') return '';
+    const finalId = Number(id);
+    if (isNaN(finalId)) return '';
+    const sede = this.sedes.find((s) => Number(s.id_sede) === finalId || Number(s.id) === finalId);
+    return sede ? sede.nombre : '';
+  }
+
   formatPiso(piso?: string | null): string {
     const p = (piso || '').toString();
     const num = p.replace(/\D/g, '');
@@ -530,8 +499,22 @@ export class AdminPersonal implements OnInit, OnChanges {
   }
 
   getRolLabel(rol: string): string {
-    const labels: { [key: string]: string } = { admin: 'Administrador', medico: 'Médico', recepcionista: 'Recepcionista', laboratorio: 'Laboratorio', imagenes: 'Imágenes', aps: 'APS' };
+    const labels: { [key: string]: string } = { administrador: 'Administrador', medico: 'Medico', recepcionista: 'Recepcionista', laboratorio: 'Laboratorio', imagenes: 'Imagenes', coordinador: 'Coordinador', analista: 'Analista' };
     return labels[rol] || 'Seleccione...';
+  }
+
+  getRolBadgeClass(rol: string): string {
+    const classes: { [key: string]: string } = {
+      administrador: 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20',
+      medico: 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
+      recepcionista: 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
+      laboratorio: 'bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20',
+      imagenes: 'bg-cyan-50 text-cyan-600 border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-400 dark:border-cyan-500/20',
+      
+      coordinador: 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20',
+      analista: 'bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20',
+    };
+    return classes[rol] || 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20';
   }
 
   // --- Click Outside Handler ---
@@ -561,6 +544,51 @@ export class AdminPersonal implements OnInit, OnChanges {
 
   sinEspacios(event: KeyboardEvent) {
     if (event.charCode === 32) event.preventDefault();
+  }
+
+  // --- Excel Import ---
+  importExcel(fileInput: HTMLInputElement) {
+    const file = fileInput?.files?.[0];
+    if (!file) return;
+
+    import('xlsx').then(XLSX => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const rows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+          if (rows.length === 0) {
+            this.swal.error('El archivo Excel está vacío');
+            return;
+          }
+
+          const rol = this.formPersonal.rol || 'medico';
+
+          const body = { rows, rol };
+
+          this.apiService.importarPersonal(body).subscribe({
+            next: (res: any) => {
+              this.cargarPersonal();
+              this.swal.success(res.mensaje || `Importación exitosa: ${res.importados || rows.length} registros`);
+            },
+            error: (err) => {
+              this.swal.error(err.error?.mensaje || 'Error al importar datos');
+            },
+          });
+        } catch (err) {
+          this.swal.error('Error al leer el archivo Excel');
+          console.error(err);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }).catch(() => {
+      this.swal.error('Error al cargar el lector de Excel');
+    });
+
+    fileInput.value = '';
   }
 
   trackById = (index: number, item: PersonalDTO) => (item as any)?.id ?? (item as any)?.id_usuario ?? index;

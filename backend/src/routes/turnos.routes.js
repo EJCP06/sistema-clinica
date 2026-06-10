@@ -12,7 +12,7 @@ const validar = (req, res, next) => {
 };
 
 router.use(auth);
-router.use(role('medico', 'recepcionista', 'admin', 'laboratorio', 'imagenes', 'aps'));
+router.use(role('medico', 'recepcionista', 'administrador', 'laboratorio', 'imagenes', 'coordinador', 'analista'));
 
 router.get('/', turnosController.getTodosLosTurnos);
 router.get('/todos', turnosController.getTodosLosTurnos);

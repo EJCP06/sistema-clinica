@@ -1,9 +1,20 @@
 const db = require('../config/db');
+const logger = require('../config/logger');
 const espRepo = require('../repositories/especialidad.repository');
+
+const getSede = (req) => {
+  const sede = req.usuario?.id_sede;
+  console.log(`DEBUG: Especialidades - Usuario ${req.usuario?.cedula} accediendo a Sede: ${sede}`);
+  return sede !== undefined && sede !== null ? Number(sede) : null;
+};
 
 const getEspecialidades = async (req, res) => {
   try {
-    const especialidades = await espRepo.getAll();
+    const sede = getSede(req);
+    if (!sede) {
+      return res.status(401).json({ mensaje: 'Token inválido o sin sede' });
+    }
+    const especialidades = await espRepo.getAll(sede);
     const relaciones = await espRepo.getConsultoriosByEspecialidad();
 
     const consultoriosPorEsp = {};
@@ -101,8 +112,74 @@ const deleteEspecialidad = async (req, res) => {
     await espRepo.remove(id);
     res.json({ mensaje: 'Especialidad eliminada' });
   } catch (err) {
+    if (err.code === '23503') {
+      return res.status(409).json({ mensaje: 'No se puede eliminar: hay médicos o registros de atención asociados a esta especialidad.' });
+    }
+    logger.error(err);
     res.status(500).json({ mensaje: 'Error interno del servidor' });
   }
 };
 
-module.exports = { getEspecialidades, createEspecialidad, updateEspecialidad, deleteEspecialidad };
+const importarEspecialidades = async (req, res) => {
+  const { rows } = req.body;
+  if (!rows || !Array.isArray(rows) || rows.length === 0) {
+    return res.status(400).json({ mensaje: 'No hay datos para importar' });
+  }
+
+  let importados = 0;
+  let omitidos = 0;
+  let errores = 0;
+
+  // Obtener nombres existentes para evitar duplicados
+  const nombresExcel = rows.map(r =>
+    (r.nombre || r.Nombre || r.NOMBRE || '').toString().toUpperCase().trim()
+  ).filter(n => n);
+  const existentes = await db.query(
+    `SELECT nombre FROM "Especialidades" WHERE nombre = ANY($1)`,
+    [nombresExcel],
+  );
+  const nombresExistentes = new Set(existentes.rows.map((r) => r.nombre));
+
+  for (const row of rows) {
+    try {
+      const nombre = (row.nombre || row.Nombre || row.NOMBRE || '').toString().toUpperCase().trim();
+      const prefijo = (row.prefijo || row.Prefijo || row.PREFIJO || '').toString().toUpperCase().trim();
+      const piso = (row.piso || row.Piso || row.PISO || '').toString().replace(/\D/g, '');
+      const idSede = row.id_sede || row.sede || row.Sede || row.SEDE || 1;
+
+      if (!nombre) {
+        errores++;
+        continue;
+      }
+
+      if (nombresExistentes.has(nombre)) {
+        omitidos++;
+        continue;
+      }
+
+      const client = await db.connect();
+      try {
+        await client.query(
+          `INSERT INTO "Especialidades" (nombre, prefijo, id_servicio, id_sede, piso, activo)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [nombre, prefijo || null, 1, Number(idSede), piso || null, row.activo !== undefined ? !!row.activo : true],
+        );
+        importados++;
+      } finally {
+        client.release();
+      }
+    } catch (error) {
+      logger.error('Error al importar especialidad:', { error: error.message, row });
+      errores++;
+    }
+  }
+
+  res.json({
+    mensaje: `Importación completada: ${importados}, ${omitidos} ya existían, ${errores} errores`,
+    importados,
+    omitidos,
+    errores,
+  });
+};
+
+module.exports = { getEspecialidades, createEspecialidad, updateEspecialidad, deleteEspecialidad, importarEspecialidades };

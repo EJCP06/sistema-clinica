@@ -45,10 +45,10 @@
           <span class="text-sm font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tight">{{ usuario.nombre }}</span>
           <span 
             [ngClass]="{
-              'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20': usuario.rol === 'admin',
+              'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20': usuario.rol === 'administrador',
               'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20': usuario.rol === 'recepcionista',
               'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20': usuario.rol === 'medico',
-              'bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20': usuario.rol === 'aps',
+              'bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20': usuario.rol === 'coordinador' || usuario.rol === 'analista',
               'bg-cyan-50 text-cyan-600 border-cyan-100 dark:bg-cyan-500/10 dark:text-cyan-400 dark:border-cyan-500/20': usuario.rol === 'laboratorio',
               'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20': usuario.rol === 'imagenes'
             }"
@@ -74,16 +74,16 @@
       <!-- Role Icon Box -->
       <div 
         [ngClass]="{
-          'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20 shadow-blue-500/5': usuario.rol === 'admin',
+          'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20 shadow-blue-500/5': usuario.rol === 'administrador',
           'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 shadow-emerald-500/5': usuario.rol === 'recepcionista',
           'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20 shadow-indigo-500/5': usuario.rol === 'medico',
-          'bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20 shadow-purple-500/5': usuario.rol === 'aps',
+          'bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20 shadow-purple-500/5': usuario.rol === 'coordinador' || usuario.rol === 'analista',
           'bg-cyan-50 text-cyan-600 border-cyan-100 dark:bg-cyan-500/10 dark:text-cyan-400 dark:border-cyan-500/20 shadow-cyan-500/5': usuario.rol === 'laboratorio',
           'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20 shadow-rose-500/5': usuario.rol === 'imagenes'
         }"
         class="hidden md:flex w-12 h-12 rounded-2xl items-center justify-center border shadow-sm transition-transform hover:scale-105">
         <lucide-icon 
-          [name]="usuario.rol === 'admin' ? Users : (usuario.rol === 'recepcionista' ? Ticket : (usuario.rol === 'aps' ? ClipboardList : (usuario.rol === 'laboratorio' ? FlaskConical : (usuario.rol === 'imagenes' ? Image : Activity))))" 
+          [name]="usuario.rol === 'administrador' ? Users : (usuario.rol === 'recepcionista' ? Ticket : (usuario.rol === 'coordinador' || usuario.rol === 'analista' ? ClipboardList : (usuario.rol === 'laboratorio' ? FlaskConical : (usuario.rol === 'imagenes' ? Image : Activity))))" 
           class="w-6 h-6">
         </lucide-icon>
       </div>

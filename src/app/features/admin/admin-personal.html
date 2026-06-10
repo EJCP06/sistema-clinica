@@ -1,32 +1,17 @@
 <div class="space-y-8 animate-in fade-in duration-500">
   <div class="flex flex-col sm:flex-row justify-end items-stretch sm:items-center gap-3">
-    <button *ngIf="activeTab === 'medicos'" (click)="openModalPersonal(null, 'medico')" class="px-6 py-4 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-lg shadow-blue-600/20 transition-all flex items-center justify-center gap-2 group whitespace-nowrap font-bold text-sm">
-      <lucide-icon [name]="Plus" class="w-4 h-4"></lucide-icon>
-      Nuevo Médico
+    <input #excelInput type="file" accept=".xlsx,.xls" (change)="importExcel(excelInput)" class="hidden" />
+    <button #btnExcel (click)="excelInput.click()" class="px-6 py-4 sm:py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 group whitespace-nowrap font-bold text-sm">
+      <lucide-icon [name]="Upload" class="w-4 h-4"></lucide-icon>
+      Importar Excel
     </button>
-    <button *ngIf="activeTab === 'recepcionistas'" (click)="openModalPersonal(null, 'recepcionista')" class="px-6 py-4 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-lg shadow-blue-600/20 transition-all flex items-center justify-center gap-2 group whitespace-nowrap font-bold text-sm">
+    <button #btnNuevo (click)="openModalPersonal(null, btnNuevo)" class="px-6 py-4 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-lg shadow-blue-600/20 transition-all flex items-center justify-center gap-2 group whitespace-nowrap font-bold text-sm">
       <lucide-icon [name]="Plus" class="w-4 h-4"></lucide-icon>
-      Nueva Recepcionista
-    </button>
-    <button *ngIf="activeTab === 'administradores'" (click)="openModalPersonal(null, 'admin')" class="px-6 py-4 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-lg shadow-blue-600/20 transition-all flex items-center justify-center gap-2 group whitespace-nowrap font-bold text-sm">
-      <lucide-icon [name]="Plus" class="w-4 h-4"></lucide-icon>
-      Nuevo Administrador
-    </button>
-    <button *ngIf="activeTab === 'laboratorio'" (click)="openModalPersonal(null, 'laboratorio')" class="px-6 py-4 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-lg shadow-blue-600/20 transition-all flex items-center justify-center gap-2 group whitespace-nowrap font-bold text-sm">
-      <lucide-icon [name]="Plus" class="w-4 h-4"></lucide-icon>
-      Nuevo Laboratorio
-    </button>
-    <button *ngIf="activeTab === 'imagenes'" (click)="openModalPersonal(null, 'imagenes')" class="px-6 py-4 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-lg shadow-blue-600/20 transition-all flex items-center justify-center gap-2 group whitespace-nowrap font-bold text-sm">
-      <lucide-icon [name]="Plus" class="w-4 h-4"></lucide-icon>
-      Nueva Imágen
-    </button>
-    <button *ngIf="activeTab === 'aps'" (click)="openModalPersonal(null, 'aps')" class="px-6 py-4 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-lg shadow-blue-600/20 transition-all flex items-center justify-center gap-2 group whitespace-nowrap font-bold text-sm">
-      <lucide-icon [name]="Plus" class="w-4 h-4"></lucide-icon>
-      Nueva APS
+      Nuevo Personal
     </button>
   </div>
 
-      <div class="flex justify-center mb-6 md:mb-10 mt-6 md:mt-14">
+  <div class="flex justify-center mb-6 md:mb-10 mt-6 md:mt-14">
     <div class="relative w-full max-w-2xl">
       <div class="flex items-center w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-1 shadow-sm group focus-within:ring-4 focus-within:ring-blue-500/5 focus-within:border-blue-500 transition-all">
         <div class="relative search-filter-container">
@@ -52,402 +37,82 @@
                 <span>Cédula</span>
                 <lucide-icon *ngIf="searchFilter === 'cedula'" [name]="CheckCircle2" class="w-3 h-3"></lucide-icon>
               </div>
-              <div *ngIf="activeTab === 'medicos'" (click)="selectSearchFilter('especialidad')" class="px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 cursor-pointer transition-colors rounded-lg flex items-center justify-between" [class.bg-blue-50]="searchFilter === 'especialidad'" [class.text-blue-600]="searchFilter === 'especialidad'">
-                <span>Especialidad</span>
-                <lucide-icon *ngIf="searchFilter === 'especialidad'" [name]="CheckCircle2" class="w-3 h-3"></lucide-icon>
+              <div (click)="selectSearchFilter('rol')" class="px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 cursor-pointer transition-colors rounded-lg flex items-center justify-between" [class.bg-blue-50]="searchFilter === 'rol'" [class.text-blue-600]="searchFilter === 'rol'">
+                <span>Rol</span>
+                <lucide-icon *ngIf="searchFilter === 'rol'" [name]="CheckCircle2" class="w-3 h-3"></lucide-icon>
               </div>
             </div>
           </div>
         </div>
         <div class="relative flex-1">
           <lucide-icon [name]="Search" class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"></lucide-icon>
-          <input type="text" [(ngModel)]="searchQuery" [placeholder]="'Buscar ' + (activeTab === 'medicos' ? 'médico' : activeTab === 'recepcionistas' ? 'recepcionista' : activeTab === 'administradores' ? 'administrador' : activeTab === 'laboratorio' ? 'laboratorio' : 'imágenes') + '...'" class="w-full pl-14 pr-10 py-4 text-sm focus:outline-none font-medium bg-transparent rounded-r-2xl text-slate-900 dark:text-white" />
+          <input type="text" [(ngModel)]="searchQuery" placeholder="Buscar personal..." class="w-full pl-14 pr-10 py-4 text-sm focus:outline-none font-medium bg-transparent rounded-r-2xl text-slate-900 dark:text-white" />
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Médicos Table -->
-  <div *ngIf="activeTab === 'medicos'" class="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+  <!-- Tabla Unificada de Personal -->
+  <div class="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
     <div class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
       <div class="flex flex-col justify-between">
         <div class="overflow-x-auto">
-<table class="w-full min-w-[800px] text-left text-sm ">
-          <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
-            <tr class="h-[52px] md:h-[64px] text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombre</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Apellido</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Cédula</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Teléfono</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Correo</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Especialidad</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Sede</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Estado</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center border-b border-slate-200 dark:border-slate-800">Acciones</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
-            <ng-container *ngFor="let m of medicosFiltrados | paginate: currentPageMedicos : pageSize; trackBy: trackById">
-              <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ m.nombre || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ m.apellido || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ m.cedula || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold uppercase text-center">{{ m.telefono || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ (m.email || '').toLowerCase() || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ getNombreEsp(m.id_especialidad) || getNombreServicio(m.servicio_id) }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 dark:text-slate-400 font-bold text-center">{{ getSedeLabel(m.id_sede) }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
-                  <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [ngClass]="m.activo ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'">{{ m.activo ? 'Activo' : 'Inactivo' }}</span>
-                </td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-center border-b border-slate-100/30 dark:border-slate-800/10">
-                  <div class="flex justify-center gap-2">
-                    <button (click)="openModalPersonal(m)" aria-label="Editar médico" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all"><lucide-icon [name]="Edit2" class="w-4 h-4"></lucide-icon></button>
-                    <button (click)="eliminarPersonal(m.id_usuario)" aria-label="Eliminar médico" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all"><lucide-icon [name]="Trash2" class="w-4 h-4"></lucide-icon></button>
+          <table class="w-full min-w-[800px] text-left text-sm">
+            <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+              <tr class="h-[52px] md:h-[64px] text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
+                <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombre</th>
+                <th class="px-3 md:px-6 py-3 md:py-4 text-center">Apellido</th>
+                <th class="px-3 md:px-6 py-3 md:py-4 text-center">Cédula</th>
+                <th class="px-3 md:px-6 py-3 md:py-4 text-center">Rol</th>
+                <th class="px-3 md:px-6 py-3 md:py-4 text-center">Teléfono</th>
+                <th class="px-3 md:px-6 py-3 md:py-4 text-center">Sede</th>
+                <th class="px-3 md:px-6 py-3 md:py-4 text-center">Estado</th>
+                <th class="px-3 md:px-6 py-3 md:py-4 text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
+              <ng-container *ngFor="let p of personalFiltrados | paginate: currentPage : pageSize; trackBy: trackById">
+                <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
+                  <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ p.nombre || 'SIN ASIGNAR' }}</td>
+                  <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ p.apellido || 'SIN ASIGNAR' }}</td>
+                  <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ p.cedula || 'SIN ASIGNAR' }}</td>
+                  <td class="px-3 md:px-6 py-3 md:py-4 text-center">
+                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [ngClass]="getRolBadgeClass(p.rol)">{{ getRolLabel(p.rol) }}</span>
+                  </td>
+                  <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold uppercase text-center">{{ p.telefono || 'SIN ASIGNAR' }}</td>
+                  <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 dark:text-slate-400 font-bold text-center">{{ getSedeLabel(p.id_sede) }}</td>
+                  <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
+                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [ngClass]="p.activo ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'">{{ p.activo ? 'Activo' : 'Inactivo' }}</span>
+                  </td>
+                  <td class="px-3 md:px-6 py-3 md:py-4 text-center border-b border-slate-100/30 dark:border-slate-800/10">
+                    <div class="flex justify-center gap-2">
+                        <button #btnEdit (click)="openModalPersonal(p, btnEdit)" aria-label="Editar personal" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><lucide-icon [name]="Edit2" class="w-4 h-4"></lucide-icon></button>
+                      <button (click)="eliminarPersonal(p.id_usuario)" aria-label="Eliminar personal" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all"><lucide-icon [name]="Trash2" class="w-4 h-4"></lucide-icon></button>
+                    </div>
+                  </td>
+                </tr>
+              </ng-container>
+              <ng-container *ngIf="personalFiltrados.length > 0">
+                <ng-container *ngFor="let _ of personalFiltrados | fillers: currentPage : pageSize">
+                  <tr><td colspan="8" class="h-[52px] md:h-[64px]"></td></tr>
+                </ng-container>
+              </ng-container>
+              <tr *ngIf="personalFiltrados.length === 0">
+                <td colspan="8" class="px-8 py-20 text-center align-middle">
+                  <div class="flex flex-col items-center justify-center w-full">
+                    <div class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 mx-auto"><lucide-icon [name]="Search" class="w-8 h-8 text-slate-500 opacity-60"></lucide-icon></div>
+                    <p class="text-slate-400 italic font-medium text-center w-full">No se encontraron registros de personal.</p>
                   </div>
                 </td>
               </tr>
-            </ng-container>
-            <ng-container *ngIf="medicosFiltrados.length > 0">
-              <ng-container *ngFor="let _ of medicosFiltrados | fillers: currentPageMedicos : pageSize">
-                <tr><td colspan="9" class="h-[52px] md:h-[64px]"></td></tr>
-              </ng-container>
-            </ng-container>
-            <tr *ngIf="medicosFiltrados.length === 0">
-              <td colspan="9" class="px-8 py-20 text-center align-middle">
-                <div class="flex flex-col items-center justify-center w-full">
-                  <div class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 mx-auto"><lucide-icon [name]="Search" class="w-8 h-8 text-slate-500 opacity-60"></lucide-icon></div>
-                  <p class="text-slate-400 italic font-medium text-center w-full">No se encontraron médicos registrados.</p>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-</div>
+            </tbody>
+          </table>
+        </div>
         <app-pagination
-          [currentPage]="currentPageMedicos"
-          [totalItems]="medicosFiltrados.length"
+          [currentPage]="currentPage"
+          [totalItems]="personalFiltrados.length"
           [pageSize]="pageSize"
-          (pageChange)="currentPageMedicos = $event"
-        ></app-pagination>
-      </div>
-    </div>
-  </div>
-
-  <!-- Recepcionistas Table -->
-  <div *ngIf="activeTab === 'recepcionistas'" class="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-    <div class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-      <div class="flex flex-col justify-between">
-        <div class="overflow-x-auto">
-<table class="w-full min-w-[800px] text-left text-sm ">
-          <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
-            <tr class="h-[52px] md:h-[64px] text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombre</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Apellido</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Cédula</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Teléfono</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Correo</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Sede</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Piso</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Estado</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center border-b border-slate-200 dark:border-slate-800">Acciones</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
-            <ng-container *ngFor="let r of recepcionistasFiltradas | paginate: currentPageRecepcionistas : pageSize; trackBy: trackById">
-              <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ r.nombre || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ r.apellido || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ r.cedula || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 uppercase font-bold text-center">{{ r.telefono || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ (r.email || '').toLowerCase() || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ getSedeLabel(r.id_sede) }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tighter text-center">{{ formatPiso(r.piso) }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
-                  <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [ngClass]="r.activo ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'">{{ r.activo ? 'Activo' : 'Inactivo' }}</span>
-                </td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-center border-b border-slate-100/30 dark:border-slate-800/10">
-                  <div class="flex justify-center gap-2">
-                    <button (click)="openModalPersonal(r)" aria-label="Editar recepcionista" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all"><lucide-icon [name]="Edit2" class="w-4 h-4"></lucide-icon></button>
-                    <button (click)="eliminarPersonal(r.id_usuario)" aria-label="Eliminar recepcionista" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all"><lucide-icon [name]="Trash2" class="w-4 h-4"></lucide-icon></button>
-                  </div>
-                </td>
-              </tr>
-            </ng-container>
-            <ng-container *ngIf="recepcionistasFiltradas.length > 0">
-              <ng-container *ngFor="let _ of recepcionistasFiltradas | fillers: currentPageRecepcionistas : pageSize">
-                <tr><td colspan="9" class="h-[52px] md:h-[64px]"></td></tr>
-              </ng-container>
-            </ng-container>
-            <tr *ngIf="recepcionistasFiltradas.length === 0">
-              <td colspan="9" class="px-8 py-20 text-center align-middle">
-                <div class="flex flex-col items-center justify-center w-full">
-                  <div class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 mx-auto"><lucide-icon [name]="Search" class="w-8 h-8 text-slate-500 opacity-60"></lucide-icon></div>
-                  <p class="text-slate-400 italic font-medium text-center w-full">No se encontraron recepcionistas registradas.</p>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-</div>
-        <app-pagination
-          [currentPage]="currentPageRecepcionistas"
-          [totalItems]="recepcionistasFiltradas.length"
-          [pageSize]="pageSize"
-          (pageChange)="currentPageRecepcionistas = $event"
-        ></app-pagination>
-      </div>
-    </div>
-  </div>
-
-  <!-- Administradores Table -->
-  <div *ngIf="activeTab === 'administradores'" class="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-    <div class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-      <div class="flex flex-col justify-between">
-        <div class="overflow-x-auto">
-<table class="w-full min-w-[800px] text-left text-sm ">
-          <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
-            <tr class="h-[52px] md:h-[64px] text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombre</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Apellido</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Cédula</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Teléfono</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Correo</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Sede</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Estado</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center border-b border-slate-200 dark:border-slate-800">Acciones</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
-            <ng-container *ngFor="let a of administradoresFiltrados | paginate: currentPageAdmin : pageSize; trackBy: trackById">
-              <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.nombre || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.apellido || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ a.cedula || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold uppercase text-center">{{ a.telefono || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ (a.email || '').toLowerCase() || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ getSedeLabel(a.id_sede) }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
-                  <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [ngClass]="a.activo ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'">{{ a.activo ? 'Activo' : 'Inactivo' }}</span>
-                </td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-center border-b border-slate-100/30 dark:border-slate-800/10">
-                  <div class="flex justify-center gap-2">
-                    <button (click)="openModalPersonal(a)" aria-label="Editar administrador" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all"><lucide-icon [name]="Edit2" class="w-4 h-4"></lucide-icon></button>
-                    <button (click)="eliminarPersonal(a.id_usuario)" aria-label="Eliminar administrador" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all"><lucide-icon [name]="Trash2" class="w-4 h-4"></lucide-icon></button>
-                  </div>
-                </td>
-              </tr>
-            </ng-container>
-            <ng-container *ngIf="administradoresFiltrados.length > 0">
-              <ng-container *ngFor="let _ of administradoresFiltrados | fillers: currentPageAdmin : pageSize">
-                <tr><td colspan="8" class="h-[52px] md:h-[64px]"></td></tr>
-              </ng-container>
-            </ng-container>
-            <tr *ngIf="administradoresFiltrados.length === 0">
-              <td colspan="8" class="px-8 py-20 text-center align-middle">
-                <div class="flex flex-col items-center justify-center w-full">
-                  <div class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 mx-auto"><lucide-icon [name]="Search" class="w-8 h-8 text-slate-500 opacity-60"></lucide-icon></div>
-                  <p class="text-slate-400 italic font-medium text-center w-full">No se encontraron administradores registrados.</p>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-</div>
-        <app-pagination
-          [currentPage]="currentPageAdmin"
-          [totalItems]="administradoresFiltrados.length"
-          [pageSize]="pageSize"
-          (pageChange)="currentPageAdmin = $event"
-        ></app-pagination>
-      </div>
-    </div>
-  </div>
-
-  <!-- Laboratorio Table -->
-  <div *ngIf="activeTab === 'laboratorio'" class="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-    <div class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-      <div class="flex flex-col justify-between">
-        <div class="overflow-x-auto">
-<table class="w-full min-w-[800px] text-left text-sm ">
-          <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
-            <tr class="h-[52px] md:h-[64px] text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombre</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Apellido</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Cédula</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Teléfono</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Correo</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Sede</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Estado</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center border-b border-slate-200 dark:border-slate-800">Acciones</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
-            <ng-container *ngFor="let a of laboratorioFiltrados | paginate: currentPageLaboratorio : pageSize; trackBy: trackById">
-              <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.nombre || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.apellido || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ a.cedula || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold uppercase text-center">{{ a.telefono || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ (a.email || '').toLowerCase() || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ getSedeLabel(a.id_sede) }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
-                  <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [ngClass]="a.activo ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'">{{ a.activo ? 'Activo' : 'Inactivo' }}</span>
-                </td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-center border-b border-slate-100/30 dark:border-slate-800/10">
-                  <div class="flex justify-center gap-2">
-                    <button (click)="openModalPersonal(a)" aria-label="Editar laboratorio" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all"><lucide-icon [name]="Edit2" class="w-4 h-4"></lucide-icon></button>
-                    <button (click)="eliminarPersonal(a.id_usuario)" aria-label="Eliminar laboratorio" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all"><lucide-icon [name]="Trash2" class="w-4 h-4"></lucide-icon></button>
-                  </div>
-                </td>
-              </tr>
-            </ng-container>
-            <ng-container *ngIf="laboratorioFiltrados.length > 0">
-              <ng-container *ngFor="let _ of laboratorioFiltrados | fillers: currentPageLaboratorio : pageSize">
-                <tr><td colspan="8" class="h-[52px] md:h-[64px]"></td></tr>
-              </ng-container>
-            </ng-container>
-            <tr *ngIf="laboratorioFiltrados.length === 0">
-              <td colspan="8" class="px-8 py-20 text-center align-middle">
-                <div class="flex flex-col items-center justify-center w-full">
-                  <div class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 mx-auto"><lucide-icon [name]="Search" class="w-8 h-8 text-slate-500 opacity-60"></lucide-icon></div>
-                  <p class="text-slate-400 italic font-medium text-center w-full">No se encontraron registros de laboratorio.</p>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-</div>
-        <app-pagination
-          [currentPage]="currentPageLaboratorio"
-          [totalItems]="laboratorioFiltrados.length"
-          [pageSize]="pageSize"
-          (pageChange)="currentPageLaboratorio = $event"
-        ></app-pagination>
-      </div>
-    </div>
-  </div>
-
-  <!-- Imágenes Table -->
-  <div *ngIf="activeTab === 'imagenes'" class="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-    <div class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-      <div class="flex flex-col justify-between">
-        <div class="overflow-x-auto">
-<table class="w-full min-w-[800px] text-left text-sm ">
-          <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
-            <tr class="h-[52px] md:h-[64px] text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombre</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Apellido</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Cédula</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Teléfono</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Correo</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Sede</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Estado</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center border-b border-slate-200 dark:border-slate-800">Acciones</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
-            <ng-container *ngFor="let a of imagenesFiltrados | paginate: currentPageImagenes : pageSize; trackBy: trackById">
-              <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.nombre || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.apellido || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ a.cedula || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold uppercase text-center">{{ a.telefono || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ (a.email || '').toLowerCase() || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ getSedeLabel(a.id_sede) }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
-                  <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [ngClass]="a.activo ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'">{{ a.activo ? 'Activo' : 'Inactivo' }}</span>
-                </td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-center border-b border-slate-100/30 dark:border-slate-800/10">
-                  <div class="flex justify-center gap-2">
-                    <button (click)="openModalPersonal(a)" aria-label="Editar imágenes" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all"><lucide-icon [name]="Edit2" class="w-4 h-4"></lucide-icon></button>
-                    <button (click)="eliminarPersonal(a.id_usuario)" aria-label="Eliminar imágenes" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all"><lucide-icon [name]="Trash2" class="w-4 h-4"></lucide-icon></button>
-                  </div>
-                </td>
-              </tr>
-            </ng-container>
-            <ng-container *ngIf="imagenesFiltrados.length > 0">
-              <ng-container *ngFor="let _ of imagenesFiltrados | fillers: currentPageImagenes : pageSize">
-                <tr><td colspan="8" class="h-[52px] md:h-[64px]"></td></tr>
-              </ng-container>
-            </ng-container>
-            <tr *ngIf="imagenesFiltrados.length === 0">
-              <td colspan="8" class="px-8 py-20 text-center align-middle">
-                <div class="flex flex-col items-center justify-center w-full">
-                  <div class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 mx-auto"><lucide-icon [name]="Search" class="w-8 h-8 text-slate-500 opacity-60"></lucide-icon></div>
-                  <p class="text-slate-400 italic font-medium text-center w-full">No se encontraron registros de imágenes.</p>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-</div>
-        <app-pagination
-          [currentPage]="currentPageImagenes"
-          [totalItems]="imagenesFiltrados.length"
-          [pageSize]="pageSize"
-          (pageChange)="currentPageImagenes = $event"
-        ></app-pagination>
-      </div>
-    </div>
-  </div>
-
-  <!-- APS Table -->
-  <div *ngIf="activeTab === 'aps'" class="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-    <div class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-      <div class="overflow-x-auto flex flex-col justify-between">
-        <table class="w-full min-w-[800px] text-left text-sm ">
-          <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
-            <tr class="h-[52px] md:h-[64px] text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombre</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Apellido</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Cédula</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Teléfono</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Correo</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Sede</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center">Estado</th>
-              <th class="px-3 md:px-6 py-3 md:py-4 text-center border-b border-slate-200 dark:border-slate-800">Acciones</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
-            <ng-container *ngFor="let a of apsFiltrados | paginate: currentPageAps : pageSize; trackBy: trackById">
-              <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.nombre || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ a.apellido || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ a.cedula || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold uppercase text-center">{{ a.telefono || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ (a.email || '').toLowerCase() || 'SIN ASIGNAR' }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold text-center">{{ getSedeLabel(a.id_sede) }}</td>
-                <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">
-                  <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [ngClass]="a.activo ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'">{{ a.activo ? 'Activo' : 'Inactivo' }}</span>
-                </td>
-                <td class="px-3 md:px-6 py-3 md:py-4 text-center border-b border-slate-100/30 dark:border-slate-800/10">
-                  <div class="flex justify-center gap-2">
-                    <button (click)="openModalPersonal(a)" aria-label="Editar APS" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all"><lucide-icon [name]="Edit2" class="w-4 h-4"></lucide-icon></button>
-                    <button (click)="eliminarPersonal(a.id_usuario)" aria-label="Eliminar APS" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all"><lucide-icon [name]="Trash2" class="w-4 h-4"></lucide-icon></button>
-                  </div>
-                </td>
-              </tr>
-            </ng-container>
-            <ng-container *ngIf="apsFiltrados.length > 0">
-              <ng-container *ngFor="let _ of apsFiltrados | fillers: currentPageAps : pageSize">
-                <tr><td colspan="8" class="h-[52px] md:h-[64px]"></td></tr>
-              </ng-container>
-            </ng-container>
-            <tr *ngIf="apsFiltrados.length === 0">
-              <td colspan="8" class="px-8 py-20 text-center align-middle">
-                <div class="flex flex-col items-center justify-center w-full">
-                  <div class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 mx-auto"><lucide-icon [name]="Search" class="w-8 h-8 text-slate-500 opacity-60"></lucide-icon></div>
-                  <p class="text-slate-400 italic font-medium text-center w-full">No se encontraron registros de APS.</p>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <app-pagination
-          [currentPage]="currentPageAps"
-          [totalItems]="apsFiltrados.length"
-          [pageSize]="pageSize"
-          (pageChange)="currentPageAps = $event"
+          (pageChange)="currentPage = $event"
         ></app-pagination>
       </div>
     </div>
@@ -455,32 +120,49 @@
 </div>
 
 <!-- Personal Modal -->
-<div *ngIf="showModalPersonal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-300" (click)="showModalPersonal = false"></div>
+<div *ngIf="showModalPersonal" class="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-personal-title" (keydown.escape)="cerrarModalPersonal()">
+  <div class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-300" (click)="cerrarModalPersonal()"></div>
   <div class="bg-white rounded-[32px] shadow-2xl w-full max-w-4xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 flex flex-col max-h-[90vh] md:max-h-none">
     <div class="bg-blue-600 p-6 text-white flex items-center justify-between border-b border-blue-500/50">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center"><lucide-icon [name]="UserCog" class="w-5 h-5 text-white"></lucide-icon></div>
         <div>
-          <h2 class="text-xl font-black tracking-tight text-white">{{ isEditing ? 'Editar ' + getRolLabel(formPersonal.rol) : formPersonal.rol === 'recepcionista' ? 'Nueva Recepcionista' : 'Nuevo ' + getRolLabel(formPersonal.rol) }}</h2>
+          <h2 id="modal-personal-title" class="text-xl font-black tracking-tight text-white">{{ isEditing ? 'Editar ' + getRolLabel(formPersonal.rol) : 'Nuevo Personal' }}</h2>
           <p class="text-blue-100 text-[10px] uppercase font-bold tracking-widest mt-0.5">Gestión de Acceso y Roles</p>
         </div>
       </div>
-      <button (click)="showModalPersonal = false" aria-label="Cerrar formulario" class="p-2 hover:bg-white/10 rounded-lg transition-colors"><lucide-icon [name]="XCircle" class="w-5 h-5 text-white"></lucide-icon></button>
+      <button type="button" (click)="cerrarModalPersonal()" aria-label="Cerrar formulario" class="p-2 hover:bg-white/10 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white"><lucide-icon [name]="XCircle" class="w-5 h-5 text-white"></lucide-icon></button>
     </div>
     <div class="p-4 md:p-8 flex-1 overflow-y-auto md:overflow-visible">
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-6">
         <div class="lg:col-span-2 space-y-1.5">
-          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Nombre</label>
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Nombre <span class="text-rose-500">*</span></label>
           <input [(ngModel)]="formPersonal.nombre" (keypress)="soloLetras($event); sinEspacios($event)" placeholder="Ej: Juan" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
         </div>
         <div class="lg:col-span-2 space-y-1.5">
-          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Apellido</label>
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Apellido <span class="text-rose-500">*</span></label>
           <input [(ngModel)]="formPersonal.apellido" (keypress)="soloLetras($event); sinEspacios($event)" placeholder="Ej: Perez" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
         </div>
         <div class="lg:col-span-2 space-y-1.5">
-          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Cédula</label>
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Cédula <span class="text-rose-500">*</span></label>
           <input [(ngModel)]="formPersonal.cedula" (keypress)="soloNumeros($event)" placeholder="Ej: 13894759" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
+        </div>
+        <div class="lg:col-span-2 space-y-1.5">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Rol <span class="text-rose-500">*</span></label>
+          <div class="relative rol-dropdown-container">
+            <button type="button" (click)="toggleRolDropdown()" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600">
+              <span [class.text-slate-400]="!formPersonal.rol">{{ getRolLabel(formPersonal.rol) }}</span>
+              <lucide-icon [name]="ChevronDown" class="w-4 h-4 text-slate-400" [class.rotate-180]="showRolDropdown"></lucide-icon>
+            </button>
+            <div *ngIf="showRolDropdown" class="absolute z-[100] w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600">
+              <div class="max-h-48 overflow-y-auto custom-scrollbar p-1">
+                <div *ngFor="let r of rolesLista" (click)="selectRol(r.key)" class="px-4 py-2 text-sm hover:bg-slate-50 cursor-pointer transition-colors rounded-lg flex items-center justify-between" [class.bg-blue-50]="formPersonal.rol === r.key">
+                  <span class="font-bold">{{ toTitleCase(r.nombre) }}</span>
+                  <lucide-icon *ngIf="formPersonal.rol === r.key" [name]="CheckCircle2" class="w-3.5 h-3.5 text-blue-600"></lucide-icon>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="lg:col-span-2 space-y-1.5">
           <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Teléfono</label>
@@ -491,16 +173,16 @@
           <input [(ngModel)]="formPersonal.email" (keypress)="sinEspacios($event)" placeholder="Ej: clinicacaracas@gmail.com" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
         </div>
         <div class="lg:col-span-2 space-y-1.5">
-          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Sede</label>
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Sede <span class="text-rose-500">*</span></label>
           <div class="relative sede-dropdown-container">
-            <button type="button" (click)="toggleSedeDropdown()" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600">
-              <span class="lowercase first-letter:uppercase whitespace-nowrap truncate mr-2" [class.text-slate-400]="!formPersonal.id_sede">{{ getSedeLabel(formPersonal.id_sede, true) }}</span>
+            <button type="button" (click)="toggleSedeDropdown()" class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600">
+              <span class="whitespace-nowrap truncate mr-2" [class.text-slate-400]="!formPersonal.id_sede" [class.dark:text-slate-500]="!formPersonal.id_sede">{{ formPersonal.id_sede ? getSedeNombre(formPersonal.id_sede) : 'Seleccione...' }}</span>
               <lucide-icon [name]="ChevronDown" class="w-4 h-4 text-slate-400 shrink-0" [class.rotate-180]="showSedeDropdown"></lucide-icon>
             </button>
-            <div *ngIf="showSedeDropdown" class="absolute z-[100] w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600">
+            <div *ngIf="showSedeDropdown" class="absolute z-[100] w-full mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600">
               <div class="max-h-48 overflow-y-auto custom-scrollbar p-1">
-                <div *ngFor="let s of sedes" (click)="selectSede(s.id_sede)" class="px-4 py-2 text-sm hover:bg-slate-50 cursor-pointer transition-colors rounded-lg flex items-center justify-between" [class.bg-blue-50]="formPersonal.id_sede == s.id_sede">
-                  <span class="lowercase first-letter:uppercase font-bold">{{ toTitleCase(s.nombre) }}</span>
+                <div *ngFor="let s of sedes" (click)="selectSede(s.id_sede)" class="px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors rounded-lg flex items-center justify-between" [class.bg-blue-50]="formPersonal.id_sede == s.id_sede" [class.dark:bg-blue-500/10]="formPersonal.id_sede == s.id_sede">
+                  <span class="font-bold text-slate-700 dark:text-slate-300">{{ s.nombre }}</span>
                   <lucide-icon *ngIf="formPersonal.id_sede == s.id_sede" [name]="CheckCircle2" class="w-3.5 h-3.5 text-blue-600"></lucide-icon>
                 </div>
               </div>
@@ -509,7 +191,7 @@
         </div>
         <ng-container *ngIf="formPersonal.rol === 'medico'">
           <div class="lg:col-span-2 space-y-1.5">
-            <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Especialidad</label>
+            <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Especialidad <span class="text-rose-500">*</span></label>
             <div class="relative medico-esp-container">
               <button type="button" (click)="toggleMedicoEspDropdown()" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-left flex justify-between items-center shadow-sm transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600">
                 <span class="lowercase first-letter:uppercase" [class.text-slate-400]="!formPersonal.especialidad_id">{{ getNombreEsp(formPersonal.especialidad_id, true) }}</span>
@@ -544,14 +226,14 @@
             </div>
           </div>
         </ng-container>
-        <ng-container *ngIf="formPersonal.rol === 'recepcionista' || formPersonal.rol === 'aps' || formPersonal.rol === 'laboratorio' || formPersonal.rol === 'imagenes'">
+        <ng-container *ngIf="formPersonal.rol === 'recepcionista' || formPersonal.rol === 'coordinador' || formPersonal.rol === 'analista' || formPersonal.rol === 'laboratorio' || formPersonal.rol === 'imagenes'">
           <div class="lg:col-span-2 space-y-1.5">
             <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Piso</label>
             <input type="text" [(ngModel)]="formPersonal.piso" placeholder="Ej: 1, Planta Baja, Mezzanina" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
           </div>
         </ng-container>
         <div class="lg:col-span-2 space-y-1.5">
-          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">{{ isEditing ? 'Nueva Contraseña (Opcional)' : 'Contraseña' }}</label>
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">{{ isEditing ? 'Nueva Contraseña (Opcional)' : 'Contraseña' }}<span *ngIf="!isEditing" class="text-rose-500"> *</span></label>
           <div class="relative">
             <input [type]="showPassword ? 'text' : 'password'" [(ngModel)]="formPersonal.password" (keypress)="sinEspacios($event)" placeholder="••••••••" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all pr-10" />
             <button type="button" (click)="showPassword = !showPassword" aria-label="Mostrar u ocultar contraseña" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -573,9 +255,12 @@
     </div>
     <div class="p-4 md:p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 shrink-0">
       <button type="button" [disabled]="isSaving" (click)="showModalPersonal = false" class="px-5 md:px-8 py-3 md:py-4 bg-slate-500 hover:bg-slate-600 text-white font-black text-[11px] uppercase tracking-[2px] rounded-[20px] transition-all disabled:opacity-50 shadow-lg shadow-slate-500/20 dark:shadow-slate-950/50">CANCELAR</button>
-      <button type="button" [disabled]="isSaving" (click)="guardarPersonal()" class="px-10 py-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-[11px] uppercase tracking-[2px] rounded-[20px] shadow-lg shadow-blue-600/20 dark:shadow-blue-950/50 transition-all flex items-center gap-2 disabled:opacity-50">
-        <span *ngIf="isSaving" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-        {{ isSaving ? (isEditing ? 'GUARDANDO...' : 'CREANDO...') : isEditing ? 'GUARDAR' : 'CREAR' }}
+      <button type="button" [disabled]="isSaving" (click)="guardarPersonal()" class="px-4 md:px-10 py-3 md:py-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-[11px] uppercase tracking-[2px] rounded-[20px] shadow-lg shadow-blue-600/20 dark:shadow-blue-950/50 transition-all flex items-center gap-3 disabled:opacity-50">
+        <span *ngIf="!isSaving" class="flex items-center gap-2">{{ isEditing ? 'GUARDAR' : 'CREAR' }}</span>
+        <div *ngIf="isSaving" class="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-700">
+          <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+          <span class="animate-pulse">{{ isEditing ? 'guardando...' : 'creando...' }}</span>
+        </div>
       </button>
     </div>
   </div>

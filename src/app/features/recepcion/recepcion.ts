@@ -29,6 +29,7 @@ import {
   ClipboardList,
   Edit2,
   Trash2,
+  Upload,
 } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
 import { SwalService } from '../../core/services/swal.service';
@@ -68,6 +69,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   readonly ClipboardList = ClipboardList;
   readonly Edit2 = Edit2;
   readonly Trash2 = Trash2;
+  readonly Upload = Upload;
 
   pageSize: number = 6;
   currentPage: number = 1;
@@ -107,6 +109,8 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   ultimasAdmisiones: any[] = [];
 
   aseguradoras: any[] = [];
+  medicos: any[] = [];
+  consultorios: any[] = [];
 
   get admisionesFiltradas() {
     if (this.isAseguradorasView) {
@@ -148,15 +152,21 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     id_cliente: null,
     id_atencion: null,
     id_especialidad: null,
+    id_medico: null,
+    id_consultorio: null,
     nombre_servicio_label: '',
+    nombre_medico_label: '',
   };
 
   // Lógica de Categorías
   categoriaServicio: string = ''; // 'Consulta', 'Laboratorio', 'Imágenes'
   showEspecialidadDropdown: boolean = false;
+  showMedicoDropdown: boolean = false;
   showAseguradoraDropdown: boolean = false;
 
   isSaving: boolean = false;
+  private inicioGuardado: number = 0;
+  private readonly MIN_GUARDADO = 800;
   private _mostrarRegistro: boolean = false;
   isEditMode: boolean = false;
 
@@ -185,9 +195,44 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   }
 
   set mostrarRegistro(v: boolean) {
+    const wasOpen = this._mostrarRegistro;
     this._mostrarRegistro = v;
-    if (v) this.scrollService.block();
-    else this.scrollService.unblock();
+    if (v) {
+      this.scrollService.block();
+      setTimeout(() => this.focusFirstInput(), 0);
+    } else {
+      this.scrollService.unblock();
+      if (wasOpen) this.returnFocusToTrigger();
+    }
+  }
+
+  private modalTrigger: HTMLElement | null = null;
+
+  abrirModalRegistro(trigger?: EventTarget | null) {
+    this.modalTrigger = trigger instanceof HTMLElement ? trigger : null;
+    this.mostrarRegistro = true;
+  }
+
+  cerrarModalRegistro() {
+    this.mostrarRegistro = false;
+  }
+
+  private focusFirstInput() {
+    const modal = this.el.nativeElement.querySelector('[role="dialog"]');
+    if (!modal) return;
+    const firstInput = modal.querySelector(
+      'input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])'
+    ) as HTMLElement | null;
+    if (firstInput) {
+      firstInput.focus();
+    }
+  }
+
+  private returnFocusToTrigger() {
+    if (this.modalTrigger instanceof HTMLElement) {
+      this.modalTrigger.focus();
+      this.modalTrigger = null;
+    }
   }
 
   @HostListener('document:click', ['$event'])
@@ -206,6 +251,8 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       if (!target.closest('.service-dropdown-container')) this.showServiceDropdown = false;
       if (!target.closest('.especialidad-dropdown-container'))
         this.showEspecialidadDropdown = false;
+      if (!target.closest('.medico-dropdown-container'))
+        this.showMedicoDropdown = false;
       if (!target.closest('.aseguradora-dropdown-container')) this.showAseguradoraDropdown = false;
     }
   }
@@ -257,7 +304,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   }
 
   onTabChange(tab: string) {
-    if (tab === 'dashboard') this.router.navigate(['/admin']);
+    if (tab === 'dashboard') this.router.navigate(['/administrador']);
     if (tab === 'panel-medico') this.router.navigate(['/panel-medico']);
   }
 
@@ -315,6 +362,22 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       next: (data: any) => (this.responsables = data),
       error: (err: any) => console.error('Error cargando responsables:', err),
     });
+
+    this.api.getPersonal('medico').subscribe({
+      next: (data: any) => {
+        this.medicos = data;
+        console.log('Médicos cargados:', this.medicos.length);
+      },
+      error: (err: any) => console.error('Error cargando médicos:', err),
+    });
+
+    this.api.getConsultorios().subscribe({
+      next: (data: any) => {
+        this.consultorios = data;
+        console.log('Consultorios cargados:', this.consultorios.length);
+      },
+      error: (err: any) => console.error('Error cargando consultorios:', err),
+    });
   }
 
    cargarUltimasAdmisiones() {
@@ -342,6 +405,46 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       },
       error: (err: any) => console.error('Error cargando aseguradoras:', err),
     });
+  }
+
+  importarAseguradorasExcel(fileInput: HTMLInputElement) {
+    const file = fileInput?.files?.[0];
+    if (!file) return;
+
+    import('xlsx').then(XLSX => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const rows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+          if (rows.length === 0) {
+            this.swal.error('El archivo Excel está vacío');
+            return;
+          }
+
+          this.api.importarAseguradoras({ rows }).subscribe({
+            next: (res: any) => {
+              this.cargarAseguradoras();
+              this.swal.success(res.mensaje || `Importación exitosa: ${res.importados || rows.length} registros`);
+            },
+            error: (err) => {
+              this.swal.error(err.error?.mensaje || 'Error al importar datos');
+            },
+          });
+        } catch (err) {
+          this.swal.error('Error al leer el archivo Excel');
+          console.error(err);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }).catch(() => {
+      this.swal.error('Error al cargar el lector de Excel');
+    });
+
+    fileInput.value = '';
   }
 
   onSearchChange(value: string) {
@@ -400,9 +503,9 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   }
 
   prepararNuevoPaciente() {
+    this.filaEnEdicion = null; // Reset edit state to avoid locked fields
     this.pacienteExistenteCargado = false;
     this.esRegistroDirecto = true;
-    this.mostrarRegistro = true;
     this.isEditMode = false;
     this.nuevoPaciente = {
       id_paciente: null,
@@ -417,6 +520,11 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       id_responsable: this.isAseguradorasView ? 2 : null,
       id_cliente: null,
       id_atencion: null,
+      id_especialidad: null,
+      id_medico: null,
+      id_consultorio: null,
+      nombre_servicio_label: '',
+      nombre_medico_label: '',
     };
     this.categoriaServicio = '';
 
@@ -476,8 +584,8 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
   seleccionarPaciente(paciente: any) {
     this.pacienteExistenteCargado = true;
-    this.mostrarRegistro = true;
     this.isEditMode = false;
+    this.abrirModalRegistro();
     this.nuevoPaciente = {
       id_paciente: paciente.id_paciente || paciente.id,
       cedula: paciente.cedula,
@@ -491,10 +599,24 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       id_responsable: null,
       id_cliente: null,
       id_atencion: null,
+      id_especialidad: null,
+      id_medico: null,
+      id_consultorio: null,
+      nombre_servicio_label: '',
+      nombre_medico_label: '',
     };
     this.categoriaServicio = '';
     this.pacientesEncontrados = [];
     this.mostrarResultadosBusqueda = false;
+  }
+
+  private finalizarGuardado(accion?: () => void) {
+    const transcurrido = Date.now() - this.inicioGuardado;
+    const restante = Math.max(0, this.MIN_GUARDADO - transcurrido);
+    setTimeout(() => {
+      if (accion) accion();
+      this.isSaving = false;
+    }, restante);
   }
 
   registrarYContinuar() {
@@ -505,33 +627,38 @@ export class RecepcionComponent implements OnInit, OnDestroy {
         return;
       }
       this.isSaving = true;
+      this.inicioGuardado = Date.now();
 
       if (this.isEditMode && this.nuevoPaciente.id_cliente) {
         this.api
           .put(`admin/aseguradoras/${this.nuevoPaciente.id_cliente}`, { nombre: nombreAseguradora })
           .subscribe({
             next: () => {
-              this.cargarAseguradoras();
-              this.mostrarRegistro = false;
-              this.isSaving = false;
-              this.swal.success('Aseguradora actualizada correctamente');
+              this.finalizarGuardado(() => {
+                this.cargarAseguradoras();
+                this.mostrarRegistro = false;
+                this.swal.success('Aseguradora actualizada correctamente');
+              });
             },
             error: (err: any) => {
-              this.swal.error('Error al actualizar aseguradora');
-              this.isSaving = false;
+              this.finalizarGuardado(() => {
+                this.swal.error('Error al actualizar aseguradora');
+              });
             },
           });
       } else {
         this.api.crearAseguradora({ nombre: nombreAseguradora }).subscribe({
           next: () => {
-            this.cargarAseguradoras();
-            this.mostrarRegistro = false;
-            this.isSaving = false;
-            this.swal.success('Aseguradora registrada correctamente');
+            this.finalizarGuardado(() => {
+              this.cargarAseguradoras();
+              this.mostrarRegistro = false;
+              this.swal.success('Aseguradora registrada correctamente');
+            });
           },
           error: (err: any) => {
-            this.swal.error('Error al registrar aseguradora');
-            this.isSaving = false;
+            this.finalizarGuardado(() => {
+              this.swal.error('Error al registrar aseguradora');
+            });
           },
         });
       }
@@ -550,6 +677,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     }
 
     this.isSaving = true;
+    this.inicioGuardado = Date.now();
 
     if (this.isEditMode) {
       const id_paciente = this.nuevoPaciente.id_paciente;
@@ -568,23 +696,29 @@ export class RecepcionComponent implements OnInit, OnDestroy {
             id_servicio: this.seleccion.id_servicio,
             id_responsable: this.seleccion.id_responsable,
             id_cliente: this.seleccion.id_cliente,
+            id_especialidad: this.seleccion.id_especialidad || null,
+            id_medico: this.seleccion.id_medico || null,
+            id_consultorio: this.seleccion.id_consultorio || null,
           };
           this.api.put(`recepcion/atencion/${id_atencion}`, bodyAtencion).subscribe({
             next: () => {
-              this.isSaving = false;
-              this.mostrarRegistro = false;
-              this.swal.success('Cambios guardados con éxito');
-              this.cargarUltimasAdmisiones();
+              this.finalizarGuardado(() => {
+                this.mostrarRegistro = false;
+                this.swal.success('Cambios guardados con éxito');
+                this.cargarUltimasAdmisiones();
+              });
             },
             error: (err: any) => {
-              this.swal.error('Error al actualizar la atención');
-              this.isSaving = false;
+              this.finalizarGuardado(() => {
+                this.swal.error('Error al actualizar la atención');
+              });
             },
           });
         },
         error: (err: any) => {
-          this.swal.error('Error al actualizar datos del paciente');
-          this.isSaving = false;
+          this.finalizarGuardado(() => {
+            this.swal.error('Error al actualizar datos del paciente');
+          });
         },
       });
       return;
@@ -611,8 +745,9 @@ export class RecepcionComponent implements OnInit, OnDestroy {
         },
         error: (err: any) => {
           console.error('Error registrando:', err);
-          this.isSaving = false;
-          this.swal.error('Error al registrar paciente');
+          this.finalizarGuardado(() => {
+            this.swal.error('Error al registrar paciente');
+          });
         },
       });
     }
@@ -625,24 +760,27 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       id_responsable: this.seleccion.id_responsable,
       id_cliente: this.seleccion.id_cliente,
       id_especialidad: this.seleccion.id_especialidad || null,
+      id_medico: this.seleccion.id_medico || null,
+      id_consultorio: this.seleccion.id_consultorio || null,
     };
 
     this.api.post('recepcion/generar-turno', bodyTurno).subscribe({
       next: (res: any) => {
-        this.isSaving = false;
-        this.mostrarRegistro = false;
-        this.pacienteEncontrado = null;
-        this.cedulaBusqueda = '';
-        this.cdr.detectChanges();
-
-        this.swal.success('Generado con éxito: ' + (res.numero || 'Listo'));
-        this.cargarUltimasAdmisiones();
+        this.finalizarGuardado(() => {
+          this.mostrarRegistro = false;
+          this.pacienteEncontrado = null;
+          this.cedulaBusqueda = '';
+          this.cdr.detectChanges();
+          this.swal.success('Generado con éxito: ' + (res.numero || 'Listo'));
+          this.cargarUltimasAdmisiones();
+        });
       },
       error: (err: any) => {
         console.error('Error al generar turno directo:', err);
-        this.swal.error('Error al asignar el servicio / generar turno.');
-        this.isSaving = false;
-        this.cdr.detectChanges();
+        this.finalizarGuardado(() => {
+          this.swal.error('Error al asignar el servicio / generar turno.');
+          this.cdr.detectChanges();
+        });
       },
     });
   }
@@ -659,30 +797,34 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     }
 
     this.isSaving = true;
+    this.inicioGuardado = Date.now();
     const bodyTurno = {
       id_paciente: this.pacienteEncontrado.id_paciente || this.pacienteEncontrado.id,
       id_servicio: this.seleccion.id_servicio,
       id_responsable: this.seleccion.id_responsable,
       id_cliente: this.seleccion.id_cliente,
       id_especialidad: this.seleccion.id_especialidad || null,
+      id_medico: this.seleccion.id_medico || null,
+      id_consultorio: this.seleccion.id_consultorio || null,
     };
 
     this.api.post('recepcion/generar-turno', bodyTurno).subscribe({
       next: (res: any) => {
-        this.isSaving = false;
-        this.pacienteEncontrado = null;
-        this.mostrarRegistro = false;
-        this.cedulaBusqueda = '';
-        this.cdr.detectChanges();
-
-        this.swal.success('Turno / Servicio asignado con éxito: ' + (res.numero || 'Listo'));
-        this.cargarUltimasAdmisiones();
+        this.finalizarGuardado(() => {
+          this.pacienteEncontrado = null;
+          this.mostrarRegistro = false;
+          this.cedulaBusqueda = '';
+          this.cdr.detectChanges();
+          this.swal.success('Turno / Servicio asignado con éxito: ' + (res.numero || 'Listo'));
+          this.cargarUltimasAdmisiones();
+        });
       },
       error: (err: any) => {
         console.error('Error al asignar servicio:', err);
-        this.swal.error('Error al asignar el servicio');
-        this.isSaving = false;
-        this.cdr.detectChanges();
+        this.finalizarGuardado(() => {
+          this.swal.error('Error al asignar el servicio');
+          this.cdr.detectChanges();
+        });
       },
     });
   }
@@ -693,11 +835,23 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   }
 
   selectPayer(id: number) {
+    if (this.seleccion.id_responsable === id) {
+      this.showPayerDropdown = false;
+      return;
+    }
     this.seleccion.id_responsable = id;
     this.showPayerDropdown = false;
     if (id !== 2) {
       this.seleccion.id_cliente = null;
     }
+    // Reset selections on payer change
+    this.seleccion.id_servicio = null;
+    this.seleccion.id_especialidad = null;
+    this.seleccion.id_medico = null;
+    this.seleccion.id_consultorio = null;
+    this.seleccion.nombre_medico_label = '';
+    this.seleccion.nombre_servicio_label = '';
+    this.categoriaServicio = '';
   }
 
   // --- DROPDOWN ASEGURADORAS ---
@@ -711,9 +865,9 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   }
 
   getNombreAseguradoraSeleccionada(id: any): string {
-    if (!id) return 'Seleccione aseguradora...';
+    if (!id) return 'Seleccione...';
     const asig = this.aseguradoras.find((a) => a.id_cliente === id);
-    return asig ? asig.aseguradora : 'Seleccione aseguradora...';
+    return asig ? asig.aseguradora : 'Seleccione...';
   }
 
   getNombreResponsable(id: any): string {
@@ -767,9 +921,20 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   }
 
   selectCategoria(categoria: string) {
+    if (this.categoriaServicio === categoria) {
+      this.showServiceDropdown = false;
+      return;
+    }
     this.categoriaServicio = categoria;
     this.showServiceDropdown = false;
+
+    // Reset dependent fields
     this.seleccion.id_servicio = null;
+    this.seleccion.id_especialidad = null;
+    this.seleccion.id_medico = null;
+    this.seleccion.id_consultorio = null;
+    this.seleccion.nombre_medico_label = '';
+    this.seleccion.nombre_servicio_label = '';
 
     if (categoria !== 'Consulta') {
       const normalizedSearch = this.normalizeString(categoria);
@@ -800,6 +965,10 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       this.seleccion.id_servicio = item.id_servicio; // El ID del servicio 'CONSULTA'
       this.seleccion.id_especialidad = item.id_especialidad || item.id;
       this.seleccion.nombre_servicio_label = item.nombre || '';
+      // Reset médico al cambiar especialidad
+      this.seleccion.id_medico = null;
+      this.seleccion.id_consultorio = null;
+      this.seleccion.nombre_medico_label = '';
     } else {
       // item es un servicio (Laboratorio/Imagen)
       this.seleccion.id_servicio = item.id || item.id_servicio;
@@ -833,6 +1002,39 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     return [];
   }
 
+  get medicosFiltrados(): any[] {
+    if (!this.seleccion.id_especialidad) return [];
+    return this.medicos.filter((m: any) => {
+      const espId = m.id_especialidad || m.especialidad_id;
+      return espId == this.seleccion.id_especialidad;
+    });
+  }
+
+  toggleMedicoDropdown() {
+    this.showMedicoDropdown = !this.showMedicoDropdown;
+  }
+
+  selectMedico(m: any) {
+    this.seleccion.id_medico = m.id_usuario || m.id;
+    this.seleccion.id_consultorio = m.id_consultorio || m.consultorio_id || null;
+    this.seleccion.nombre_medico_label = ((m.nombre || '') + ' ' + (m.apellido || '')).trim();
+    this.showMedicoDropdown = false;
+  }
+
+  getNombreMedicoLabel(id: any): string {
+    if (!id) return 'Seleccione médico...';
+    if (this.seleccion.nombre_medico_label) return this.seleccion.nombre_medico_label;
+    const m = this.medicos.find((doc: any) => (doc.id_usuario || doc.id) === id);
+    if (m) return ((m.nombre || '') + ' ' + (m.apellido || '')).trim();
+    return 'Seleccione médico...';
+  }
+
+  getMedicoConsultorio(): string {
+    if (!this.seleccion.id_consultorio) return '';
+    const con = this.consultorios.find((c: any) => c.id == this.seleccion.id_consultorio);
+    return con ? con.nombre : '';
+  }
+
   getNombreServicioLabel(id: any): string {
     if (this.seleccion.nombre_servicio_label) return this.seleccion.nombre_servicio_label;
     if (!id) return 'Seleccione...';
@@ -842,22 +1044,22 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   }
 
   // --- ACCIONES DE TABLA ---
-   editarFila(fila: any) {
-     this.filaEnEdicion = fila;
-     this.isEditMode = true;
-     if (this.isAseguradorasView) {
-       this.isSaving = false;
-       this.mostrarRegistro = true;
+  editarFila(fila: any, trigger?: EventTarget | null) {
+    this.filaEnEdicion = fila;
+    this.isEditMode = true;
+    if (this.isAseguradorasView) {
+      this.isSaving = false;
+      this.abrirModalRegistro(trigger);
        this.pacienteExistenteCargado = false;
        this.nuevoPaciente = {
          id_cliente: fila.id_cliente,
          nombre: fila.aseguradora,
          status: true,
        };
-     } else {
-       this.pacienteExistenteCargado = true;
-       this.mostrarRegistro = true;
-       this.nuevoPaciente = {
+      } else {
+        this.pacienteExistenteCargado = true;
+        this.abrirModalRegistro(trigger);
+        this.nuevoPaciente = {
          id_paciente: fila.id_paciente,
          cedula: fila.cedula,
          nombre: fila.nombre,
@@ -866,13 +1068,18 @@ export class RecepcionComponent implements OnInit, OnDestroy {
        };
 
        // Cargar selección de servicio y responsable
-       this.seleccion = {
-         id_servicio: fila.id_servicio,
-         id_responsable: fila.id_responsable,
-         id_cliente: fila.id_cliente,
-         id_atencion: fila.id_atencion,
-         id_especialidad: fila.id_especialidad,
-       };
+        this.seleccion = {
+          id_servicio: fila.id_servicio,
+          id_responsable: fila.id_responsable,
+          id_cliente: fila.id_cliente,
+          id_atencion: fila.id_atencion,
+          id_especialidad: fila.id_especialidad,
+           id_medico: fila.id_medico || null,
+           id_consultorio: fila.id_consultorio || null,
+           nombre_medico_label: fila.nombre_medico || '',
+           nombre_servicio_label: '',
+          nombre_especialidad_label: '',
+        };
 
        this.categoriaServicio = this.getServicioCategoria(fila.nombre_servicio);
        
@@ -880,7 +1087,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
        if (fila.id_especialidad) {
          const esp = this.especialidades.find(e => (e.id_especialidad || e.id) === fila.id_especialidad);
          if (esp) {
-           this.seleccion.nombre_servicio_label = esp.nombre;
+           this.seleccion.nombre_especialidad_label = esp.nombre;
          }
        }
      }

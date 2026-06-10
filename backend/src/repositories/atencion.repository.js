@@ -6,18 +6,23 @@ const getUltimasAdmisiones = async (sede) => {
       a.id_atencion, a.numero,
       a.hora_llegada as fecha_creacion,
       a.hora_salida,
-      a.id_estado_actual, a.id_servicio, a.id_paciente, a.id_especialidad,
+      a.id_estado_actual, a.id_servicio, a.id_paciente, a.id_especialidad, a.id_cliente,
+      a.id_medico, a.id_consultorio,
       p.id_paciente, p.cedula, p.nombre, p.apellido, p.telefono,
       s.nombre_servicio, s.prefijo,
       e.nombre_estado,
       rp.nombre as modalidad_pago,
-      a.id_responsable
+      a.id_responsable,
+      esp.nombre as nombre_especialidad,
+      u.nombre || ' ' || u.apellido as nombre_medico
     FROM "Atencion" a
     JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
     JOIN "Servicio" s ON a.id_servicio = s.id_servicio
     JOIN "Estado" e ON a.id_estado_actual = e.id_estado
     LEFT JOIN "Responsable_Pago" rp ON a.id_responsable = rp.id_responsable
-    WHERE a.id_sede = $1 AND a.hora_llegada >= CURRENT_DATE
+    LEFT JOIN "Especialidades" esp ON a.id_especialidad = esp.id_especialidad
+    LEFT JOIN "Usuarios" u ON a.id_medico = u.id_usuario
+    WHERE a.id_sede = $1 AND a.hora_llegada::date = CURRENT_DATE
     ORDER BY a.hora_llegada DESC
     LIMIT 50`,
     [sede],
@@ -27,7 +32,7 @@ const getUltimasAdmisiones = async (sede) => {
 
 const getAtencionEstado = async (id, sede) => {
   const result = await pool.query(
-    `SELECT id_estado_actual FROM "Atencion" WHERE id_atencion = $1 AND id_sede = $2`,
+    `SELECT id_estado_actual, id_responsable, id_servicio, id_especialidad, id_medico FROM "Atencion" WHERE id_atencion = $1 AND id_sede = $2`,
     [id, sede],
   );
   return result.rows[0] || null;
@@ -39,10 +44,11 @@ const actualizarAtencionConServicio = async (id, sede, data) => {
      SET id_servicio = $1,
          id_responsable = COALESCE($2, id_responsable),
          id_cliente = COALESCE($3, id_cliente),
-         id_especialidad = NULL,
-         id_estado_actual = 2
+         id_especialidad = $6,
+         id_medico = $7,
+         id_consultorio = $8
      WHERE id_atencion = $4 AND id_sede = $5`,
-    [data.id_servicio, data.id_responsable || null, data.id_cliente || null, id, sede],
+    [data.id_servicio, data.id_responsable || null, data.id_cliente || null, id, sede, data.id_especialidad || null, data.id_medico || null, data.id_consultorio || null],
   );
 };
 
@@ -57,8 +63,8 @@ const actualizarAtencionSimple = async (id, sede, data) => {
   );
 };
 
-const eliminarAtencion = async (id, sede) => {
-  await pool.query('DELETE FROM "Atencion" WHERE id_atencion = $1 AND id_sede = $2', [id, sede]);
+const eliminarAtencion = async (client, id, sede) => {
+  await client.query('DELETE FROM "Atencion" WHERE id_atencion = $1 AND id_sede = $2', [id, sede]);
 };
 
 const actualizarEstadoAtencion = async (id, sede, idEstadoNuevo) => {
@@ -89,10 +95,10 @@ const getPrefijoYConteo = async (idServicio, sede) => {
 
 const insertarAtencion = async (data) => {
   const result = await pool.query(
-    `INSERT INTO "Atencion" (id_paciente, id_servicio, id_responsable, id_estado_actual, id_sede, id_usuario_registro, numero, id_cliente, id_especialidad)
-     VALUES ($1, $2, $3, 1, $4, $5, $6, $7, $8)
+    `INSERT INTO "Atencion" (id_paciente, id_servicio, id_responsable, id_estado_actual, id_sede, id_usuario_registro, numero, id_cliente, id_especialidad, id_medico, id_consultorio)
+     VALUES ($1, $2, $3, 1, $4, $5, $6, $7, $8, $9, $10)
      RETURNING id_atencion, numero, hora_llegada`,
-    [data.id_paciente, data.id_servicio, data.id_responsable || null, data.sede, data.usuarioId || null, data.numero, data.id_cliente || null, data.id_especialidad || null],
+    [data.id_paciente, data.id_servicio, data.id_responsable || null, data.sede, data.usuarioId || null, data.numero, data.id_cliente || null, data.id_especialidad || null, data.id_medico || null, data.id_consultorio || null],
   );
   return result.rows[0];
 };
@@ -441,12 +447,14 @@ const getSalaEspera = async () => {
       p.nombre, p.apellido, p.cedula,
       s.nombre_servicio, s.prefijo, s.id_servicio,
       e.nombre_estado,
-      c.nombre as consultorio_nombre
+      c.nombre as consultorio_nombre,
+      esp.nombre as nombre_especialidad
     FROM "Atencion" a
     JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
     JOIN "Servicio" s ON a.id_servicio = s.id_servicio
     JOIN "Estado" e ON a.id_estado_actual = e.id_estado
     LEFT JOIN "Consultorios" c ON a.id_consultorio = c.id_consultorio
+    LEFT JOIN "Especialidades" esp ON a.id_especialidad = esp.id_especialidad
     LEFT JOIN "Historial_Atencion" h ON a.id_atencion = h.id_atencion
     WHERE a.hora_llegada >= CURRENT_DATE
       AND a.id_estado_actual = 4

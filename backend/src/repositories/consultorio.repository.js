@@ -1,12 +1,16 @@
 const pool = require('../config/db');
 
 const getConsultoriosBySede = async (sede) => {
-  const result = await pool.query(
-    `SELECT id_consultorio as id, nombre, estado_fisico as estado, id_servicio as servicio_id
-     FROM "Consultorios"
-     WHERE id_sede = $1`,
-    [sede],
-  );
+  let query = `SELECT id_consultorio as id, nombre, estado_fisico as estado, id_servicio as servicio_id
+     FROM "Consultorios"`;
+  const params = [];
+  
+  if (sede && Number(sede) !== 0) {
+    query += ` WHERE id_sede = $1`;
+    params.push(Number(sede));
+  }
+  
+  const result = await pool.query(query, params);
   return result.rows;
 };
 

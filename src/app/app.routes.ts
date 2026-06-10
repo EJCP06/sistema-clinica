@@ -10,30 +10,30 @@ export const routes: Routes = [
 
   // Panel de Administración (Solo Admin)
   {
-    path: 'admin',
+    path: 'administrador',
     loadComponent: () => import('./features/admin/admin').then(m => m.Admin),
-    canActivate: [authGuard, roleGuard(['admin'])]
+    canActivate: [authGuard, roleGuard(['administrador'])]
   },
 
   // Módulo de Recepción y Admisión (Admin y Recepcionista)
   {
     path: 'recepcion',
     loadComponent: () => import('./features/recepcion/recepcion').then(m => m.RecepcionComponent),
-    canActivate: [authGuard, roleGuard(['recepcionista', 'admin'])]
+    canActivate: [authGuard, roleGuard(['recepcionista', 'administrador'])]
   },
 
   // Módulo de APS (Atención Primaria en Salud)
   {
     path: 'aps',
     loadComponent: () => import('./features/aps/aps').then(m => m.ApsComponent),
-    canActivate: [authGuard, roleGuard(['aps', 'admin', 'laboratorio', 'imagenes'])]
+    canActivate: [authGuard, roleGuard(['coordinador', 'analista', 'administrador', 'laboratorio', 'imagenes'])]
   },
 
   // Pantalla de Aseguradoras (APS y Admin)
   {
     path: 'aseguradoras',
     loadComponent: () => import('./features/recepcion/recepcion').then(m => m.RecepcionComponent),
-    canActivate: [authGuard, roleGuard(['aps', 'admin'])],
+    canActivate: [authGuard, roleGuard(['coordinador', 'analista', 'administrador'])],
     data: {
       pageTitle: 'Aseguradoras',
       pageSubtitle: 'Gestión de aseguradoras',
@@ -53,14 +53,14 @@ export const routes: Routes = [
   {
     path: 'atencion-laboratorio',
     loadComponent: () => import('./features/laboratorio/laboratorio').then(m => m.LaboratorioComponent),
-    canActivate: [authGuard, roleGuard(['laboratorio', 'admin'])]
+    canActivate: [authGuard, roleGuard(['laboratorio', 'administrador'])]
   },
 
   // Panel de Atención Imágenes (Solo Imágenes)
   {
     path: 'atencion-imagenes',
     loadComponent: () => import('./features/imagenes/imagenes').then(m => m.ImagenesComponent),
-    canActivate: [authGuard, roleGuard(['imagenes', 'admin'])]
+    canActivate: [authGuard, roleGuard(['imagenes', 'administrador'])]
   },
 
   // Pantalla Pública del Turnero (Acceso público para TVs)

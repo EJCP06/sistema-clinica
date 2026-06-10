@@ -14,7 +14,12 @@ const insertSinTransaccion = async (idAtencion, idEstado) => {
   );
 };
 
+const deleteByAtencion = async (client, idAtencion) => {
+  await client.query('DELETE FROM "Historial_Atencion" WHERE id_atencion = $1', [idAtencion]);
+};
+
 module.exports = {
   insert,
   insertSinTransaccion,
+  deleteByAtencion,
 };

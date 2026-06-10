@@ -12,7 +12,7 @@ const validar = (req, res, next) => {
 };
 
 router.use(authMiddleware);
-router.use(roleMiddleware('medico', 'admin'));
+router.use(roleMiddleware('medico', 'administrador'));
 
 router.get('/espera', medicoController.getPacientesEnEspera);
 router.get('/atendidos-hoy', medicoController.getAtendidosHoy);

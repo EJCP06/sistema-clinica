@@ -199,38 +199,51 @@ export class Login implements OnDestroy {
     });
   }
 
-    iniciarSesion() {
+    async iniciarSesion() {
      if (!this.cedula || !this.password) {
-       this.swal.warning('Por favor ingrese su cédula y contraseña.');
-       return;
-     }
-     this.cargando = true;
+        this.swal.warning('Por favor ingrese su cédula y contraseña.');
+        return;
+      }
+      this.cargando = true;
+      const inicio = Date.now();
+      const MIN_CARGANDO = 800;
 
-     this.auth.login(this.cedula, this.password).subscribe({
-       next: (response) => {
-         const usuario = this.auth.usuarioActual;
-         if (usuario) {
-           const rol = usuario.rol;
-           if (rol === 'admin') this.router.navigate(['/admin']);
-           else if (rol === 'recepcionista') this.router.navigate(['/recepcion']);
-           else if (rol === 'medico') this.router.navigate(['/atencion']);
-           else if (rol === 'aps') this.router.navigate(['/aps']);
-           else if (rol === 'laboratorio') {
-             if (usuario.consultorio_id) this.router.navigate(['/atencion'], { queryParams: { tipo: 'laboratorio' } });
-             else this.router.navigate(['/atencion-laboratorio']);
-           }
-           else if (rol === 'imagenes') {
-             if (usuario.consultorio_id) this.router.navigate(['/atencion'], { queryParams: { tipo: 'imagenes' } });
-             else this.router.navigate(['/atencion-imagenes']);
-           }
-           else this.router.navigate(['/atencion']);
-         }
-         // Keep cargando true during redirect - it will be reset on new page load
-       },
-       error: (err: any) => {
-         this.cargando = false;
-         this.swal.error(err.error?.mensaje || err.message || 'Error de autenticación');
-       }
-     });
-   }
-}
+      this.auth.login(this.cedula, this.password).subscribe({
+        next: (response) => this.procesarLogin(response, inicio),
+        error: (err: any) => {
+          const elapsed = Date.now() - inicio;
+          const restante = Math.max(0, MIN_CARGANDO - elapsed);
+          const mostrarError = () => {
+            this.cargando = false;
+            this.swal.error(err.error?.mensaje || err.message || 'Error de autenticación');
+          };
+          if (restante > 0) setTimeout(mostrarError, restante);
+          else mostrarError();
+        }
+      });
+    }
+
+    private async procesarLogin(response: any, inicio: number) {
+      const elapsed = Date.now() - inicio;
+      if (elapsed < 800) {
+        await new Promise(r => setTimeout(r, 800 - elapsed));
+      }
+      this.cargando = false;
+      const usuario = this.auth.usuarioActual;
+      if (!usuario) return;
+      const rol = usuario.rol;
+      if (rol === 'administrador') this.router.navigate(['/administrador']);
+      else if (rol === 'recepcionista') this.router.navigate(['/recepcion']);
+      else if (rol === 'medico') this.router.navigate(['/atencion']);
+      else if (rol === 'coordinador' || rol === 'analista') this.router.navigate(['/aps']);
+      else if (rol === 'laboratorio') {
+        if (usuario.consultorio_id) this.router.navigate(['/atencion'], { queryParams: { tipo: 'laboratorio' } });
+        else this.router.navigate(['/atencion-laboratorio']);
+      }
+      else if (rol === 'imagenes') {
+        if (usuario.consultorio_id) this.router.navigate(['/atencion'], { queryParams: { tipo: 'imagenes' } });
+        else this.router.navigate(['/atencion-imagenes']);
+      }
+      else this.router.navigate(['/atencion']);
+    }
+  }

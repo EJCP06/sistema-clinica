@@ -10,17 +10,17 @@ const adminController = require('../controllers/admin.controller');
 router.use(authMiddleware);
 
 // --- Rutas médico (requieren rol medico o admin) ---
-router.get('/mi-estado', roleMiddleware('medico', 'admin', 'laboratorio', 'imagenes'), consultoriosController.obtenerMiEstado);
-router.post('/llamar-siguiente', roleMiddleware('medico', 'admin', 'laboratorio', 'imagenes'), consultoriosController.llamarSiguiente);
-router.post('/iniciar-atencion', roleMiddleware('medico', 'admin', 'laboratorio', 'imagenes'), consultoriosController.iniciarAtencion);
-router.post('/finalizar-atencion', roleMiddleware('medico', 'admin', 'laboratorio', 'imagenes'), consultoriosController.finalizarAtencion);
-router.post('/liberar-consultorio', roleMiddleware('medico', 'admin', 'laboratorio', 'imagenes'), consultoriosController.liberarConsultorio);
+router.get('/mi-estado', roleMiddleware('medico', 'administrador', 'laboratorio', 'imagenes'), consultoriosController.obtenerMiEstado);
+router.post('/llamar-siguiente', roleMiddleware('medico', 'administrador', 'laboratorio', 'imagenes'), consultoriosController.llamarSiguiente);
+router.post('/iniciar-atencion', roleMiddleware('medico', 'administrador', 'laboratorio', 'imagenes'), consultoriosController.iniciarAtencion);
+router.post('/finalizar-atencion', roleMiddleware('medico', 'administrador', 'laboratorio', 'imagenes'), consultoriosController.finalizarAtencion);
+router.post('/liberar-consultorio', roleMiddleware('medico', 'administrador', 'laboratorio', 'imagenes'), consultoriosController.liberarConsultorio);
 
 // --- Rutas CRUD admin (requieren rol admin) ---
-router.get('/', roleMiddleware('admin', 'medico', 'recepcionista'), adminController.getConsultorios);
+router.get('/', roleMiddleware('administrador', 'medico', 'recepcionista'), adminController.getConsultorios);
 router.post(
   '/',
-  roleMiddleware('admin'),
+  roleMiddleware('administrador'),
   [
     body('nombre').isString().notEmpty().withMessage('El nombre del consultorio es obligatorio'),
     body('servicio_id').isInt().withMessage('El servicio es obligatorio'),
@@ -33,7 +33,7 @@ router.post(
     return adminController.crearConsultorio(req, res, next);
   }
 );
-router.put('/:id', roleMiddleware('admin'), adminController.actualizarConsultorio);
-router.delete('/:id', roleMiddleware('admin'), adminController.eliminarConsultorio);
+router.put('/:id', roleMiddleware('administrador'), adminController.actualizarConsultorio);
+router.delete('/:id', roleMiddleware('administrador'), adminController.eliminarConsultorio);
 
 module.exports = router;

@@ -1,15 +1,31 @@
 const pool = require('../config/db');
 
+const findByCedulas = async (cedulas) => {
+  if (!cedulas || cedulas.length === 0) return [];
+  const placeholders = cedulas.map((_, i) => `$${i + 1}`).join(',');
+  const result = await pool.query(
+    `SELECT cedula FROM "Usuarios" WHERE cedula IN (${placeholders})`,
+    cedulas,
+  );
+  return result.rows;
+};
+
 const findByCedula = async (cedula) => {
   const result = await pool.query(`
-    SELECT u.id_usuario as id, u.cedula, u.password_hash, u.rol, u.nombre, u.apellido,
+    SELECT u.id_usuario as id, u.cedula, u.password_hash, r.key as rol, u.id_rol, u.nombre, u.apellido,
            u.id_servicio as servicio_id, u.id_consultorio as consultorio_id, u.id_sede,
-           u.id_especialidad, e.nombre as especialidad_nombre
+           u.id_especialidad, e.nombre as especialidad_nombre,
+           u.sesion_token
     FROM "Usuarios" u
+    LEFT JOIN "Roles" r ON u.id_rol = r.id_rol
     LEFT JOIN "Especialidades" e ON u.id_especialidad = e.id_especialidad
     WHERE u.cedula = $1
   `, [cedula]);
   return result.rows[0] || null;
+};
+
+const actualizarSesionToken = async (id, token) => {
+  await pool.query('UPDATE "Usuarios" SET sesion_token = $1 WHERE id_usuario = $2', [token, id]);
 };
 
 const findByCedulaSimple = async (cedula) => {
@@ -33,40 +49,81 @@ const deleteByCedula = async (cedula) => {
   await pool.query('DELETE FROM "Usuarios" WHERE cedula = $1', [cedula]);
 };
 
-const insertAdmin = async (hash, rol, nombre, apellido, cedula, idSede, status) => {
+const insertAdmin = async (hash, rolKey, nombre, apellido, cedula, idSede, status) => {
+  // Primero buscamos el id_rol por el key
+  const rolRes = await pool.query('SELECT id_rol FROM "Roles" WHERE key = $1', [rolKey]);
+  const idRol = rolRes.rows[0]?.id_rol;
+  
+  if (!idRol) throw new Error(`Rol no encontrado: ${rolKey}`);
+
   await pool.query(
-    'INSERT INTO "Usuarios" (password_hash, rol, nombre, apellido, cedula, id_sede, status) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-    [hash, rol, nombre, apellido, cedula, idSede, status],
+    'INSERT INTO "Usuarios" (password_hash, id_rol, nombre, apellido, cedula, id_sede, status) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+    [hash, idRol, nombre, apellido, cedula, idSede, status],
   );
 };
 
-const getPersonal = async (sede) => {
-  const result = await pool.query(
-    `SELECT
-      u.id_usuario, u.cedula, u.rol, u.nombre, u.apellido, u.telefono, u.email,
+const getPersonal = async (sede, rolKey) => {
+  let query = `SELECT
+      u.id_usuario, u.cedula, r.key as rol, u.id_rol, u.nombre, u.apellido, u.telefono, u.email,
       u.piso, u.id_consultorio, u.id_servicio, u.id_especialidad, u.id_sede, u.status,
       u.fecha_creacion, c.nombre AS consultorio_nombre, s.nombre_servicio AS servicio_nombre
     FROM "Usuarios" u
+    LEFT JOIN "Roles" r ON u.id_rol = r.id_rol
     LEFT JOIN "Consultorios" c ON u.id_consultorio = c.id_consultorio
-    LEFT JOIN "Servicio" s ON u.id_servicio = s.id_servicio
-    WHERE u.id_sede = $1
-    ORDER BY u.nombre, u.apellido`,
-    [sede],
-  );
+    LEFT JOIN "Servicio" s ON u.id_servicio = s.id_servicio`;
+  const params = [];
+  const condiciones = [];
+
+  if (sede && Number(sede) !== 0) {
+    condiciones.push(`u.id_sede = $1`);
+    params.push(Number(sede));
+  }
+
+  if (rolKey) {
+    condiciones.push(`r.key = $${params.length + 1}`);
+    params.push(rolKey);
+  }
+
+  if (condiciones.length > 0) {
+    query += ` WHERE ${condiciones.join(' AND ')}`;
+  }
+  query += ` ORDER BY u.nombre, u.apellido`;
+  const result = await pool.query(query, params);
   return result.rows;
 };
 
 const crearPersonal = async (data) => {
+  // Buscamos el id_rol si se pasa el key (rol)
+  let idRol = data.id_rol;
+  if (!idRol && data.rol) {
+    const rolRes = await pool.query('SELECT id_rol FROM "Roles" WHERE key = $1', [data.rol]);
+    idRol = rolRes.rows[0]?.id_rol;
+  }
+
+  if (!idRol) throw new Error('Se requiere un rol válido');
+
   const result = await pool.query(
-    `INSERT INTO "Usuarios" (cedula, nombre, apellido, telefono, email, password_hash, rol, piso, id_consultorio, id_servicio, id_especialidad, id_sede, status)
+    `INSERT INTO "Usuarios" (cedula, nombre, apellido, telefono, email, password_hash, id_rol, piso, id_consultorio, id_servicio, id_especialidad, id_sede, status)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
      RETURNING id_usuario`,
-    [data.cedula, data.nombre, data.apellido, data.telefono, data.email, data.password_hash, data.rol, data.piso, data.id_consultorio, data.id_servicio, data.id_especialidad, data.sede, data.status],
+    [data.cedula, data.nombre, data.apellido, data.telefono, data.email, data.password_hash, idRol, data.piso, data.id_consultorio, data.id_servicio, data.id_especialidad, data.sede, data.status],
   );
   return result.rows[0];
 };
 
 const actualizarPersonal = async (id, sede, sets, values, idx) => {
+  // Si se está intentando actualizar el 'rol' (que ahora es id_rol)
+  const rolIdx = sets.findIndex((s) => s.startsWith('rol ='));
+  if (rolIdx !== -1) {
+    const rolKey = values[rolIdx];
+    const rolRes = await pool.query('SELECT id_rol FROM "Roles" WHERE key = $1', [rolKey]);
+    const idRol = rolRes.rows[0]?.id_rol;
+    if (idRol) {
+      sets[rolIdx] = `id_rol = $${rolIdx + 1}`;
+      values[rolIdx] = idRol;
+    }
+  }
+
   values.push(id, sede);
   await pool.query(
     `UPDATE "Usuarios" SET ${sets.join(', ')} WHERE id_usuario = $${idx} AND id_sede = $${idx + 1}`,
@@ -76,15 +133,17 @@ const actualizarPersonal = async (id, sede, sets, values, idx) => {
 
 const eliminarPersonal = async (id, sede) => {
   const result = await pool.query(
-    'DELETE FROM "Usuarios" WHERE id_usuario = $1 AND id_sede = $2 RETURNING id_usuario',
+    'UPDATE "Usuarios" SET status = false WHERE id_usuario = $1 AND id_sede = $2 RETURNING id_usuario',
     [id, sede],
   );
   return result.rowCount > 0;
 };
 
 module.exports = {
+  findByCedulas,
   findByCedula,
   findByCedulaSimple,
+  actualizarSesionToken,
   updatePasswordByCedula,
   findByCedulaAndEmail,
   deleteByCedula,

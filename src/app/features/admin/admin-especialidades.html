@@ -1,5 +1,10 @@
 <div class="space-y-8 animate-in fade-in duration-500">
   <div class="flex flex-col sm:flex-row justify-end items-stretch sm:items-center gap-3">
+    <input #excelInput type="file" accept=".xlsx,.xls" (change)="importExcel(excelInput)" class="hidden" />
+    <button (click)="excelInput.click()" class="px-6 py-4 sm:py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 group whitespace-nowrap font-bold text-sm">
+      <lucide-icon [name]="Upload" class="w-4 h-4"></lucide-icon>
+      Importar Excel
+    </button>
     <button (click)="openModalEsp()" class="px-6 py-4 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-lg shadow-blue-600/20 transition-all flex items-center justify-center gap-2 group whitespace-nowrap font-bold text-sm">
       <lucide-icon [name]="Plus" class="w-4 h-4"></lucide-icon>
       Nueva Especialidad
@@ -51,7 +56,7 @@
             <th class="px-3 md:px-6 py-3 md:py-4 text-center">Consultorio</th>
             <th class="px-3 md:px-6 py-3 md:py-4 text-center">Sede</th>
             <th class="px-3 md:px-6 py-3 md:py-4 text-center">Estado</th>
-            <th class="px-3 md:px-6 py-3 md:py-4 text-right">Acciones</th>
+            <th class="px-3 md:px-6 py-3 md:py-4 text-center">Acciones</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
@@ -116,7 +121,7 @@
     <div class="p-4 md:p-8 space-y-6 flex-1 overflow-y-auto md:overflow-visible">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="space-y-1.5">
-          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Nombre de la Especialidad</label>
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Nombre <span class="text-rose-500">*</span></label>
           <input [(ngModel)]="formEsp.nombre" (keypress)="soloLetras($event)" placeholder="Ej: Cardiología" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
         </div>
         <div class="space-y-1.5">
@@ -165,9 +170,12 @@
     </div>
     <div class="p-4 md:p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 shrink-0">
       <button type="button" [disabled]="isSaving" (click)="showModalEspecialidad = false" class="px-5 md:px-8 py-3 md:py-4 bg-slate-500 hover:bg-slate-600 text-white font-black text-[11px] uppercase tracking-[2px] rounded-[20px] transition-all disabled:opacity-50 shadow-lg shadow-slate-500/20 dark:shadow-slate-950/50">CANCELAR</button>
-      <button type="button" [disabled]="isSaving" (click)="guardarEsp()" class="px-10 py-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-[11px] uppercase tracking-[2px] rounded-[20px] shadow-lg shadow-blue-600/20 dark:shadow-blue-950/50 transition-all flex items-center gap-2 disabled:opacity-50">
-        <span *ngIf="isSaving" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-        {{ isSaving ? (isEditing ? 'GUARDANDO...' : 'CREANDO...') : isEditing ? 'GUARDAR' : 'CREAR' }}
+      <button type="button" [disabled]="isSaving" (click)="guardarEsp()" class="px-4 md:px-10 py-3 md:py-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-[11px] uppercase tracking-[2px] rounded-[20px] shadow-lg shadow-blue-600/20 dark:shadow-blue-950/50 transition-all flex items-center gap-3 disabled:opacity-50">
+        <span *ngIf="!isSaving" class="flex items-center gap-2">{{ isEditing ? 'GUARDAR' : 'CREAR' }}</span>
+        <div *ngIf="isSaving" class="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-700">
+          <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+          <span class="animate-pulse">{{ isEditing ? 'guardando...' : 'creando...' }}</span>
+        </div>
       </button>
     </div>
   </div>

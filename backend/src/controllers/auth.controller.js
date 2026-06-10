@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const usuarioRepo = require('../repositories/usuario.repository');
@@ -22,6 +23,13 @@ const login = async (req, res) => {
       return res.status(401).json({ mensaje: 'Contraseña inválida' });
     }
 
+    // Permitimos el login siempre, lo que invalidará cualquier sesión previa 
+    // al generar un nuevo sesion_token. Esto soluciona el problema de quedar bloqueado
+    // si se cierra la pestaña sin cerrar sesión.
+    
+    const sesionToken = crypto.randomUUID();
+    await usuarioRepo.actualizarSesionToken(usuario.id, sesionToken);
+
     const payload = {
       id: usuario.id,
       cedula: usuario.cedula,
@@ -31,7 +39,8 @@ const login = async (req, res) => {
       consultorio_id: usuario.consultorio_id,
       id_sede: usuario.id_sede,
       id_especialidad: usuario.id_especialidad,
-      especialidad_nombre: usuario.especialidad_nombre
+      especialidad_nombre: usuario.especialidad_nombre,
+      sesion_token: sesionToken
     };
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' });
@@ -43,7 +52,7 @@ const login = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ mensaje: 'Error interno' });
+      res.status(500).json({ mensaje: 'Error interno' });
   }
 };
 
@@ -56,7 +65,7 @@ const superSeed = async (req, res) => {
     const hash = await bcrypt.hash('123456', salt);
 
     await usuarioRepo.deleteByCedula('00000000');
-    await usuarioRepo.insertAdmin(hash, 'admin', 'ADMIN', 'SISTEMA', '00000000', 1, true);
+    await usuarioRepo.insertAdmin(hash, 'administrador', 'ADMIN', 'SISTEMA', '00000000', 1, true);
 
     res.json({ mensaje: 'Admin restaurado. Cédula: 00000000, Pass: 123456' });
   } catch (error) {
@@ -90,8 +99,18 @@ const cambiarPassword = async (req, res) => {
   }
 };
 
+const cerrarSesion = async (req, res) => {
+  try {
+    await usuarioRepo.actualizarSesionToken(req.usuario.id, null);
+    res.json({ mensaje: 'Sesión cerrada exitosamente' });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al cerrar sesión' });
+  }
+};
+
 module.exports = {
   login,
   superSeed,
-  cambiarPassword
+  cambiarPassword,
+  cerrarSesion,
 };

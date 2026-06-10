@@ -11,35 +11,31 @@ import { Sidebar } from '../../shared/components/sidebar/sidebar';
 import { AdminReports } from './admin-reports';
 import { AdminPersonal } from './admin-personal';
 import { AdminEspecialidades } from './admin-especialidades';
+import { AdminRoles } from './admin-roles';
 
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule, FormsModule, Sidebar, Header, AdminReports, AdminPersonal, AdminEspecialidades],
+  imports: [CommonModule, FormsModule, Sidebar, Header, AdminReports, AdminPersonal, AdminEspecialidades, AdminRoles],
   templateUrl: './admin.html',
   styles: [],
 })
 export class Admin implements OnInit {
-  private apiService = inject(ApiService);
-  private authService = inject(AuthService);
-  private themeService = inject(ThemeService);
-  private route = inject(ActivatedRoute);
-  private destroyRef = inject(DestroyRef);
+   private apiService = inject(ApiService);
+   private authService = inject(AuthService);
+   private themeService = inject(ThemeService);
+   private route = inject(ActivatedRoute);
+   private destroyRef = inject(DestroyRef);
 
-  usuario = this.authService.usuarioActual;
+   usuario = this.authService.usuarioActual;
 
-  activeTab:
-    | 'reports'
-    | 'stats'
-    | 'config'
-    | 'personal'
-    | 'especialidades'
-    | 'medicos'
-    | 'recepcionistas'
-    | 'administradores'
-    | 'laboratorio'
-    | 'imagenes'
-    | 'aps' = 'reports';
+   activeTab:
+     | 'reports'
+     | 'stats'
+     | 'config'
+     | 'personal'
+     | 'especialidades'
+     | 'roles' = 'personal';
 
   configExpanded = true;
   sidebarOpen = false;
