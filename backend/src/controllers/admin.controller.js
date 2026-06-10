@@ -1,22 +1,27 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const logger = require('../config/logger');
+const pool = require('../config/db');
 const atencionRepo = require('../repositories/atencion.repository');
 const servicioRepo = require('../repositories/servicio.repository');
 const consultorioRepo = require('../repositories/consultorio.repository');
 const sharedRepo = require('../repositories/shared.repository');
 const usuarioRepo = require('../repositories/usuario.repository');
+const rolRepo = require('../repositories/rol.repository');
 
 /* =========================================================
    UTILIDAD SEGURA (EVITA 500 POR req.usuario UNDEFINED)
 ========================================================= */
 const getSede = (req, res) => {
   const sede = req.usuario?.id_sede;
-  if (!sede) {
+  const rol = req.usuario?.rol;
+  console.log(`DEBUG: Usuario ${req.usuario?.cedula} (Rol: ${rol}) accediendo a Sede: ${sede}`);
+  
+  if (sede === undefined || sede === null) {
     res.status(401).json({ mensaje: 'Token inválido o sin sede' });
     return null;
   }
-  return sede;
+  return Number(sede);
 };
 
 /* =========================================================
@@ -72,8 +77,11 @@ const getReporteDiario = async (req, res) => {
 ========================================================= */
 
 const getServicios = async (req, res) => {
+  const sede = getSede(req, res);
+  if (!sede) return;
+
   try {
-    const rows = await servicioRepo.getAll();
+    const rows = await servicioRepo.getAll(sede);
     res.json(rows);
   } catch (error) {
     logger.error(error);
@@ -206,7 +214,8 @@ const getPersonal = async (req, res) => {
   if (!sede) return;
 
   try {
-    const rows = await usuarioRepo.getPersonal(sede);
+    const { rol } = req.query;
+    const rows = await usuarioRepo.getPersonal(sede, rol);
     res.json(rows);
   } catch (error) {
     logger.error(error);
@@ -240,6 +249,11 @@ const crearPersonal = async (req, res) => {
       return res.status(400).json({ mensaje: 'Cédula, nombre y rol son requeridos' });
     }
 
+    const existe = await usuarioRepo.findByCedulaSimple(cedula);
+    if (existe) {
+      return res.status(409).json({ mensaje: 'Ya existe un usuario con esa cédula' });
+    }
+
     const password_hash = password
       ? await bcrypt.hash(password, 10)
       : await bcrypt.hash(crypto.randomBytes(6).toString('hex'), 10);
@@ -266,7 +280,7 @@ const crearPersonal = async (req, res) => {
   } catch (error) {
     logger.error(error);
     if (error.code === '23505') {
-      return res.status(400).json({ mensaje: 'Ya existe un usuario con esa cédula' });
+      return res.status(409).json({ mensaje: 'Ya existe un usuario con esa cédula' });
     }
     res.status(500).json({ mensaje: 'Error al crear personal' });
   }
@@ -360,7 +374,7 @@ const actualizarPersonal = async (req, res) => {
   } catch (error) {
     logger.error(error);
     if (error.code === '23505') {
-      return res.status(400).json({ mensaje: 'Ya existe un usuario con esa cédula' });
+      return res.status(409).json({ mensaje: 'Ya existe un usuario con esa cédula' });
     }
     res.status(500).json({ mensaje: 'Error al actualizar personal' });
   }
@@ -378,10 +392,203 @@ const eliminarPersonal = async (req, res) => {
       return res.status(404).json({ mensaje: 'Usuario no encontrado' });
     }
 
-    res.json({ mensaje: 'Personal eliminado' });
+    res.json({ mensaje: 'Personal desactivado' });
   } catch (error) {
     logger.error(error);
     res.status(500).json({ mensaje: 'Error al eliminar personal' });
+  }
+};
+
+/* =========================================================
+   IMPORTAR PERSONAL (Excel)
+========================================================= */
+
+const importarPersonal = async (req, res) => {
+  const sedeToken = getSede(req, res);
+  if (!sedeToken) return;
+
+  const { rows, rol: rolGlobal } = req.body;
+  if (!rows || !Array.isArray(rows) || rows.length === 0) {
+    return res.status(400).json({ mensaje: 'No hay datos para importar' });
+  }
+
+  let importados = 0;
+  let omitidos = 0;
+  let errores = 0;
+
+  // Obtener cédulas existentes para evitar duplicados
+  const cedulasExcel = rows.map(r =>
+    String(r.cedula || r.Cedula || r.CÉDULA || r.documento || r.Documento || '').replace(/\D/g, '')
+  ).filter(c => c);
+  const existentes = await usuarioRepo.findByCedulas(cedulasExcel);
+  const cedulasExistentes = new Set(existentes.map((u) => u.cedula));
+
+  // Auxiliar para normalizar roles (ej: "Médico" -> "medico")
+  const normalizarRol = (r) => {
+    if (!r) return null;
+    return String(r).toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]/g, "")
+      .trim();
+  };
+
+  for (const row of rows) {
+    try {
+      const cedula = String(row.cedula || row.Cedula || row.CÉDULA || row.documento || row.Documento || '').replace(/\D/g, '');
+      const nombre = (row.nombre || row.Nombre || row.NOMBRE || '').toString().toUpperCase().trim();
+      const apellido = (row.apellido || row.Apellido || row.APELLIDO || '').toString().toUpperCase().trim();
+      const telefono = (row.telefono || row.Teléfono || row.TELEFONO || row.Telefono || row.telefono || '').toString().replace(/\D/g, '');
+      const email = (row.email || row.Email || row.EMAIL || row.correo || row.Correo || '').toString().toLowerCase().trim() || null;
+      const piso = row.piso || row.Piso || row.PISO || null;
+      
+      // Detectar rol de la fila o usar el global
+      const rolFila = row.rol || row.Rol || row.ROL || row.puesto || row.Puesto || row.cargo || row.Cargo || null;
+      const rolFinal = normalizarRol(rolFila) || normalizarRol(rolGlobal) || 'medico';
+
+      if (!cedula || !nombre) {
+        errores++;
+        continue;
+      }
+
+      if (cedulasExistentes.has(cedula)) {
+        omitidos++;
+        continue;
+      }
+
+      const password_hash = await bcrypt.hash(crypto.randomBytes(6).toString('hex'), 10);
+      const sedeFinal = row.id_sede || row.sede || sedeToken;
+      const idConsultorio = row.id_consultorio || row.consultorio_id || null;
+      const idServicio = row.id_servicio || row.servicio_id || null;
+      const idEspecialidad = row.id_especialidad || row.especialidad_id || null;
+
+      await usuarioRepo.crearPersonal({
+        cedula,
+        nombre,
+        apellido: apellido || '',
+        telefono: telefono || '',
+        email: email || null,
+        password_hash,
+        rol: rolFinal,
+        piso: piso ? String(piso) : null,
+        id_consultorio: idConsultorio ? Number(idConsultorio) : null,
+        id_servicio: idServicio ? Number(idServicio) : null,
+        id_especialidad: idEspecialidad ? Number(idEspecialidad) : null,
+        sede: Number(sedeFinal),
+        status: row.status !== undefined ? !!row.status : true,
+      });
+      importados++;
+    } catch (error) {
+      logger.error('Error al importar personal:', { error: error.message, row });
+      errores++;
+    }
+  }
+
+  res.json({
+    mensaje: `Importación completada: ${importados},\n${omitidos} ya existían, ${errores} errores`,
+    importados,
+    omitidos,
+    errores,
+  });
+};
+
+/* =========================================================
+   ROLES
+========================================================= */
+
+const getRoles = async (req, res) => {
+  try {
+    const sede = req.usuario?.id_sede;
+    const rows = await rolRepo.getAll(sede);
+    res.json(rows);
+  } catch (error) {
+    logger.error(error);
+    res.status(500).json({ mensaje: 'Error al obtener roles' });
+  }
+};
+
+const crearRol = async (req, res) => {
+  try {
+    let { nombre, id_sede, activo } = req.body;
+    if (!nombre) {
+      return res.status(400).json({ mensaje: 'El nombre del rol es requerido' });
+    }
+
+    // Nombre: MAYÚSCULAS, sin acentos, sin espacios
+    const nombreLimpio = nombre
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // remover acentos
+      .replace(/\s+/g, "")             // remover espacios
+      .toUpperCase()
+      .trim();
+    
+    // Generar Key automáticamente: minúsculas, sin acentos, con guiones bajos para legibilidad en código
+    const key = nombre.toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_+|_+$/g, "");
+
+    await rolRepo.create(nombreLimpio, key, id_sede, activo);
+    res.status(201).json({ mensaje: 'Rol creado' });
+  } catch (error) {
+    logger.error(error);
+    if (error.code === '23505') {
+      return res.status(409).json({ mensaje: 'Ya existe un rol con este nombre o clave' });
+    }
+    res.status(500).json({ mensaje: 'Error al crear rol' });
+  }
+};
+
+const actualizarRol = async (req, res) => {
+  try {
+    const { id } = req.params;
+    let { nombre, id_sede, activo } = req.body;
+
+    let nombreLimpio = undefined;
+    let key = undefined;
+
+    if (nombre) {
+      nombreLimpio = nombre
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, "")
+        .toUpperCase()
+        .trim();
+
+      key = nombre.toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/g, "_")
+        .replace(/_+/g, "_")
+        .replace(/^_+|_+$/g, "");
+    }
+
+    await rolRepo.update(id, nombreLimpio, key, id_sede, activo);
+    res.json({ mensaje: 'Rol actualizado' });
+  } catch (error) {
+    logger.error(error);
+    if (error.code === '23505') {
+      return res.status(409).json({ mensaje: 'Ya existe un rol con este nombre o clave' });
+    }
+    res.status(500).json({ mensaje: 'Error al actualizar rol' });
+  }
+};
+
+const eliminarRol = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('Intentando eliminar rol ID:', id);
+    await rolRepo.remove(id);
+    res.json({ mensaje: 'Rol eliminado' });
+  } catch (error) {
+    console.error('Error al eliminar rol, detalles:', error);
+    logger.error('Error al eliminar rol:', error);
+    if (error.code === '23503') {
+      return res.status(409).json({ mensaje: 'No se puede eliminar el rol porque está asignado a uno o más usuarios' });
+    }
+    res.status(500).json({ mensaje: 'Error al eliminar rol' });
   }
 };
 
@@ -403,4 +610,10 @@ module.exports = {
   crearPersonal,
   actualizarPersonal,
   eliminarPersonal,
+  importarPersonal,
+
+  getRoles,
+  crearRol,
+  actualizarRol,
+  eliminarRol,
 };

@@ -12,7 +12,7 @@ const validar = (req, res, next) => {
 };
 
 router.use(auth);
-router.use(role('recepcionista', 'admin', 'aps', 'laboratorio', 'imagenes'));
+router.use(role('recepcionista', 'administrador', 'coordinador', 'analista', 'laboratorio', 'imagenes'));
 
 router.get('/responsables-pago', ctrl.getResponsablesPago);
 router.get('/ultimas-admisiones', ctrl.getUltimasAdmisiones);

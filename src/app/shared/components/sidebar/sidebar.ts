@@ -14,6 +14,7 @@ import {
   LayoutGrid, 
   ShieldCheck,
   Users,
+  User,
   Activity,
   DoorOpen,
   ChevronDown,
@@ -58,6 +59,7 @@ export class Sidebar implements OnInit {
   readonly ShieldCheck = ShieldCheck;
   readonly Activity = Activity;
   readonly Users = Users;
+  readonly User = User;
   readonly DoorOpen = DoorOpen;
   readonly ChevronDown = ChevronDown;
   readonly Ticket = Ticket;
@@ -111,7 +113,7 @@ export class Sidebar implements OnInit {
 
   navigate(route: string, queryParams?: any) {
     if (route === 'admin' && typeof queryParams === 'string') {
-      this.router.navigate(['/admin'], { queryParams: { tab: queryParams } });
+      this.router.navigate(['/administrador'], { queryParams: { tab: queryParams } });
     } else if (queryParams) {
       this.router.navigate([`/${route}`], { queryParams: queryParams });
     } else {

@@ -113,6 +113,7 @@ const llamarSiguiente = async (req, res) => {
         turno: turno.numero, 
         consultorio: servicioNombre,
         paciente: turno.nombre_paciente,
+        apellido: turno.apellido_paciente || '',
         id_sede: req.usuario.id_sede
       });
     }

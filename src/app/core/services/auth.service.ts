@@ -78,7 +78,35 @@ export class AuthService {
     return this.http.post(`${environment.apiUrl}/auth/recuperacion/restablecer`, { email, cedula, codigo, newPassword });
   }
 
+  cerrarSesion(): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/auth/logout`, {});
+  }
+
   logout() {
+    this.cerrarSesion().subscribe({ error: () => {} });
+    this.limpiarSesion();
+  }
+
+  /**
+   * Cierre de sesión de emergencia usando fetch con keepalive.
+   * Útil para eventos como beforeunload donde HttpClient puede ser cancelado.
+   */
+  emergencyLogout() {
+    const token = this.getToken();
+    if (token) {
+      fetch(`${environment.apiUrl}/auth/logout`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        keepalive: true
+      });
+    }
+    this.limpiarSesion();
+  }
+
+  private limpiarSesion() {
     sessionStorage.removeItem(this.STORAGE_KEY);
     sessionStorage.removeItem(this.TOKEN_KEY);
     this.usuarioSubject.next(null);
@@ -102,10 +130,11 @@ export class AuthService {
       
       const usuario: Usuario = JSON.parse(data);
       
-      // Validación crítica: Si el usuario no tiene id_sede (sesión vieja), forzar logout
+      // Si el usuario no tiene id_sede, la sesión es inválida
       if (usuario.rol !== 'recepcionista' && usuario.id !== 0 && !usuario.id_sede) {
-        console.warn('Sesión antigua detectada (sin id_sede). Forzando logout...');
-        setTimeout(() => this.logout(), 0);
+        console.warn('Sesión antigua detectada (sin id_sede). Limpiando...');
+        sessionStorage.removeItem(this.STORAGE_KEY);
+        sessionStorage.removeItem(this.TOKEN_KEY);
         return null;
       }
       

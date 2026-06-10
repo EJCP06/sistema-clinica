@@ -1,13 +1,22 @@
 const db = require('../config/db');
 
-const getAll = async () => {
-  const result = await db.query(`
+const getAll = async (sede) => {
+  let query = `
     SELECT e.*, e.id_especialidad as id,
            s.nombre_servicio
     FROM "Especialidades" e
     JOIN "Servicio" s ON e.id_servicio = s.id_servicio
-    ORDER BY e.nombre ASC
-  `);
+  `;
+  const params = [];
+  
+  if (sede && Number(sede) !== 0) {
+    query += ` WHERE e.id_sede = $1`;
+    params.push(Number(sede));
+  }
+  
+  query += ` ORDER BY e.nombre ASC`;
+  
+  const result = await db.query(query, params);
   return result.rows;
 };
 

@@ -33,7 +33,6 @@ export class PantallaPublica implements OnInit, OnDestroy {
       if (llamado.turno && llamado.consultorio) {
         this.historicoLlamados = [llamado, ...this.historicoLlamados].slice(0, 5);
         this.turnoActual = llamado;
-        this.reproducirAudio(llamado.turno, llamado.consultorio);
       }
     });
   }
@@ -43,12 +42,4 @@ export class PantallaPublica implements OnInit, OnDestroy {
     this.cambiosSub?.unsubscribe();
   }
 
-  reproducirAudio(turno: string, consultorio: string) {
-    if (!('speechSynthesis' in window)) return;
-    const texto = `Turno ${turno}. Diríjase al ${consultorio}.`;
-    const utterance = new SpeechSynthesisUtterance(texto);
-    utterance.lang = 'es-ES';
-    utterance.rate = 0.9;
-    window.speechSynthesis.speak(utterance);
-  }
 }

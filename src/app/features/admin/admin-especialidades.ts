@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   Check,
   MapPin,
+  Upload,
 } from 'lucide-angular';
 import { PaginationComponent } from '../../shared/components/pagination/pagination';
 import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
@@ -43,6 +44,7 @@ export class AdminEspecialidades implements OnInit {
   readonly CheckCircle2 = CheckCircle2;
   readonly Check = Check;
   readonly MapPin = MapPin;
+  readonly Upload = Upload;
 
   pageSize = 6;
   currentPage = 1;
@@ -64,6 +66,8 @@ export class AdminEspecialidades implements OnInit {
   isEditing = false;
   editingId: number | null = null;
   isSaving = false;
+  private inicioGuardado: number = 0;
+  private readonly MIN_GUARDADO = 800;
 
   formEsp: {
     nombre: string;
@@ -155,9 +159,19 @@ export class AdminEspecialidades implements OnInit {
     this.showModalEspecialidad = true;
   }
 
+  private finalizarGuardado(accion?: () => void) {
+    const transcurrido = Date.now() - this.inicioGuardado;
+    const restante = Math.max(0, this.MIN_GUARDADO - transcurrido);
+    setTimeout(() => {
+      if (accion) accion();
+      this.isSaving = false;
+    }, restante);
+  }
+
   guardarEsp() {
     if (this.isSaving) return;
     this.isSaving = true;
+    this.inicioGuardado = Date.now();
     const body = {
       nombre: (this.formEsp.nombre || '').toUpperCase().trim(),
       prefijo: (this.formEsp.prefijo || '').toUpperCase().trim(),
@@ -172,16 +186,18 @@ export class AdminEspecialidades implements OnInit {
       : this.apiService.crearEspecialidad(body);
     call.subscribe({
       next: () => {
-        this.showModalEspecialidad = false;
-        this.isSaving = false;
-        this.formEsp = { nombre: '', codigo: '', prefijo: '', piso: '', consultorios_ids: [], descripcion: '', activo: true, id_sede: '', id_servicio: 1 };
-        this.cargarEspecialidades();
-        this.swal.success('Especialidad guardada correctamente');
+        this.finalizarGuardado(() => {
+          this.showModalEspecialidad = false;
+          this.formEsp = { nombre: '', codigo: '', prefijo: '', piso: '', consultorios_ids: [], descripcion: '', activo: true, id_sede: '', id_servicio: 1 };
+          this.cargarEspecialidades();
+          this.swal.success('Especialidad guardada correctamente');
+        });
       },
       error: (err) => {
-        this.isSaving = false;
-        console.error('Error al guardar especialidad:', err);
-        this.swal.error(err.error?.mensaje || 'Error al guardar especialidad');
+        this.finalizarGuardado(() => {
+          console.error('Error al guardar especialidad:', err);
+          this.swal.error(err.error?.mensaje || 'Error al guardar especialidad');
+        });
       },
     });
   }
@@ -275,6 +291,47 @@ export class AdminEspecialidades implements OnInit {
     const pattern = /[0-9]/;
     const inputChar = String.fromCharCode(event.charCode);
     if (event.charCode !== 0 && !pattern.test(inputChar)) event.preventDefault();
+  }
+
+  // --- Excel Import ---
+  importExcel(fileInput: HTMLInputElement) {
+    const file = fileInput?.files?.[0];
+    if (!file) return;
+
+    import('xlsx').then(XLSX => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const rows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+          if (rows.length === 0) {
+            this.swal.error('El archivo Excel está vacío');
+            return;
+          }
+
+          this.apiService.importarEspecialidades({ rows }).subscribe({
+            next: (res: any) => {
+              this.cargarEspecialidades();
+              this.swal.success(res.mensaje || `Importación exitosa: ${res.importados || rows.length} registros`);
+            },
+            error: (err) => {
+              this.swal.error(err.error?.mensaje || 'Error al importar datos');
+            },
+          });
+        } catch (err) {
+          this.swal.error('Error al leer el archivo Excel');
+          console.error(err);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }).catch(() => {
+      this.swal.error('Error al cargar el lector de Excel');
+    });
+
+    fileInput.value = '';
   }
 
   trackById = (index: number, item: EspecialidadDTO) => item?.id ?? item?.id_especialidad ?? index;

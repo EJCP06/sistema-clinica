@@ -49,8 +49,40 @@ const eliminarAseguradora = async (req, res) => {
   }
 };
 
+const importarAseguradoras = async (req, res) => {
+  const sede = req.usuario?.id_sede;
+  if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
+
+  try {
+    const { rows } = req.body;
+    if (!rows || !Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({ mensaje: 'No hay datos para importar' });
+    }
+
+    const nombres = rows.map(r =>
+      (r.nombre || r.Nombre || r.NOMBRE || r.aseguradora || r.Aseguradora || '').toString().toUpperCase().trim()
+    ).filter(n => n);
+
+    if (nombres.length === 0) {
+      return res.status(400).json({ mensaje: 'No se encontraron nombres válidos en el archivo' });
+    }
+
+    const result = await sharedRepo.importarAseguradoras(nombres, sede);
+
+    res.json({
+      mensaje: `Importación completada: ${result.importados} importadas, ${result.omitidos} ya existían`,
+      importados: result.importados,
+      omitidos: result.omitidos,
+    });
+  } catch (error) {
+    logger.error(error);
+    res.status(500).json({ mensaje: 'Error al importar aseguradoras' });
+  }
+};
+
 module.exports = {
   getAseguradoras,
   crearAseguradora,
   eliminarAseguradora,
+  importarAseguradoras,
 };

@@ -12,57 +12,65 @@ const validar = (req, res, next) => {
   next();
 };
 
-// Todas las rutas require token y rol admin
+// Todas las rutas requieren autenticación
 router.use(authMiddleware);
-router.use(roleMiddleware('admin'));
 
 // SEDES
-router.get('/sedes', adminController.getSedes);
+router.get('/sedes', roleMiddleware('administrador', 'recepcionista', 'medico', 'coordinador', 'analista'), adminController.getSedes);
 
 // RESPONSABLES DE PAGO (lo usa APS)
 const recepcionController = require('../controllers/recepcion.controller');
-router.get('/responsables', recepcionController.getResponsablesPago);
+router.get('/responsables', roleMiddleware('administrador', 'recepcionista'), recepcionController.getResponsablesPago);
 
 // SERVICIOS
-router.get('/servicios', adminController.getServicios);
-router.post('/servicios', [
+router.get('/servicios', roleMiddleware('administrador', 'recepcionista', 'medico', 'coordinador', 'analista'), adminController.getServicios);
+router.post('/servicios', roleMiddleware('administrador'), [
   body('nombre_servicio').trim().notEmpty().withMessage('El nombre del servicio es obligatorio'),
   validar,
 ], adminController.crearServicio);
-router.put('/servicios/:id', adminController.actualizarServicio);
-router.delete('/servicios/:id', adminController.eliminarServicio);
+router.put('/servicios/:id', roleMiddleware('administrador'), adminController.actualizarServicio);
+router.delete('/servicios/:id', roleMiddleware('administrador'), adminController.eliminarServicio);
 
 // CONSULTORIOS
-router.get('/consultorios', adminController.getConsultorios);
-router.post('/consultorios', [
+router.get('/consultorios', roleMiddleware('administrador', 'recepcionista', 'medico', 'coordinador', 'analista'), adminController.getConsultorios);
+router.post('/consultorios', roleMiddleware('administrador'), [
   body('nombre').trim().notEmpty().withMessage('El nombre del consultorio es obligatorio'),
   body('id_servicio').isInt().withMessage('El servicio es obligatorio'),
   validar,
 ], adminController.crearConsultorio);
-router.put('/consultorios/:id', adminController.actualizarConsultorio);
-router.delete('/consultorios/:id', adminController.eliminarConsultorio);
+router.put('/consultorios/:id', roleMiddleware('administrador'), adminController.actualizarConsultorio);
+router.delete('/consultorios/:id', roleMiddleware('administrador'), adminController.eliminarConsultorio);
 
 // PERSONAL
-router.get('/personal', adminController.getPersonal);
-router.post('/personal', [
+router.get('/personal', roleMiddleware('administrador', 'recepcionista', 'medico', 'coordinador', 'analista'), adminController.getPersonal);
+router.post('/personal', roleMiddleware('administrador'), [
   body('nombre').trim().notEmpty().withMessage('El nombre es obligatorio'),
   body('apellido').trim().notEmpty().withMessage('El apellido es obligatorio'),
   body('cedula').trim().notEmpty().withMessage('La cédula es obligatoria'),
-  body('password').isLength({ min: 4 }).withMessage('La contraseña debe tener al menos 4 caracteres'),
   validar,
 ], adminController.crearPersonal);
-router.put('/personal/:id', adminController.actualizarPersonal);
-router.delete('/personal/:id', adminController.eliminarPersonal);
+router.put('/personal/:id', roleMiddleware('administrador'), adminController.actualizarPersonal);
+router.delete('/personal/:id', roleMiddleware('administrador'), adminController.eliminarPersonal);
+router.post('/personal/importar', roleMiddleware('administrador'), adminController.importarPersonal);
 
 // REPORTES
-router.get('/reportes/diario', adminController.getReporteDiario);
+router.get('/reportes/diario', roleMiddleware('administrador'), adminController.getReporteDiario);
 
 
 
 // ASEGURADORAS
-router.delete('/aseguradoras/:id', [
+router.delete('/aseguradoras/:id', roleMiddleware('administrador'), [
   param('id').isInt().withMessage('ID inválido'),
   validar,
 ], sharedController.eliminarAseguradora);
+
+// ROLES
+router.get('/roles', roleMiddleware('administrador'), adminController.getRoles);
+router.post('/roles', roleMiddleware('administrador'), [
+  body('nombre').trim().notEmpty().withMessage('El nombre del rol es obligatorio'),
+  validar,
+], adminController.crearRol);
+router.put('/roles/:id', roleMiddleware('administrador'), adminController.actualizarRol);
+router.delete('/roles/:id', roleMiddleware('administrador'), adminController.eliminarRol);
 
 module.exports = router;

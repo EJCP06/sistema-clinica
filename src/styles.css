@@ -128,16 +128,6 @@ body:has(.fixed.inset-0.z-\[100\]) {
   }
 }
 
-/* Scrollbar - Oculto en html/body (scroll de página) */
-html, body {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-html::-webkit-scrollbar,
-body::-webkit-scrollbar {
-  display: none;
-}
-
 /* Ocultar scrollbars en elementos con la clase .hide-scrollbar */
 .hide-scrollbar {
   scrollbar-width: none;
@@ -147,38 +137,62 @@ body::-webkit-scrollbar {
   display: none;
 }
 
-/* Scrollbar visible y estilizada en contenedores con .custom-scrollbar */
-.custom-scrollbar {
+/* Scrollbar global estilizada - aplica a todos los elementos scrollables */
+* {
   scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
   -ms-overflow-style: auto;
 }
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  display: block;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-.dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #475569;
-}
-.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
+
+/* Para Firefox: Mostrar scrollbar al pasar el mouse por el contenedor */
+*:hover {
+  scrollbar-color: #cbd5e1 transparent;
 }
 
-/* Dark mode overrides (si se habilitara el hover) */
-.dark *:hover::-webkit-scrollbar-thumb {
-  background: #334155 !important;
+.dark *:hover {
+  scrollbar-color: #475569 transparent;
 }
-.dark *::-webkit-scrollbar-thumb:hover {
-  background: #475569 !important;
+
+/* Para Chrome, Safari, Edge y navegadores WebKit */
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 0px;
+}
+
+/* Mostrar la barra (línea gris) al pasar el mouse por encima del contenedor */
+*:hover::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+
+*:hover::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.dark *::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+.dark *:hover::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+.dark *:hover::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
 }
 
 @keyframes ticker {
@@ -230,4 +244,92 @@ body::-webkit-scrollbar {
     box-shadow: none !important;
   }
 }
+
+/* Ocultar el scroll del sidebar por completo (tanto en PC como en móviles) */
+aside nav {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE/Edge */
+}
+aside nav::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari, Edge */
+}
+
+/* ============================================
+   ACCESIBILIDAD TECLADO - Global Focus Styles
+   ============================================ */
+
+/* Focus visible forte y accesible para todos los elementos interactivos */
+*:focus-visible {
+  outline: 2px solid #2563eb !important;
+  outline-offset: 2px !important;
+}
+
+/* Focus visible específico para botones (anula outline del button nativo) */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[role="tab"]:focus-visible,
+[role="menuitem"]:focus-visible,
+[role="option"]:focus-visible {
+  outline: 2px solid #2563eb !important;
+  outline-offset: 2px !important;
+}
+
+/* Focus para botones con bordes redondeados */
+button[class*="rounded"]:focus-visible,
+a[class*="rounded"]:focus-visible {
+  border-radius: inherit;
+}
+
+/* Skip link para saltar al contenido principal */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.75rem 1.5rem;
+  background: #2563eb;
+  color: white;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  z-index: 9999;
+  text-decoration: none;
+}
+.skip-link:focus {
+  top: 1rem;
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Focus trap visual para modales */
+.modal-open *:focus-visible:not(.modal-content *:focus-visible) {
+  outline: none;
+}
+
+/* Animación suave para transiciones de focus */
+@keyframes focus-ring {
+  0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+  100% { box-shadow: 0 0 0 4px rgba(37, 99, 235, 0); }
+}
+
+/* Clase para elementos que necesitan focus ring animado */
+.focus-ring-animated:focus-visible {
+  animation: focus-ring 0.3s ease-out;
+}
+
+/* Reducir movimiento para usuarios que lo prefieren */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+
 

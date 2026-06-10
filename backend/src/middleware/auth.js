@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
+const pool = require('../config/db');
 
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
@@ -12,7 +13,17 @@ const authMiddleware = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    req.usuario = decoded; // 👈 ESTO ES LO QUE TE FALTA SI FALLA
+    const result = await pool.query(
+      'SELECT sesion_token FROM "Usuarios" WHERE id_usuario = $1',
+      [decoded.id],
+    );
+
+    const usuario = result.rows[0];
+    if (!usuario || usuario.sesion_token !== decoded.sesion_token) {
+      return res.status(401).json({ mensaje: 'Sesión inválida. Otro usuario ha iniciado sesión con tus credenciales.' });
+    }
+
+    req.usuario = decoded;
     next();
   } catch (err) {
     return res.status(401).json({ mensaje: 'Token inválido' });

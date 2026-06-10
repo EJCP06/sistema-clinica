@@ -20,6 +20,8 @@ import {
   ApiResponse,
   LlamarSiguienteResponseDTO,
   GenerarTurnoRequest,
+  RolDTO,
+  CrearRolRequest,
 } from '@core/models/dto.models';
 
 @Injectable({ providedIn: 'root' })
@@ -215,5 +217,39 @@ export class ApiService {
 
   eliminarConsultorio(id: number): Observable<ApiResponse> {
     return this.http.delete<ApiResponse>(`${this.base}/admin/consultorios/${id}`);
+  }
+
+  // =========================
+  // BULK IMPORT (Excel)
+  // =========================
+  importarPersonal(body: { rows: Record<string, unknown>[]; rol: string }): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(`${this.base}/admin/personal/importar`, body);
+  }
+
+  importarEspecialidades(body: { rows: Record<string, unknown>[] }): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(`${this.base}/especialidades/importar`, body);
+  }
+
+  importarAseguradoras(body: { rows: Record<string, unknown>[] }): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(`${this.base}/shared/aseguradoras/importar`, body);
+  }
+
+  // =========================
+  // ROLES
+  // =========================
+  getRoles(): Observable<RolDTO[]> {
+    return this.http.get<RolDTO[]>(`${this.base}/admin/roles`);
+  }
+
+  crearRol(body: Partial<CrearRolRequest>): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(`${this.base}/admin/roles`, body);
+  }
+
+  actualizarRol(id: number, body: Partial<CrearRolRequest>): Observable<ApiResponse> {
+    return this.http.put<ApiResponse>(`${this.base}/admin/roles/${id}`, body);
+  }
+
+  eliminarRol(id: number): Observable<ApiResponse> {
+    return this.http.delete<ApiResponse>(`${this.base}/admin/roles/${id}`);
   }
 }

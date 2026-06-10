@@ -18,42 +18,26 @@
           ? 'Dashboard Global'
           : activeTab === 'stats'
             ? 'Análisis de Datos'
-            : activeTab === 'medicos'
-              ? 'Cuerpo Médico'
-              : activeTab === 'recepcionistas'
-                ? 'Personal de Recepción'
-                : activeTab === 'administradores'
-                  ? 'Panel de Administradores'
-                  : activeTab === 'laboratorio'
-                    ? 'Personal de Laboratorio'
-                  : activeTab === 'imagenes'
-                    ? 'Personal de Imágenes'
-                    : activeTab === 'aps'
-                      ? 'Personal APS'
-                      : activeTab === 'especialidades'
-                    ? 'Gestión de Especialidades'
-                    : 'Gestión de Consultorios'
+            : activeTab === 'personal'
+              ? 'Gestión del Personal'
+              : activeTab === 'especialidades'
+                ? 'Gestión de Especialidades'
+                : activeTab === 'roles'
+                ? 'Gestión de Roles'
+                : 'Gestión de Consultorios'
       "
       [subtitle]="
         activeTab === 'reports'
           ? 'Resumen operativo en tiempo real'
           : activeTab === 'stats'
             ? 'Productividad y tendencias'
-            : activeTab === 'medicos'
-              ? 'Administración de especialistas clínicos'
-              : activeTab === 'recepcionistas'
-                ? 'Gestión de operadores de admisión'
-                : activeTab === 'administradores'
-                  ? 'Control de acceso al sistema'
-                  : activeTab === 'laboratorio'
-                    ? 'Gestión de técnicos de laboratorio'
-                    : activeTab === 'imagenes'
-                    ? 'Gestión de técnicos de imágenes'
-                    : activeTab === 'aps'
-                      ? 'Gestión de personal de atención primaria'
-                      : activeTab === 'especialidades'
-                    ? 'Configuración de servicios clínicos'
-                    : 'Gestión de consultorios and ubicaciones'
+            : activeTab === 'personal'
+              ? 'Administración de usuarios del sistema'
+              : activeTab === 'especialidades'
+                ? 'Configuración de servicios clínicos'
+                : activeTab === 'roles'
+                ? 'Administración de roles y permisos'
+                : 'Gestión de consultorios and ubicaciones'
       "
       [showLogo]="false"
       [showMenuButton]="true"
@@ -68,11 +52,11 @@
       <app-admin-reports [hidden]="activeTab !== 'reports' && activeTab !== 'stats'"></app-admin-reports>
 
       <app-admin-personal
-        [hidden]="activeTab !== 'medicos' && activeTab !== 'recepcionistas' && activeTab !== 'administradores' && activeTab !== 'laboratorio' && activeTab !== 'imagenes' && activeTab !== 'aps'"
-        [activeTab]="activeTab"
+        [hidden]="activeTab !== 'personal'"
       ></app-admin-personal>
 
       <app-admin-especialidades [hidden]="activeTab !== 'especialidades'"></app-admin-especialidades>
+      <app-admin-roles [hidden]="activeTab !== 'roles'"></app-admin-roles>
     </div>
   </main>
 </div>

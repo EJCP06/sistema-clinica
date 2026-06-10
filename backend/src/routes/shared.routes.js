@@ -12,12 +12,13 @@ const validar = (req, res, next) => {
 };
 
 router.use(auth);
-router.use(role('recepcionista', 'admin'));
+router.use(role('recepcionista', 'administrador', 'coordinador', 'analista'));
 
 router.get('/aseguradoras', sharedController.getAseguradoras);
 router.post('/aseguradoras', [
   body('nombre').trim().notEmpty().withMessage('El nombre de la aseguradora es obligatorio'),
   validar,
 ], sharedController.crearAseguradora);
+router.post('/aseguradoras/importar', sharedController.importarAseguradoras);
 
 module.exports = router;

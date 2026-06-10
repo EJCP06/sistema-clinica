@@ -273,7 +273,11 @@ export class TurneroComponent implements OnInit, OnDestroy {
       }
     });
 
-    this.cambiosSub = this.api.cambios$.subscribe(() => {
+    this.cambiosSub = this.api.cambios$.subscribe((data) => {
+      const llamado = data as { turno?: string; consultorio?: string; paciente?: string; apellido?: string };
+      if (llamado.paciente && llamado.consultorio) {
+        this.reproducirAudio(llamado.paciente, llamado.apellido || '', llamado.consultorio);
+      }
       if (this.sala === 'aps') {
         this.cargarAPS();
       } else if (this.sala === 'aps-espera') {
@@ -505,6 +509,31 @@ export class TurneroComponent implements OnInit, OnDestroy {
 
   get viewportH(): number {
     return this.MAX_VISIBLE * this.CARD_H + (this.MAX_VISIBLE - 1) * this.GAP;
+  }
+
+  private reproducirAudio(nombre: string, apellido: string, consultorio: string) {
+    if (!('speechSynthesis' in window)) return;
+    const nombreCompleto = `${nombre} ${apellido}`.trim();
+    let texto: string;
+    const c = consultorio.toLowerCase();
+    if (c.includes('laboratorio')) {
+      texto = `Paciente ${nombreCompleto}, diríjase a laboratorio`;
+    } else if (c.includes('imágenes') || c.includes('imagenes')) {
+      texto = `Paciente ${nombreCompleto}, diríjase a imágenes`;
+    } else {
+      const cFormateado = consultorio.replace(/\b0+(\d+)\b/g, '$1');
+      texto = `Paciente ${nombreCompleto}, diríjase al consultorio ${cFormateado}`;
+    }
+    const utterance = new SpeechSynthesisUtterance(texto);
+    utterance.lang = 'es-MX';
+    utterance.rate = 0.9;
+    const voces = window.speechSynthesis.getVoices();
+    const voz = voces.find(v => v.name.includes('Sabina'))
+      || voces.find(v => v.name.includes('Helena'))
+      || voces.find(v => v.name.includes('Laura'))
+      || voces.find(v => v.lang.startsWith('es') && /female|femenina|mujer/i.test(v.name));
+    if (voz) utterance.voice = voz;
+    window.speechSynthesis.speak(utterance);
   }
 
 }

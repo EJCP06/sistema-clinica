@@ -100,6 +100,7 @@ export class Atencion implements OnInit, OnDestroy {
   tiempoRestante: number = 120;
   private timerSub: Subscription | null = null;
 
+
   mensajeInfo = '';
   cargando = false;
 
@@ -114,6 +115,7 @@ export class Atencion implements OnInit, OnDestroy {
   trackById = (index: number, item: TurnoDTO) => item.id ?? index;
 
   ngOnInit() {
+    this.diagnosticarVoces();
     this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
       const qTipo = params['tipo'];
       if (qTipo && ['medico', 'laboratorio', 'imagenes'].includes(qTipo)) {
@@ -142,6 +144,18 @@ export class Atencion implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.detenerTemporizador();
+  }
+
+  private diagnosticarVoces() {
+    if (!('speechSynthesis' in window)) return;
+    const voces = window.speechSynthesis.getVoices();
+    if (voces.length > 0) {
+      console.log('Voces disponibles:', voces.map(v => ({ name: v.name, lang: v.lang, gender: '' })));
+    }
+    window.speechSynthesis.onvoiceschanged = () => {
+      const voces = window.speechSynthesis.getVoices();
+      console.log('Voces disponibles:', voces.map(v => v.name + ' (' + v.lang + ')'));
+    };
   }
 
   cargarEstadoConsultorio() {
@@ -180,9 +194,11 @@ export class Atencion implements OnInit, OnDestroy {
               }
             } else {
               this.turnoActual = null;
+              this.detenerTemporizador();
             }
           } else if (!estado.turno_id && !this.atendiendoLocalmente) {
             this.turnoActual = null;
+            this.detenerTemporizador();
           }
       },
       error: () => {
@@ -230,9 +246,11 @@ export class Atencion implements OnInit, OnDestroy {
             }
           } else {
             this.turnoActual = null;
+            this.detenerTemporizador();
           }
         } else if (!estado.turno_id && !this.atendiendoLocalmente) {
           this.turnoActual = null;
+          this.detenerTemporizador();
         }
       },
       error: (err) => {
@@ -299,6 +317,7 @@ export class Atencion implements OnInit, OnDestroy {
   }
 
   iniciarAtencion() {
+    window.speechSynthesis?.cancel();
     this.apiService.iniciarAtencion().subscribe({
       next: () => {
         this.detenerTemporizador();
@@ -312,6 +331,7 @@ export class Atencion implements OnInit, OnDestroy {
   }
 
   finalizarAtencion() {
+    window.speechSynthesis?.cancel();
     this.apiService.finalizarAtencion().subscribe({
       next: () => {
         this.turnoActual = null;
@@ -325,6 +345,7 @@ export class Atencion implements OnInit, OnDestroy {
   }
 
   async marcarAusente() {
+    window.speechSynthesis?.cancel();
     if (!this.turnoActual) return;
     const result = await this.swal.confirm(`¿Marcar turno ${this.turnoActual.numero} como AUSENTE?`);
     if (!result.isConfirmed) return;
@@ -342,6 +363,7 @@ export class Atencion implements OnInit, OnDestroy {
   }
 
   marcarAusenteAuto() {
+    window.speechSynthesis?.cancel();
     if (!this.turnoActual) return;
     this.apiService.marcarAusente(this.turnoActual.id).subscribe({
       next: () => {

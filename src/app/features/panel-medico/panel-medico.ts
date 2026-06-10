@@ -62,7 +62,7 @@ export class PanelMedicoComponent implements OnInit, OnDestroy {
   ) {}
 
   onTabChange(tab: string) {
-    if (tab === 'dashboard') this.router.navigate(['/admin']);
+    if (tab === 'dashboard') this.router.navigate(['/administrador']);
     if (tab === 'recepcion') this.router.navigate(['/recepcion']);
   }
 

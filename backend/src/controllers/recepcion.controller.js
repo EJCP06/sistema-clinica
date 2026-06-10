@@ -3,8 +3,12 @@ const pacienteRepo = require('../repositories/paciente.repository');
 const atencionRepo = require('../repositories/atencion.repository');
 const sharedRepo = require('../repositories/shared.repository');
 const historialRepo = require('../repositories/historial.repository');
+const pool = require('../config/db');
 
-const getSede = (req) => req.usuario?.id_sede;
+const getSede = (req) => {
+  const sede = req.usuario?.id_sede;
+  return sede !== undefined && sede !== null ? Number(sede) : null;
+};
 
 // GET /recepcion/responsables-pago
 const getResponsablesPago = async (req, res) => {
@@ -123,7 +127,7 @@ const actualizarAtencion = async (req, res) => {
 
   try {
     const { id } = req.params;
-    const { id_servicio, id_responsable, id_cliente, id_especialidad } = req.body;
+    const { id_servicio, id_responsable, id_cliente, id_especialidad, id_medico, id_consultorio } = req.body;
 
     if (id_servicio !== undefined) {
       const current = await atencionRepo.getAtencionEstado(id, sede);
@@ -133,13 +137,31 @@ const actualizarAtencion = async (req, res) => {
       }
 
       const estadoActual = current.id_estado_actual;
-      if ([4, 5, 6, 7].includes(estadoActual)) {
-        return res.status(400).json({
-          mensaje: 'No se puede cambiar el servicio porque el paciente ya está en Llamado, En Atención, Atendido o Ausente',
-        });
+
+      if (estadoActual !== 1) {
+        if (id_servicio !== current.id_servicio) {
+          return res.status(400).json({
+            mensaje: 'Solo se puede cambiar el servicio en estado Registrado',
+          });
+        }
+        if (id_especialidad !== undefined && id_especialidad !== current.id_especialidad) {
+          return res.status(400).json({
+            mensaje: 'Solo se puede cambiar la especialidad en estado Registrado',
+          });
+        }
+        if (id_medico !== undefined && id_medico !== current.id_medico) {
+          return res.status(400).json({
+            mensaje: 'Solo se puede cambiar el médico en estado Registrado',
+          });
+        }
+        if (id_responsable !== undefined && id_responsable !== current.id_responsable) {
+          return res.status(400).json({
+            mensaje: 'Solo se puede cambiar el responsable de pago en estado Registrado',
+          });
+        }
       }
 
-      await atencionRepo.actualizarAtencionConServicio(id, sede, { id_servicio, id_responsable, id_cliente });
+      await atencionRepo.actualizarAtencionConServicio(id, sede, { id_servicio, id_responsable, id_cliente, id_especialidad, id_medico, id_consultorio });
     } else {
       await atencionRepo.actualizarAtencionSimple(id, sede, { id_responsable, id_cliente, id_especialidad });
     }
@@ -156,13 +178,20 @@ const eliminarAtencion = async (req, res) => {
   const sede = getSede(req);
   if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
 
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
     const { id } = req.params;
-    await atencionRepo.eliminarAtencion(id, sede);
+    await historialRepo.deleteByAtencion(client, id);
+    await atencionRepo.eliminarAtencion(client, id, sede);
+    await client.query('COMMIT');
     res.json({ mensaje: 'Atención eliminada' });
   } catch (error) {
+    await client.query('ROLLBACK');
     logger.error(error);
     res.status(500).json({ mensaje: 'Error al eliminar atención' });
+  } finally {
+    client.release();
   }
 };
 
@@ -199,7 +228,7 @@ const generarTurno = async (req, res) => {
   const usuarioId = req.usuario?.id;
 
   try {
-    const { id_paciente, id_servicio, id_responsable, id_cliente, id_especialidad } = req.body;
+    const { id_paciente, id_servicio, id_responsable, id_cliente, id_especialidad, id_medico, id_consultorio } = req.body;
 
     if (!id_paciente || !id_servicio) {
       return res.status(400).json({ mensaje: 'Paciente y servicio son requeridos' });
@@ -208,7 +237,7 @@ const generarTurno = async (req, res) => {
     const { prefijo, next } = await atencionRepo.getPrefijoYConteo(id_servicio, sede);
     const numero = `${prefijo}-${String(next).padStart(2, '0')}`;
 
-    const turno = await atencionRepo.insertarAtencion({ id_paciente, id_servicio, id_responsable, sede, usuarioId, numero, id_cliente, id_especialidad });
+    const turno = await atencionRepo.insertarAtencion({ id_paciente, id_servicio, id_responsable, sede, usuarioId, numero, id_cliente, id_especialidad, id_medico, id_consultorio });
 
     if (req.io) req.io.emit('estado-actualizado', { tipo: 'nuevo-turno', id_atencion: turno.id_atencion });
 
