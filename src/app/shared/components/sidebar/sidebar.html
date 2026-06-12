@@ -31,8 +31,8 @@
 
   <!-- Navigation -->
   <nav class="flex-1 overflow-y-auto p-4 custom-scrollbar touch-scroll">
-    <!-- PANEL CONTROL (Solo Admin) -->
-    <div *ngIf="rol === 'administrador'" class="mb-4">
+    <!-- PANEL CONTROL -->
+    <div *ngIf="tienePermiso('admin_panel') || tienePermiso('ver_reportes')" class="mb-4">
       <button 
         (click)="toggleSection('panel')"
         class="w-full flex items-center justify-between gap-3 mb-1 px-5 py-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all duration-200 group text-left"
@@ -52,6 +52,7 @@
 
       <div class="overflow-hidden transition-all duration-300 px-2" [ngClass]="expandedPanel ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'">
         <button 
+          *ngIf="tienePermiso('ver_reportes')"
           (click)="navigate('admin', 'reports')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
@@ -62,7 +63,7 @@
     </div>
 
     <!-- OPERACIONES -->
-    <div *ngIf="['administrador', 'recepcionista', 'medico', 'coordinador', 'analista', 'laboratorio', 'imagenes'].includes(rol)" class="mb-4">
+    <div *ngIf="tienePermiso('admision_crear') || tienePermiso('aps_enviar_presupuesto') || tienePermiso('laboratorio_registrar_caja') || tienePermiso('imagenes_registrar_caja') || tienePermiso('atencion_medica_llamar_siguiente') || tienePermiso('aseguradoras_crear') || tienePermiso('especialidades_crear') || tienePermiso('llamado_laboratorio') || tienePermiso('llamado_imagenes')" class="mb-4">
       <button 
         (click)="toggleSection('operaciones')"
         class="w-full flex items-center justify-between gap-3 mb-1 px-5 py-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all duration-200 group text-left"
@@ -82,7 +83,7 @@
       
       <div class="space-y-1 overflow-hidden transition-all duration-300 px-2" [ngClass]="expandedOperaciones ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'">
         <button 
-          *ngIf="['administrador', 'recepcionista'].includes(rol)"
+          *ngIf="tienePermiso('admision_crear') || tienePermiso('admision_editar') || tienePermiso('admision_eliminar') || tienePermiso('admision_asignar_turno')"
           (click)="navigate('recepcion')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
@@ -91,7 +92,7 @@
         </button>
 
         <button 
-          *ngIf="['administrador', 'coordinador', 'analista'].includes(rol)"
+          *ngIf="tienePermiso('aps_enviar_presupuesto') || tienePermiso('aps_solicitar_clave') || tienePermiso('aps_enviar_sala_espera') || tienePermiso('aps_aprobar_clave') || tienePermiso('aps_reincorporar')"
           (click)="navigate('aps')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
@@ -100,7 +101,7 @@
         </button>
 
         <button 
-          *ngIf="['administrador', 'laboratorio'].includes(rol)"
+          *ngIf="tienePermiso('laboratorio_registrar_caja') || tienePermiso('laboratorio_pasar_sala_espera') || tienePermiso('laboratorio_marcar_ausente') || tienePermiso('laboratorio_reincorporar')"
           (click)="navigate('atencion-laboratorio')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
@@ -109,16 +110,16 @@
         </button>
 
         <button 
-          *ngIf="rol === 'laboratorio'"
+          *ngIf="tienePermiso('llamado_laboratorio')"
           (click)="navigate('atencion', { tipo: 'laboratorio' })"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
           <lucide-icon [name]="Megaphone" class="w-5 h-5 text-slate-400 dark:text-slate-400"></lucide-icon>
-          <span class="font-bold text-[13px] uppercase tracking-wider">Llamado</span>
+          <span class="font-bold text-[13px] uppercase tracking-wider">Llamado Laboratorio</span>
         </button>
 
         <button 
-          *ngIf="['administrador', 'imagenes'].includes(rol)"
+          *ngIf="tienePermiso('imagenes_registrar_caja') || tienePermiso('imagenes_pasar_sala_espera') || tienePermiso('imagenes_marcar_ausente') || tienePermiso('imagenes_reincorporar')"
           (click)="navigate('atencion-imagenes')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
@@ -127,16 +128,16 @@
         </button>
 
         <button 
-          *ngIf="rol === 'imagenes'"
+          *ngIf="tienePermiso('llamado_imagenes')"
           (click)="navigate('atencion', { tipo: 'imagenes' })"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
           <lucide-icon [name]="Megaphone" class="w-5 h-5 text-slate-400 dark:text-slate-400"></lucide-icon>
-          <span class="font-bold text-[13px] uppercase tracking-wider">Llamado</span>
+          <span class="font-bold text-[13px] uppercase tracking-wider">Llamado Imágenes</span>
         </button>
 
         <button 
-          *ngIf="['coordinador', 'analista', 'administrador'].includes(rol)"
+          *ngIf="tienePermiso('aseguradoras_crear') || tienePermiso('aseguradoras_editar') || tienePermiso('aseguradoras_eliminar') || tienePermiso('aseguradoras_importar_excel')"
           (click)="navigate('aseguradoras')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
@@ -145,7 +146,7 @@
         </button>
 
         <button 
-          *ngIf="rol === 'medico'"
+          *ngIf="tienePermiso('atencion_medica_llamar_siguiente') || tienePermiso('atencion_medica_liberar_consultorio')"
           (click)="navigate('atencion')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
@@ -154,7 +155,7 @@
         </button>
 
         <button 
-          *ngIf="rol === 'administrador'"
+          *ngIf="tienePermiso('especialidades_crear') || tienePermiso('especialidades_editar') || tienePermiso('especialidades_eliminar')"
           (click)="navigate('admin', 'especialidades')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
@@ -166,7 +167,7 @@
     </div>
 
     <!-- ADMINISTRACIÓN -->
-    <div *ngIf="rol === 'administrador'" class="mb-4">
+    <div *ngIf="tienePermiso('personal_crear') || tienePermiso('roles_crear') || tienePermiso('gestionar_permisos') || tienePermiso('gestionar_sedes') || tienePermiso('gestionar_servicios')" class="mb-4">
       <button 
         (click)="toggleSection('admin')"
         class="w-full flex items-center justify-between gap-3 mb-1 px-5 py-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all duration-200 group text-left"
@@ -186,6 +187,7 @@
       
       <div class="space-y-1 overflow-hidden transition-all duration-300 px-2" [ngClass]="expandedAdmin ? 'max-h-[500px] opacity-100 mt-1' : 'max-h-0 opacity-0'">
         <button
+          *ngIf="tienePermiso('personal_crear') || tienePermiso('personal_editar') || tienePermiso('personal_eliminar')"
           (click)="navigate('admin', 'personal')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
@@ -194,11 +196,21 @@
         </button>
 
         <button
+          *ngIf="tienePermiso('roles_crear') || tienePermiso('roles_editar') || tienePermiso('roles_eliminar')"
           (click)="navigate('admin', 'roles')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
           <lucide-icon [name]="ShieldCheck" class="w-5 h-5 text-slate-400 dark:text-slate-400"></lucide-icon>
           <span class="font-bold text-[13px] uppercase tracking-wider">Roles</span>
+        </button>
+
+        <button
+          *ngIf="tienePermiso('gestionar_permisos')"
+          (click)="navigate('admin', 'permisologia')"
+          class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
+        >
+          <lucide-icon [name]="Key" class="w-5 h-5 text-slate-400 dark:text-slate-400"></lucide-icon>
+          <span class="font-bold text-[13px] uppercase tracking-wider">Permisología</span>
         </button>
 
       </div>

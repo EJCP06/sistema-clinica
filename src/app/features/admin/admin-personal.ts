@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '@core/services/api.service';
+import { AuthService } from '@core/services/auth.service';
 import { SwalService } from '../../core/services/swal.service';
 import { ServicioDTO, EspecialidadDTO, ConsultorioDTO, PersonalDTO, SedeDTO, RolDTO } from '@core/models/dto.models';
 import {
@@ -84,6 +85,7 @@ export class AdminPersonal implements OnInit {
   readonly Moon = Moon;
   readonly Upload = Upload;
 
+  private auth = inject(AuthService);
   private apiService = inject(ApiService);
   private el = inject(ElementRef);
   private destroyRef = inject(DestroyRef);
@@ -430,6 +432,8 @@ export class AdminPersonal implements OnInit {
     this.formPersonal.rol = rol;
     this.showRolDropdown = false;
   }
+
+  tienePermiso(permiso: string): boolean { return this.auth.tienePermiso(permiso); }
 
   toggleSearchFilterDropdown() {
     this.showSearchFilterDropdown = !this.showSearchFilterDropdown;

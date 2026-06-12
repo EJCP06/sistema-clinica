@@ -8,6 +8,7 @@ const consultorioRepo = require('../repositories/consultorio.repository');
 const sharedRepo = require('../repositories/shared.repository');
 const usuarioRepo = require('../repositories/usuario.repository');
 const rolRepo = require('../repositories/rol.repository');
+const permisoRepo = require('../repositories/permiso.repository');
 
 /* =========================================================
    UTILIDAD SEGURA (EVITA 500 POR req.usuario UNDEFINED)
@@ -616,4 +617,41 @@ module.exports = {
   crearRol,
   actualizarRol,
   eliminarRol,
+
+  // =============================================
+  // PERMISOS
+  // =============================================
+  getPermisos: async (req, res) => {
+    try {
+      const rows = await permisoRepo.getAll();
+      res.json(rows);
+    } catch (error) {
+      logger.error(error);
+      res.status(500).json({ mensaje: 'Error al obtener permisos' });
+    }
+  },
+
+  getPermisosByRol: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const rows = await permisoRepo.getByRolId(id);
+      res.json(rows);
+    } catch (error) {
+      logger.error(error);
+      res.status(500).json({ mensaje: 'Error al obtener permisos del rol' });
+    }
+  },
+
+  asignarPermisos: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { permisos } = req.body;
+      await permisoRepo.asignarPermisos(id, permisos || []);
+      res.json({ mensaje: 'Permisos actualizados' });
+    } catch (error) {
+      logger.error(error);
+      res.status(500).json({ mensaje: 'Error al asignar permisos' });
+    }
+  },
 };
+

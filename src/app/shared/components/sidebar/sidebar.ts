@@ -24,7 +24,8 @@ import {
   ClipboardList,
   FlaskConical,
   Image,
-  Megaphone
+  Megaphone,
+  Key
 } from 'lucide-angular';
 
 @Component({
@@ -69,6 +70,7 @@ export class Sidebar implements OnInit {
   readonly FlaskConical = FlaskConical;
   readonly Image = Image;
   readonly Megaphone = Megaphone;
+  readonly Key = Key;
 
   // Collapsible states (persistidos en sessionStorage)
   get expandedPanel() { return sessionStorage.getItem('sb_panel') === '1'; }
@@ -92,6 +94,10 @@ export class Sidebar implements OnInit {
 
   get rol() {
     return this.usuario?.rol || '';
+  }
+
+  tienePermiso(permiso: string): boolean {
+    return this.auth.tienePermiso(permiso);
   }
 
   get sedeNombre() {

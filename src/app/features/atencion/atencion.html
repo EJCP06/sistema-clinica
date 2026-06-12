@@ -62,7 +62,7 @@
 
               <!-- CARD ESTADO: LIBRE -->
               <div *ngIf="!turnoActual || (turnoActual.estado !== 'LLAMADO' && turnoActual.estado !== 'EN_ATENCION')" class="bg-white dark:bg-slate-900 rounded-[32px] px-6 md:px-10 py-6 md:py-8 text-center shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-center min-h-[250px] lg:h-[530px] relative">
-                <button (click)="liberarConsultorio()" class="absolute top-4 right-4 text-slate-300 hover:text-blue-500 transition-colors" title="Liberar consultorio manualmente">
+                <button *ngIf="tienePermiso('atencion_medica_liberar_consultorio')" (click)="liberarConsultorio()" class="absolute top-4 right-4 text-slate-300 hover:text-blue-500 transition-colors" title="Liberar consultorio manualmente">
                   <lucide-icon [name]="RefreshCcw" class="w-5 h-5"></lucide-icon>
                 </button>
                 <ng-container *ngIf="!mensajeInfo; else noPacientes">
@@ -72,7 +72,7 @@
                   <h2 class="text-3xl font-black text-slate-900 dark:text-white mb-3 tracking-tight leading-none">Consultorio Listo</h2>
                   <p class="text-slate-500 dark:text-slate-400 mb-8 text-sm px-4 leading-relaxed font-medium">Presione el botón para llamar al próximo turno.</p>
                   <div class="flex justify-center">
-                    <button (click)="llamarSiguiente()" [disabled]="cargando" class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-black py-4 rounded-[24px] shadow-xl shadow-blue-600/30 hover:shadow-blue-600/50 transition-all duration-300 flex items-center justify-center gap-3 text-lg group active:scale-95">
+                    <button *ngIf="tienePermiso('atencion_medica_llamar_siguiente')" (click)="llamarSiguiente()" [disabled]="cargando" class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-black py-4 rounded-[24px] shadow-xl shadow-blue-600/30 hover:shadow-blue-600/50 transition-all duration-300 flex items-center justify-center gap-3 text-lg group active:scale-95">
                       <span *ngIf="cargando" class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                       <lucide-icon *ngIf="!cargando" [name]="Volume2" class="w-6 h-6 transition-transform group-hover:scale-110"></lucide-icon>
                       {{ cargando ? 'Llamando...' : 'Llamar al Siguiente' }}
@@ -125,10 +125,10 @@
                     </div>
                   </div>
                   <div class="grid grid-cols-2 gap-3">
-                    <button (click)="iniciarAtencion()" class="bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl shadow-lg shadow-blue-600/25 transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 text-xs uppercase tracking-widest">
+                    <button *ngIf="tienePermiso('atencion_medica_iniciar')" (click)="iniciarAtencion()" class="bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl shadow-lg shadow-blue-600/25 transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 text-xs uppercase tracking-widest">
                       <lucide-icon [name]="CheckCircle2" class="w-4 h-4"></lucide-icon> Iniciar
                     </button>
-                    <button (click)="marcarAusente()" class="bg-red-600 hover:bg-red-700 text-white font-black py-4 rounded-xl shadow-lg shadow-red-600/25 transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 text-xs uppercase tracking-widest">
+                    <button *ngIf="tienePermiso('atencion_medica_marcar_ausente')" (click)="marcarAusente()" class="bg-red-600 hover:bg-red-700 text-white font-black py-4 rounded-xl shadow-lg shadow-red-600/25 transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 text-xs uppercase tracking-widest">
                       <lucide-icon [name]="UserX" class="w-4 h-4"></lucide-icon> Ausente
                     </button>
                   </div>
@@ -136,7 +136,7 @@
 
                 <!-- ACCIONES (EN_ATENCION) -->
                 <div *ngIf="turnoActual.estado === 'EN_ATENCION'" class="mt-16 flex flex-col gap-4">
-                  <button (click)="finalizarAtencion()" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-black py-4 rounded-[24px] shadow-xl shadow-teal-500/30 hover:shadow-teal-500/50 transition-all duration-300 text-lg flex items-center justify-center gap-3 group active:scale-95">
+                  <button *ngIf="tienePermiso('atencion_medica_finalizar')" (click)="finalizarAtencion()" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-black py-4 rounded-[24px] shadow-xl shadow-teal-500/30 hover:shadow-teal-500/50 transition-all duration-300 text-lg flex items-center justify-center gap-3 group active:scale-95">
                     <lucide-icon [name]="CheckCircle2" class="w-6 h-6 group-hover:scale-110 transition-transform"></lucide-icon> Finalizar Atención
                   </button>
                 </div>

@@ -3,7 +3,7 @@ const { body, validationResult } = require('express-validator');
 const router = express.Router();
 const ctrl = require('../controllers/recepcion.controller');
 const auth = require('../middleware/auth');
-const role = require('../middleware/roles');
+const perm = require('../middleware/permission');
 
 const validar = (req, res, next) => {
   const errors = validationResult(req);
@@ -12,7 +12,7 @@ const validar = (req, res, next) => {
 };
 
 router.use(auth);
-router.use(role('recepcionista', 'administrador', 'coordinador', 'analista', 'laboratorio', 'imagenes'));
+router.use(perm('admision_crear', 'admision_editar', 'admision_eliminar', 'admision_asignar_turno', 'laboratorio_registrar_caja', 'laboratorio_pasar_sala_espera', 'laboratorio_marcar_ausente', 'laboratorio_reincorporar', 'imagenes_registrar_caja', 'imagenes_pasar_sala_espera', 'imagenes_marcar_ausente', 'imagenes_reincorporar'));
 
 router.get('/responsables-pago', ctrl.getResponsablesPago);
 router.get('/ultimas-admisiones', ctrl.getUltimasAdmisiones);

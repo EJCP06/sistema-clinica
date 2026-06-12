@@ -2,8 +2,9 @@ import { Component, OnInit, OnDestroy, HostListener, ElementRef, inject, Destroy
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronDown, Undo2, DollarSign } from 'lucide-angular';
+import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronDown, Undo2, DollarSign, XCircle } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
 import { SwalService } from '../../core/services/swal.service';
 import { AdmisionDTO } from '@core/models/dto.models';
 import Swal from 'sweetalert2';
@@ -28,6 +29,7 @@ export class ImagenesComponent implements OnInit, OnDestroy {
   readonly ChevronDown = ChevronDown;
   readonly Undo2 = Undo2;
   readonly DollarSign = DollarSign;
+  readonly XCircle = XCircle;
 
   pageSize = 6;
   currentPage = 1;
@@ -61,8 +63,13 @@ export class ImagenesComponent implements OnInit, OnDestroy {
   private el = inject(ElementRef);
   private destroyRef = inject(DestroyRef);
   private swal = inject(SwalService);
+  private auth = inject(AuthService);
 
   constructor(private api: ApiService) {}
+
+  get usuario() { return this.auth.usuarioActual; }
+
+  tienePermiso(permiso: string): boolean { return this.auth.tienePermiso(permiso); }
 
   @HostListener('document:click', ['$event'])
   onClick(event: MouseEvent) {
@@ -129,6 +136,8 @@ export class ImagenesComponent implements OnInit, OnDestroy {
   }
 
   onSearchChange(value: string | undefined) {
+    this.cedulaBusqueda = value || '';
+    this.currentPage = 1;
   }
 
   async enviarAPresupuesto(id_atencion: number) {
@@ -175,6 +184,15 @@ export class ImagenesComponent implements OnInit, OnDestroy {
     this.api.reincorporarPaciente(id_atencion).subscribe({
       next: () => this.cargarUltimasAdmisiones(),
       error: (err) => this.swal.error(err.error?.mensaje || 'Error al reincorporar paciente')
+    });
+  }
+
+  async marcarAusente(id_atencion: number) {
+    const result = await this.swal.confirm('¿Marcar este paciente como ausente?');
+    if (!result.isConfirmed) return;
+    this.api.actualizarEstadoAtencion(id_atencion, 7).subscribe({
+      next: () => this.cargarUltimasAdmisiones(),
+      error: (err) => this.swal.error(err.error?.mensaje || 'Error al marcar ausente')
     });
   }
 

@@ -15,7 +15,13 @@ const findByCedula = async (cedula) => {
     SELECT u.id_usuario as id, u.cedula, u.password_hash, r.key as rol, u.id_rol, u.nombre, u.apellido,
            u.id_servicio as servicio_id, u.id_consultorio as consultorio_id, u.id_sede,
            u.id_especialidad, e.nombre as especialidad_nombre,
-           u.sesion_token
+           u.sesion_token,
+           COALESCE(
+             (SELECT json_agg(p.key) FROM "Permisos" p
+              INNER JOIN "Roles_Permisos" rp ON p.id_permiso = rp.id_permiso
+              WHERE rp.id_rol = u.id_rol),
+             '[]'::json
+           ) as permisos
     FROM "Usuarios" u
     LEFT JOIN "Roles" r ON u.id_rol = r.id_rol
     LEFT JOIN "Especialidades" e ON u.id_especialidad = e.id_especialidad

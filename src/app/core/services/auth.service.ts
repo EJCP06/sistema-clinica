@@ -123,6 +123,18 @@ export class AuthService {
     return roles.includes(usuario.rol);
   }
 
+  tienePermiso(permiso: string): boolean {
+    const usuario = this.usuarioSubject.value;
+    if (!usuario || !usuario.permisos) return false;
+    return usuario.permisos.includes(permiso);
+  }
+
+  tienePermisos(permisos: string[]): boolean {
+    const usuario = this.usuarioSubject.value;
+    if (!usuario || !usuario.permisos) return false;
+    return permisos.some(p => usuario.permisos.includes(p));
+  }
+
   private cargarSesion(): Usuario | null {
     try {
       const data = sessionStorage.getItem(this.STORAGE_KEY);

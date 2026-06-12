@@ -3,24 +3,24 @@ const { body, validationResult } = require('express-validator');
 const router = express.Router();
 const consultoriosController = require('../controllers/consultorios.controller');
 const authMiddleware = require('../middleware/auth');
-const roleMiddleware = require('../middleware/roles');
+const permMiddleware = require('../middleware/permission');
 const adminController = require('../controllers/admin.controller');
 
 // Todas las rutas requieren autenticación
 router.use(authMiddleware);
 
-// --- Rutas médico (requieren rol medico o admin) ---
-router.get('/mi-estado', roleMiddleware('medico', 'administrador', 'laboratorio', 'imagenes'), consultoriosController.obtenerMiEstado);
-router.post('/llamar-siguiente', roleMiddleware('medico', 'administrador', 'laboratorio', 'imagenes'), consultoriosController.llamarSiguiente);
-router.post('/iniciar-atencion', roleMiddleware('medico', 'administrador', 'laboratorio', 'imagenes'), consultoriosController.iniciarAtencion);
-router.post('/finalizar-atencion', roleMiddleware('medico', 'administrador', 'laboratorio', 'imagenes'), consultoriosController.finalizarAtencion);
-router.post('/liberar-consultorio', roleMiddleware('medico', 'administrador', 'laboratorio', 'imagenes'), consultoriosController.liberarConsultorio);
+// --- Rutas médico (requieren permiso de atención) ---
+router.get('/mi-estado', permMiddleware('atencion_medica_llamar_siguiente', 'atencion_medica_liberar_consultorio', 'laboratorio_registrar_caja', 'laboratorio_pasar_sala_espera', 'laboratorio_marcar_ausente', 'laboratorio_reincorporar', 'imagenes_registrar_caja', 'imagenes_pasar_sala_espera', 'imagenes_marcar_ausente', 'imagenes_reincorporar'), consultoriosController.obtenerMiEstado);
+router.post('/llamar-siguiente', permMiddleware('atencion_medica_llamar_siguiente', 'llamado_laboratorio', 'llamado_imagenes'), consultoriosController.llamarSiguiente);
+router.post('/iniciar-atencion', permMiddleware('atencion_medica_llamar_siguiente', 'atencion_medica_liberar_consultorio', 'laboratorio_registrar_caja', 'laboratorio_pasar_sala_espera', 'laboratorio_marcar_ausente', 'laboratorio_reincorporar', 'imagenes_registrar_caja', 'imagenes_pasar_sala_espera', 'imagenes_marcar_ausente', 'imagenes_reincorporar'), consultoriosController.iniciarAtencion);
+router.post('/finalizar-atencion', permMiddleware('atencion_medica_llamar_siguiente', 'atencion_medica_liberar_consultorio', 'laboratorio_registrar_caja', 'laboratorio_pasar_sala_espera', 'laboratorio_marcar_ausente', 'laboratorio_reincorporar', 'imagenes_registrar_caja', 'imagenes_pasar_sala_espera', 'imagenes_marcar_ausente', 'imagenes_reincorporar'), consultoriosController.finalizarAtencion);
+router.post('/liberar-consultorio', permMiddleware('atencion_medica_liberar_consultorio'), consultoriosController.liberarConsultorio);
 
-// --- Rutas CRUD admin (requieren rol admin) ---
-router.get('/', roleMiddleware('administrador', 'medico', 'recepcionista'), adminController.getConsultorios);
+// --- Rutas CRUD admin ---
+router.get('/', permMiddleware('gestionar_servicios', 'admision_crear', 'admision_editar', 'admision_eliminar', 'admision_asignar_turno'), adminController.getConsultorios);
 router.post(
   '/',
-  roleMiddleware('administrador'),
+  permMiddleware('gestionar_servicios'),
   [
     body('nombre').isString().notEmpty().withMessage('El nombre del consultorio es obligatorio'),
     body('servicio_id').isInt().withMessage('El servicio es obligatorio'),
@@ -33,7 +33,7 @@ router.post(
     return adminController.crearConsultorio(req, res, next);
   }
 );
-router.put('/:id', roleMiddleware('administrador'), adminController.actualizarConsultorio);
-router.delete('/:id', roleMiddleware('administrador'), adminController.eliminarConsultorio);
+router.put('/:id', permMiddleware('gestionar_servicios'), adminController.actualizarConsultorio);
+router.delete('/:id', permMiddleware('gestionar_servicios'), adminController.eliminarConsultorio);
 
 module.exports = router;

@@ -12,11 +12,12 @@ import { AdminReports } from './admin-reports';
 import { AdminPersonal } from './admin-personal';
 import { AdminEspecialidades } from './admin-especialidades';
 import { AdminRoles } from './admin-roles';
+import { AdminPermisologia } from './admin-permisologia';
 
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule, FormsModule, Sidebar, Header, AdminReports, AdminPersonal, AdminEspecialidades, AdminRoles],
+  imports: [CommonModule, FormsModule, Sidebar, Header, AdminReports, AdminPersonal, AdminEspecialidades, AdminRoles, AdminPermisologia],
   templateUrl: './admin.html',
   styles: [],
 })
@@ -30,12 +31,13 @@ export class Admin implements OnInit {
    usuario = this.authService.usuarioActual;
 
    activeTab:
-     | 'reports'
-     | 'stats'
-     | 'config'
-     | 'personal'
-     | 'especialidades'
-     | 'roles' = 'personal';
+      | 'reports'
+      | 'stats'
+      | 'config'
+      | 'personal'
+      | 'especialidades'
+      | 'roles'
+      | 'permisologia' = 'personal';
 
   configExpanded = true;
   sidebarOpen = false;

@@ -81,6 +81,8 @@ export class Atencion implements OnInit, OnDestroy {
   get isDarkMode() { return this.themeService.isDarkMode(); }
 
   // Getter de compatibilidad con el template que usa consultorio?.estado
+  tienePermiso(permiso: string): boolean { return this.authService.tienePermiso(permiso); }
+
   get consultorio() {
     return {
       id: this.consultorioId,

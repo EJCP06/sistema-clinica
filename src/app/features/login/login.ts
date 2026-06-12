@@ -231,19 +231,26 @@ export class Login implements OnDestroy {
       this.cargando = false;
       const usuario = this.auth.usuarioActual;
       if (!usuario) return;
-      const rol = usuario.rol;
-      if (rol === 'administrador') this.router.navigate(['/administrador']);
-      else if (rol === 'recepcionista') this.router.navigate(['/recepcion']);
-      else if (rol === 'medico') this.router.navigate(['/atencion']);
-      else if (rol === 'coordinador' || rol === 'analista') this.router.navigate(['/aps']);
-      else if (rol === 'laboratorio') {
+      const p = (permiso: string) => this.auth.tienePermiso(permiso);
+      // Fallback para claves antiguas (legacy)
+      const pLegacy = (permiso: string) => this.auth.tienePermiso(permiso);
+      if (p('admin_panel')) this.router.navigate(['/administrador']);
+      else if (p('admision_crear') || p('admision_editar') || p('admision_eliminar') || p('admision_asignar_turno') || pLegacy('admision')) this.router.navigate(['/recepcion']);
+      else if (p('aps_enviar_presupuesto') || p('aseguradoras_crear') || pLegacy('ver_aps')) this.router.navigate(['/aps']);
+      else if (p('atencion_medica_llamar_siguiente') || p('atencion_medica_liberar_consultorio') || p('atencion_medica_iniciar') || p('atencion_medica_marcar_ausente') || p('atencion_medica_finalizar') || pLegacy('atencion_medica') || pLegacy('llamar_siguiente') || pLegacy('liberar_consultorio')) this.router.navigate(['/atencion']);
+      else if (p('laboratorio_registrar_caja') || p('laboratorio_pasar_sala_espera') || p('laboratorio_marcar_ausente') || p('laboratorio_reincorporar') || pLegacy('laboratorio') || pLegacy('marcar_ausente') || pLegacy('reincorporar')) {
         if (usuario.consultorio_id) this.router.navigate(['/atencion'], { queryParams: { tipo: 'laboratorio' } });
         else this.router.navigate(['/atencion-laboratorio']);
       }
-      else if (rol === 'imagenes') {
+      else if (p('imagenes_registrar_caja') || p('imagenes_pasar_sala_espera') || p('imagenes_marcar_ausente') || p('imagenes_reincorporar') || pLegacy('imagenes') || pLegacy('marcar_ausente') || pLegacy('reincorporar')) {
         if (usuario.consultorio_id) this.router.navigate(['/atencion'], { queryParams: { tipo: 'imagenes' } });
         else this.router.navigate(['/atencion-imagenes']);
       }
-      else this.router.navigate(['/atencion']);
+      else if (p('llamado_laboratorio') || p('llamado_imagenes')) {
+        if (p('llamado_laboratorio')) this.router.navigate(['/atencion'], { queryParams: { tipo: 'laboratorio' } });
+        else this.router.navigate(['/atencion'], { queryParams: { tipo: 'imagenes' } });
+      }
+      else if (p('aseguradoras_crear') || p('aseguradoras_editar') || p('aseguradoras_eliminar') || p('aseguradoras_importar_excel') || pLegacy('ver_aseguradoras')) this.router.navigate(['/aseguradoras']);
+      else this.router.navigate(['/login']);
     }
   }
