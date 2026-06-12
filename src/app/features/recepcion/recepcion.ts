@@ -32,6 +32,7 @@ import {
   Upload,
 } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
 import { SwalService } from '../../core/services/swal.service';
 import { EspecialidadesService } from '../../core/services/especialidades.service';
 import { ScrollService } from '../../core/services/scroll.service';
@@ -184,6 +185,9 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   private espService = inject(EspecialidadesService);
   private swal = inject(SwalService);
   private scrollService = inject(ScrollService);
+  private auth = inject(AuthService);
+
+  tienePermiso(permiso: string): boolean { return this.auth.tienePermiso(permiso); }
 
   constructor(
     private api: ApiService,

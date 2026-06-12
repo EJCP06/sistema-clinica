@@ -3,7 +3,7 @@ const { body, param, validationResult } = require('express-validator');
 const router = express.Router();
 const turnosController = require('../controllers/turnos.controller');
 const auth = require('../middleware/auth');
-const role = require('../middleware/roles');
+const perm = require('../middleware/permission');
 
 const validar = (req, res, next) => {
   const errors = validationResult(req);
@@ -12,7 +12,7 @@ const validar = (req, res, next) => {
 };
 
 router.use(auth);
-router.use(role('medico', 'recepcionista', 'administrador', 'laboratorio', 'imagenes', 'coordinador', 'analista'));
+router.use(perm('admision_crear', 'admision_asignar_turno', 'atencion_medica_llamar_siguiente', 'atencion_medica_liberar_consultorio', 'laboratorio_registrar_caja', 'laboratorio_pasar_sala_espera', 'laboratorio_marcar_ausente', 'laboratorio_reincorporar', 'imagenes_registrar_caja', 'imagenes_pasar_sala_espera', 'imagenes_marcar_ausente', 'imagenes_reincorporar'));
 
 router.get('/', turnosController.getTodosLosTurnos);
 router.get('/todos', turnosController.getTodosLosTurnos);

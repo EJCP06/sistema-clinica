@@ -22,6 +22,7 @@ import {
   GenerarTurnoRequest,
   RolDTO,
   CrearRolRequest,
+  PermisoDTO,
 } from '@core/models/dto.models';
 
 @Injectable({ providedIn: 'root' })
@@ -251,5 +252,20 @@ export class ApiService {
 
   eliminarRol(id: number): Observable<ApiResponse> {
     return this.http.delete<ApiResponse>(`${this.base}/admin/roles/${id}`);
+  }
+
+  // =========================
+  // PERMISOS
+  // =========================
+  getPermisos(): Observable<PermisoDTO[]> {
+    return this.http.get<PermisoDTO[]>(`${this.base}/admin/permisos`);
+  }
+
+  getPermisosByRol(idRol: number): Observable<PermisoDTO[]> {
+    return this.http.get<PermisoDTO[]>(`${this.base}/admin/roles/${idRol}/permisos`);
+  }
+
+  asignarPermisos(idRol: number, permisos: string[]): Observable<ApiResponse> {
+    return this.http.put<ApiResponse>(`${this.base}/admin/roles/${idRol}/permisos`, { permisos });
   }
 }

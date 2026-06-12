@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '@core/services/api.service';
+import { AuthService } from '@core/services/auth.service';
 import { SwalService } from '../../core/services/swal.service';
 import { ConsultorioDTO, EspecialidadDTO, SedeDTO } from '@core/models/dto.models';
 import {
@@ -49,6 +50,7 @@ export class AdminEspecialidades implements OnInit {
   pageSize = 6;
   currentPage = 1;
 
+  private auth = inject(AuthService);
   private apiService = inject(ApiService);
   private destroyRef = inject(DestroyRef);
   private swal = inject(SwalService);
@@ -237,6 +239,8 @@ export class AdminEspecialidades implements OnInit {
     this.formEsp.id_sede = id;
     this.showSedeDropdown = false;
   }
+
+  tienePermiso(permiso: string): boolean { return this.auth.tienePermiso(permiso); }
 
   toggleSearchFilterDropdown() {
     this.showSearchFilterDropdown = !this.showSearchFilterDropdown;

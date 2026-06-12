@@ -35,6 +35,7 @@ const login = async (req, res) => {
       cedula: usuario.cedula,
       nombre: usuario.nombre,
       rol: usuario.rol,
+      permisos: usuario.permisos || [],
       servicio_id: usuario.servicio_id,
       consultorio_id: usuario.consultorio_id,
       id_sede: usuario.id_sede,

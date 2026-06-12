@@ -3,7 +3,7 @@ const { body, validationResult } = require('express-validator');
 const router = express.Router();
 const medicoController = require('../controllers/medico.controller');
 const authMiddleware = require('../middleware/auth');
-const roleMiddleware = require('../middleware/roles');
+const permMiddleware = require('../middleware/permission');
 
 const validar = (req, res, next) => {
   const errors = validationResult(req);
@@ -12,7 +12,7 @@ const validar = (req, res, next) => {
 };
 
 router.use(authMiddleware);
-router.use(roleMiddleware('medico', 'administrador'));
+router.use(permMiddleware('atencion_medica_llamar_siguiente', 'atencion_medica_liberar_consultorio'));
 
 router.get('/espera', medicoController.getPacientesEnEspera);
 router.get('/atendidos-hoy', medicoController.getAtendidosHoy);

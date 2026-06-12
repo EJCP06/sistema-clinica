@@ -24,6 +24,8 @@
                 ? 'Gestión de Especialidades'
                 : activeTab === 'roles'
                 ? 'Gestión de Roles'
+                : activeTab === 'permisologia'
+                ? 'Permisología'
                 : 'Gestión de Consultorios'
       "
       [subtitle]="
@@ -37,6 +39,8 @@
                 ? 'Configuración de servicios clínicos'
                 : activeTab === 'roles'
                 ? 'Administración de roles y permisos'
+                : activeTab === 'permisologia'
+                ? 'Matriz de permisos por rol'
                 : 'Gestión de consultorios and ubicaciones'
       "
       [showLogo]="false"
@@ -49,14 +53,13 @@
       <style>
         .flex-1::-webkit-scrollbar { display: none; }
       </style>
-      <app-admin-reports [hidden]="activeTab !== 'reports' && activeTab !== 'stats'"></app-admin-reports>
+      <app-admin-reports *ngIf="activeTab === 'reports' || activeTab === 'stats'"></app-admin-reports>
 
-      <app-admin-personal
-        [hidden]="activeTab !== 'personal'"
-      ></app-admin-personal>
+      <app-admin-personal *ngIf="activeTab === 'personal'"></app-admin-personal>
 
-      <app-admin-especialidades [hidden]="activeTab !== 'especialidades'"></app-admin-especialidades>
-      <app-admin-roles [hidden]="activeTab !== 'roles'"></app-admin-roles>
+      <app-admin-especialidades *ngIf="activeTab === 'especialidades'"></app-admin-especialidades>
+      <app-admin-roles *ngIf="activeTab === 'roles'"></app-admin-roles>
+      <app-admin-permisologia *ngIf="activeTab === 'permisologia'"></app-admin-permisologia>
     </div>
   </main>
 </div>

@@ -346,6 +346,13 @@ export interface CrearRolRequest {
   activo?: boolean;
 }
 
+export interface PermisoDTO {
+  id_permiso: number;
+  key: string;
+  nombre: string;
+  descripcion?: string;
+}
+
 export interface HealthResponse {
   status: string;
   message: string;

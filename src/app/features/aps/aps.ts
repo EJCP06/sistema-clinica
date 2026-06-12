@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronDown, Undo2, KeyRound, DollarSign } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '@core/services/auth.service';
 import { SwalService } from '../../core/services/swal.service';
 import { AdmisionDTO } from '@core/models/dto.models';
 import Swal from 'sweetalert2';
@@ -63,7 +64,7 @@ export class ApsComponent implements OnInit, OnDestroy {
   private destroyRef = inject(DestroyRef);
   private swal = inject(SwalService);
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private auth: AuthService) {}
 
   @HostListener('document:click', ['$event'])
   onClick(event: MouseEvent) {
@@ -85,6 +86,8 @@ export class ApsComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
   }
+
+  tienePermiso(permiso: string): boolean { return this.auth.tienePermiso(permiso); }
 
   toggleSearchFilterDropdown() {
     this.showSearchFilterDropdown = !this.showSearchFilterDropdown;

@@ -3,7 +3,7 @@ const { body, validationResult } = require('express-validator');
 const router = express.Router();
 const sharedController = require('../controllers/shared.controller');
 const auth = require('../middleware/auth');
-const role = require('../middleware/roles');
+const perm = require('../middleware/permission');
 
 const validar = (req, res, next) => {
   const errors = validationResult(req);
@@ -12,7 +12,7 @@ const validar = (req, res, next) => {
 };
 
 router.use(auth);
-router.use(role('recepcionista', 'administrador', 'coordinador', 'analista'));
+router.use(perm('admision_crear', 'aseguradoras_crear', 'aseguradoras_editar', 'aseguradoras_eliminar', 'aseguradoras_importar_excel'));
 
 router.get('/aseguradoras', sharedController.getAseguradoras);
 router.post('/aseguradoras', [

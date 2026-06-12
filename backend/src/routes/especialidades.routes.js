@@ -4,7 +4,7 @@ const router = express.Router();
 const espController = require('../controllers/especialidades.controller');
 const { getEspecialidades, createEspecialidad, updateEspecialidad, deleteEspecialidad } = espController;
 const auth = require('../middleware/auth');
-const role = require('../middleware/roles');
+const perm = require('../middleware/permission');
 
 const validar = (req, res, next) => {
   const errors = validationResult(req);
@@ -12,21 +12,21 @@ const validar = (req, res, next) => {
   next();
 };
 
-router.get('/', auth, role('administrador', 'medico', 'recepcionista', 'coordinador', 'analista'), getEspecialidades);
-router.post('/', auth, role('administrador'), [
+router.get('/', auth, perm('especialidades_crear', 'especialidades_editar', 'especialidades_eliminar'), getEspecialidades);
+router.post('/', auth, perm('especialidades_crear'), [
   body('nombre').trim().notEmpty().withMessage('El nombre es obligatorio'),
   body('id_servicio').isInt().withMessage('El servicio es obligatorio'),
   validar,
 ], createEspecialidad);
-router.put('/:id', auth, role('administrador'), [
+router.put('/:id', auth, perm('especialidades_editar'), [
   param('id').isInt().withMessage('ID inválido'),
   validar,
 ], updateEspecialidad);
-router.delete('/:id', auth, role('administrador'), [
+router.delete('/:id', auth, perm('especialidades_eliminar'), [
   param('id').isInt().withMessage('ID inválido'),
   validar,
 ], deleteEspecialidad);
 
-router.post('/importar', auth, role('administrador'), espController.importarEspecialidades);
+router.post('/importar', auth, perm('especialidades_crear'), espController.importarEspecialidades);
 
 module.exports = router;

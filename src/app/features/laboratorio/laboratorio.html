@@ -164,14 +164,17 @@
                     <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.fecha_creacion | date:'h:mm a' }}</td>
                     <td class="px-3 md:px-6 py-3 md:py-4 text-center border-b border-slate-100/30 dark:border-slate-800/10">
                       <div class="flex items-center justify-center gap-2">
-                        <button *ngIf="a.id_estado_actual === 1" (click)="enviarAPresupuesto(a.id_atencion)" aria-label="¿Ya se creó el presupuesto?" title="¿Ya se creó el presupuesto?" class="p-2 text-amber-500 hover:bg-amber-50 rounded-xl transition-all">
+                        <button *ngIf="a.id_estado_actual === 1 && tienePermiso('laboratorio_registrar_caja')" (click)="enviarAPresupuesto(a.id_atencion)" aria-label="¿Ya se creó el presupuesto?" title="¿Ya se creó el presupuesto?" class="p-2 text-amber-500 hover:bg-amber-50 rounded-xl transition-all">
                           <lucide-icon [name]="FileText" class="w-4 h-4"></lucide-icon>
                         </button>
-                        <button *ngIf="a.id_estado_actual === 2" (click)="enviarACaja(a.id_atencion)" aria-label="Enviar a sala de espera" title="Enviar a Sala de Espera" class="p-2 text-teal-500 hover:bg-teal-50 rounded-xl transition-all">
+                        <button *ngIf="a.id_estado_actual === 2 && tienePermiso('laboratorio_pasar_sala_espera')" (click)="enviarACaja(a.id_atencion)" aria-label="Enviar a sala de espera" title="Enviar a Sala de Espera" class="p-2 text-teal-500 hover:bg-teal-50 rounded-xl transition-all">
                           <lucide-icon [name]="CheckCircle2" class="w-4 h-4"></lucide-icon>
                         </button>
 
-                        <button *ngIf="a.id_estado_actual === 7" (click)="reincorporar(a.id_atencion)" aria-label="Reincorporar a sala de espera" title="Reincorporar a Sala de Espera" class="p-2 text-orange-500 hover:bg-orange-50 rounded-xl transition-all">
+                        <button *ngIf="a.id_estado_actual === 4 && tienePermiso('laboratorio_marcar_ausente')" (click)="marcarAusente(a.id_atencion)" aria-label="Marcar como ausente" title="Marcar como Ausente" class="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-all">
+                          <lucide-icon [name]="XCircle" class="w-4 h-4"></lucide-icon>
+                        </button>
+                        <button *ngIf="a.id_estado_actual === 7 && tienePermiso('laboratorio_reincorporar')" (click)="reincorporar(a.id_atencion)" aria-label="Reincorporar a sala de espera" title="Reincorporar a Sala de Espera" class="p-2 text-orange-500 hover:bg-orange-50 rounded-xl transition-all">
                           <lucide-icon [name]="Undo2" class="w-4 h-4"></lucide-icon>
                         </button>
                       </div>
@@ -184,7 +187,7 @@
                   </ng-container>
                 </ng-container>
                 <tr *ngIf="admisionesFiltradas.length === 0">
-                  <td colspan="8" class="px-8 py-20 text-center align-middle">
+                   <td colspan="8" class="px-8 py-20 text-center align-middle">
                     <div class="flex flex-col items-center justify-center w-full">
                       <div
                         class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 mx-auto"

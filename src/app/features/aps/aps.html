@@ -162,20 +162,20 @@
                     <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.fecha_creacion | date:'h:mm a' }}</td>
                     <td class="px-3 md:px-6 py-3 md:py-4 text-center border-b border-slate-100/30 dark:border-slate-800/10">
                       <div class="flex items-center justify-center gap-2">
-                        <button *ngIf="a.id_estado_actual === 1" (click)="enviarAPresupuesto(a)" aria-label="¿Ya se creó el presupuesto?" title="¿Ya se creó el presupuesto?" class="p-2 text-amber-500 hover:bg-amber-50 rounded-xl transition-all">
+                        <button *ngIf="a.id_estado_actual === 1 && tienePermiso('aps_enviar_presupuesto')" (click)="enviarAPresupuesto(a)" aria-label="¿Ya se creó el presupuesto?" title="¿Ya se creó el presupuesto?" class="p-2 text-amber-500 hover:bg-amber-50 rounded-xl transition-all">
                           <lucide-icon [name]="FileText" class="w-4 h-4"></lucide-icon>
                         </button>
-                        <button *ngIf="a.id_estado_actual === 2 && esAseguradora(a)" (click)="solicitarClave(a)" aria-label="Solicitar clave de aseguradora" title="Solicitar Clave Aseguradora" class="p-2 text-purple-500 hover:bg-purple-50 rounded-xl transition-all">
+                        <button *ngIf="a.id_estado_actual === 2 && esAseguradora(a) && tienePermiso('aps_solicitar_clave')" (click)="solicitarClave(a)" aria-label="Solicitar clave de aseguradora" title="Solicitar Clave Aseguradora" class="p-2 text-purple-500 hover:bg-purple-50 rounded-xl transition-all">
                           <lucide-icon [name]="KeyRound" class="w-4 h-4"></lucide-icon>
                         </button>
-                        <button *ngIf="a.id_estado_actual === 2 && !esAseguradora(a)" (click)="enviarACaja(a.id_atencion)" aria-label="Enviar a sala de espera" title="Enviar a Sala de Espera" class="p-2 text-teal-500 hover:bg-teal-50 rounded-xl transition-all">
+                        <button *ngIf="a.id_estado_actual === 2 && !esAseguradora(a) && tienePermiso('aps_enviar_sala_espera')" (click)="enviarACaja(a.id_atencion)" aria-label="Enviar a sala de espera" title="Enviar a Sala de Espera" class="p-2 text-teal-500 hover:bg-teal-50 rounded-xl transition-all">
                           <lucide-icon [name]="CheckCircle2" class="w-4 h-4"></lucide-icon>
                         </button>
 
-                        <button *ngIf="a.id_estado_actual === 8" (click)="aprobarClave(a)" aria-label="Enviar a sala de espera" title="Enviar a Sala de Espera" class="p-2 text-teal-500 hover:bg-teal-50 rounded-xl transition-all">
+                        <button *ngIf="a.id_estado_actual === 8 && tienePermiso('aps_aprobar_clave')" (click)="aprobarClave(a)" aria-label="Enviar a sala de espera" title="Enviar a Sala de Espera" class="p-2 text-teal-500 hover:bg-teal-50 rounded-xl transition-all">
                           <lucide-icon [name]="CheckCircle2" class="w-4 h-4"></lucide-icon>
                         </button>
-                        <button *ngIf="a.id_estado_actual === 7" (click)="reincorporar(a.id_atencion)" aria-label="Reincorporar a sala de espera" title="Reincorporar a Sala de Espera" class="p-2 text-orange-500 hover:bg-orange-50 rounded-xl transition-all">
+                        <button *ngIf="a.id_estado_actual === 7 && tienePermiso('aps_reincorporar')" (click)="reincorporar(a.id_atencion)" aria-label="Reincorporar a sala de espera" title="Reincorporar a Sala de Espera" class="p-2 text-orange-500 hover:bg-orange-50 rounded-xl transition-all">
                           <lucide-icon [name]="Undo2" class="w-4 h-4"></lucide-icon>
                         </button>
                       </div>

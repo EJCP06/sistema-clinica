@@ -1,8 +1,9 @@
-import { Component, inject, OnInit, DestroyRef } from '@angular/core';
+import { Component, inject, OnInit, DestroyRef, ElementRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '@core/services/api.service';
+import { AuthService } from '@core/services/auth.service';
 import { SwalService } from '../../core/services/swal.service';
 import {
   LucideAngularModule,
@@ -91,6 +92,7 @@ export class AdminRoles implements OnInit {
   readonly DoorOpen = DoorOpen;
   readonly Stethoscope = Stethoscope;
 
+  private auth = inject(AuthService);
   private apiService = inject(ApiService);
   private el = inject(ElementRef);
   private destroyRef = inject(DestroyRef);
@@ -147,6 +149,8 @@ export class AdminRoles implements OnInit {
       error: () => {},
     });
   }
+
+  tienePermiso(permiso: string): boolean { return this.auth.tienePermiso(permiso); }
 
   getRolesFiltrados(): RolDTO[] {
     if (!this.searchQuery) return this.roles;
