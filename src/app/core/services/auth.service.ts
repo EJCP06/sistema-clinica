@@ -13,6 +13,61 @@ export class AuthService {
   private TOKEN_KEY = 'clinica_token';
   private usuarioSubject = new BehaviorSubject<Usuario | null>(this.cargarSesion());
 
+  private LEGACY_KEY_MAP: Record<string, string> = {
+    ver_reportes: 'reportes:ver',
+    admin_panel: 'admin:panel',
+    admision_crear: 'admision:crear',
+    admision_editar: 'admision:editar',
+    admision_eliminar: 'admision:eliminar',
+    admision_asignar_turno: 'admision:asignar_turno',
+    aps_enviar_presupuesto: 'aps:enviar_presupuesto',
+    aps_solicitar_clave: 'aps:solicitar_clave',
+    aps_enviar_sala_espera: 'aps:enviar_sala_espera',
+    aps_aprobar_clave: 'aps:aprobar_clave',
+    aps_reincorporar: 'aps:reincorporar',
+    laboratorio_registrar_caja: 'laboratorio:registrar_caja',
+    laboratorio_pasar_sala_espera: 'laboratorio:pasar_sala_espera',
+    laboratorio_marcar_ausente: 'laboratorio:marcar_ausente',
+    laboratorio_reincorporar: 'laboratorio:reincorporar',
+    imagenes_registrar_caja: 'imagenes:registrar_caja',
+    imagenes_pasar_sala_espera: 'imagenes:pasar_sala_espera',
+    imagenes_marcar_ausente: 'imagenes:marcar_ausente',
+    imagenes_reincorporar: 'imagenes:reincorporar',
+    llamado_laboratorio: 'llamado:laboratorio',
+    llamado_imagenes: 'llamado:imagenes',
+    aseguradoras_crear: 'aseguradoras:crear',
+    aseguradoras_editar: 'aseguradoras:editar',
+    aseguradoras_eliminar: 'aseguradoras:eliminar',
+    aseguradoras_importar_excel: 'aseguradoras:importar_excel',
+    atencion_medica_llamar_siguiente: 'atencion_medica:llamar_siguiente',
+    atencion_medica_liberar_consultorio: 'atencion_medica:liberar_consultorio',
+    atencion_medica_iniciar: 'atencion_medica:iniciar',
+    atencion_medica_marcar_ausente: 'atencion_medica:marcar_ausente',
+    atencion_medica_finalizar: 'atencion_medica:finalizar',
+    especialidades_crear: 'especialidades:crear',
+    especialidades_editar: 'especialidades:editar',
+    especialidades_eliminar: 'especialidades:eliminar',
+    personal_crear: 'personal:crear',
+    personal_editar: 'personal:editar',
+    personal_eliminar: 'personal:eliminar',
+    roles_crear: 'roles:crear',
+    roles_editar: 'roles:editar',
+    roles_eliminar: 'roles:eliminar',
+    gestionar_permisos: 'permisologia:gestionar_permisos',
+    gestionar_sedes: 'sedes:gestionar',
+    gestionar_servicios: 'servicios:gestionar',
+    admision: 'admision:*',
+    ver_aps: 'aps:ver',
+    ver_aseguradoras: 'aseguradoras:ver',
+    laboratorio: 'laboratorio:*',
+    imagenes: 'imagenes:*',
+    atencion_medica: 'atencion_medica:*',
+    llamar_siguiente: 'atencion_medica:llamar_siguiente',
+    liberar_consultorio: 'atencion_medica:liberar_consultorio',
+    marcar_ausente: '*:marcar_ausente',
+    reincorporar: '*:reincorporar',
+  };
+
   usuario$ = this.usuarioSubject.asObservable();
 
   constructor(private router: Router, private http: HttpClient) {}
@@ -29,7 +84,6 @@ export class AuthService {
     return this.http.post<{mensaje: string, token: string, usuario: any}>(`${environment.apiUrl}/auth/login`, { username, password })
       .pipe(
         tap(response => {
-          // Normalizar: el backend devuelve username, aseguramos que nombre esté presente
           const usuario: Usuario = {
             ...response.usuario,
             nombre: response.usuario.nombre || response.usuario.username
@@ -66,6 +120,19 @@ export class AuthService {
     return this.http.put(`${environment.apiUrl}/auth/cambiar-password`, { cedula, newPassword });
   }
 
+  refrescarPermisos(): Observable<any> {
+    return this.http.get<{permisos: string[]}>(`${environment.apiUrl}/auth/mis-permisos`).pipe(
+      tap(res => {
+        const usuario = this.usuarioSubject.value;
+        if (usuario) {
+          usuario.permisos = res.permisos;
+          sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(usuario));
+          this.usuarioSubject.next(usuario);
+        }
+      }),
+    );
+  }
+
   solicitarRecuperacion(email: string, cedula: string): Observable<any> {
     return this.http.post(`${environment.apiUrl}/auth/recuperacion/solicitar`, { email, cedula });
   }
@@ -87,10 +154,6 @@ export class AuthService {
     this.limpiarSesion();
   }
 
-  /**
-   * Cierre de sesión de emergencia usando fetch con keepalive.
-   * Útil para eventos como beforeunload donde HttpClient puede ser cancelado.
-   */
   emergencyLogout() {
     const token = this.getToken();
     if (token) {
@@ -123,16 +186,44 @@ export class AuthService {
     return roles.includes(usuario.rol);
   }
 
-  tienePermiso(permiso: string): boolean {
+  tienePermiso(recurso: string, accion?: string): boolean {
     const usuario = this.usuarioSubject.value;
     if (!usuario || !usuario.permisos) return false;
-    return usuario.permisos.includes(permiso);
+
+    let rec = recurso;
+    let acc = accion;
+
+    if (!acc && recurso.includes(':')) {
+      const parts = recurso.split(':');
+      rec = parts[0];
+      acc = parts[1];
+    }
+
+    if (acc) {
+      if (acc === '*') {
+        return usuario.permisos.some(p => p.startsWith(`${rec}:`) || p.startsWith(`*:`));
+      }
+      const claveRequerida = `${rec}:${acc}`;
+      return usuario.permisos.includes(claveRequerida) || 
+             usuario.permisos.includes(`*:${acc}`) || 
+             usuario.permisos.includes(`${rec}:*`);
+    }
+
+    if (usuario.permisos.includes(recurso)) return true;
+
+    const mapped = this.LEGACY_KEY_MAP[recurso];
+    if (mapped) return this.tienePermiso(mapped);
+
+    return false;
+  }
+
+  esCoordinador(): boolean {
+    const usuario = this.usuarioSubject.value;
+    return usuario?.rol === 'coordinador';
   }
 
   tienePermisos(permisos: string[]): boolean {
-    const usuario = this.usuarioSubject.value;
-    if (!usuario || !usuario.permisos) return false;
-    return permisos.some(p => usuario.permisos.includes(p));
+    return permisos.some(p => this.tienePermiso(p));
   }
 
   private cargarSesion(): Usuario | null {
@@ -142,7 +233,6 @@ export class AuthService {
       
       const usuario: Usuario = JSON.parse(data);
       
-      // Si el usuario no tiene id_sede, la sesión es inválida
       if (usuario.rol !== 'recepcionista' && usuario.id !== 0 && !usuario.id_sede) {
         console.warn('Sesión antigua detectada (sin id_sede). Limpiando...');
         sessionStorage.removeItem(this.STORAGE_KEY);

@@ -45,6 +45,8 @@ router.get('/super-seed', authMiddleware, authController.superSeed);
 
 router.put('/cambiar-password', authMiddleware, cambiarPasswordLimiter, authController.cambiarPassword);
 
+router.get('/mis-permisos', authMiddleware, authController.misPermisos);
+
 router.post('/logout', authMiddleware, authController.cerrarSesion);
 
 module.exports = router;

@@ -171,10 +171,10 @@
                           <lucide-icon [name]="CheckCircle2" class="w-4 h-4"></lucide-icon>
                         </button>
 
-                        <button *ngIf="a.id_estado_actual === 4 && tienePermiso('imagenes_marcar_ausente')" (click)="marcarAusente(a.id_atencion)" aria-label="Marcar como ausente" title="Marcar como Ausente" class="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-all">
+                        <button *ngIf="a.id_estado_actual === 4 && (tienePermiso('imagenes_marcar_ausente') || tienePermiso('marcar_ausente'))" (click)="marcarAusente(a.id_atencion)" aria-label="Marcar como ausente" title="Marcar como Ausente" class="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-all">
                           <lucide-icon [name]="XCircle" class="w-4 h-4"></lucide-icon>
                         </button>
-                        <button *ngIf="a.id_estado_actual === 7 && tienePermiso('imagenes_reincorporar')" (click)="reincorporar(a.id_atencion)" aria-label="Reincorporar a sala de espera" title="Reincorporar a Sala de Espera" class="p-2 text-orange-500 hover:bg-orange-50 rounded-xl transition-all">
+                        <button *ngIf="a.id_estado_actual === 7 && (tienePermiso('imagenes_reincorporar') || tienePermiso('reincorporar'))" (click)="reincorporar(a.id_atencion)" aria-label="Reincorporar a sala de espera" title="Reincorporar a Sala de Espera" class="p-2 text-orange-500 hover:bg-orange-50 rounded-xl transition-all">
                           <lucide-icon [name]="Undo2" class="w-4 h-4"></lucide-icon>
                         </button>
                       </div>

@@ -3,7 +3,7 @@ const { body, validationResult } = require('express-validator');
 const router = express.Router();
 const ctrl = require('../controllers/recepcion.controller');
 const auth = require('../middleware/auth');
-const perm = require('../middleware/permission');
+const { permissionMiddleware: perm } = require('../middleware/permission');
 
 const validar = (req, res, next) => {
   const errors = validationResult(req);
@@ -12,10 +12,24 @@ const validar = (req, res, next) => {
 };
 
 router.use(auth);
-router.use(perm('admision_crear', 'admision_editar', 'admision_eliminar', 'admision_asignar_turno', 'laboratorio_registrar_caja', 'laboratorio_pasar_sala_espera', 'laboratorio_marcar_ausente', 'laboratorio_reincorporar', 'imagenes_registrar_caja', 'imagenes_pasar_sala_espera', 'imagenes_marcar_ausente', 'imagenes_reincorporar'));
 
-router.get('/responsables-pago', ctrl.getResponsablesPago);
-router.get('/ultimas-admisiones', ctrl.getUltimasAdmisiones);
+router.get('/ultimas-admisiones', perm(
+  'ADMISION_TOTAL',
+  'LABORATORIO_TOTAL',
+  'IMAGENES_TOTAL'
+), ctrl.getUltimasAdmisiones);
+
+router.get('/responsables-pago', perm(
+  'ADMISION_TOTAL',
+  'LABORATORIO_TOTAL',
+  'IMAGENES_TOTAL'
+), ctrl.getResponsablesPago);
+
+router.use(perm(
+  'ADMISION_TOTAL',
+  'LABORATORIO_TOTAL',
+  'IMAGENES_TOTAL'
+));
 router.get('/pacientes/:termino', ctrl.buscarPaciente);
 router.post('/pacientes', [
   body('nombre').trim().notEmpty().withMessage('El nombre del paciente es obligatorio'),
@@ -33,5 +47,6 @@ router.post('/generar-turno', [
 router.put('/atencion/:id', ctrl.actualizarAtencion);
 router.put('/atencion/:id/estado', ctrl.actualizarEstadoAtencion);
 router.delete('/atencion/:id', ctrl.eliminarAtencion);
+router.put('/atencion/:id/marcar_ausente', perm('COORDINADOR_AYUDA'), ctrl.marcarAusente);
 
 module.exports = router;

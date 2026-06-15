@@ -1,5 +1,7 @@
 import { Routes } from '@angular/router';
-import { authGuard, permissionGuard } from '@core/guards/auth.guard';
+import { authGuard } from '@core/guards/auth.guard';
+
+import { modulePermissionGuard } from '@core/guards/module-permission.guard';
 
 export const routes: Routes = [
   // Pantalla de Login (Acceso público)
@@ -12,55 +14,118 @@ export const routes: Routes = [
   {
     path: 'administrador',
     loadComponent: () => import('./features/admin/admin').then(m => m.Admin),
-    canActivate: [authGuard, permissionGuard(['admin_panel', 'personal_crear', 'roles_crear', 'gestionar_permisos', 'gestionar_sedes', 'gestionar_servicios', 'especialidades_crear'])]
+    canActivate: [authGuard, modulePermissionGuard],
+    data: {
+      modules: [
+        { module: 'personal', allowedActions: ['*'] },
+        { module: 'roles', allowedActions: ['*'] },
+        { module: 'permisologia', allowedActions: ['*'] },
+        { module: 'especialidades', allowedActions: ['*'] },
+        { module: 'reportes', allowedActions: ['ver'] }
+      ]
+    }
   },
 
-  // Módulo de Recepción y Admisión (Admin y Recepcionista)
+  // Módulo de Recepción y Admisión
   {
     path: 'recepcion',
     loadComponent: () => import('./features/recepcion/recepcion').then(m => m.RecepcionComponent),
-    canActivate: [authGuard, permissionGuard(['admision_crear', 'admision_editar', 'admision_eliminar', 'admision_asignar_turno', 'admision'])]
+    canActivate: [authGuard, modulePermissionGuard],
+    data: {
+      modules: [
+        { module: 'admision', allowedActions: ['*'] }
+      ]
+    }
   },
 
   // Módulo de APS (Atención Primaria en Salud)
   {
     path: 'aps',
     loadComponent: () => import('./features/aps/aps').then(m => m.ApsComponent),
-    canActivate: [authGuard, permissionGuard(['aps_enviar_presupuesto', 'aps_solicitar_clave', 'aps_enviar_sala_espera', 'aps_aprobar_clave', 'aps_reincorporar', 'ver_aps'])]
+    canActivate: [authGuard, modulePermissionGuard],
+    data: {
+      modules: [
+        { module: 'aps', allowedActions: ['*'] }
+      ]
+    }
   },
 
-  // Pantalla de Aseguradoras (APS y Admin)
+  // Pantalla de Aseguradoras
   {
     path: 'aseguradoras',
     loadComponent: () => import('./features/recepcion/recepcion').then(m => m.RecepcionComponent),
-    canActivate: [authGuard, permissionGuard(['aseguradoras_crear', 'aseguradoras_editar', 'aseguradoras_eliminar', 'aseguradoras_importar_excel', 'ver_aseguradoras'])],
+    canActivate: [authGuard, modulePermissionGuard],
     data: {
+      modules: [
+        { module: 'aseguradoras', allowedActions: ['*'] }
+      ],
       pageTitle: 'Aseguradoras',
       pageSubtitle: 'Gestión de aseguradoras',
       aseguradorasMode: true
     }
   },
 
-   // Panel de Atención (Médico, Laboratorio, Imágenes)
-   {
-     path: 'atencion',
-     loadComponent: () => import('./features/atencion/atencion').then(m => m.Atencion),
-     canActivate: [authGuard, permissionGuard(['atencion_medica_llamar_siguiente', 'atencion_medica_liberar_consultorio', 'atencion_medica_iniciar', 'atencion_medica_marcar_ausente', 'atencion_medica_finalizar', 'llamado_laboratorio', 'llamado_imagenes', 'atencion_medica', 'llamar_siguiente', 'liberar_consultorio', 'marcar_ausente', 'reincorporar'])],
-     data: { tipo: 'medico' }
-   },
-
-  // Panel de Atención Laboratorio (Solo Laboratorio)
+  // Panel de Atención Médica
   {
-    path: 'atencion-laboratorio',
-    loadComponent: () => import('./features/laboratorio/laboratorio').then(m => m.LaboratorioComponent),
-    canActivate: [authGuard, permissionGuard(['laboratorio_registrar_caja', 'laboratorio_pasar_sala_espera', 'laboratorio_marcar_ausente', 'laboratorio_reincorporar', 'laboratorio', 'marcar_ausente', 'reincorporar'])]
+    path: 'atencion',
+    loadComponent: () => import('./features/atencion/atencion').then(m => m.Atencion),
+    canActivate: [authGuard, modulePermissionGuard],
+    data: {
+      modules: [
+        { module: 'atencion_medica', allowedActions: ['*'] }
+      ],
+      tipo: 'medico'
+    }
   },
 
-  // Panel de Atención Imágenes (Solo Imágenes)
+  // Panel de Atención Laboratorio
+  {
+    path: 'atencion-laboratorio',
+    loadComponent: () => import('./features/atencion/atencion').then(m => m.Atencion),
+    canActivate: [authGuard, modulePermissionGuard],
+    data: {
+      modules: [
+        { module: 'laboratorio', allowedActions: ['*'] }
+      ],
+      tipo: 'laboratorio'
+    }
+  },
+
+  // Panel de Atención Imágenes
   {
     path: 'atencion-imagenes',
+    loadComponent: () => import('./features/atencion/atencion').then(m => m.Atencion),
+    canActivate: [authGuard, modulePermissionGuard],
+    data: {
+      modules: [
+        { module: 'imagenes', allowedActions: ['*'] }
+      ],
+      tipo: 'imagenes'
+    }
+  },
+
+  // Panel de Gestión Laboratorio
+  {
+    path: 'laboratorio',
+    loadComponent: () => import('./features/laboratorio/laboratorio').then(m => m.LaboratorioComponent),
+    canActivate: [authGuard, modulePermissionGuard],
+    data: {
+      modules: [
+        { module: 'laboratorio', allowedActions: ['*'] }
+      ]
+    }
+  },
+
+  // Panel de Gestión Imágenes
+  {
+    path: 'imagenes',
     loadComponent: () => import('./features/imagenes/imagenes').then(m => m.ImagenesComponent),
-    canActivate: [authGuard, permissionGuard(['imagenes_registrar_caja', 'imagenes_pasar_sala_espera', 'imagenes_marcar_ausente', 'imagenes_reincorporar', 'imagenes', 'marcar_ausente', 'reincorporar'])]
+    canActivate: [authGuard, modulePermissionGuard],
+    data: {
+      modules: [
+        { module: 'imagenes', allowedActions: ['*'] }
+      ]
+    }
   },
 
   // Pantalla Pública del Turnero (Acceso público para TVs)

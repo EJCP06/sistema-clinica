@@ -237,6 +237,8 @@ export class TurneroComponent implements OnInit, OnDestroy {
   private timerSub: Subscription | null = null;
   private clockSub: Subscription | null = null;
   private cambiosSub: Subscription | null = null;
+  private repeatSubscription: Subscription | null = null;
+  private pacienteParaRepetir: { paciente: string; apellido: string; consultorio: string } | null = null;
 
   constructor(
     private api: ApiService,
@@ -245,71 +247,42 @@ export class TurneroComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
+    this.cargarVozFemenina();
     this.queryParamsSub = this.route.queryParams.subscribe(params => {
       const sala = params['sala'] as SalaMode;
       this.sala = SALAS[sala] ? sala : 'aps';
       this.config = SALAS[this.sala];
-      if (this.sala === 'aps') {
-        this.apsLoading = this.seccionesAPS.map(() => true);
-        this.cargarAPS();
-      } else if (this.sala === 'aps-espera') {
-        this.apsEsperaLoading = this.seccionesAPSEspera.map(() => true);
-        this.cargarAPSEspera();
-      } else if (this.sala === 'lab-espera') {
-        this.labLoading = this.labSections.map(() => true);
-        this.cargarLab();
-      } else if (this.sala === 'lab-en-espera') {
-        this.labEsperaLoading = this.labEsperaSections.map(() => true);
-        this.cargarLabEspera();
-      } else if (this.sala === 'img-espera') {
-        this.imgLoading = this.imgSections.map(() => true);
-        this.cargarImg();
-      } else if (this.sala === 'img-en-espera') {
-        this.imgEsperaLoading = this.imgEsperaSections.map(() => true);
-        this.cargarImgEspera();
-      } else if (this.sala === 'consulta') {
-        this.consultaLoading = this.consultaSections.map(() => true);
-        this.cargarConsulta();
-      }
+      this.cargarDatosSala();
     });
 
     this.cambiosSub = this.api.cambios$.subscribe((data) => {
-      const llamado = data as { turno?: string; consultorio?: string; paciente?: string; apellido?: string };
+      const llamado = data as any;
+      
+      // Detener repetición si el evento indica que el turno ya no debe ser llamado (estado activo o final)
+      const esEstadoFinal = [
+        'marcar_ausente', 'finalizar', 'ausente', 'finalizado', 
+        'iniciar', 'atencion', 'iniciado'
+      ].includes(llamado.accion) || 
+      ['ausente', 'finalizado', 'iniciado', 'atencion'].includes(llamado.estado);
+      
+      if (esEstadoFinal) {
+        this.detenerRepeticion();
+      }
+
       if (llamado.paciente && llamado.consultorio) {
+        this.pacienteParaRepetir = {
+          paciente: llamado.paciente,
+          apellido: llamado.apellido || '',
+          consultorio: llamado.consultorio
+        };
         this.reproducirAudio(llamado.paciente, llamado.apellido || '', llamado.consultorio);
+        this.iniciarTemporizadorRepeticion();
       }
-      if (this.sala === 'aps') {
-        this.cargarAPS();
-      } else if (this.sala === 'aps-espera') {
-        this.cargarAPSEspera();
-      } else if (this.sala === 'lab-espera') {
-        this.cargarLab();
-      } else if (this.sala === 'lab-en-espera') {
-        this.cargarLabEspera();
-      } else if (this.sala === 'img-espera') {
-        this.cargarImg();
-      } else if (this.sala === 'img-en-espera') {
-        this.cargarImgEspera();
-      } else if (this.sala === 'consulta') {
-        this.cargarConsulta();
-      }
+      this.cargarDatosSala();
     });
+
     this.timerSub = interval(5000).subscribe(() => {
-      if (this.sala === 'aps') {
-        this.cargarAPS();
-      } else if (this.sala === 'aps-espera') {
-        this.cargarAPSEspera();
-      } else if (this.sala === 'lab-espera') {
-        this.cargarLab();
-      } else if (this.sala === 'lab-en-espera') {
-        this.cargarLabEspera();
-      } else if (this.sala === 'img-espera') {
-        this.cargarImg();
-      } else if (this.sala === 'img-en-espera') {
-        this.cargarImgEspera();
-      } else if (this.sala === 'consulta') {
-        this.cargarConsulta();
-      }
+        this.cargarDatosSala();
     });
     this.clockSub = interval(1000).subscribe(() => {
       this.fechaActual = new Date();
@@ -320,11 +293,43 @@ export class TurneroComponent implements OnInit, OnDestroy {
     });
   }
 
+  private cargarDatosSala() {
+      if (this.sala === 'aps') {
+        this.cargarAPS();
+      } else if (this.sala === 'aps-espera') {
+        this.cargarAPSEspera();
+      } else if (this.sala === 'lab-espera') {
+        this.cargarLab();
+      } else if (this.sala === 'lab-en-espera') {
+        this.cargarLabEspera();
+      } else if (this.sala === 'img-espera') {
+        this.cargarImg();
+      } else if (this.sala === 'img-en-espera') {
+        this.cargarImgEspera();
+      } else if (this.sala === 'consulta') {
+        this.cargarConsulta();
+      }
+  }
+
+  private iniciarTemporizadorRepeticion() {
+    this.repeatSubscription?.unsubscribe();
+    this.repeatSubscription = interval(20000).subscribe(() => {
+      if (this.pacienteParaRepetir) {
+        this.reproducirAudio(
+          this.pacienteParaRepetir.paciente,
+          this.pacienteParaRepetir.apellido,
+          this.pacienteParaRepetir.consultorio
+        );
+      }
+    });
+  }
+
   ngOnDestroy() {
     this.queryParamsSub?.unsubscribe();
     this.cambiosSub?.unsubscribe();
     this.timerSub?.unsubscribe();
     this.clockSub?.unsubscribe();
+    this.repeatSubscription?.unsubscribe();
   }
 
   cambiarSala(sala: SalaMode) {
@@ -511,8 +516,28 @@ export class TurneroComponent implements OnInit, OnDestroy {
     return this.MAX_VISIBLE * this.CARD_H + (this.MAX_VISIBLE - 1) * this.GAP;
   }
 
+  private vozFemenina: SpeechSynthesisVoice | null = null;
+
+  private cargarVozFemenina() {
+    if (!('speechSynthesis' in window)) return;
+    const buscarVoz = () => {
+      const voces = window.speechSynthesis.getVoices();
+      this.vozFemenina = voces.find(v => v.lang.startsWith('es-MX') && /sabina|helena|laura|paulina|juana|maria/i.test(v.name))
+        || voces.find(v => v.lang.startsWith('es') && /sabina|helena|laura|paulina|juana|maria/i.test(v.name))
+        || voces.find(v => v.lang.startsWith('es-MX'))
+        || voces.find(v => v.lang.startsWith('es') && /female|femenina|mujer/i.test(v.name))
+        || voces.find(v => v.lang.startsWith('es'))
+        || null;
+    };
+    buscarVoz();
+    if (!this.vozFemenina) {
+      window.speechSynthesis.onvoiceschanged = () => buscarVoz();
+    }
+  }
+
   private reproducirAudio(nombre: string, apellido: string, consultorio: string) {
     if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
     const nombreCompleto = `${nombre} ${apellido}`.trim();
     let texto: string;
     const c = consultorio.toLowerCase();
@@ -527,12 +552,8 @@ export class TurneroComponent implements OnInit, OnDestroy {
     const utterance = new SpeechSynthesisUtterance(texto);
     utterance.lang = 'es-MX';
     utterance.rate = 0.9;
-    const voces = window.speechSynthesis.getVoices();
-    const voz = voces.find(v => v.name.includes('Sabina'))
-      || voces.find(v => v.name.includes('Helena'))
-      || voces.find(v => v.name.includes('Laura'))
-      || voces.find(v => v.lang.startsWith('es') && /female|femenina|mujer/i.test(v.name));
-    if (voz) utterance.voice = voz;
+    if (!this.vozFemenina) this.cargarVozFemenina();
+    if (this.vozFemenina) utterance.voice = this.vozFemenina;
     window.speechSynthesis.speak(utterance);
   }
 

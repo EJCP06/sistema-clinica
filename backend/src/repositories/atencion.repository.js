@@ -168,7 +168,7 @@ const finalizarAtencionTransferencia = async (client, id) => {
 
 const reincorporarPaciente = async (client, id) => {
   const result = await client.query(
-    'UPDATE "Atencion" SET id_estado_actual = 3, hora_salida = NULL, hora_llegada = NOW() WHERE id_atencion = $1 AND id_estado_actual = 7 RETURNING *',
+    'UPDATE "Atencion" SET id_estado_actual = 3, hora_salida = NULL WHERE id_atencion = $1 AND id_estado_actual = 7 RETURNING *',
     [id],
   );
   return result.rows[0] || null;

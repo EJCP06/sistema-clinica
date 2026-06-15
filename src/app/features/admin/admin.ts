@@ -43,6 +43,13 @@ export class Admin implements OnInit {
   sidebarOpen = false;
 
   ngOnInit() {
+    const usuario = this.authService.usuarioActual;
+    if (usuario?.rol === 'administrador' && (!usuario.permisos || usuario.permisos.length === 0)) {
+      this.apiService.seedPermisosAdmin().subscribe({
+        next: () => this.authService.refrescarPermisos().subscribe({ error: () => {} }),
+        error: () => {},
+      });
+    }
     const savedTab = sessionStorage.getItem('admin_activeTab');
     if (savedTab) {
       this.activeTab = savedTab as Admin['activeTab'];

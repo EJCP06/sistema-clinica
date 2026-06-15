@@ -122,6 +122,8 @@ export class Atencion implements OnInit, OnDestroy {
   showSearchFilterDropdown: boolean = false;
   totalAtendidosHoy: number = 0;
   tiempoPromedioConsulta: string = '0 min';
+  currentEsperaPage = 1;
+  esperaPageSize = 4;
 
   trackById = (index: number, item: TurnoDTO) => item.id ?? index;
 

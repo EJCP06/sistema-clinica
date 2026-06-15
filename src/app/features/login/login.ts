@@ -209,7 +209,7 @@ export class Login implements OnDestroy {
       const MIN_CARGANDO = 800;
 
       this.auth.login(this.cedula, this.password).subscribe({
-        next: (response) => this.procesarLogin(response, inicio),
+        next: () => this.procesarLogin(inicio),
         error: (err: any) => {
           const elapsed = Date.now() - inicio;
           const restante = Math.max(0, MIN_CARGANDO - elapsed);
@@ -223,34 +223,33 @@ export class Login implements OnDestroy {
       });
     }
 
-    private async procesarLogin(response: any, inicio: number) {
+    private async procesarLogin(inicio: number) {
       const elapsed = Date.now() - inicio;
       if (elapsed < 800) {
         await new Promise(r => setTimeout(r, 800 - elapsed));
       }
       this.cargando = false;
       const usuario = this.auth.usuarioActual;
-      if (!usuario) return;
-      const p = (permiso: string) => this.auth.tienePermiso(permiso);
-      // Fallback para claves antiguas (legacy)
-      const pLegacy = (permiso: string) => this.auth.tienePermiso(permiso);
-      if (p('admin_panel')) this.router.navigate(['/administrador']);
-      else if (p('admision_crear') || p('admision_editar') || p('admision_eliminar') || p('admision_asignar_turno') || pLegacy('admision')) this.router.navigate(['/recepcion']);
-      else if (p('aps_enviar_presupuesto') || p('aseguradoras_crear') || pLegacy('ver_aps')) this.router.navigate(['/aps']);
-      else if (p('atencion_medica_llamar_siguiente') || p('atencion_medica_liberar_consultorio') || p('atencion_medica_iniciar') || p('atencion_medica_marcar_ausente') || p('atencion_medica_finalizar') || pLegacy('atencion_medica') || pLegacy('llamar_siguiente') || pLegacy('liberar_consultorio')) this.router.navigate(['/atencion']);
-      else if (p('laboratorio_registrar_caja') || p('laboratorio_pasar_sala_espera') || p('laboratorio_marcar_ausente') || p('laboratorio_reincorporar') || pLegacy('laboratorio') || pLegacy('marcar_ausente') || pLegacy('reincorporar')) {
-        if (usuario.consultorio_id) this.router.navigate(['/atencion'], { queryParams: { tipo: 'laboratorio' } });
-        else this.router.navigate(['/atencion-laboratorio']);
+      if (!usuario) {
+        this.swal.error('Error al cargar datos del usuario');
+        return;
       }
-      else if (p('imagenes_registrar_caja') || p('imagenes_pasar_sala_espera') || p('imagenes_marcar_ausente') || p('imagenes_reincorporar') || pLegacy('imagenes') || pLegacy('marcar_ausente') || pLegacy('reincorporar')) {
-        if (usuario.consultorio_id) this.router.navigate(['/atencion'], { queryParams: { tipo: 'imagenes' } });
-        else this.router.navigate(['/atencion-imagenes']);
+      // Administrador tiene acceso completo
+      if (usuario.rol === 'administrador') {
+        this.router.navigate(['/administrador']);
+        return;
       }
-      else if (p('llamado_laboratorio') || p('llamado_imagenes')) {
-        if (p('llamado_laboratorio')) this.router.navigate(['/atencion'], { queryParams: { tipo: 'laboratorio' } });
-        else this.router.navigate(['/atencion'], { queryParams: { tipo: 'imagenes' } });
+      const p = (permiso: string, accion?: string) => this.auth.tienePermiso(permiso, accion);
+      if (p('personal:*') || p('roles:*') || p('permisologia:*') || p('especialidades:*')) this.router.navigate(['/administrador']);
+      else if (p('admision:*')) this.router.navigate(['/recepcion']);
+      else if (p('aps:*')) this.router.navigate(['/aps']);
+      else if (p('atencion_medica:*')) this.router.navigate(['/atencion']);
+      else if (p('laboratorio:*')) this.router.navigate(['/laboratorio']);
+      else if (p('imagenes:*')) this.router.navigate(['/imagenes']);
+      else if (p('aseguradoras:*')) this.router.navigate(['/aseguradoras']);
+      else {
+        this.swal.error('Su usuario no tiene permisos asignados para acceder al sistema');
+        this.router.navigate(['/login']);
       }
-      else if (p('aseguradoras_crear') || p('aseguradoras_editar') || p('aseguradoras_eliminar') || p('aseguradoras_importar_excel') || pLegacy('ver_aseguradoras')) this.router.navigate(['/aseguradoras']);
-      else this.router.navigate(['/login']);
     }
   }

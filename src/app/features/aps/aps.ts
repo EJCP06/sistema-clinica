@@ -204,6 +204,21 @@ export class ApsComponent implements OnInit, OnDestroy {
     });
   }
 
+  async marcarAusente(admision: any) {
+    const result = await this.swal.confirm('¿Marcar como ausente?', 'Esta acción no se puede deshacer.');
+    if (!result.isConfirmed) return;
+
+    this.api.put(`recepcion/atencion/${admision.id_atencion}/ausente`, {}).subscribe({
+      next: () => {
+        this.cargarUltimasAdmisiones();
+        this.swal.success('Paciente marcado como ausente correctamente');
+      },
+      error: () => {
+        this.swal.error('Error al marcar como ausente');
+      },
+    });
+  }
+
   esAseguradora(dto: { modalidad_pago?: string }): boolean {
     const modalidad = (dto.modalidad_pago || '').toString().trim().toLowerCase();
     return modalidad.includes('seguro') || modalidad.includes('asegur');
