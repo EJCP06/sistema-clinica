@@ -31,7 +31,7 @@ export class ImagenesComponent implements OnInit, OnDestroy {
   readonly DollarSign = DollarSign;
   readonly XCircle = XCircle;
 
-  pageSize = 6;
+  pageSize = 4;
   currentPage = 1;
 
   sidebarOpen = false;

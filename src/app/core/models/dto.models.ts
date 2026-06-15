@@ -353,6 +353,18 @@ export interface PermisoDTO {
   descripcion?: string;
 }
 
+export interface RecursoMatrizDTO {
+  key: string;
+  nombre: string;
+  descripcion?: string;
+  acciones: string[];
+}
+
+export interface MatrizPermisosDTO {
+  recursos: RecursoMatrizDTO[];
+  accionesBasicas: string[];
+}
+
 export interface HealthResponse {
   status: string;
   message: string;

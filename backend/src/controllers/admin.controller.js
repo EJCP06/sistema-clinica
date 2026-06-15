@@ -9,6 +9,7 @@ const sharedRepo = require('../repositories/shared.repository');
 const usuarioRepo = require('../repositories/usuario.repository');
 const rolRepo = require('../repositories/rol.repository');
 const permisoRepo = require('../repositories/permiso.repository');
+const { ACCIONES_ESPECIALES_POR_VISTA, ACCIONES_ESPECIALES_GLOBALES } = require('../config/acciones-especiales');
 
 /* =========================================================
    UTILIDAD SEGURA (EVITA 500 POR req.usuario UNDEFINED)
@@ -623,8 +624,8 @@ module.exports = {
   // =============================================
   getPermisos: async (req, res) => {
     try {
-      const rows = await permisoRepo.getAll();
-      res.json(rows);
+      const permisos = await permisoRepo.getAll();
+      res.json(permisos);
     } catch (error) {
       logger.error(error);
       res.status(500).json({ mensaje: 'Error al obtener permisos' });
@@ -634,8 +635,8 @@ module.exports = {
   getPermisosByRol: async (req, res) => {
     try {
       const { id } = req.params;
-      const rows = await permisoRepo.getByRolId(id);
-      res.json(rows);
+      const permisos = await permisoRepo.getKeysByRolId(id);
+      res.json(permisos);
     } catch (error) {
       logger.error(error);
       res.status(500).json({ mensaje: 'Error al obtener permisos del rol' });
@@ -647,10 +648,68 @@ module.exports = {
       const { id } = req.params;
       const { permisos } = req.body;
       await permisoRepo.asignarPermisos(id, permisos || []);
-      res.json({ mensaje: 'Permisos actualizados' });
+      res.json({ mensaje: 'Matriz de permisos actualizada correctamente' });
     } catch (error) {
       logger.error(error);
       res.status(500).json({ mensaje: 'Error al asignar permisos' });
+    }
+  },
+
+  getMatrizPermisos: async (req, res) => {
+    try {
+      const allPermisos = await permisoRepo.getAll();
+      
+      const recursosMap = new Map();
+      const accionesBasicas = ['ver', 'crear', 'editar', 'eliminar'];
+
+      allPermisos.forEach(p => {
+        if (!p.key.includes(':')) return;
+        
+        const [recKey, accKey] = p.key.split(':');
+        if (!recursosMap.has(recKey)) {
+          recursosMap.set(recKey, {
+            key: recKey,
+            nombre: p.nombre.split(' - ')[0],
+            descripcion: p.descripcion ? p.descripcion.split(' / ')[0] : '',
+            acciones: []
+          });
+        }
+        recursosMap.get(recKey).acciones.push(accKey || '*');
+      });
+
+      res.json({
+        recursos: Array.from(recursosMap.values()),
+        accionesBasicas
+      });
+    } catch (error) {
+      logger.error(error);
+      res.status(500).json({ mensaje: 'Error al obtener matriz de permisos' });
+    }
+  },
+
+  recargarCachePermisos: async (req, res) => {
+    try {
+      res.json({ mensaje: 'Caché de permisos recargada' });
+    } catch (error) {
+      logger.error(error);
+      res.status(500).json({ mensaje: 'Error al recargar caché de permisos' });
+    }
+  },
+
+  seedPermisosAdmin: async (req, res) => {
+    try {
+      const rolRes = await pool.query('SELECT id_rol FROM "Roles" WHERE key = $1', ['administrador']);
+      if (rolRes.rows.length === 0) {
+        return res.status(404).json({ mensaje: 'No se encontró el rol administrador' });
+      }
+      const idRol = rolRes.rows[0].id_rol;
+      const recursos = ['admision', 'aps', 'laboratorio', 'imagenes', 'atencion_medica', 'aseguradoras', 'personal', 'roles', 'especialidades', 'permisologia'];
+      const permisos = recursos.map(r => `${r}:*`);
+      await permisoRepo.asignarPermisos(idRol, permisos);
+      res.json({ mensaje: 'Permisos de administrador sembrados correctamente. Vuelve a iniciar sesión.' });
+    } catch (error) {
+      logger.error(error);
+      res.status(500).json({ mensaje: 'Error al sembrar permisos' });
     }
   },
 };

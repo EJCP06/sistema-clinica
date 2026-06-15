@@ -46,9 +46,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         }
       } else {
         let mensaje = 'Error inesperado. Intente nuevamente.';
-        if (error.status === 403) {
-          mensaje = 'No tiene permisos para realizar esta acción.';
-        } else if (error.status === 404) {
+        if (error.status === 404) {
           mensaje = 'El recurso solicitado no existe.';
         } else if (error.status === 409) {
           mensaje = error.error?.mensaje || 'El recurso ya existe o hay un conflicto.';
@@ -58,11 +56,11 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           mensaje = 'Error del servidor. Intente nuevamente más tarde.';
         }
 
-        if (error.error?.mensaje) {
+        if (error.status !== 403 && error.error?.mensaje) {
           mensaje = error.error.mensaje;
         }
 
-        if (!alertaMostrandose) {
+        if (error.status !== 403 && !alertaMostrandose) {
           alertaMostrandose = true;
           Swal.fire({
             icon: 'error',

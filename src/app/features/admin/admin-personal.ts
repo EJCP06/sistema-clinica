@@ -246,30 +246,11 @@ export class AdminPersonal implements OnInit {
   abrirModalPersonal(trigger?: EventTarget | null) {
     this.modalTrigger = trigger instanceof HTMLElement ? trigger : null;
     this.showModalPersonal = true;
-    setTimeout(() => this.focusFirstInput(), 50);
   }
 
   cerrarModalPersonal() {
     this.showModalPersonal = false;
-    this.returnFocusToTrigger();
-  }
-
-  private focusFirstInput() {
-    const modal = this.el.nativeElement.querySelector('[role="dialog"]');
-    if (!modal) return;
-    const firstInput = modal.querySelector(
-      'input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])'
-    ) as HTMLElement | null;
-    if (firstInput) {
-      firstInput.focus();
-    }
-  }
-
-  private returnFocusToTrigger() {
-    if (this.modalTrigger instanceof HTMLElement) {
-      this.modalTrigger.focus();
-      this.modalTrigger = null;
-    }
+    this.modalTrigger = null;
   }
 
   private finalizarGuardado(accion?: () => void) {

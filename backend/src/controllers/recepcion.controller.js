@@ -21,6 +21,59 @@ const getResponsablesPago = async (req, res) => {
   }
 };
 
+// POST /recepcion/atencion/:id/marcar_ausente
+const marcarAusente = async (req, res) => {
+  const sede = getSede(req);
+  if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
+
+  try {
+    const { id } = req.params;
+
+    const atencion = await atencionRepo.getAtencionEstado(id, sede);
+    if (!atencion) {
+      return res.status(404).json({ mensaje: 'Atención no encontrada' });
+    }
+
+    const usuario = req.usuario;
+    
+    if (!usuario || usuario.rol !== 'coordinador') {
+      return res.status(403).json({ mensaje: 'Solo los coordinadores pueden marcar pacientes como ausentes' });
+    }
+
+    const idEstadoActual = atencion.id_estado_actual;
+    
+    if (![2, 3, 8].includes(idEstadoActual)) {
+      return res.status(400).json({ mensaje: 'Solo se pueden marcar ausentes pacientes en estados 2 (En Espera), 3 (Llamado) o 8 (Aseguradora)' });
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      
+      const result = await atencionRepo.marcarAusente(client, id);
+      
+      await client.query('COMMIT');
+      
+      if (req.io) req.io.emit('estado-actualizado', { id_atencion: id });
+      
+      await historialRepo.insertSinTransaccion(id, 7);
+      
+      res.json({ mensaje: 'Paciente marcado como ausente correctamente' });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    logger.error(error);
+    if (error.code === '23505') {
+      return res.status(400).json({ mensaje: 'Ya existe una atención con ese estado' });
+    }
+    res.status(500).json({ mensaje: 'Error al marcar paciente como ausente' });
+  }
+};
+
 // GET /recepcion/ultimas-admisiones
 const getUltimasAdmisiones = async (req, res) => {
   const sede = getSede(req);
@@ -259,4 +312,5 @@ module.exports = {
   eliminarAtencion,
   actualizarEstadoAtencion,
   generarTurno,
+  marcarAusente,
 };

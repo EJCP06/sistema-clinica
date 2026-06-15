@@ -3,7 +3,7 @@ const { body, validationResult } = require('express-validator');
 const router = express.Router();
 const sharedController = require('../controllers/shared.controller');
 const auth = require('../middleware/auth');
-const perm = require('../middleware/permission');
+const { permissionMiddleware: perm } = require('../middleware/permission');
 
 const validar = (req, res, next) => {
   const errors = validationResult(req);
@@ -12,9 +12,11 @@ const validar = (req, res, next) => {
 };
 
 router.use(auth);
-router.use(perm('admision_crear', 'aseguradoras_crear', 'aseguradoras_editar', 'aseguradoras_eliminar', 'aseguradoras_importar_excel'));
 
-router.get('/aseguradoras', sharedController.getAseguradoras);
+router.get('/aseguradoras', perm('aseguradoras:ver', 'aseguradoras:crear', 'aseguradoras:editar', 'aseguradoras:eliminar', 'aseguradoras:importar_excel', 'admision:*', 'admision:crear', 'aps:ver'), sharedController.getAseguradoras);
+
+router.use(perm('admision:crear', 'aseguradoras:crear', 'aseguradoras:editar', 'aseguradoras:eliminar', 'aseguradoras:importar_excel'));
+
 router.post('/aseguradoras', [
   body('nombre').trim().notEmpty().withMessage('El nombre de la aseguradora es obligatorio'),
   validar,

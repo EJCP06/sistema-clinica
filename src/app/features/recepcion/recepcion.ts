@@ -188,6 +188,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   private auth = inject(AuthService);
 
   tienePermiso(permiso: string): boolean { return this.auth.tienePermiso(permiso); }
+  esCoordinador(): boolean { return this.auth.esCoordinador(); }
 
   constructor(
     private api: ApiService,
@@ -203,10 +204,8 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     this._mostrarRegistro = v;
     if (v) {
       this.scrollService.block();
-      setTimeout(() => this.focusFirstInput(), 0);
     } else {
       this.scrollService.unblock();
-      if (wasOpen) this.returnFocusToTrigger();
     }
   }
 
@@ -219,24 +218,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
   cerrarModalRegistro() {
     this.mostrarRegistro = false;
-  }
-
-  private focusFirstInput() {
-    const modal = this.el.nativeElement.querySelector('[role="dialog"]');
-    if (!modal) return;
-    const firstInput = modal.querySelector(
-      'input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])'
-    ) as HTMLElement | null;
-    if (firstInput) {
-      firstInput.focus();
-    }
-  }
-
-  private returnFocusToTrigger() {
-    if (this.modalTrigger instanceof HTMLElement) {
-      this.modalTrigger.focus();
-      this.modalTrigger = null;
-    }
+    this.modalTrigger = null;
   }
 
   @HostListener('document:click', ['$event'])
@@ -247,6 +229,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       this.showServiceDropdown = false;
       this.showEspecialidadDropdown = false;
       this.showAseguradoraDropdown = false;
+      this.mostrarResultadosBusqueda = false; // Se oculta al hacer clic fuera
     } else {
       // Si el click fue dentro, pero fuera de los contenedores específicos
       const target = event.target as HTMLElement;
@@ -454,8 +437,9 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   onSearchChange(value: string) {
     if (!value || value.trim().length < 1) {
       this.resetSearchOnly();
+    } else {
+      this.searchSubject.next(value);
     }
-    this.searchSubject.next(value);
   }
 
   ejecutarBusqueda(value: string) {
@@ -1137,6 +1121,21 @@ export class RecepcionComponent implements OnInit, OnDestroy {
         });
       }
     }
+  }
+
+  async marcarAusente(fila: any) {
+    const result = await this.swal.confirm('¿Marcar como ausente?', 'Esta acción no se puede deshacer.');
+    if (!result.isConfirmed) return;
+
+    this.api.put(`recepcion/atencion/${fila.id_atencion}/marcar_ausente`, {}).subscribe({
+      next: () => {
+        this.cargarUltimasAdmisiones();
+        this.swal.success('Paciente marcado como ausente correctamente');
+      },
+      error: () => {
+        this.swal.error('Error al marcar como ausente');
+      },
+    });
   }
 
   // --- VALIDACIONES DE INPUT ---

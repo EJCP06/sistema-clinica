@@ -100,6 +100,18 @@ const cambiarPassword = async (req, res) => {
   }
 };
 
+const misPermisos = async (req, res) => {
+  try {
+    const usuario = await usuarioRepo.findByCedula(req.usuario.cedula);
+    if (!usuario) {
+      return res.status(404).json({ mensaje: 'Usuario no encontrado' });
+    }
+    res.json({ permisos: usuario.permisos || [] });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error al obtener permisos' });
+  }
+};
+
 const cerrarSesion = async (req, res) => {
   try {
     await usuarioRepo.actualizarSesionToken(req.usuario.id, null);
@@ -113,5 +125,6 @@ module.exports = {
   login,
   superSeed,
   cambiarPassword,
+  misPermisos,
   cerrarSesion,
 };

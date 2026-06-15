@@ -1,210 +1,338 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ElementRef, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '@core/services/api.service';
+import { AuthService } from '@core/services/auth.service';
 import { SwalService } from '../../core/services/swal.service';
-import { LucideAngularModule, ShieldCheck, CheckCircle2, XCircle, Plus, ChevronDown, Check } from 'lucide-angular';
-import { RolDTO } from '@core/models/dto.models';
-import { PERMISOS_GRUPALES, getAccionLabel } from '@core/config/permisos.config';
-
-interface ModuloPermiso {
-  key: string;
-  label: string;
-  permisos: string[];
-}
+import {
+  LucideAngularModule,
+  Plus,
+  Trash2,
+  ChevronDown,
+  Edit2,
+  Search,
+  ShieldCheck,
+  XCircle,
+  CheckCircle2,
+  Check,
+} from 'lucide-angular';
+import { PaginationComponent } from '../../shared/components/pagination/pagination';
+import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
+import { FillersPipe } from '../../shared/pipes/fillers.pipe';
+import { RolDTO, RecursoMatrizDTO, MatrizPermisosDTO } from '@core/models/dto.models';
 
 @Component({
   selector: 'app-admin-permisologia',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule, PaginationComponent, PaginatePipe, FillersPipe],
   templateUrl: './admin-permisologia.html',
 })
-export class AdminPermisologia implements OnInit {
-  readonly ShieldCheck = ShieldCheck;
-  readonly CheckCircle2 = CheckCircle2;
-  readonly XCircle = XCircle;
+export class AdminPermisologia implements OnInit, OnDestroy {
   readonly Plus = Plus;
+  readonly Trash2 = Trash2;
   readonly ChevronDown = ChevronDown;
+  readonly Edit2 = Edit2;
+  readonly Search = Search;
+  readonly ShieldCheck = ShieldCheck;
+  readonly XCircle = XCircle;
+  readonly CheckCircle2 = CheckCircle2;
   readonly Check = Check;
 
   private api = inject(ApiService);
+  private auth = inject(AuthService);
   private swal = inject(SwalService);
+  private el = inject(ElementRef);
 
   roles: RolDTO[] = [];
-  permisosPorRol: Record<number, string[]> = {};
-
-  showModal = false;
-  showDetalle = false;
-  selectedRol: RolDTO | null = null;
-  selectedModulo: ModuloPermiso | null = null;
+  sedes: any[] = [];
+  recursos: RecursoMatrizDTO[] = [];
   permisosTemp: string[] = [];
-  isSaving = false;
-  dropdownOpen: string | null = null;
 
-  get modulosDisponibles(): ModuloPermiso[] {
-    return Object.entries(PERMISOS_GRUPALES).map(([label, permisos]) => ({
-      key: label.toLowerCase().replace(/ /g, '_'),
-      label,
-      permisos,
-    }));
+  private recursosPermitidos = ['admision', 'aps', 'laboratorio', 'imagenes', 'atencion_medica', 'aseguradoras', 'personal', 'roles', 'especialidades', 'permisologia'];
+  private recursosSoloVer = new Set(['aps', 'laboratorio', 'imagenes', 'atencion_medica']);
+
+  getAccionesRecurso(key: string): string[] {
+    if (this.recursosSoloVer.has(key)) return ['ver'];
+    return ['ver', 'crear', 'editar', 'eliminar'];
   }
 
-  get permisosTodos(): string[] {
-    return [...new Set(this.modulosDisponibles.flatMap(m => m.permisos))];
+  searchQuery = '';
+  searchFilter = 'todo';
+  showSearchFilterDropdown = false;
+
+  currentPage = 1;
+  pageSize = 6;
+
+  showModal = false;
+  showRolDropdown = false;
+  showSedeDropdown = false;
+  showModuloDropdown = false;
+  isEditing = false;
+  isSaving = false;
+  selectedRoleId: number | null = null;
+  selectedSedeId: number | null = null;
+  selectedModuloKey: string | null = null;
+  selectedRolNombre = '';
+  private modalTrigger: HTMLElement | null = null;
+
+  get rolesFiltrados(): RolDTO[] {
+    if (!this.searchQuery) return this.roles;
+    const q = this.searchQuery.toLowerCase();
+    return this.roles.filter(r => {
+      if (this.searchFilter === 'rol') {
+        return (r.nombre || '').toLowerCase().includes(q);
+      }
+      // 'todo' logic
+      return (r.nombre || '').toLowerCase().includes(q) ||
+             (r.sede_nombre || '').toLowerCase().includes(q) ||
+             (r.key || '').toLowerCase().includes(q);
+    });
+  }
+
+  get searchFilterLabel(): string {
+    const labels: Record<string, string> = { todo: 'Todo', rol: 'Rol' };
+    return labels[this.searchFilter] || 'Todo';
+  }
+
+  get modalTitulo(): string {
+    return this.isEditing ? 'Editar Permisos' : 'Nuevo Permiso';
+  }
+
+  get modalSubtitulo(): string {
+    return this.isEditing
+      ? `Configurando accesos para ${this.toTitleCase(this.selectedRolNombre)}`
+      : 'Seleccione un rol y configure sus accesos';
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+
+    if (this.showSearchFilterDropdown && !target.closest('.search-filter-container')) {
+      this.showSearchFilterDropdown = false;
+    }
+
+    if (this.showRolDropdown && !target.closest('.rol-dropdown-container')) {
+      this.showRolDropdown = false;
+    }
+
+    if (this.showSedeDropdown && !target.closest('.sede-dropdown-container')) {
+      this.showSedeDropdown = false;
+    }
+
+    if (this.showModuloDropdown && !target.closest('.modulo-dropdown-container')) {
+      this.showModuloDropdown = false;
+    }
   }
 
   ngOnInit() {
     this.cargarRoles();
+    this.cargarSedes();
+    this.cargarRecursos();
   }
+
+  ngOnDestroy() {}
 
   cargarRoles() {
     this.api.getRoles().subscribe({
-      next: (r) => {
-        this.roles = r;
-        this.cargarPermisosDeRoles();
-      },
+      next: (r) => this.roles = r,
       error: () => this.swal.error('Error al cargar roles'),
     });
   }
 
-  private cargarPermisosDeRoles() {
-    for (const rol of this.roles) {
-      this.api.getPermisosByRol(rol.id).subscribe({
-        next: (permisos) => {
-          this.permisosPorRol[rol.id] = permisos.map(p => p.key);
-        },
-      });
-    }
+  cargarSedes() {
+    this.api.getSedes().subscribe({
+      next: (s) => this.sedes = s,
+      error: () => {},
+    });
   }
 
-  toggleDropdown(tipo: string) {
-    this.dropdownOpen = this.dropdownOpen === tipo ? null : tipo;
+  cargarRecursos() {
+    this.api.getMatrizPermisos().subscribe({
+      next: (matriz: MatrizPermisosDTO) => {
+        this.recursos = matriz.recursos.filter(r => r.key !== '*' && this.recursosPermitidos.includes(r.key));
+      },
+      error: () => this.swal.error('Error al cargar matriz de permisos'),
+    });
   }
 
-  selectRol(rol: RolDTO) {
-    this.selectedRol = rol;
-    this.dropdownOpen = null;
-    this.selectedModulo = null;
+  setSearchFilter(val: string) {
+    this.searchFilter = val;
+    this.showSearchFilterDropdown = false;
+  }
+
+  toTitleCase(text: string): string {
+    if (!text) return '';
+    return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+  }
+
+  getSedeLabel(id: number | null | undefined): string {
+    if (id === null || id === undefined) return 'Ninguna';
+    const rol = this.roles.find(r => r.id_sede === id);
+    return rol?.sede_nombre?.toUpperCase() || 'Ninguna';
+  }
+
+  getRolNombre(id: number): string {
+    const rol = this.roles.find(r => r.id === id);
+    return rol?.nombre || '';
+  }
+
+  selectRol(id: number) {
+    this.selectedRoleId = id;
+    this.showRolDropdown = false;
+  }
+
+  selectSede(id: number | null) {
+    this.selectedSedeId = id;
+    this.showSedeDropdown = false;
+  }
+
+  getSedeNombre(id: number | null | undefined): string {
+    if (id === null || id === undefined) return '';
+    const sede = this.sedes.find((s: any) => Number(s.id_sede) === Number(id));
+    return sede ? sede.nombre : '';
+  }
+
+  selectModulo(key: string) {
+    this.selectedModuloKey = key;
+    this.showModuloDropdown = false;
+  }
+
+  getModuloNombre(key: string): string {
+    const rec = this.recursos.find(r => r.key === key);
+    return rec?.nombre || key;
+  }
+
+  abrirModalNuevo(trigger?: HTMLElement) {
+    this.isEditing = false;
+    this.selectedRoleId = null;
+    this.selectedSedeId = null;
+    this.selectedModuloKey = null;
+    this.selectedRolNombre = '';
     this.permisosTemp = [];
-    // Cargar permisos actuales del rol
+    this.showRolDropdown = false;
+    this.showSedeDropdown = false;
+    this.showModuloDropdown = false;
+    this.modalTrigger = trigger || null;
+    this.showModal = true;
+  }
+
+  abrirModalEditar(rol: RolDTO, trigger?: HTMLElement) {
+    this.isEditing = true;
+    this.selectedRoleId = rol.id;
+    this.selectedRolNombre = rol.nombre;
+    this.selectedSedeId = rol.id_sede;
+    this.selectedModuloKey = null;
+    this.permisosTemp = [];
+    this.showRolDropdown = false;
+    this.showSedeDropdown = false;
+    this.showModuloDropdown = false;
+    this.modalTrigger = trigger || null;
+    this.showModal = true;
+
     this.api.getPermisosByRol(rol.id).subscribe({
-      next: (permisos) => {
-        this.permisosTemp = permisos.map(p => p.key);
-        this.permisosPorRol[rol.id] = [...this.permisosTemp];
+      next: (permisos: any) => {
+        if (Array.isArray(permisos)) {
+          if (permisos.length > 0 && typeof permisos[0] === 'string') {
+            this.permisosTemp = permisos;
+          } else {
+            this.permisosTemp = permisos.map((p: { key: string }) => p.key);
+          }
+        }
+        this.expandWildcards();
+        this.limpiarAccionesInvalidas();
       },
+      error: () => this.swal.error('Error al cargar permisos del rol'),
     });
-  }
-
-  selectModulo(modulo: ModuloPermiso) {
-    this.selectedModulo = modulo;
-    this.dropdownOpen = null;
-  }
-
-  getLabel(key: string): string {
-    return getAccionLabel(key);
-  }
-
-  togglePermisoTemp(key: string) {
-    const idx = this.permisosTemp.indexOf(key);
-    if (idx === -1) this.permisosTemp.push(key);
-    else this.permisosTemp.splice(idx, 1);
-  }
-
-  abrirDetalle(rol: RolDTO) {
-    this.selectedRol = rol;
-    this.permisosTemp = [];
-    this.api.getPermisosByRol(rol.id).subscribe({
-      next: (permisos) => {
-        this.permisosTemp = permisos.map(p => p.key);
-        this.permisosPorRol[rol.id] = [...this.permisosTemp];
-        this.showDetalle = true;
-      },
-    });
-  }
-
-  cerrarDetalle() {
-    this.showDetalle = false;
-    this.selectedRol = null;
-    this.permisosTemp = [];
-  }
-
-  eliminarPermiso(key: string) {
-    const idx = this.permisosTemp.indexOf(key);
-    if (idx !== -1) {
-      this.permisosTemp.splice(idx, 1);
-    }
-  }
-
-  guardarDetalle() {
-    if (!this.selectedRol || this.isSaving) return;
-    this.isSaving = true;
-    this.api.asignarPermisos(this.selectedRol.id, this.permisosTemp).subscribe({
-      next: () => {
-        this.isSaving = false;
-        this.permisosPorRol[this.selectedRol!.id] = [...this.permisosTemp];
-        this.cerrarDetalle();
-        this.swal.success('Permisos actualizados correctamente');
-      },
-      error: (err) => {
-        this.isSaving = false;
-        this.swal.error(err.error?.mensaje || 'Error al asignar permisos');
-      },
-    });
-  }
-
-  getModulosConPermisos(): { label: string; permisos: string[] }[] {
-    if (!this.permisosTemp.length) return [];
-    const modulos: { label: string; permisos: string[] }[] = [];
-    for (const [label, perms] of Object.entries(PERMISOS_GRUPALES)) {
-      const asignados = perms.filter(p => this.permisosTemp.includes(p));
-      if (asignados.length > 0) {
-        modulos.push({ label, permisos: asignados });
-      }
-    }
-    return modulos;
-  }
-
-  abrirModal(rol?: RolDTO) {
-    if (rol) {
-      this.selectedRol = rol;
-      this.selectedModulo = null;
-      this.permisosTemp = [];
-      this.api.getPermisosByRol(rol.id).subscribe({
-        next: (permisos) => {
-          this.permisosTemp = permisos.map(p => p.key);
-          this.permisosPorRol[rol.id] = [...this.permisosTemp];
-          this.showModal = true;
-        },
-      });
-    } else {
-      this.selectedRol = null;
-      this.selectedModulo = null;
-      this.permisosTemp = [];
-      this.showModal = true;
-    }
   }
 
   cerrarModal() {
     this.showModal = false;
-    this.selectedRol = null;
-    this.selectedModulo = null;
-    this.permisosTemp = [];
-    this.dropdownOpen = null;
+    this.showRolDropdown = false;
+    this.showSedeDropdown = false;
+    this.showModuloDropdown = false;
+    this.modalTrigger = null;
   }
 
-  guardar() {
-    if (!this.selectedRol || this.isSaving) return;
+  isChecked(recurso: string, accion: string): boolean {
+    return this.permisosTemp.includes(`${recurso}:${accion}`);
+  }
+
+  private expandWildcards() {
+    const expanded: string[] = [];
+    for (const key of this.permisosTemp) {
+      const [recurso, accion] = key.split(':');
+      if (accion === '*') {
+        for (const a of this.getAccionesRecurso(recurso)) {
+          expanded.push(`${recurso}:${a}`);
+        }
+      } else {
+        expanded.push(key);
+      }
+    }
+    this.permisosTemp = expanded;
+  }
+
+  private limpiarAccionesInvalidas() {
+    this.permisosTemp = this.permisosTemp.filter(key => {
+      const [recurso, accion] = key.split(':');
+      return this.getAccionesRecurso(recurso).includes(accion);
+    });
+  }
+
+  togglePermiso(recurso: string, accion: string) {
+    const key = `${recurso}:${accion}`;
+    const idx = this.permisosTemp.indexOf(key);
+    if (idx === -1) {
+      this.permisosTemp.push(key);
+    } else {
+      this.permisosTemp.splice(idx, 1);
+    }
+  }
+
+  guardarPermisos() {
+    if (this.isSaving) return;
+    const rolId = this.selectedRoleId;
+    if (!rolId) {
+      this.swal.warning('Seleccione un rol');
+      return;
+    }
+    if (!this.isEditing && !this.selectedSedeId) {
+      this.swal.warning('Seleccione una sede');
+      return;
+    }
     this.isSaving = true;
-    this.api.asignarPermisos(this.selectedRol.id, this.permisosTemp).subscribe({
+
+    this.api.asignarPermisos(rolId, this.permisosTemp).subscribe({
       next: () => {
         this.isSaving = false;
-        this.permisosPorRol[this.selectedRol!.id] = [...this.permisosTemp];
         this.cerrarModal();
-        this.swal.success('Permisos actualizados correctamente');
+        this.auth.refrescarPermisos().subscribe({
+          error: () => {},
+        });
+        this.swal.success('Permisos actualizados exitosamente');
       },
       error: (err) => {
         this.isSaving = false;
         this.swal.error(err.error?.mensaje || 'Error al asignar permisos');
+      },
+    });
+  }
+
+  async eliminarPermisos(rolId: number, rolNombre: string) {
+    const result = await this.swal.confirmDelete(`¿Eliminar todos los permisos de "${this.toTitleCase(rolNombre)}"?`);
+    if (!result.isConfirmed) return;
+
+    this.api.asignarPermisos(rolId, []).subscribe({
+      next: () => {
+        this.auth.refrescarPermisos().subscribe({
+          error: () => {},
+        });
+        this.swal.success(`Permisos eliminados para ${this.toTitleCase(rolNombre)}`);
+        this.cargarRoles();
+      },
+      error: (err) => {
+        this.swal.error(err.error?.mensaje || 'Error al eliminar permisos');
       },
     });
   }

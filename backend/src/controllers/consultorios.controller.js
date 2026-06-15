@@ -70,7 +70,11 @@ const llamarSiguiente = async (req, res) => {
     // Lab/Imagenes: siempre por servicio, ignorar consultorio
     if (rol === 'laboratorio' || rol === 'imagenes') {
       const sid = await resolverServicioId(rol, servicioId);
-      if (!sid) { await client.query('ROLLBACK'); return res.status(400).json({ mensaje: 'Servicio no encontrado' }); }
+      if (!sid) { 
+          // Log explicitly why it failed
+          logger.error(`Servicio no encontrado para rol: ${rol}, servicioId: ${servicioId}`);
+          await client.query('ROLLBACK'); return res.status(400).json({ mensaje: 'Servicio no encontrado' }); 
+      }
       servicioId = sid;
       const servicio = await servicioRepo.getNombre(sid);
       servicioNombre = servicio || (rol === 'laboratorio' ? 'Laboratorio' : 'Imágenes');

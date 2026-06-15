@@ -96,6 +96,10 @@ export class Sidebar implements OnInit {
     return this.usuario?.rol || '';
   }
 
+  get esCoordinador() {
+    return this.rol === 'coordinador';
+  }
+
   tienePermiso(permiso: string): boolean {
     return this.auth.tienePermiso(permiso);
   }

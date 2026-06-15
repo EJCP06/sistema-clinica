@@ -23,6 +23,8 @@ import {
   RolDTO,
   CrearRolRequest,
   PermisoDTO,
+  MatrizPermisosDTO,
+  RecursoMatrizDTO,
 } from '@core/models/dto.models';
 
 @Injectable({ providedIn: 'root' })
@@ -267,5 +269,17 @@ export class ApiService {
 
   asignarPermisos(idRol: number, permisos: string[]): Observable<ApiResponse> {
     return this.http.put<ApiResponse>(`${this.base}/admin/roles/${idRol}/permisos`, { permisos });
+  }
+
+  getMatrizPermisos(): Observable<MatrizPermisosDTO> {
+    return this.http.get<MatrizPermisosDTO>(`${this.base}/admin/permisos/matriz`);
+  }
+
+  recargarCachePermisos(): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(`${this.base}/admin/permisos/recargar-cache`, {});
+  }
+
+  seedPermisosAdmin(): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(`${this.base}/admin/permisos/seed-admin`, {});
   }
 }
