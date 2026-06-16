@@ -110,7 +110,7 @@ export class AuthService {
       }),
       map(() => true),
       catchError(() => {
-        this.logout();
+        this.logout(true);
         return of(false);
       }),
     );
@@ -149,9 +149,15 @@ export class AuthService {
     return this.http.post(`${environment.apiUrl}/auth/logout`, {});
   }
 
-  logout() {
-    this.cerrarSesion().subscribe({ error: () => {} });
-    this.limpiarSesion();
+  logout(forced = false) {
+    if (!forced && this.getToken()) {
+      this.cerrarSesion().subscribe({
+        next: () => this.limpiarSesion(),
+        error: () => this.limpiarSesion()
+      });
+    } else {
+      this.limpiarSesion();
+    }
   }
 
   emergencyLogout() {
@@ -173,7 +179,9 @@ export class AuthService {
     sessionStorage.removeItem(this.STORAGE_KEY);
     sessionStorage.removeItem(this.TOKEN_KEY);
     this.usuarioSubject.next(null);
-    this.router.navigate(['/login']);
+    if (this.router.url !== '/login') {
+      this.router.navigate(['/login']);
+    }
   }
 
   estaAutenticado(): boolean {

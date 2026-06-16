@@ -64,6 +64,11 @@ export interface PacienteDTO {
   cedula: string;
   nombre: string;
   apellido: string;
+  primer_nombre: string;
+  segundo_nombre?: string;
+  primer_apellido: string;
+  segundo_apellido?: string;
+  fecha_nacimiento?: string;
   telefono?: string;
   status?: boolean;
   id_sede?: number;
@@ -72,8 +77,11 @@ export interface PacienteDTO {
 export interface CrearPacienteRequest {
   id_paciente?: number | null;
   cedula: string;
-  nombre: string;
-  apellido: string;
+  primer_nombre: string;
+  segundo_nombre?: string;
+  primer_apellido: string;
+  segundo_apellido?: string;
+  fecha_nacimiento?: string;
   telefono?: string;
   status?: boolean;
 }
@@ -179,6 +187,10 @@ export interface PersonalDTO {
   username?: string;
   nombre: string;
   apellido?: string;
+  primer_nombre?: string;
+  segundo_nombre?: string;
+  primer_apellido?: string;
+  segundo_apellido?: string;
   telefono?: string;
   email?: string;
   rol: string;
@@ -199,8 +211,10 @@ export interface PersonalDTO {
 
 export interface CrearPersonalRequest {
   cedula: string;
-  nombre: string;
-  apellido?: string;
+  primer_nombre: string;
+  segundo_nombre?: string;
+  primer_apellido: string;
+  segundo_apellido?: string;
   telefono?: string;
   password?: string;
   rol: string;
@@ -278,7 +292,16 @@ export interface ReporteDiarioDTO {
     atendidos: number;
     ausentes: number;
     en_espera: number;
+    en_atencion: number;
+    registrados: number;
   };
+  kpis: {
+    tiempo_promedio_espera_min: number;
+    tiempo_promedio_atencion_min: number;
+    ausentismo_porcentaje: number;
+  };
+  por_servicio: ServicioReporteDTO[];
+  ausentes: AusenteReporteDTO[];
 }
 
 export interface TurnoReporteDTO {
@@ -288,6 +311,12 @@ export interface TurnoReporteDTO {
   hora_llegada: string;
   hora_fin?: string;
   servicio_nombre: string;
+  especialidad?: string;
+  consultorio?: string;
+  medico_nombre?: string;
+  medico_apellido?: string;
+  hora_inicio_atencion?: string;
+  hora_fin_atencion?: string;
   id_sede: number;
   paciente: {
     nombre: string;
@@ -295,6 +324,26 @@ export interface TurnoReporteDTO {
     documento: string;
     telefono?: string | null;
   };
+}
+
+export interface ServicioReporteDTO {
+  servicio: string;
+  total: number;
+  atendidos: number;
+  ausentes: number;
+  en_espera: number;
+  en_atencion: number;
+  registrados: number;
+}
+
+export interface AusenteReporteDTO {
+  numero: string;
+  paciente_nombre: string;
+  paciente_apellido: string;
+  paciente_documento: string;
+  servicio: string;
+  especialidad?: string;
+  hora_llegada: string;
 }
 
 // ==========================================

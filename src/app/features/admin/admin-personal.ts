@@ -1,10 +1,11 @@
-import { Component, inject, OnInit, HostListener, DestroyRef, ElementRef } from '@angular/core';
+import { Component, inject, OnInit, HostListener, DestroyRef, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '@core/services/api.service';
 import { AuthService } from '@core/services/auth.service';
 import { SwalService } from '../../core/services/swal.service';
+import { OcrService } from '../../core/services/ocr.service';
 import { ServicioDTO, EspecialidadDTO, ConsultorioDTO, PersonalDTO, SedeDTO, RolDTO } from '@core/models/dto.models';
 import {
   LucideAngularModule,
@@ -90,6 +91,11 @@ export class AdminPersonal implements OnInit {
   private el = inject(ElementRef);
   private destroyRef = inject(DestroyRef);
   private swal = inject(SwalService);
+  private ocr = inject(OcrService);
+  private cdr = inject(ChangeDetectorRef);
+
+  procesandoFoto = false;
+  ocrProgreso = 0;
 
   pageSize = 6;
   currentPage = 1;
@@ -125,8 +131,10 @@ export class AdminPersonal implements OnInit {
     rol: string;
     username: string;
     password: string;
-    nombre: string;
-    apellido: string;
+    primer_nombre: string;
+    segundo_nombre: string;
+    primer_apellido: string;
+    segundo_apellido: string;
     cedula: string;
     telefono: string;
     email: string;
@@ -140,8 +148,10 @@ export class AdminPersonal implements OnInit {
     rol: '',
     username: '',
     password: '',
-    nombre: '',
-    apellido: '',
+    primer_nombre: '',
+    segundo_nombre: '',
+    primer_apellido: '',
+    segundo_apellido: '',
     cedula: '',
     telefono: '',
     email: '',
@@ -154,6 +164,7 @@ export class AdminPersonal implements OnInit {
   };
 
   ngOnInit() {
+    this.destroyRef.onDestroy(() => this.ocr.dispose());
     this.cargarSedes();
     this.cargarServicios();
     this.cargarEspecialidades();
@@ -197,6 +208,7 @@ export class AdminPersonal implements OnInit {
 
   // --- Modal Logic ---
   openModalPersonal(user?: PersonalDTO | null, trigger?: EventTarget | null) {
+    this.ocr.initWorker();
     this.showPassword = false;
     this.isEditing = !!user;
     this.editingId = user?.id || user?.id_usuario || null;
@@ -205,8 +217,10 @@ export class AdminPersonal implements OnInit {
         rol: user.rol || 'medico',
         username: user.username || user.cedula || '',
         password: '',
-        nombre: user.nombre,
-        apellido: user.apellido || '',
+        primer_nombre: (user.primer_nombre || user.nombre || '').toUpperCase(),
+        segundo_nombre: (user.segundo_nombre || '').toUpperCase(),
+        primer_apellido: (user.primer_apellido || user.apellido || '').toUpperCase(),
+        segundo_apellido: (user.segundo_apellido || '').toUpperCase(),
         cedula: user.cedula || '',
         telefono: user.telefono || '',
         email: user.email || '',
@@ -217,7 +231,6 @@ export class AdminPersonal implements OnInit {
         piso: user.piso || '',
         id_sede: user.id_sede || '',
       };
-      // Auto-asignar piso desde la especialidad si está vacío
       if (!this.formPersonal.piso && this.formPersonal.especialidad_id) {
         const esp = this.especialidades.find(e => e.id == this.formPersonal.especialidad_id);
         if (esp?.piso) this.formPersonal.piso = String(esp.piso);
@@ -227,8 +240,10 @@ export class AdminPersonal implements OnInit {
         rol: '',
         username: '',
         password: '',
-        nombre: '',
-        apellido: '',
+        primer_nombre: '',
+        segundo_nombre: '',
+        primer_apellido: '',
+        segundo_apellido: '',
         cedula: '',
         telefono: '',
         email: '',
@@ -262,6 +277,57 @@ export class AdminPersonal implements OnInit {
     }, restante);
   }
 
+  // --- Scanner Camera ---
+  cancelarOcr() {
+    this.ocr.cancel();
+    this.procesandoFoto = false;
+    this.ocrProgreso = 0;
+  }
+
+  async procesarFoto(input: HTMLInputElement) {
+    if (!input.files?.length) return;
+    const file = input.files[0];
+    this.procesandoFoto = true;
+    this.ocrProgreso = 0;
+    input.value = '';
+
+    const timer = setInterval(() => {
+      this.ocrProgreso = this.ocr.progress;
+      this.cdr.detectChanges();
+    }, 200);
+
+    const limpiar = () => {
+      clearInterval(timer);
+      this.procesandoFoto = false;
+      this.ocrProgreso = 0;
+    };
+
+    this.ocr.recognize(file).subscribe({
+      next: (data) => {
+        limpiar();
+        if (!data.cedula && !data.primer_nombre) {
+          this.swal.error(
+            'No se pudieron extraer los datos.\n\n' +
+            'Texto leído:\n' + (data.raw?.slice(0, 500) || '') + '\n\n' +
+            'Ingresa los datos manualmente.'
+          );
+          return;
+        }
+        this.formPersonal.primer_nombre = data.primer_nombre.toUpperCase();
+        this.formPersonal.segundo_nombre = data.segundo_nombre.toUpperCase();
+        this.formPersonal.primer_apellido = data.primer_apellido.toUpperCase();
+        this.formPersonal.segundo_apellido = data.segundo_apellido.toUpperCase();
+        this.formPersonal.cedula = data.cedula;
+      },
+      error: (err) => {
+        limpiar();
+        if (err?.message === 'Cancelado por el usuario') return;
+        console.error('OCR error:', err);
+        this.swal.error('No se pudieron leer los datos. Asegúrate de que la imagen sea clara y vuelve a intentar.');
+      },
+    });
+  }
+
   // --- CRUD PERSONAL ---
   guardarPersonal() {
     if (this.isSaving) return;
@@ -272,8 +338,10 @@ export class AdminPersonal implements OnInit {
       .toString().replace(/\D/g, '');
     const body: Record<string, unknown> = {
       ...this.formPersonal,
-      nombre: (this.formPersonal.nombre || '').toUpperCase().trim(),
-      apellido: (this.formPersonal.apellido || '').toUpperCase().trim(),
+      primer_nombre: (this.formPersonal.primer_nombre || '').toUpperCase().trim(),
+      segundo_nombre: (this.formPersonal.segundo_nombre || '').toUpperCase().trim() || null,
+      primer_apellido: (this.formPersonal.primer_apellido || '').toUpperCase().trim(),
+      segundo_apellido: (this.formPersonal.segundo_apellido || '').toUpperCase().trim() || null,
       cedula: cedulaFinal,
       username: cedulaFinal,
       telefono: (this.formPersonal.telefono || '').toString().replace(/\D/g, ''),
@@ -333,8 +401,8 @@ export class AdminPersonal implements OnInit {
     return this.todoPersonal.filter((p) => {
       const query = this.normalize(this.searchQuery || '');
       if (!query) return true;
-      const matchNombre = this.normalize(p.nombre || '').includes(query);
-      const matchApellido = this.normalize(p.apellido || '').includes(query);
+      const matchNombre = this.normalize(p.nombre || p.primer_nombre || '').includes(query);
+      const matchApellido = this.normalize(p.apellido || p.primer_apellido || '').includes(query);
       const matchCedula = (p.cedula || '').toLowerCase().includes(this.searchQuery.toLowerCase());
       const matchRol = this.normalize(this.getRolLabel(p.rol)).includes(query);
       if (this.searchFilter === 'nombre') return matchNombre;

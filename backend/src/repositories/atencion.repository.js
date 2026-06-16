@@ -8,13 +8,13 @@ const getUltimasAdmisiones = async (sede) => {
       a.hora_salida,
       a.id_estado_actual, a.id_servicio, a.id_paciente, a.id_especialidad, a.id_cliente,
       a.id_medico, a.id_consultorio,
-      p.id_paciente, p.cedula, p.nombre, p.apellido, p.telefono,
+      p.id_paciente, p.cedula, p.primer_nombre as nombre, p.primer_apellido as apellido, p.telefono,
       s.nombre_servicio, s.prefijo,
       e.nombre_estado,
       rp.nombre as modalidad_pago,
       a.id_responsable,
       esp.nombre as nombre_especialidad,
-      u.nombre || ' ' || u.apellido as nombre_medico
+      u.primer_nombre || ' ' || u.primer_apellido as nombre_medico
     FROM "Atencion" a
     JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
     JOIN "Servicio" s ON a.id_servicio = s.id_servicio
@@ -108,8 +108,8 @@ const getTodosLosTurnos = async (sede) => {
     SELECT
       a.id_atencion as id,
       a.numero,
-      p.nombre as paciente_nombre,
-      p.apellido as paciente_apellido,
+      p.primer_nombre as paciente_nombre,
+      p.primer_apellido as paciente_apellido,
       p.cedula as paciente_documento,
       s.nombre_servicio,
       e.nombre_estado as estado,
@@ -176,7 +176,7 @@ const reincorporarPaciente = async (client, id) => {
 
 const getEnEsperaPorServicio = async (client, servicioId, sede, idEspecialidad) => {
   let query = `
-    SELECT a.id_atencion as id, a.numero, e.nombre_estado as estado, p.nombre as nombre_paciente, p.apellido as apellido_paciente, p.cedula as documento_paciente, p.telefono as telefono_paciente, a.hora_llegada
+    SELECT a.id_atencion as id, a.numero, e.nombre_estado as estado, p.primer_nombre as nombre_paciente, p.primer_apellido as apellido_paciente, p.cedula as documento_paciente, p.telefono as telefono_paciente, a.hora_llegada
     FROM "Atencion" a
     JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
     JOIN "Estado" e ON a.id_estado_actual = e.id_estado
@@ -265,16 +265,27 @@ const getReporteDiario = async (sede) => {
       e.nombre_estado as estado,
       a.hora_llegada,
       a.hora_salida as hora_fin,
-      p.nombre as paciente_nombre,
-      p.apellido as paciente_apellido,
+      p.primer_nombre as paciente_nombre,
+      p.primer_apellido as paciente_apellido,
       p.cedula as paciente_documento,
       p.telefono as paciente_telefono,
       s.nombre_servicio as servicio,
+      esp.nombre as especialidad,
+      c.nombre as consultorio,
+      u.primer_nombre as medico_nombre,
+      u.primer_apellido as medico_apellido,
+      h_inicio.fecha_hora as hora_inicio_atencion,
+      h_fin.fecha_hora as hora_fin_atencion,
       a.id_sede
     FROM "Atencion" a
     JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
     JOIN "Servicio" s ON a.id_servicio = s.id_servicio
     JOIN "Estado" e ON a.id_estado_actual = e.id_estado
+    LEFT JOIN "Especialidades" esp ON a.id_especialidad = esp.id_especialidad
+    LEFT JOIN "Consultorios" c ON a.id_consultorio = c.id_consultorio
+    LEFT JOIN "Usuarios" u ON a.id_usuario_registro = u.id_usuario
+    LEFT JOIN "Historial_Atencion" h_inicio ON h_inicio.id_atencion = a.id_atencion AND h_inicio.id_estado = 5
+    LEFT JOIN "Historial_Atencion" h_fin ON h_fin.id_atencion = a.id_atencion AND h_fin.id_estado = 6
     WHERE a.hora_llegada >= CURRENT_DATE
     AND a.hora_llegada < (CURRENT_DATE + interval '1 day')
     AND a.id_sede = $1
@@ -289,7 +300,7 @@ const getEstadoDeAtencionPorServicio = async (servicioId) => {
     SELECT 'LIBRE' as estado, s.id_servicio as servicio_id, s.nombre_servicio as nombre, s.nombre_servicio as servicio_nombre,
       a.id_atencion as turno_id, a.numero as turno_numero,
       CASE WHEN e.nombre_estado = 'En Atencion' THEN 'EN_ATENCION' WHEN e.nombre_estado = 'Llamado' THEN 'LLAMADO' ELSE UPPER(e.nombre_estado) END as turno_estado,
-      p.nombre as nombre_paciente, p.apellido as apellido_paciente, p.cedula as documento_paciente, a.hora_llegada as turno_hora_llegada,
+      p.primer_nombre as nombre_paciente, p.primer_apellido as apellido_paciente, p.cedula as documento_paciente, a.hora_llegada as turno_hora_llegada,
       (SELECT h.fecha_hora FROM "Historial_Atencion" h WHERE h.id_atencion = a.id_atencion AND h.id_estado = 4 ORDER BY h.fecha_hora DESC LIMIT 1) as hora_llamado
     FROM "Servicio" s
     LEFT JOIN "Atencion" a ON a.id_servicio = s.id_servicio AND a.id_estado_actual IN (5, 4) AND a.hora_salida IS NULL
@@ -305,7 +316,7 @@ const getEstadoDeAtencionPorConsultorio = async (consultorioId) => {
     SELECT c.estado_fisico as estado, c.id_servicio as servicio_id, c.nombre, s.nombre_servicio as servicio_nombre,
       a.id_atencion as turno_id, a.numero as turno_numero,
       CASE WHEN e.nombre_estado = 'En Atencion' THEN 'EN_ATENCION' WHEN e.nombre_estado = 'Llamado' THEN 'LLAMADO' ELSE UPPER(e.nombre_estado) END as turno_estado,
-      p.nombre as nombre_paciente, p.apellido as apellido_paciente, p.cedula as documento_paciente, a.hora_llegada as turno_hora_llegada,
+      p.primer_nombre as nombre_paciente, p.primer_apellido as apellido_paciente, p.cedula as documento_paciente, a.hora_llegada as turno_hora_llegada,
       (SELECT h.fecha_hora FROM "Historial_Atencion" h WHERE h.id_atencion = a.id_atencion AND h.id_estado = 4 ORDER BY h.fecha_hora DESC LIMIT 1) as hora_llamado
     FROM "Consultorios" c
     LEFT JOIN "Servicio" s ON c.id_servicio = s.id_servicio
@@ -331,7 +342,7 @@ const getPacientesEnEspera = async (sede, idServicio, idEspecialidad) => {
 
   const result = await pool.query(
     `SELECT
-      a.id_atencion, a.hora_llegada, p.nombre, p.apellido, p.cedula, e.nombre_estado, s.nombre_servicio,
+      a.id_atencion, a.hora_llegada, p.primer_nombre as nombre, p.primer_apellido as apellido, p.cedula, e.nombre_estado, s.nombre_servicio,
       a.id_estado_actual, a.id_especialidad, esp.nombre as nombre_especialidad
     FROM "Atencion" a
     INNER JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
@@ -360,7 +371,7 @@ const getAtendidosHoy = async (sede, idServicio, idEspecialidad) => {
 
   const result = await pool.query(
     `SELECT
-      a.id_atencion, a.hora_llegada, a.hora_salida, p.nombre, p.apellido, p.cedula, e.nombre_estado, s.nombre_servicio,
+      a.id_atencion, a.hora_llegada, a.hora_salida, p.primer_nombre as nombre, p.primer_apellido as apellido, p.cedula, e.nombre_estado, s.nombre_servicio,
       a.id_estado_actual, a.id_especialidad, esp.nombre as nombre_especialidad
     FROM "Atencion" a
     INNER JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
@@ -418,7 +429,7 @@ const getTurneroPacientes = async (estados, servicios, responsable) => {
   const result = await pool.query(
     `SELECT DISTINCT ON (a.id_atencion)
       a.id_atencion, a.numero, a.hora_llegada, a.hora_salida, a.id_estado_actual, a.id_responsable,
-      p.nombre, p.apellido, p.cedula,
+      p.primer_nombre as nombre, p.primer_apellido as apellido, p.cedula,
       s.nombre_servicio, s.prefijo, s.id_servicio,
       e.nombre_estado,
       c.nombre as consultorio_nombre,
@@ -444,7 +455,7 @@ const getSalaEspera = async () => {
   const result = await pool.query(
     `SELECT DISTINCT ON (a.id_atencion)
       a.id_atencion, a.numero, a.hora_llegada, a.hora_salida, a.id_estado_actual,
-      p.nombre, p.apellido, p.cedula,
+      p.primer_nombre as nombre, p.primer_apellido as apellido, p.cedula,
       s.nombre_servicio, s.prefijo, s.id_servicio,
       e.nombre_estado,
       c.nombre as consultorio_nombre,

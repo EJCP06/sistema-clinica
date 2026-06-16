@@ -143,6 +143,7 @@
                   <span class="font-bold">{{ toTitleCase(s.nombre) }}</span>
                   <lucide-icon *ngIf="formEsp.id_sede == s.id_sede" [name]="CheckCircle2" class="w-3.5 h-3.5 text-blue-600"></lucide-icon>
                 </div>
+                <div *ngIf="sedes.length === 0" class="px-4 py-4 text-xs text-slate-400 italic text-center">NO HAY DATOS</div>
               </div>
             </div>
           </div>

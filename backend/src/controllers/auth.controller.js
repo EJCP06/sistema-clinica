@@ -23,10 +23,12 @@ const login = async (req, res) => {
       return res.status(401).json({ mensaje: 'Contraseña inválida' });
     }
 
-    // Permitimos el login siempre, lo que invalidará cualquier sesión previa 
-    // al generar un nuevo sesion_token. Esto soluciona el problema de quedar bloqueado
-    // si se cierra la pestaña sin cerrar sesión.
-    
+    if (usuario.sesion_token) {
+      return res.status(401).json({
+        mensaje: 'Ya hay una sesión activa de este usuario en otro dispositivo.'
+      });
+    }
+
     const sesionToken = crypto.randomUUID();
     await usuarioRepo.actualizarSesionToken(usuario.id, sesionToken);
 

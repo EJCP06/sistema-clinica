@@ -36,6 +36,8 @@ import { AuthService } from '../../core/services/auth.service';
 import { SwalService } from '../../core/services/swal.service';
 import { EspecialidadesService } from '../../core/services/especialidades.service';
 import { ScrollService } from '../../core/services/scroll.service';
+import { ScannerService, ScannerData } from '../../core/services/scanner.service';
+import { OcrService } from '../../core/services/ocr.service';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 
@@ -100,9 +102,21 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     cedula: '',
     nombre: '',
     apellido: '',
+    primer_nombre: '',
+    segundo_nombre: '',
+    primer_apellido: '',
+    segundo_apellido: '',
+    fecha_nacimiento: '',
     telefono: '',
     status: true,
   };
+
+  get nombreCompleto(): string {
+    const p = this.nuevoPaciente;
+    const nombres = [p.primer_nombre, p.segundo_nombre].filter(Boolean).join(' ');
+    const apellidos = [p.primer_apellido, p.segundo_apellido].filter(Boolean).join(' ');
+    return [nombres, apellidos].filter(Boolean).join(' ').trim();
+  }
 
   servicios: any[] = [];
   especialidades: any[] = [];
@@ -173,6 +187,8 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
   esRegistroDirecto: boolean = false;
   pacienteExistenteCargado: boolean = false;
+  procesandoFoto: boolean = false;
+  ocrProgreso: number = 0;
 
   pageTitle: string = 'Admisión de Pacientes';
   pageSubtitle: string = 'Gestión de entrada y asignación de turnos médicos';
@@ -193,6 +209,8 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   constructor(
     private api: ApiService,
     private router: Router,
+    private scanner: ScannerService,
+    private ocr: OcrService,
   ) {}
 
   get mostrarRegistro() {
@@ -214,6 +232,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   abrirModalRegistro(trigger?: EventTarget | null) {
     this.modalTrigger = trigger instanceof HTMLElement ? trigger : null;
     this.mostrarRegistro = true;
+    this.ocr.initWorker();
   }
 
   cerrarModalRegistro() {
@@ -245,6 +264,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   }
 
   private cambiosSub?: Subscription;
+  private scanSub?: Subscription;
 
   ngOnInit() {
     const data = this.route.snapshot.data;
@@ -268,6 +288,9 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       }
     });
 
+    // Escáner PDF417
+    this.scanSub = this.scanner.scan$.subscribe(data => this.handleScan(data));
+
     // Setup live search
     this.searchSubscription = this.searchSubject
       .pipe(debounceTime(80))
@@ -282,12 +305,14 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.cambiosSub?.unsubscribe();
+    this.scanSub?.unsubscribe();
     if (this.searchSubscription) {
       this.searchSubscription.unsubscribe();
     }
     if (this.busquedaSubscription) {
       this.busquedaSubscription.unsubscribe();
     }
+    this.ocr.dispose();
   }
 
   onTabChange(tab: string) {
@@ -312,8 +337,8 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   getSearchFilterLabel(): string {
     const labels: Record<string, string> = {
       todo: 'TODO',
-      nombre: 'NOMBRE',
-      apellido: 'APELLIDO',
+      nombre: '1ER NOMBRE',
+      apellido: '1ER APELLIDO',
       cedula: 'CÉDULA',
     };
     return labels[this.searchFilter] || 'TODO';
@@ -521,12 +546,11 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       const val = this.cedulaBusqueda.trim();
       if (this.searchFilter === 'cedula' || (!isNaN(Number(val)) && this.searchFilter === 'todo')) {
         this.nuevoPaciente.cedula = val;
-        // Hacer la consulta automática a la BD
         this.onCedulaFormChange(val);
       } else if (this.searchFilter === 'nombre') {
-        this.nuevoPaciente.nombre = val.toUpperCase();
+        this.nuevoPaciente.primer_nombre = val.toUpperCase();
       } else if (this.searchFilter === 'apellido') {
-        this.nuevoPaciente.apellido = val.toUpperCase();
+        this.nuevoPaciente.primer_apellido = val.toUpperCase();
       }
     }
   }
@@ -548,14 +572,19 @@ export class RecepcionComponent implements OnInit, OnDestroy {
           this.pacienteExistenteCargado = true;
           this.nuevoPaciente.id_paciente = p.id_paciente || p.id;
           this.nuevoPaciente.cedula = p.cedula;
-          this.nuevoPaciente.nombre = p.nombre;
-          this.nuevoPaciente.apellido = p.apellido;
+          this.nuevoPaciente.primer_nombre = p.primer_nombre || p.nombre || '';
+          this.nuevoPaciente.segundo_nombre = p.segundo_nombre || '';
+          this.nuevoPaciente.primer_apellido = p.primer_apellido || p.apellido || '';
+          this.nuevoPaciente.segundo_apellido = p.segundo_apellido || '';
+          this.nuevoPaciente.fecha_nacimiento = p.fecha_nacimiento || '';
           this.nuevoPaciente.telefono = p.telefono;
         } else {
-          // Si ya no existe, limpiar los datos autocompletados
           if (this.nuevoPaciente.id_paciente) {
-            this.nuevoPaciente.nombre = '';
-            this.nuevoPaciente.apellido = '';
+            this.nuevoPaciente.primer_nombre = '';
+            this.nuevoPaciente.segundo_nombre = '';
+            this.nuevoPaciente.primer_apellido = '';
+            this.nuevoPaciente.segundo_apellido = '';
+            this.nuevoPaciente.fecha_nacimiento = '';
             this.nuevoPaciente.telefono = '';
           }
           this.pacienteExistenteCargado = false;
@@ -577,8 +606,11 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     this.nuevoPaciente = {
       id_paciente: paciente.id_paciente || paciente.id,
       cedula: paciente.cedula,
-      nombre: paciente.nombre,
-      apellido: paciente.apellido,
+      primer_nombre: paciente.primer_nombre || paciente.nombre || '',
+      segundo_nombre: paciente.segundo_nombre || '',
+      primer_apellido: paciente.primer_apellido || paciente.apellido || '',
+      segundo_apellido: paciente.segundo_apellido || '',
+      fecha_nacimiento: paciente.fecha_nacimiento || '',
       telefono: paciente.telefono,
       status: true,
     };
@@ -596,6 +628,90 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     this.categoriaServicio = '';
     this.pacientesEncontrados = [];
     this.mostrarResultadosBusqueda = false;
+  }
+
+  cancelarOcr() {
+    this.ocr.cancel();
+    this.procesandoFoto = false;
+    this.ocrProgreso = 0;
+  }
+
+  async procesarFoto(input: HTMLInputElement) {
+    if (this.isAseguradorasView || !input.files?.length) return;
+    const file = input.files[0];
+    this.procesandoFoto = true;
+    this.ocrProgreso = 0;
+    input.value = '';
+
+    const timer = setInterval(() => {
+      this.ocrProgreso = this.ocr.progress;
+      this.cdr.detectChanges();
+    }, 200);
+
+    const limpiar = () => {
+      clearInterval(timer);
+      this.procesandoFoto = false;
+      this.ocrProgreso = 0;
+    };
+
+    this.ocr.recognize(file).subscribe({
+      next: (data) => {
+        limpiar();
+        if (!data.cedula && !data.primer_nombre) {
+          console.log('OCR raw text:', data.raw);
+          this.swal.error(
+            'No se pudieron extraer los datos.\n\n' +
+            'Texto leído por el OCR:\n' + (data.raw?.slice(0, 600) || '(vacío)') + '\n\n' +
+            'Ingresa los datos manualmente.'
+          );
+          return;
+        }
+        this.abrirModalRegistro();
+        this.isEditMode = false;
+        this.handleScan(data);
+      },
+      error: (err) => {
+        limpiar();
+        if (err?.message === 'Cancelado por el usuario') return;
+        console.error('OCR error:', err);
+        this.swal.error('No se pudieron leer los datos. Asegúrate de que la imagen sea clara y vuelve a intentar.');
+      },
+    });
+  }
+
+  handleScan(data: ScannerData) {
+    if (this.isAseguradorasView) return;
+    this.abrirModalRegistro();
+    this.isEditMode = false;
+
+    this.nuevoPaciente.cedula = data.cedula;
+    this.nuevoPaciente.primer_nombre = data.primer_nombre.toUpperCase();
+    this.nuevoPaciente.segundo_nombre = data.segundo_nombre.toUpperCase();
+    this.nuevoPaciente.primer_apellido = data.primer_apellido.toUpperCase();
+    this.nuevoPaciente.segundo_apellido = data.segundo_apellido.toUpperCase();
+    this.nuevoPaciente.fecha_nacimiento = data.fecha_nacimiento;
+    this.nuevoPaciente.id_paciente = null;
+    this.pacienteExistenteCargado = false;
+
+    this.api.get<any[]>(`recepcion/pacientes/${data.cedula}`).subscribe({
+      next: (result) => {
+        const p = result ? result.find((pac: any) => pac.cedula === data.cedula) : null;
+        if (p) {
+          this.nuevoPaciente.id_paciente = p.id_paciente || p.id;
+          this.nuevoPaciente.primer_nombre = (p.primer_nombre || p.nombre || '').toUpperCase();
+          this.nuevoPaciente.segundo_nombre = (p.segundo_nombre || '').toUpperCase();
+          this.nuevoPaciente.primer_apellido = (p.primer_apellido || p.apellido || '').toUpperCase();
+          this.nuevoPaciente.segundo_apellido = (p.segundo_apellido || '').toUpperCase();
+          this.nuevoPaciente.fecha_nacimiento = p.fecha_nacimiento || '';
+          this.nuevoPaciente.telefono = p.telefono || '';
+          this.pacienteExistenteCargado = true;
+        }
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.pacienteExistenteCargado = false;
+      },
+    });
   }
 
   private finalizarGuardado(accion?: () => void) {
@@ -673,8 +789,11 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
       const datosPaciente = {
         cedula: (this.nuevoPaciente.cedula || '').toString().replace(/\D/g, '').trim(),
-        nombre: (this.nuevoPaciente.nombre || '').toString().toUpperCase().trim(),
-        apellido: (this.nuevoPaciente.apellido || '').toString().toUpperCase().trim(),
+        primer_nombre: (this.nuevoPaciente.primer_nombre || '').toString().toUpperCase().trim(),
+        segundo_nombre: (this.nuevoPaciente.segundo_nombre || '').toString().toUpperCase().trim(),
+        primer_apellido: (this.nuevoPaciente.primer_apellido || '').toString().toUpperCase().trim(),
+        segundo_apellido: (this.nuevoPaciente.segundo_apellido || '').toString().toUpperCase().trim(),
+        fecha_nacimiento: this.nuevoPaciente.fecha_nacimiento || null,
         telefono: (this.nuevoPaciente.telefono || '').toString().replace(/\D/g, '').trim(),
       };
 
@@ -720,8 +839,11 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       // Crear nuevo paciente y luego generar atención
       const datosPaciente = {
         cedula: (this.nuevoPaciente.cedula || '').toString().replace(/\D/g, ''),
-        nombre: (this.nuevoPaciente.nombre || '').toUpperCase().trim(),
-        apellido: (this.nuevoPaciente.apellido || '').toUpperCase().trim(),
+        primer_nombre: (this.nuevoPaciente.primer_nombre || '').toUpperCase().trim(),
+        segundo_nombre: (this.nuevoPaciente.segundo_nombre || '').toUpperCase().trim(),
+        primer_apellido: (this.nuevoPaciente.primer_apellido || '').toUpperCase().trim(),
+        segundo_apellido: (this.nuevoPaciente.segundo_apellido || '').toUpperCase().trim(),
+        fecha_nacimiento: this.nuevoPaciente.fecha_nacimiento || null,
         telefono: (this.nuevoPaciente.telefono || '').toString().replace(/\D/g, ''),
         status: true,
       };

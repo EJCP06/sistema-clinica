@@ -64,6 +64,11 @@ const getSedes = async () => {
   return result.rows;
 };
 
+const getSedeById = async (id) => {
+  const result = await pool.query(`SELECT id_sede, nombre FROM "Sedes" WHERE id_sede = $1`, [id]);
+  return result.rows[0] || null;
+};
+
 module.exports = {
   getResponsablesPago,
   getAseguradoras,
@@ -71,4 +76,5 @@ module.exports = {
   eliminarAseguradora,
   importarAseguradoras,
   getSedes,
+  getSedeById,
 };

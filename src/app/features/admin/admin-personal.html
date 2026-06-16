@@ -135,17 +135,45 @@
     </div>
     <div class="p-4 md:p-8 flex-1 overflow-y-auto md:overflow-visible">
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-6">
-        <div class="lg:col-span-2 space-y-1.5">
-          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Nombre <span class="text-rose-500">*</span></label>
-          <input [(ngModel)]="formPersonal.nombre" (keypress)="soloLetras($event); sinEspacios($event)" placeholder="Ej: Juan" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
+        <div class="space-y-1.5">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Primer Nombre <span class="text-rose-500">*</span></label>
+          <input [(ngModel)]="formPersonal.primer_nombre" (keypress)="soloLetras($event); sinEspacios($event)" placeholder="Ej: Juan" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
         </div>
-        <div class="lg:col-span-2 space-y-1.5">
-          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Apellido <span class="text-rose-500">*</span></label>
-          <input [(ngModel)]="formPersonal.apellido" (keypress)="soloLetras($event); sinEspacios($event)" placeholder="Ej: Perez" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
+        <div class="space-y-1.5">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Segundo Nombre</label>
+          <input [(ngModel)]="formPersonal.segundo_nombre" (keypress)="soloLetras($event); sinEspacios($event)" placeholder="Ej: Alberto" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Primer Apellido <span class="text-rose-500">*</span></label>
+          <input [(ngModel)]="formPersonal.primer_apellido" (keypress)="soloLetras($event); sinEspacios($event)" placeholder="Ej: Perez" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Segundo Apellido</label>
+          <input [(ngModel)]="formPersonal.segundo_apellido" (keypress)="soloLetras($event); sinEspacios($event)" placeholder="Ej: Lopez" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
         </div>
         <div class="lg:col-span-2 space-y-1.5">
           <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Cédula <span class="text-rose-500">*</span></label>
-          <input [(ngModel)]="formPersonal.cedula" (keypress)="soloNumeros($event)" placeholder="Ej: 13894759" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
+          <div class="flex gap-2">
+            <input [(ngModel)]="formPersonal.cedula" (keypress)="soloNumeros($event)" placeholder="Ej: 13894759" class="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
+            <input #fotoPersonal type="file" accept="image/*" capture="environment"
+              (change)="procesarFoto(fotoPersonal)" class="hidden" />
+            <button type="button" (click)="fotoPersonal.click()" [disabled]="procesandoFoto" title="Escanear cédula con cámara"
+              class="px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold shadow-lg shadow-emerald-600/20 disabled:opacity-50">
+              📷
+            </button>
+          </div>
+          <div *ngIf="procesandoFoto" class="mt-2 space-y-1 animate-in fade-in duration-200">
+            <div class="flex items-center gap-2">
+              <div class="flex-1 bg-slate-200 rounded-full h-1.5">
+                <div class="bg-emerald-500 h-1.5 rounded-full transition-all duration-300" [style.width.%]="ocrProgreso"></div>
+              </div>
+              <span class="text-[10px] font-bold text-emerald-600 w-8 text-right">{{ ocrProgreso }}%</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <p class="text-[10px] text-emerald-600 font-bold">Leyendo datos de la cédula...</p>
+              <button type="button" (click)="cancelarOcr()" class="text-[10px] font-bold text-rose-500 hover:text-rose-600 uppercase tracking-wider">Cancelar</button>
+            </div>
+          </div>
         </div>
         <div class="lg:col-span-2 space-y-1.5">
           <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Rol <span class="text-rose-500">*</span></label>
@@ -160,6 +188,7 @@
                   <span class="font-bold">{{ toTitleCase(r.nombre) }}</span>
                   <lucide-icon *ngIf="formPersonal.rol === r.key" [name]="CheckCircle2" class="w-3.5 h-3.5 text-blue-600"></lucide-icon>
                 </div>
+                <div *ngIf="rolesLista.length === 0" class="px-4 py-4 text-xs text-slate-400 italic text-center">NO HAY DATOS</div>
               </div>
             </div>
           </div>
@@ -185,6 +214,7 @@
                   <span class="font-bold text-slate-700 dark:text-slate-300">{{ s.nombre }}</span>
                   <lucide-icon *ngIf="formPersonal.id_sede == s.id_sede" [name]="CheckCircle2" class="w-3.5 h-3.5 text-blue-600"></lucide-icon>
                 </div>
+                <div *ngIf="sedes.length === 0" class="px-4 py-4 text-xs text-slate-400 italic text-center">NO HAY DATOS</div>
               </div>
             </div>
           </div>
@@ -203,6 +233,7 @@
                     <span class="lowercase first-letter:uppercase font-bold">{{ s.nombre }}</span>
                     <lucide-icon *ngIf="formPersonal.especialidad_id === s.id" [name]="CheckCircle2" class="w-3.5 h-3.5 text-blue-600"></lucide-icon>
                   </div>
+                  <div *ngIf="especialidades.length === 0" class="px-4 py-4 text-xs text-slate-400 italic text-center">NO HAY DATOS</div>
                 </div>
               </div>
             </div>
@@ -220,7 +251,7 @@
                     <span class="lowercase first-letter:uppercase font-bold">{{ c.nombre }}</span>
                     <lucide-icon *ngIf="formPersonal.consultorio_id === c.id" [name]="CheckCircle2" class="w-3.5 h-3.5 text-blue-600"></lucide-icon>
                   </div>
-                  <div *ngIf="consultoriosDelServicio.length === 0" class="px-4 py-4 text-xs text-slate-400 italic text-center">Sin consultorios disponibles para este servicio</div>
+                  <div *ngIf="consultoriosDelServicio.length === 0" class="px-4 py-4 text-xs text-slate-400 italic text-center">NO HAY DATOS</div>
                 </div>
               </div>
             </div>

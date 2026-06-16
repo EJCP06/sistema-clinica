@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Remove focus outline on mouse click, keep for keyboard navigation */
+button:focus:not(:focus-visible) {
+  outline: none;
+}
+
 /* No body scroll when modal is open */
 body:has(.fixed.inset-0.z-50),
 body:has(.fixed.inset-0.z-\[100\]) {

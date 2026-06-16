@@ -3,12 +3,14 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import Swal from 'sweetalert2';
+import { AuthService } from '../services/auth.service';
 
 let alertaMostrandose = false;
 let redirigiendo = false;
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
+  const authService = inject(AuthService);
 
   return next(req).pipe(
     catchError((error) => {
@@ -31,47 +33,30 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       } else if (error.status === 401) {
         if (!redirigiendo) {
           redirigiendo = true;
-          sessionStorage.clear();
-          router.navigate(['/login']);
+          authService.logout(true); // Limpia sesión sin llamar al backend
+          
           const mensaje = error.error?.mensaje || 'Sesión expirada. Debe iniciar sesión nuevamente.';
-          if (!alertaMostrandose) {
+          
+          // No mostramos alerta si ya estamos en login o si es el verifySession fallando al inicio
+          const esVerify = req.url.includes('/auth/verify');
+          const enLogin = router.url.includes('/login');
+
+          if (!alertaMostrandose && !enLogin && !esVerify) {
             alertaMostrandose = true;
             Swal.fire({
               icon: 'error',
               title: 'Error',
               text: mensaje,
               confirmButtonColor: '#2563eb',
-            }).then(() => { alertaMostrandose = false; redirigiendo = false; });
+            }).then(() => { 
+              alertaMostrandose = false; 
+              redirigiendo = false; 
+            });
+          } else {
+            redirigiendo = false;
           }
         }
-      } else {
-        let mensaje = 'Error inesperado. Intente nuevamente.';
-        if (error.status === 404) {
-          mensaje = 'El recurso solicitado no existe.';
-        } else if (error.status === 409) {
-          mensaje = error.error?.mensaje || 'El recurso ya existe o hay un conflicto.';
-        } else if (error.status === 429) {
-          mensaje = 'Demasiadas solicitudes. Espere un momento e intente nuevamente.';
-        } else if (error.status >= 500) {
-          mensaje = 'Error del servidor. Intente nuevamente más tarde.';
-        }
-
-        if (error.status !== 403 && error.error?.mensaje) {
-          mensaje = error.error.mensaje;
-        }
-
-        if (error.status !== 403 && !alertaMostrandose) {
-          alertaMostrandose = true;
-          Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: mensaje,
-            confirmButtonColor: '#2563eb',
-          }).then(() => { alertaMostrandose = false; });
-        }
       }
-
-      console.error(`[HTTP ${error.status}]`, error);
 
       return throwError(() => error);
     }),

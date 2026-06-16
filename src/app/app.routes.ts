@@ -17,10 +17,10 @@ export const routes: Routes = [
     canActivate: [authGuard, modulePermissionGuard],
     data: {
       modules: [
-        { module: 'personal', allowedActions: ['*'] },
-        { module: 'roles', allowedActions: ['*'] },
-        { module: 'permisologia', allowedActions: ['*'] },
-        { module: 'especialidades', allowedActions: ['*'] },
+        { module: 'personal', allowedActions: ['ver'] },
+        { module: 'roles', allowedActions: ['ver'] },
+        { module: 'permisologia', allowedActions: ['ver'] },
+        { module: 'especialidades', allowedActions: ['ver'] },
         { module: 'reportes', allowedActions: ['ver'] }
       ]
     }
@@ -33,7 +33,7 @@ export const routes: Routes = [
     canActivate: [authGuard, modulePermissionGuard],
     data: {
       modules: [
-        { module: 'admision', allowedActions: ['*'] }
+        { module: 'admision', allowedActions: ['ver'] }
       ]
     }
   },
@@ -45,7 +45,7 @@ export const routes: Routes = [
     canActivate: [authGuard, modulePermissionGuard],
     data: {
       modules: [
-        { module: 'aps', allowedActions: ['*'] }
+        { module: 'aps', allowedActions: ['ver'] }
       ]
     }
   },
@@ -57,7 +57,7 @@ export const routes: Routes = [
     canActivate: [authGuard, modulePermissionGuard],
     data: {
       modules: [
-        { module: 'aseguradoras', allowedActions: ['*'] }
+        { module: 'aseguradoras', allowedActions: ['ver'] }
       ],
       pageTitle: 'Aseguradoras',
       pageSubtitle: 'Gestión de aseguradoras',
@@ -72,7 +72,7 @@ export const routes: Routes = [
     canActivate: [authGuard, modulePermissionGuard],
     data: {
       modules: [
-        { module: 'atencion_medica', allowedActions: ['*'] }
+        { module: 'atencion_medica', allowedActions: ['ver'] }
       ],
       tipo: 'medico'
     }
@@ -85,7 +85,7 @@ export const routes: Routes = [
     canActivate: [authGuard, modulePermissionGuard],
     data: {
       modules: [
-        { module: 'laboratorio', allowedActions: ['*'] }
+        { module: 'laboratorio', allowedActions: ['ver'] }
       ],
       tipo: 'laboratorio'
     }
@@ -98,7 +98,7 @@ export const routes: Routes = [
     canActivate: [authGuard, modulePermissionGuard],
     data: {
       modules: [
-        { module: 'imagenes', allowedActions: ['*'] }
+        { module: 'imagenes', allowedActions: ['ver'] }
       ],
       tipo: 'imagenes'
     }
@@ -111,7 +111,7 @@ export const routes: Routes = [
     canActivate: [authGuard, modulePermissionGuard],
     data: {
       modules: [
-        { module: 'laboratorio', allowedActions: ['*'] }
+        { module: 'laboratorio', allowedActions: ['ver'] }
       ]
     }
   },
@@ -123,7 +123,7 @@ export const routes: Routes = [
     canActivate: [authGuard, modulePermissionGuard],
     data: {
       modules: [
-        { module: 'imagenes', allowedActions: ['*'] }
+        { module: 'imagenes', allowedActions: ['ver'] }
       ]
     }
   },
