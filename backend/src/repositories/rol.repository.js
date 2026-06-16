@@ -38,9 +38,21 @@ const remove = async (id) => {
   await pool.query(`DELETE FROM "Roles" WHERE id_rol = $1`, [id]);
 };
 
+const existsKeyGlobally = async (key) => {
+  const result = await pool.query('SELECT id_rol FROM "Roles" WHERE key = $1', [key]);
+  return result.rows.length > 0;
+};
+
+const existsKeyForSede = async (key, id_sede) => {
+  const result = await pool.query('SELECT id_rol FROM "Roles" WHERE key = $1 AND id_sede = $2', [key, id_sede || null]);
+  return result.rows.length > 0;
+};
+
 module.exports = {
   getAll,
   create,
   update,
   remove,
+  existsKeyGlobally,
+  existsKeyForSede,
 };

@@ -1,5 +1,6 @@
-import { HttpInterceptorFn } from '@angular/common/http';
-import { retry, delay } from 'rxjs/operators';
+import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import { retry } from 'rxjs/operators';
+import { throwError, timer } from 'rxjs';
 
 export const retryInterceptor: HttpInterceptorFn = (req, next) => {
   if (req.method !== 'GET') {
@@ -7,6 +8,16 @@ export const retryInterceptor: HttpInterceptorFn = (req, next) => {
   }
 
   return next(req).pipe(
-    retry({ count: 5, delay: 2000 })
+    retry({
+      count: 3,
+      delay: (error) => {
+        if (error instanceof HttpErrorResponse) {
+          if (error.status === 401 || error.status === 403 || error.status >= 500) {
+            return throwError(() => error);
+          }
+        }
+        return timer(2000);
+      },
+    }),
   );
 };

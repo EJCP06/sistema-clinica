@@ -59,7 +59,7 @@
     </div>
 
     <!-- OPERACIONES -->
-    <div *ngIf="tienePermiso('admision:*') || tienePermiso('aps:*') || tienePermiso('laboratorio:*') || tienePermiso('imagenes:*') || tienePermiso('atencion_medica:*') || tienePermiso('aseguradoras:*') || tienePermiso('especialidades:*')" class="mb-4">
+    <div *ngIf="tienePermiso('admision:ver') || tienePermiso('aps:ver') || tienePermiso('laboratorio:ver') || tienePermiso('imagenes:ver') || tienePermiso('atencion_medica:ver') || tienePermiso('aseguradoras:ver') || tienePermiso('especialidades:ver')" class="mb-4">
       <button 
         (click)="toggleSection('operaciones')"
         class="w-full flex items-center justify-between gap-3 mb-1 px-5 py-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all duration-200 group text-left"
@@ -79,7 +79,7 @@
       
       <div class="space-y-1 overflow-hidden transition-all duration-300 px-2" [ngClass]="expandedOperaciones ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'">
         <button 
-          *ngIf="tienePermiso('admision:*') && !esCoordinador"
+          *ngIf="tienePermiso('admision:ver') && !esCoordinador"
           (click)="navigate('recepcion')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
@@ -88,7 +88,7 @@
         </button>
 
         <button 
-          *ngIf="tienePermiso('aps:*')"
+          *ngIf="tienePermiso('aps:ver')"
           (click)="navigate('aps')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
@@ -97,7 +97,7 @@
         </button>
 
         <button 
-          *ngIf="tienePermiso('laboratorio:*')"
+          *ngIf="tienePermiso('laboratorio:ver')"
           (click)="navigate('laboratorio')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
@@ -115,7 +115,7 @@
         </button>
 
         <button 
-          *ngIf="tienePermiso('imagenes:*')"
+          *ngIf="tienePermiso('imagenes:ver')"
           (click)="navigate('imagenes')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
@@ -133,7 +133,7 @@
         </button>
 
         <button 
-          *ngIf="tienePermiso('atencion_medica:*')"
+          *ngIf="tienePermiso('atencion_medica:ver')"
           (click)="navigate('atencion')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
@@ -142,7 +142,7 @@
         </button>
 
         <button 
-          *ngIf="tienePermiso('aseguradoras:*')"
+          *ngIf="tienePermiso('aseguradoras:ver')"
           (click)="navigate('aseguradoras')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
@@ -151,7 +151,7 @@
         </button>
 
         <button 
-          *ngIf="tienePermiso('especialidades:*')"
+          *ngIf="tienePermiso('especialidades:ver')"
           (click)="navigate('admin', 'especialidades')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
@@ -162,7 +162,7 @@
     </div>
 
     <!-- ADMINISTRACIÓN -->
-    <div *ngIf="tienePermiso('personal:*') || tienePermiso('roles:*') || tienePermiso('permisologia:*')" class="mb-4">
+    <div *ngIf="tienePermiso('personal:ver') || tienePermiso('roles:ver') || tienePermiso('permisologia:ver')" class="mb-4">
       <button 
         (click)="toggleSection('admin')"
         class="w-full flex items-center justify-between gap-3 mb-1 px-5 py-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all duration-200 group text-left"
@@ -182,7 +182,7 @@
       
       <div class="space-y-1 overflow-hidden transition-all duration-300 px-2" [ngClass]="expandedAdmin ? 'max-h-[500px] opacity-100 mt-1' : 'max-h-0 opacity-0'">
         <button
-          *ngIf="tienePermiso('personal:*')"
+          *ngIf="tienePermiso('personal:ver')"
           (click)="navigate('admin', 'personal')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
@@ -191,7 +191,7 @@
         </button>
 
         <button
-          *ngIf="tienePermiso('roles:*')"
+          *ngIf="tienePermiso('roles:ver')"
           (click)="navigate('admin', 'roles')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >
@@ -200,7 +200,7 @@
         </button>
 
         <button
-          *ngIf="tienePermiso('permisologia:*')"
+          *ngIf="tienePermiso('permisologia:ver')"
           (click)="navigate('admin', 'permisologia')"
           class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
         >

@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, HostListener, ElementRef, inject, Destroy
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronDown, Undo2, KeyRound, DollarSign } from 'lucide-angular';
+import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronDown, Undo2, KeyRound, DollarSign, Trash2 } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '@core/services/auth.service';
 import { SwalService } from '../../core/services/swal.service';
@@ -30,6 +30,7 @@ export class ApsComponent implements OnInit, OnDestroy {
   readonly Undo2 = Undo2;
   readonly KeyRound = KeyRound;
   readonly DollarSign = DollarSign;
+  readonly Trash2 = Trash2;
 
   pageSize = 6;
   currentPage = 1;
@@ -64,7 +65,7 @@ export class ApsComponent implements OnInit, OnDestroy {
   private destroyRef = inject(DestroyRef);
   private swal = inject(SwalService);
 
-  constructor(private api: ApiService, private auth: AuthService) {}
+  constructor(private api: ApiService, public auth: AuthService) {}
 
   @HostListener('document:click', ['$event'])
   onClick(event: MouseEvent) {
@@ -205,10 +206,16 @@ export class ApsComponent implements OnInit, OnDestroy {
   }
 
   async marcarAusente(admision: any) {
-    const result = await this.swal.confirm('¿Marcar como ausente?', 'Esta acción no se puede deshacer.');
+    const result = await this.swal.confirm('¿Deseas marcar este paciente como ausente?', '¿Estás seguro?');
     if (!result.isConfirmed) return;
 
-    this.api.put(`recepcion/atencion/${admision.id_atencion}/ausente`, {}).subscribe({
+    if (admision.id_estado_actual === 7) {
+      this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== admision.id_atencion);
+      this.swal.success('Paciente eliminado de la tabla');
+      return;
+    }
+
+    this.api.put(`recepcion/atencion/${admision.id_atencion}/marcar_ausente`, {}).subscribe({
       next: () => {
         this.cargarUltimasAdmisiones();
         this.swal.success('Paciente marcado como ausente correctamente');

@@ -38,8 +38,8 @@ router.delete('/consultorios/:id', permissionMiddleware('servicios:gestionar'), 
 
 router.get('/personal', permissionMiddleware('personal:ver', 'personal:crear', 'personal:editar', 'personal:eliminar', 'admision:*', 'aps:ver', 'laboratorio:*', 'imagenes:*'), adminController.getPersonal);
 router.post('/personal', permissionMiddleware('personal:crear'), [
-  body('nombre').trim().notEmpty().withMessage('El nombre es obligatorio'),
-  body('apellido').trim().notEmpty().withMessage('El apellido es obligatorio'),
+  body('primer_nombre').trim().notEmpty().withMessage('El primer nombre es obligatorio'),
+  body('primer_apellido').trim().notEmpty().withMessage('El primer apellido es obligatorio'),
   body('cedula').trim().notEmpty().withMessage('La cédula es obligatoria'),
   validar,
 ], adminController.crearPersonal);

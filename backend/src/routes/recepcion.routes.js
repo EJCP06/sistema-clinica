@@ -32,8 +32,6 @@ router.use(perm(
 ));
 router.get('/pacientes/:termino', ctrl.buscarPaciente);
 router.post('/pacientes', [
-  body('nombre').trim().notEmpty().withMessage('El nombre del paciente es obligatorio'),
-  body('apellido').trim().notEmpty().withMessage('El apellido del paciente es obligatorio'),
   body('cedula').trim().notEmpty().withMessage('La cédula del paciente es obligatoria'),
   validar,
 ], ctrl.crearPaciente);

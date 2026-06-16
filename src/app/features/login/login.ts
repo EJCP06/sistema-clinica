@@ -132,17 +132,28 @@ export class Login implements OnDestroy {
       return;
     }
     this.cargandoReset = true;
+    const inicio = Date.now();
+    const MIN_CARGANDO = 800;
+
     this.auth.solicitarRecuperacion(this.recuperacionEmail, this.recuperacionCedula).subscribe({
       next: (res) => {
-        this.cargandoReset = false;
-        this.paso = 2;
-        this.recuperacionCodigo = '';
-        this.iniciarTemporizador(res.expiracion || 300);
-        this.swal.success('Nuevo código enviado a tu correo. Revisa el mensaje más reciente.');
+        const elapsed = Date.now() - inicio;
+        const restante = Math.max(0, MIN_CARGANDO - elapsed);
+        setTimeout(() => {
+          this.cargandoReset = false;
+          this.paso = 2;
+          this.recuperacionCodigo = '';
+          this.iniciarTemporizador(res.expiracion || 300);
+          this.swal.success('Nuevo código enviado a tu correo. Revisa el mensaje más reciente.');
+        }, restante);
       },
       error: (err) => {
-        this.cargandoReset = false;
-        this.swal.error(err.error?.mensaje || 'Error al enviar el código');
+        const elapsed = Date.now() - inicio;
+        const restante = Math.max(0, MIN_CARGANDO - elapsed);
+        setTimeout(() => {
+          this.cargandoReset = false;
+          this.swal.error(err.error?.mensaje || 'Error al enviar el código');
+        }, restante);
       }
     });
   }
@@ -157,16 +168,27 @@ export class Login implements OnDestroy {
       return;
     }
     this.cargandoReset = true;
+    const inicio = Date.now();
+    const MIN_CARGANDO = 800;
+
     this.auth.verificarOTP(this.recuperacionEmail, this.recuperacionCedula, this.recuperacionCodigo).subscribe({
       next: () => {
-        this.cargandoReset = false;
-        this.swal.success('Código de recuperación exitoso');
-        this.paso = 3;
-        this.detenerTemporizador();
+        const elapsed = Date.now() - inicio;
+        const restante = Math.max(0, MIN_CARGANDO - elapsed);
+        setTimeout(() => {
+          this.cargandoReset = false;
+          this.swal.success('Código de recuperación exitoso');
+          this.paso = 3;
+          this.detenerTemporizador();
+        }, restante);
       },
       error: (err) => {
-        this.cargandoReset = false;
-        this.swal.error(err.error?.mensaje || 'Código incorrecto');
+        const elapsed = Date.now() - inicio;
+        const restante = Math.max(0, MIN_CARGANDO - elapsed);
+        setTimeout(() => {
+          this.cargandoReset = false;
+          this.swal.error(err.error?.mensaje || 'Código incorrecto');
+        }, restante);
       }
     });
   }
@@ -185,16 +207,27 @@ export class Login implements OnDestroy {
       return;
     }
     this.cargandoReset = true;
+    const inicio = Date.now();
+    const MIN_CARGANDO = 800;
+
     this.auth.restablecerPassword(this.recuperacionEmail, this.recuperacionCedula, this.recuperacionCodigo, this.newPassword).subscribe({
       next: () => {
-        this.cargandoReset = false;
-        this.swal.success('Contraseña actualizada exitosamente');
-        this.mostrarResetPassword = false;
-        this.resetearRecuperacion();
+        const elapsed = Date.now() - inicio;
+        const restante = Math.max(0, MIN_CARGANDO - elapsed);
+        setTimeout(() => {
+          this.cargandoReset = false;
+          this.swal.success('Contraseña actualizada exitosamente');
+          this.mostrarResetPassword = false;
+          this.resetearRecuperacion();
+        }, restante);
       },
       error: (err) => {
-        this.cargandoReset = false;
-        this.swal.error(err.error?.mensaje || 'Error al restablecer la contraseña');
+        const elapsed = Date.now() - inicio;
+        const restante = Math.max(0, MIN_CARGANDO - elapsed);
+        setTimeout(() => {
+          this.cargandoReset = false;
+          this.swal.error(err.error?.mensaje || 'Error al restablecer la contraseña');
+        }, restante);
       }
     });
   }
@@ -240,13 +273,13 @@ export class Login implements OnDestroy {
         return;
       }
       const p = (permiso: string, accion?: string) => this.auth.tienePermiso(permiso, accion);
-      if (p('personal:*') || p('roles:*') || p('permisologia:*') || p('especialidades:*')) this.router.navigate(['/administrador']);
-      else if (p('admision:*')) this.router.navigate(['/recepcion']);
-      else if (p('aps:*')) this.router.navigate(['/aps']);
-      else if (p('atencion_medica:*')) this.router.navigate(['/atencion']);
-      else if (p('laboratorio:*')) this.router.navigate(['/laboratorio']);
-      else if (p('imagenes:*')) this.router.navigate(['/imagenes']);
-      else if (p('aseguradoras:*')) this.router.navigate(['/aseguradoras']);
+      if (p('personal:ver') || p('roles:ver') || p('permisologia:ver') || p('especialidades:ver')) this.router.navigate(['/administrador']);
+      else if (p('admision:ver')) this.router.navigate(['/recepcion']);
+      else if (p('aps:ver')) this.router.navigate(['/aps']);
+      else if (p('atencion_medica:ver')) this.router.navigate(['/atencion']);
+      else if (p('laboratorio:ver')) this.router.navigate(['/laboratorio']);
+      else if (p('imagenes:ver')) this.router.navigate(['/imagenes']);
+      else if (p('aseguradoras:ver')) this.router.navigate(['/aseguradoras']);
       else {
         this.swal.error('Su usuario no tiene permisos asignados para acceder al sistema');
         this.router.navigate(['/login']);

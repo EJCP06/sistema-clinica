@@ -12,7 +12,8 @@ const findByCedulas = async (cedulas) => {
 
 const findByCedula = async (cedula) => {
   const result = await pool.query(`
-    SELECT u.id_usuario as id, u.cedula, u.password_hash, r.key as rol, u.id_rol, u.nombre, u.apellido,
+    SELECT u.id_usuario as id, u.cedula, u.password_hash, r.key as rol, u.id_rol,
+           u.primer_nombre AS nombre, u.primer_apellido AS apellido,
            u.id_servicio as servicio_id, u.id_consultorio as consultorio_id, u.id_sede,
            u.id_especialidad, e.nombre as especialidad_nombre,
            u.sesion_token,
@@ -58,21 +59,22 @@ const deleteByCedula = async (cedula) => {
 };
 
 const insertAdmin = async (hash, rolKey, nombre, apellido, cedula, idSede, status) => {
-  // Primero buscamos el id_rol por el key
   const rolRes = await pool.query('SELECT id_rol FROM "Roles" WHERE key = $1', [rolKey]);
   const idRol = rolRes.rows[0]?.id_rol;
   
   if (!idRol) throw new Error(`Rol no encontrado: ${rolKey}`);
 
   await pool.query(
-    'INSERT INTO "Usuarios" (password_hash, id_rol, nombre, apellido, cedula, id_sede, status) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+    'INSERT INTO "Usuarios" (password_hash, id_rol, primer_nombre, primer_apellido, cedula, id_sede, status) VALUES ($1, $2, $3, $4, $5, $6, $7)',
     [hash, idRol, nombre, apellido, cedula, idSede, status],
   );
 };
 
 const getPersonal = async (sede, rolKey) => {
   let query = `SELECT
-      u.id_usuario, u.cedula, r.key as rol, u.id_rol, u.nombre, u.apellido, u.telefono, u.email,
+      u.id_usuario, u.cedula, r.key as rol, u.id_rol,
+      u.primer_nombre AS nombre, u.primer_apellido AS apellido,
+      u.telefono, u.email,
       u.piso, u.id_consultorio, u.id_servicio, u.id_especialidad, u.id_sede, u.status,
       u.fecha_creacion, c.nombre AS consultorio_nombre, s.nombre_servicio AS servicio_nombre
     FROM "Usuarios" u
@@ -95,7 +97,7 @@ const getPersonal = async (sede, rolKey) => {
   if (condiciones.length > 0) {
     query += ` WHERE ${condiciones.join(' AND ')}`;
   }
-  query += ` ORDER BY u.nombre, u.apellido`;
+  query += ` ORDER BY u.primer_nombre, u.primer_apellido`;
   const result = await pool.query(query, params);
   return result.rows;
 };
@@ -111,10 +113,10 @@ const crearPersonal = async (data) => {
   if (!idRol) throw new Error('Se requiere un rol válido');
 
   const result = await pool.query(
-    `INSERT INTO "Usuarios" (cedula, nombre, apellido, telefono, email, password_hash, id_rol, piso, id_consultorio, id_servicio, id_especialidad, id_sede, status)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+    `INSERT INTO "Usuarios" (cedula, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, telefono, email, password_hash, id_rol, piso, id_consultorio, id_servicio, id_especialidad, id_sede, status)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
      RETURNING id_usuario`,
-    [data.cedula, data.nombre, data.apellido, data.telefono, data.email, data.password_hash, idRol, data.piso, data.id_consultorio, data.id_servicio, data.id_especialidad, data.sede, data.status],
+    [data.cedula, data.primer_nombre, data.segundo_nombre, data.primer_apellido, data.segundo_apellido, data.telefono, data.email, data.password_hash, idRol, data.piso, data.id_consultorio, data.id_servicio, data.id_especialidad, data.sede, data.status],
   );
   return result.rows[0];
 };

@@ -44,6 +44,12 @@ const getReporteDiario = async (req, res) => {
       hora_llegada: r.hora_llegada,
       hora_fin: r.hora_fin,
       servicio_nombre: r.servicio,
+      especialidad: r.especialidad,
+      consultorio: r.consultorio,
+      medico_nombre: r.medico_nombre,
+      medico_apellido: r.medico_apellido,
+      hora_inicio_atencion: r.hora_inicio_atencion,
+      hora_fin_atencion: r.hora_fin_atencion,
       id_sede: r.id_sede,
       paciente: {
         nombre: r.paciente_nombre,
@@ -53,20 +59,76 @@ const getReporteDiario = async (req, res) => {
       },
     }));
 
-    const atendidos = turnos.filter((t) => t.estado === 'Atendido').length;
-    const ausentes = turnos.filter((t) => t.estado === 'Ausente').length;
+    const atendidos = turnos.filter((t) => t.estado === 'Atendido');
+    const ausentes = turnos.filter((t) => t.estado === 'Ausente');
     const enEspera = turnos.filter(
       (t) => t.estado === 'Sala de Espera' || t.estado === 'Llamado',
-    ).length;
+    );
+    const enAtencion = turnos.filter((t) => t.estado === 'En Atencion');
+    const registrados = turnos.filter((t) => t.estado === 'Registrado');
+
+    // Calcular KPIs
+    const turnosConEspera = turnos.filter(t => t.hora_inicio_atencion && t.hora_llegada);
+    const tiempoPromedioEspera = turnosConEspera.length > 0
+      ? Math.round(turnosConEspera.reduce((sum, t) => {
+          const inicio = new Date(t.hora_inicio_atencion);
+          const llegada = new Date(t.hora_llegada);
+          return sum + (inicio - llegada) / 60000;
+        }, 0) / turnosConEspera.length)
+      : 0;
+
+    const turnosConAtencion = turnos.filter(t => t.hora_fin_atencion && t.hora_inicio_atencion);
+    const tiempoPromedioAtencion = turnosConAtencion.length > 0
+      ? Math.round(turnosConAtencion.reduce((sum, t) => {
+          const fin = new Date(t.hora_fin_atencion);
+          const inicio = new Date(t.hora_inicio_atencion);
+          return sum + (fin - inicio) / 60000;
+        }, 0) / turnosConAtencion.length)
+      : 0;
+
+    // Agrupado por servicio
+    const porServicio = {};
+    turnos.forEach(t => {
+      const key = t.servicio_nombre;
+      if (!porServicio[key]) {
+        porServicio[key] = { servicio: key, total: 0, atendidos: 0, ausentes: 0, en_espera: 0, en_atencion: 0, registrados: 0 };
+      }
+      porServicio[key].total++;
+      if (t.estado === 'Atendido') porServicio[key].atendidos++;
+      else if (t.estado === 'Ausente') porServicio[key].ausentes++;
+      else if (t.estado === 'Sala de Espera' || t.estado === 'Llamado') porServicio[key].en_espera++;
+      else if (t.estado === 'En Atencion') porServicio[key].en_atencion++;
+      else if (t.estado === 'Registrado') porServicio[key].registrados++;
+    });
+
+    // Lista de ausentes con detalles
+    const listaAusentes = ausentes.map(t => ({
+      numero: t.numero,
+      paciente_nombre: t.paciente.nombre,
+      paciente_apellido: t.paciente.apellido,
+      paciente_documento: t.paciente.documento,
+      servicio: t.servicio_nombre,
+      especialidad: t.especialidad,
+      hora_llegada: t.hora_llegada,
+    }));
 
     res.json({
       total: turnos.length,
       turnos,
       estadisticas: {
-        atendidos,
-        ausentes,
-        en_espera: enEspera,
+        atendidos: atendidos.length,
+        ausentes: ausentes.length,
+        en_espera: enEspera.length,
+        en_atencion: enAtencion.length,
+        registrados: registrados.length,
       },
+      kpis: {
+        tiempo_promedio_espera_min: tiempoPromedioEspera,
+        tiempo_promedio_atencion_min: tiempoPromedioAtencion,
+        ausentismo_porcentaje: turnos.length > 0 ? Math.round((ausentes.length / turnos.length) * 100) : 0,
+      },
+      por_servicio: Object.values(porServicio),
+      ausentes: listaAusentes,
     });
   } catch (error) {
     logger.error(error);
@@ -232,8 +294,10 @@ const crearPersonal = async (req, res) => {
   try {
     const {
       cedula,
-      nombre,
-      apellido,
+      primer_nombre,
+      segundo_nombre,
+      primer_apellido,
+      segundo_apellido,
       telefono,
       email,
       password,
@@ -247,7 +311,7 @@ const crearPersonal = async (req, res) => {
       id_sede,
     } = req.body;
 
-    if (!cedula || !nombre || !rol) {
+    if (!cedula || !primer_nombre || !rol) {
       return res.status(400).json({ mensaje: 'Cédula, nombre y rol son requeridos' });
     }
 
@@ -264,8 +328,10 @@ const crearPersonal = async (req, res) => {
 
     const result = await usuarioRepo.crearPersonal({
       cedula,
-      nombre,
-      apellido: apellido || '',
+      primer_nombre,
+      segundo_nombre: segundo_nombre || null,
+      primer_apellido: primer_apellido || '',
+      segundo_apellido: segundo_apellido || null,
       telefono: telefono || '',
       email: emailFinal,
       password_hash,
@@ -296,8 +362,10 @@ const actualizarPersonal = async (req, res) => {
     const { id } = req.params;
     const {
       cedula,
-      nombre,
-      apellido,
+      primer_nombre,
+      segundo_nombre,
+      primer_apellido,
+      segundo_apellido,
       telefono,
       email,
       password,
@@ -318,13 +386,21 @@ const actualizarPersonal = async (req, res) => {
       sets.push(`cedula = $${idx++}`);
       values.push(cedula);
     }
-    if (nombre !== undefined) {
-      sets.push(`nombre = $${idx++}`);
-      values.push(nombre);
+    if (primer_nombre !== undefined) {
+      sets.push(`primer_nombre = $${idx++}`);
+      values.push(primer_nombre);
     }
-    if (apellido !== undefined) {
-      sets.push(`apellido = $${idx++}`);
-      values.push(apellido);
+    if (segundo_nombre !== undefined) {
+      sets.push(`segundo_nombre = $${idx++}`);
+      values.push(segundo_nombre);
+    }
+    if (primer_apellido !== undefined) {
+      sets.push(`primer_apellido = $${idx++}`);
+      values.push(primer_apellido);
+    }
+    if (segundo_apellido !== undefined) {
+      sets.push(`segundo_apellido = $${idx++}`);
+      values.push(segundo_apellido);
     }
     if (telefono !== undefined) {
       sets.push(`telefono = $${idx++}`);
@@ -444,11 +520,15 @@ const importarPersonal = async (req, res) => {
       const email = (row.email || row.Email || row.EMAIL || row.correo || row.Correo || '').toString().toLowerCase().trim() || null;
       const piso = row.piso || row.Piso || row.PISO || null;
       
-      // Detectar rol de la fila o usar el global
+      const [primerNombre, ...restoNombre] = nombre.split(' ');
+      const [primerApellido, ...restoApellido] = apellido.split(' ');
+      const segundoNombre = restoNombre.join(' ') || null;
+      const segundoApellido = restoApellido.join(' ') || null;
+
       const rolFila = row.rol || row.Rol || row.ROL || row.puesto || row.Puesto || row.cargo || row.Cargo || null;
       const rolFinal = normalizarRol(rolFila) || normalizarRol(rolGlobal) || 'medico';
 
-      if (!cedula || !nombre) {
+      if (!cedula || !primerNombre) {
         errores++;
         continue;
       }
@@ -466,8 +546,10 @@ const importarPersonal = async (req, res) => {
 
       await usuarioRepo.crearPersonal({
         cedula,
-        nombre,
-        apellido: apellido || '',
+        primer_nombre: primerNombre,
+        segundo_nombre: segundoNombre,
+        primer_apellido: primerApellido || '',
+        segundo_apellido: segundoApellido,
         telefono: telefono || '',
         email: email || null,
         password_hash,
@@ -531,6 +613,11 @@ const crearRol = async (req, res) => {
       .replace(/[^a-z0-9]/g, "_")
       .replace(/_+/g, "_")
       .replace(/^_+|_+$/g, "");
+
+    // Verificar si ya existe un rol con esta clave PARA ESTA SEDE
+    if (await rolRepo.existsKeyForSede(key, id_sede || null)) {
+      return res.status(409).json({ mensaje: 'Ya existe un rol con esta clave para esta sede' });
+    }
 
     await rolRepo.create(nombreLimpio, key, id_sede, activo);
     res.status(201).json({ mensaje: 'Rol creado' });

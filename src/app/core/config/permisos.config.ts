@@ -36,70 +36,70 @@ export const VISTA_POR_PERMISO: Record<string, VistaConfig> = {
     seccion: 'panel',
     orden: 2,
   },
-  'admision:*': {
+  'admision:ver': {
     ruta: '/recepcion',
     label: 'Admisión de Pacientes',
     icon: Users,
     seccion: 'operaciones',
     orden: 1,
   },
-  'aps:*': {
+  'aps:ver': {
     ruta: '/aps',
     label: 'Atención APS',
     icon: ClipboardList,
     seccion: 'operaciones',
     orden: 2,
   },
-  'laboratorio:*': {
+  'laboratorio:ver': {
     ruta: '/laboratorio',
     label: 'Atención Laboratorio',
     icon: FlaskConical,
     seccion: 'operaciones',
     orden: 3,
   },
-  'imagenes:*': {
+  'imagenes:ver': {
     ruta: '/imagenes',
     label: 'Atención Imágenes',
     icon: Image,
     seccion: 'operaciones',
     orden: 4,
   },
-  'atencion_medica:*': {
+  'atencion_medica:ver': {
     ruta: '/atencion',
     label: 'Atención Médica',
     icon: Stethoscope,
     seccion: 'operaciones',
     orden: 5,
   },
-  'aseguradoras:*': {
+  'aseguradoras:ver': {
     ruta: '/aseguradoras',
     label: 'Aseguradoras',
     icon: ShieldCheck,
     seccion: 'operaciones',
     orden: 6,
   },
-  'especialidades:*': {
+  'especialidades:ver': {
     ruta: '/administrador?tab=especialidades',
     label: 'Especialidades',
     icon: LayoutGrid,
     seccion: 'operaciones',
     orden: 7,
   },
-  'personal:*': {
+  'personal:ver': {
     ruta: '/administrador?tab=personal',
     label: 'Personal',
     icon: Users,
     seccion: 'admin',
     orden: 1,
   },
-  'roles:*': {
+  'roles:ver': {
     ruta: '/administrador?tab=roles',
     label: 'Roles',
     icon: ShieldCheck,
     seccion: 'admin',
     orden: 2,
   },
-  'permisologia:*': {
+  'permisologia:ver': {
     ruta: '/administrador?tab=permisologia',
     label: 'Permisología',
     icon: Key,
@@ -110,8 +110,8 @@ export const VISTA_POR_PERMISO: Record<string, VistaConfig> = {
 
 export const PERMISOS_POR_MODULO = {
   panel: ['admin_panel', 'ver_reportes'],
-  operaciones: ['admision:*', 'aps:*', 'laboratorio:*', 'imagenes:*', 'atencion_medica:*', 'aseguradoras:*', 'especialidades:*'],
-  admin: ['personal:*', 'roles:*', 'permisologia:*'],
+  operaciones: ['admision:ver', 'aps:ver', 'laboratorio:ver', 'imagenes:ver', 'atencion_medica:ver', 'aseguradoras:ver', 'especialidades:ver'],
+  admin: ['personal:ver', 'roles:ver', 'permisologia:ver'],
 };
 
 export const MODULO_LABELS: Record<string, string> = {

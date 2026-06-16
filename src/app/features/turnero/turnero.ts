@@ -535,6 +535,12 @@ export class TurneroComponent implements OnInit, OnDestroy {
     }
   }
 
+  private detenerRepeticion() {
+    this.repeatSubscription?.unsubscribe();
+    this.repeatSubscription = null;
+    this.pacienteParaRepetir = null;
+  }
+
   private reproducirAudio(nombre: string, apellido: string, consultorio: string) {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();

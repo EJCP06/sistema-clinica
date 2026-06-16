@@ -111,13 +111,25 @@ const crearPaciente = async (req, res) => {
   if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
 
   try {
-    const { cedula, nombre, apellido, telefono, status } = req.body;
+    const { cedula, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, telefono, status } = req.body;
+    const pn = (primer_nombre || '').toString().toUpperCase().trim();
+    const pa = (primer_apellido || '').toString().toUpperCase().trim();
 
-    if (!cedula || !nombre || !apellido) {
-      return res.status(400).json({ mensaje: 'Cédula, nombre y apellido son requeridos' });
+    if (!cedula || !pn || !pa) {
+      return res.status(400).json({ mensaje: 'Cédula, primer nombre y primer apellido son requeridos' });
     }
 
-    const paciente = await pacienteRepo.crearPaciente({ cedula, nombre, apellido, telefono, status, sede });
+    const paciente = await pacienteRepo.crearPaciente({
+      cedula,
+      primer_nombre: pn,
+      segundo_nombre: (segundo_nombre || '').toString().toUpperCase().trim() || null,
+      primer_apellido: pa,
+      segundo_apellido: (segundo_apellido || '').toString().toUpperCase().trim() || null,
+      fecha_nacimiento: fecha_nacimiento || null,
+      telefono,
+      status,
+      sede,
+    });
     res.status(201).json(paciente);
   } catch (error) {
     logger.error(error);
@@ -135,9 +147,17 @@ const actualizarPaciente = async (req, res) => {
 
   try {
     const { id } = req.params;
-    const { cedula, nombre, apellido, telefono } = req.body;
+    const { cedula, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, telefono } = req.body;
 
-    const paciente = await pacienteRepo.actualizarPaciente(id, sede, { cedula, nombre, apellido, telefono });
+    const paciente = await pacienteRepo.actualizarPaciente(id, sede, {
+      cedula,
+      primer_nombre: (primer_nombre || '').toString().toUpperCase().trim() || null,
+      segundo_nombre: (segundo_nombre || '').toString().toUpperCase().trim() || null,
+      primer_apellido: (primer_apellido || '').toString().toUpperCase().trim() || null,
+      segundo_apellido: (segundo_apellido || '').toString().toUpperCase().trim() || null,
+      fecha_nacimiento: fecha_nacimiento || null,
+      telefono,
+    });
 
     if (!paciente) {
       return res.status(404).json({ mensaje: 'Paciente no encontrado' });
