@@ -119,7 +119,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       id: 1,
       titulo: 'LABORATORIO / IMÁGENES (PARTICULARES Y ASEGURADORAS)',
       filtro: {
-        estados: [1, 2, 8],
+        estados: [1, 2, 7, 8],
         servicios: [2, 3],
         responsable: [1, 2],
       }
@@ -128,7 +128,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       id: 2,
       titulo: 'CONSULTA (PARTICULARES Y ASEGURADORAS)',
       filtro: {
-        estados: [1, 2, 8],
+        estados: [1, 2, 7, 8],
         servicios: [1],
         responsable: [1, 2],
       }
@@ -275,7 +275,8 @@ export class TurneroComponent implements OnInit, OnDestroy {
           apellido: llamado.apellido || '',
           consultorio: llamado.consultorio
         };
-        this.reproducirAudio(llamado.paciente, llamado.apellido || '', llamado.consultorio);
+        // Pasar el estado para que 'reproducirAudio' pueda filtrar
+        this.reproducirAudio(llamado.paciente, llamado.apellido || '', llamado.consultorio, llamado.estado);
         this.iniciarTemporizadorRepeticion();
       }
       this.cargarDatosSala();
@@ -522,12 +523,16 @@ export class TurneroComponent implements OnInit, OnDestroy {
     if (!('speechSynthesis' in window)) return;
     const buscarVoz = () => {
       const voces = window.speechSynthesis.getVoices();
-      this.vozFemenina = voces.find(v => v.lang.startsWith('es-MX') && /sabina|helena|laura|paulina|juana|maria/i.test(v.name))
-        || voces.find(v => v.lang.startsWith('es') && /sabina|helena|laura|paulina|juana|maria/i.test(v.name))
-        || voces.find(v => v.lang.startsWith('es-MX'))
-        || voces.find(v => v.lang.startsWith('es') && /female|femenina|mujer/i.test(v.name))
-        || voces.find(v => v.lang.startsWith('es'))
-        || null;
+      
+      // Prioridad 1: Microsoft Sabina (es-MX)
+      // Prioridad 2: Cualquier otra voz de Español México (es-MX) + Femenino
+      // Prioridad 3: Español México (es-MX)
+      this.vozFemenina = voces.find(v => v.name.includes('Microsoft Sabina'))
+                         || voces.find(v => v.lang.startsWith('es-MX') && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('femenina') || v.name.toLowerCase().includes('mujer')))
+                         || voces.find(v => v.lang.startsWith('es-MX'))
+                         || voces.find(v => v.lang.startsWith('es') && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('femenina') || v.name.toLowerCase().includes('mujer')))
+                         || voces.find(v => v.lang.startsWith('es'))
+                         || null;
     };
     buscarVoz();
     if (!this.vozFemenina) {
@@ -536,14 +541,36 @@ export class TurneroComponent implements OnInit, OnDestroy {
   }
 
   private detenerRepeticion() {
+    console.log('Turnero: Deteniendo repetición y audio...');
     this.repeatSubscription?.unsubscribe();
     this.repeatSubscription = null;
     this.pacienteParaRepetir = null;
+    
+    // Acción más agresiva para detener el audio
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      // En algunos navegadores es necesario pausar y luego cancelar para limpiar la cola
+      window.speechSynthesis.pause();
+      window.speechSynthesis.resume();
+      window.speechSynthesis.cancel();
+    }
   }
 
-  private reproducirAudio(nombre: string, apellido: string, consultorio: string) {
+  private reproducirAudio(nombre: string, apellido: string, consultorio: string, estado?: string) {
+    // Depuración
+    console.log(`Turnero: Intentando reproducir audio para ${nombre}, estado: ${estado}`);
+    
+    // Solo reproducir si el estado es explícitamente 'LLAMADO'
+    if (estado && estado.toUpperCase() !== 'LLAMADO') {
+      console.log('Turnero: Audio bloqueado por estado no válido.');
+      return;
+    }
+
     if (!('speechSynthesis' in window)) return;
+    
+    // Limpieza previa antes de nueva reproducción
     window.speechSynthesis.cancel();
+    
     const nombreCompleto = `${nombre} ${apellido}`.trim();
     let texto: string;
     const c = consultorio.toLowerCase();

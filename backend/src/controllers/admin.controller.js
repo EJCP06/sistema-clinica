@@ -315,15 +315,14 @@ const crearPersonal = async (req, res) => {
       return res.status(400).json({ mensaje: 'Cédula, nombre y rol son requeridos' });
     }
 
-    const existe = await usuarioRepo.findByCedulaSimple(cedula);
+    const sedeFinal = id_sede ? Number(id_sede) : sedeToken;
+
+    const existe = await usuarioRepo.findByCedulaSede(cedula, sedeFinal);
     if (existe) {
-      return res.status(409).json({ mensaje: 'Ya existe un usuario con esa cédula' });
+      return res.status(409).json({ mensaje: 'Ya existe un usuario con esa cédula en esta sede' });
     }
 
     const password_hash = password
-      ? await bcrypt.hash(password, 10)
-      : await bcrypt.hash(crypto.randomBytes(6).toString('hex'), 10);
-    const sedeFinal = id_sede ? Number(id_sede) : sedeToken;
     const emailFinal = email ? email.toLowerCase().trim() : null;
 
     const result = await usuarioRepo.crearPersonal({
@@ -582,8 +581,10 @@ const importarPersonal = async (req, res) => {
 
 const getRoles = async (req, res) => {
   try {
-    const sede = req.usuario?.id_sede;
-    const rows = await rolRepo.getAll(sede);
+    const sede = req.query.sede_id ? Number(req.query.sede_id) : req.usuario?.id_sede;
+    const rows = sede
+      ? await rolRepo.getAll(sede)
+      : await rolRepo.getAll();
     res.json(rows);
   } catch (error) {
     logger.error(error);
@@ -735,6 +736,10 @@ module.exports = {
       const { id } = req.params;
       const { permisos } = req.body;
       await permisoRepo.asignarPermisos(id, permisos || []);
+      
+      // Emitir evento de socket para avisar a los clientes
+      req.io.emit('permisos-actualizados', { id_rol: Number(id) });
+      
       res.json({ mensaje: 'Matriz de permisos actualizada correctamente' });
     } catch (error) {
       logger.error(error);
@@ -785,9 +790,10 @@ module.exports = {
 
   seedPermisosAdmin: async (req, res) => {
     try {
-      const rolRes = await pool.query('SELECT id_rol FROM "Roles" WHERE key = $1', ['administrador']);
+      const sede = req.usuario?.id_sede || 1;
+      const rolRes = await pool.query('SELECT id_rol FROM "Roles" WHERE key = $1 AND id_sede = $2', ['administrador', sede]);
       if (rolRes.rows.length === 0) {
-        return res.status(404).json({ mensaje: 'No se encontró el rol administrador' });
+        return res.status(404).json({ mensaje: 'No se encontró el rol administrador para esta sede' });
       }
       const idRol = rolRes.rows[0].id_rol;
       const recursos = ['admision', 'aps', 'laboratorio', 'imagenes', 'atencion_medica', 'aseguradoras', 'personal', 'roles', 'especialidades', 'permisologia'];

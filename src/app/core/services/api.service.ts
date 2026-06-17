@@ -48,6 +48,9 @@ export class ApiService {
     this.socket.on('nuevo-llamado', (data: unknown) => {
       this.cambios$.next(data as { tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; id_sede?: number });
     });
+    this.socket.on('permisos-actualizados', (data: unknown) => {
+      this.cambios$.next({ tipo: 'permisos', ...(data as Record<string, any>) } as { tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; id_sede?: number });
+    });
     this.socket.on('connect_error', () => {
       setTimeout(() => { if (!this.socket.connected) this.socket.connect(); }, 3000);
     });

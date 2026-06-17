@@ -1,9 +1,10 @@
-import { Component, inject, OnInit, OnDestroy, ViewChild, ElementRef, DestroyRef } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '@core/services/api.service';
-import { ReporteDiarioDTO } from '@core/models/dto.models';
+import { AuthService } from '@core/services/auth.service';
+import { ReporteDiarioDTO, SedeDTO } from '@core/models/dto.models';
 import {
   LucideAngularModule,
   LayoutDashboard,
@@ -27,6 +28,7 @@ import {
   Layers,
 } from 'lucide-angular';
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { PaginationComponent } from '../../shared/components/pagination/pagination';
 import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
 import { FillersPipe } from '../../shared/pipes/fillers.pipe';
@@ -60,21 +62,29 @@ export class AdminReports implements OnInit, OnDestroy {
   readonly Layers = Layers;
 
   private apiService = inject(ApiService);
+  private authService = inject(AuthService);
   private destroyRef = inject(DestroyRef);
 
   pageSize = 6;
   currentPage = 1;
 
   turnos: ReporteDiarioDTO['turnos'] = [];
+  sedes: SedeDTO[] = [];
   totalHoy = 0;
   totalAtendidos = 0;
   totalAusentes = 0;
   totalEnEspera = 0;
+  totalEnAtencion = 0;
+  totalRegistrados = 0;
   tiempoPromedioEspera = 0;
   tiempoPromedioAtencion = 0;
+  ausentismoPorcentaje = 0;
+  porServicio: ReporteDiarioDTO['por_servicio'] = [];
+  ausentesList: ReporteDiarioDTO['ausentes'] = [];
 
   ngOnInit() {
     this.cargarReporte();
+    this.apiService.getSedes().subscribe(sedes => this.sedes = sedes);
     this.apiService.cambios$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.cargarReporte();
     });
@@ -91,6 +101,13 @@ export class AdminReports implements OnInit, OnDestroy {
         this.totalAtendidos = rep.estadisticas?.atendidos ?? 0;
         this.totalAusentes = rep.estadisticas?.ausentes ?? 0;
         this.totalEnEspera = rep.estadisticas?.en_espera ?? 0;
+        this.totalEnAtencion = rep.estadisticas?.en_atencion ?? 0;
+        this.totalRegistrados = rep.estadisticas?.registrados ?? 0;
+        this.tiempoPromedioEspera = rep.kpis?.tiempo_promedio_espera_min ?? 0;
+        this.tiempoPromedioAtencion = rep.kpis?.tiempo_promedio_atencion_min ?? 0;
+        this.ausentismoPorcentaje = rep.kpis?.ausentismo_porcentaje ?? 0;
+        this.porServicio = rep.por_servicio ?? [];
+        this.ausentesList = rep.ausentes ?? [];
       },
       error: (err) => {
         console.error('Error al cargar reporte:', err);
@@ -102,28 +119,134 @@ export class AdminReports implements OnInit, OnDestroy {
 
 
   exportarPDF() {
-    const doc = new jsPDF();
-    const fecha = new Date().toLocaleDateString('es-AR');
-    doc.setFillColor(37, 99, 235);
-    doc.rect(0, 0, 210, 28, 'F');
-    doc.setTextColor(255, 255, 255);
+    const doc = new jsPDF('portrait');
+    const ahora = new Date();
+    const fecha = ahora.toLocaleDateString('es-AR', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+    const hora = ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 14;
+    const tableWidth = pageWidth - margin * 2;
+
+    // --- HEADER (sin fondo azul) ---
+    try {
+      doc.addImage('logo-cnc.png', 'PNG', margin, 8, 32, 24);
+    } catch (_) {}
+    doc.setTextColor(30, 30, 30);
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('CLÍNICA CENTRAL - Reporte Diario', 14, 12);
-    doc.setFontSize(10);
+    doc.text('CLINICA NUEVA CARACAS', pageWidth / 2, 18, { align: 'center' });
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Fecha: ${fecha}`, 14, 22);
-    doc.setTextColor(30, 30, 30);
-    doc.setFontSize(12);
+    const usuario = this.authService.usuarioActual;
+    const nombreUsuario = usuario
+      ? `${usuario.nombre} ${usuario.apellido || ''}`.trim()
+      : 'Desconocido';
+    const sede = this.sedes.find(s => s.id_sede === usuario?.id_sede);
+    const nombreSede = sede ? sede.nombre : 'Sin Sede';
+    doc.text(`Generado: ${fecha} a las ${hora}  |  Por: ${nombreUsuario}  |  Sede: ${nombreSede}`, pageWidth / 2, 26, { align: 'center' });
+
+    // --- SORT TURNOS: extract numeric part from numero and sort ascending ---
+    const sortedTurnos = [...(this.turnos ?? [])].sort((a, b) => {
+      const numA = parseInt((a.numero || String(a.id)).replace(/[^0-9]/g, ''), 10) || 0;
+      const numB = parseInt((b.numero || String(b.id)).replace(/[^0-9]/g, ''), 10) || 0;
+      return numA - numB;
+    });
+
+    // --- TABLA DE TURNOS ---
+    const fmtTime = (val: string | null | undefined) =>
+      val ? new Date(val).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: true }) : '';
+    const fmtSalida = (val: string | null | undefined) =>
+      val ? new Date(val).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'Sin atender';
+
+    const sharedStyles = {
+      theme: 'grid' as const,
+      headStyles: { fillColor: [37, 99, 235] as [number, number, number], textColor: 255 as const, fontStyle: 'bold' as const, fontSize: 8 as const, halign: 'center' as const },
+      bodyStyles: { fontSize: 8 as const, halign: 'center' as const },
+      margin: { left: margin, right: margin } as const,
+    };
+
+    let startY = 42;
+    doc.setFontSize(13);
     doc.setFont('helvetica', 'bold');
-    doc.text('Resumen de la Jornada', 14, 38);
-    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(30, 30, 30);
+    doc.text('Reporte de Operaciones', pageWidth / 2, startY, { align: 'center' });
+    startY += 8;
     doc.setFontSize(10);
-    doc.text(`Pacientes atendidos: ${this.totalAtendidos}`, 14, 48);
-    doc.text(`Pacientes ausentes: ${this.totalAusentes}`, 14, 55);
-    doc.text(`Tiempo promedio de espera: ${this.tiempoPromedioEspera} min`, 14, 62);
-    doc.text(`Duración promedio de consulta: ${this.tiempoPromedioAtencion} min`, 14, 69);
-    doc.save(`reporte-clinica-${fecha.replace(/\//g, '-')}.pdf`);
+    doc.text('Actividad del Día', margin, startY);
+    startY += 5;
+
+    const turnosData = sortedTurnos.map(t => [
+      t.numero || String(t.id),
+      `${t.paciente?.nombre || ''} ${t.paciente?.apellido || ''}`.trim(),
+      t.paciente?.documento || '',
+      t.estado || '',
+      t.servicio_nombre || '',
+      fmtTime(t.hora_llegada),
+      fmtSalida(t.hora_fin_atencion),
+    ]);
+
+    if (turnosData.length > 0) {
+      autoTable(doc, {
+        ...sharedStyles,
+        startY,
+        head: [['Turno', 'Paciente', 'Cédula', 'Estado', 'Servicio', 'Hora de Llegada', 'Hora de Salida']],
+        body: turnosData,
+        columnStyles: {
+          0: { cellWidth: tableWidth * 0.10 },
+          1: { cellWidth: tableWidth * 0.22 },
+          2: { cellWidth: tableWidth * 0.12 },
+          3: { cellWidth: tableWidth * 0.10 },
+          4: { cellWidth: tableWidth * 0.13 },
+          5: { cellWidth: tableWidth * 0.165 },
+          6: { cellWidth: tableWidth * 0.165 },
+        },
+      });
+    } else {
+      doc.setFontSize(9);
+      doc.setTextColor(150, 150, 150);
+      doc.setFont('helvetica', 'italic');
+      doc.text('No se han registrado atenciones hoy.', margin, startY + 10);
+    }
+
+    // --- DESGLOSE POR SERVICIO ---
+    const lastTableHeight = (doc as any).lastAutoTable?.finalY || startY + 10;
+    let currentY = lastTableHeight + 12;
+
+    if (this.porServicio.length > 0) {
+      if (currentY > 250) {
+        doc.addPage();
+        currentY = 20;
+      }
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 30, 30);
+      doc.text('Desglose por Servicio', margin, currentY);
+      currentY += 5;
+
+      const servData = this.porServicio.map(s => [
+        s.servicio,
+        String(s.total),
+        String(s.atendidos),
+        String(s.ausentes),
+      ]);
+
+      autoTable(doc, {
+        ...sharedStyles,
+        startY: currentY,
+        head: [['Servicio', 'Total', 'Atendidos', 'Ausentes']],
+        body: servData,
+        columnStyles: {
+          0: { cellWidth: tableWidth * 0.40 },
+          1: { cellWidth: tableWidth * 0.20 },
+          2: { cellWidth: tableWidth * 0.20 },
+          3: { cellWidth: tableWidth * 0.20 },
+        },
+      });
+    }
+
+    doc.save(`reporte-diario-${new Date().toLocaleDateString('es-AR').replace(/\//g, '-')}.pdf`);
   }
 
   trackById = (index: number, item: any) => item?.id ?? item?.id_atencion ?? item?.id_consultorio ?? item?.id_especialidad ?? item?.id_sede ?? index;

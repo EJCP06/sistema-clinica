@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy, HostListener, ElementRef, inject, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { finalize } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronDown, Undo2, KeyRound, DollarSign, Trash2 } from 'lucide-angular';
@@ -61,6 +62,7 @@ export class ApsComponent implements OnInit, OnDestroy {
 
   trackById = (index: number, item: AdmisionDTO) => item?.id_atencion ?? index;
 
+  private marcandoAusente = false;
   private el = inject(ElementRef);
   private destroyRef = inject(DestroyRef);
   private swal = inject(SwalService);
@@ -81,6 +83,7 @@ export class ApsComponent implements OnInit, OnDestroy {
     this.cargarUltimasAdmisiones();
 
     this.api.cambios$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      if (this.marcandoAusente) return;
       this.cargarUltimasAdmisiones();
     });
   }
@@ -114,7 +117,7 @@ export class ApsComponent implements OnInit, OnDestroy {
       next: (data) => {
         const items = data || [];
         this.ultimasAdmisiones = items.filter(a => {
-          if (a.id_estado_actual === 5 || a.id_estado_actual === 6) return false;
+          if ([6].includes(Number(a.id_estado_actual))) return false;
           
           const servicioLower = (a.nombre_servicio || '').toLowerCase();
           const esLaboratorio = servicioLower.includes('laboratorio');
@@ -209,21 +212,20 @@ export class ApsComponent implements OnInit, OnDestroy {
     const result = await this.swal.confirm('¿Deseas marcar este paciente como ausente?', '¿Estás seguro?');
     if (!result.isConfirmed) return;
 
-    if (admision.id_estado_actual === 7) {
-      this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== admision.id_atencion);
-      this.swal.success('Paciente eliminado de la tabla');
-      return;
-    }
+    this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== admision.id_atencion);
+    this.marcandoAusente = true;
 
-    this.api.put(`recepcion/atencion/${admision.id_atencion}/marcar_ausente`, {}).subscribe({
-      next: () => {
-        this.cargarUltimasAdmisiones();
-        this.swal.success('Paciente marcado como ausente correctamente');
-      },
-      error: () => {
-        this.swal.error('Error al marcar como ausente');
-      },
-    });
+    if (admision.id_estado_actual !== 7) {
+      this.api.put(`recepcion/atencion/${admision.id_atencion}/marcar_ausente`, {}).pipe(
+        finalize(() => this.marcandoAusente = false)
+      ).subscribe({
+        error: () => {
+          this.swal.error('Error al marcar como ausente en la base de datos');
+        },
+      });
+    } else {
+      this.marcandoAusente = false;
+    }
   }
 
   esAseguradora(dto: { modalidad_pago?: string }): boolean {

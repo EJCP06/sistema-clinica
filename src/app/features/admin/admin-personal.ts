@@ -5,7 +5,6 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '@core/services/api.service';
 import { AuthService } from '@core/services/auth.service';
 import { SwalService } from '../../core/services/swal.service';
-import { OcrService } from '../../core/services/ocr.service';
 import { ServicioDTO, EspecialidadDTO, ConsultorioDTO, PersonalDTO, SedeDTO, RolDTO } from '@core/models/dto.models';
 import {
   LucideAngularModule,
@@ -91,11 +90,7 @@ export class AdminPersonal implements OnInit {
   private el = inject(ElementRef);
   private destroyRef = inject(DestroyRef);
   private swal = inject(SwalService);
-  private ocr = inject(OcrService);
   private cdr = inject(ChangeDetectorRef);
-
-  procesandoFoto = false;
-  ocrProgreso = 0;
 
   pageSize = 6;
   currentPage = 1;
@@ -164,7 +159,6 @@ export class AdminPersonal implements OnInit {
   };
 
   ngOnInit() {
-    this.destroyRef.onDestroy(() => this.ocr.dispose());
     this.cargarSedes();
     this.cargarServicios();
     this.cargarEspecialidades();
@@ -208,7 +202,6 @@ export class AdminPersonal implements OnInit {
 
   // --- Modal Logic ---
   openModalPersonal(user?: PersonalDTO | null, trigger?: EventTarget | null) {
-    this.ocr.initWorker();
     this.showPassword = false;
     this.isEditing = !!user;
     this.editingId = user?.id || user?.id_usuario || null;
@@ -266,6 +259,8 @@ export class AdminPersonal implements OnInit {
   cerrarModalPersonal() {
     this.showModalPersonal = false;
     this.modalTrigger = null;
+    this.isEditing = false;
+    this.showPassword = false;
   }
 
   private finalizarGuardado(accion?: () => void) {
@@ -275,57 +270,6 @@ export class AdminPersonal implements OnInit {
       if (accion) accion();
       this.isSaving = false;
     }, restante);
-  }
-
-  // --- Scanner Camera ---
-  cancelarOcr() {
-    this.ocr.cancel();
-    this.procesandoFoto = false;
-    this.ocrProgreso = 0;
-  }
-
-  async procesarFoto(input: HTMLInputElement) {
-    if (!input.files?.length) return;
-    const file = input.files[0];
-    this.procesandoFoto = true;
-    this.ocrProgreso = 0;
-    input.value = '';
-
-    const timer = setInterval(() => {
-      this.ocrProgreso = this.ocr.progress;
-      this.cdr.detectChanges();
-    }, 200);
-
-    const limpiar = () => {
-      clearInterval(timer);
-      this.procesandoFoto = false;
-      this.ocrProgreso = 0;
-    };
-
-    this.ocr.recognize(file).subscribe({
-      next: (data) => {
-        limpiar();
-        if (!data.cedula && !data.primer_nombre) {
-          this.swal.error(
-            'No se pudieron extraer los datos.\n\n' +
-            'Texto leído:\n' + (data.raw?.slice(0, 500) || '') + '\n\n' +
-            'Ingresa los datos manualmente.'
-          );
-          return;
-        }
-        this.formPersonal.primer_nombre = data.primer_nombre.toUpperCase();
-        this.formPersonal.segundo_nombre = data.segundo_nombre.toUpperCase();
-        this.formPersonal.primer_apellido = data.primer_apellido.toUpperCase();
-        this.formPersonal.segundo_apellido = data.segundo_apellido.toUpperCase();
-        this.formPersonal.cedula = data.cedula;
-      },
-      error: (err) => {
-        limpiar();
-        if (err?.message === 'Cancelado por el usuario') return;
-        console.error('OCR error:', err);
-        this.swal.error('No se pudieron leer los datos. Asegúrate de que la imagen sea clara y vuelve a intentar.');
-      },
-    });
   }
 
   // --- CRUD PERSONAL ---
@@ -549,6 +493,12 @@ export class AdminPersonal implements OnInit {
   toTitleCase(str: string): string {
     if (!str) return '';
     return str.toLowerCase().split(' ').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  }
+
+  get rolesPorSede(): RolDTO[] {
+    const sedeId = this.formPersonal.id_sede ? Number(this.formPersonal.id_sede) : null;
+    if (!sedeId) return this.rolesLista;
+    return this.rolesLista.filter(r => r.id_sede === sedeId);
   }
 
   getRolLabel(rol: string): string {

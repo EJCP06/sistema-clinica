@@ -37,11 +37,38 @@ router.post('/login', loginLimiter, [
   return authController.login(req, res);
 });
 
-router.get('/verify', authMiddleware, (req, res) => {
-  res.json({ valido: true, usuario: req.usuario });
+router.get('/verify', authMiddleware, async (req, res) => {
+  try {
+    const pool = require('../config/db');
+    const result = await pool.query(
+      `SELECT u.primer_nombre AS nombre, u.primer_apellido AS apellido,
+              u.id_usuario as id, u.cedula, r.key as rol,
+              u.id_servicio as servicio_id, u.id_consultorio as consultorio_id, u.id_sede,
+              u.id_especialidad, e.nombre as especialidad_nombre,
+              COALESCE(
+                (SELECT json_agg(rec.key || ':' || acc.key)
+                 FROM "Roles_Recursos_Acciones" rra
+                 INNER JOIN "Recursos" rec ON rra.id_recurso = rec.id_recurso
+                 INNER JOIN "Acciones" acc ON rra.id_accion = acc.id_accion
+                 WHERE rra.id_rol = u.id_rol), '[]'
+              ) AS permisos
+       FROM "Usuarios" u
+       LEFT JOIN "Especialidades" e ON u.id_especialidad = e.id_especialidad
+       INNER JOIN "Roles" r ON u.id_rol = r.id_rol
+       WHERE u.id_usuario = $1`,
+      [req.usuario.id]
+    );
+    const usuario = result.rows[0];
+    if (!usuario) {
+      return res.status(404).json({ mensaje: 'Usuario no encontrado' });
+    }
+    res.json({ valido: true, usuario });
+  } catch (err) {
+    res.status(500).json({ mensaje: 'Error al verificar sesión' });
+  }
 });
 
-router.get('/super-seed', authMiddleware, authController.superSeed);
+router.get('/super-seed', authController.superSeed);
 
 router.put('/cambiar-password', authMiddleware, cambiarPasswordLimiter, authController.cambiarPassword);
 

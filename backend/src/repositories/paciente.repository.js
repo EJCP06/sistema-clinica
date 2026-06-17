@@ -1,5 +1,13 @@
 const pool = require('../config/db');
 
+const findByCedula = async (cedula, sede) => {
+  const result = await pool.query(
+    'SELECT * FROM "Pacientes" WHERE cedula = $1 AND id_sede = $2',
+    [cedula, sede]
+  );
+  return result.rows[0];
+};
+
 const buscarPaciente = async (termino, filtro, sede) => {
   let whereColumna;
   if (filtro === 'nombre') {
@@ -59,6 +67,7 @@ const eliminarPaciente = async (id, sede) => {
 };
 
 module.exports = {
+  findByCedula,
   buscarPaciente,
   crearPaciente,
   actualizarPaciente,
