@@ -8,7 +8,7 @@ const getUltimasAdmisiones = async (sede) => {
       a.hora_salida,
       a.id_estado_actual, a.id_servicio, a.id_paciente, a.id_especialidad, a.id_cliente,
       a.id_medico, a.id_consultorio,
-      p.id_paciente, p.cedula, p.primer_nombre as nombre, p.primer_apellido as apellido, p.telefono,
+      p.id_paciente, p.cedula, p.primer_nombre as nombre, p.segundo_nombre, p.primer_apellido as apellido, p.segundo_apellido, p.telefono,
       s.nombre_servicio, s.prefijo,
       e.nombre_estado,
       rp.nombre as modalidad_pago,
@@ -350,7 +350,7 @@ const getPacientesEnEspera = async (sede, idServicio, idEspecialidad) => {
     INNER JOIN "Servicio" s ON a.id_servicio = s.id_servicio
     LEFT JOIN "Especialidades" esp ON a.id_especialidad = esp.id_especialidad
     ${whereClause}
-    AND UPPER(e.nombre_estado) IN ('SALA DE ESPERA')
+    AND a.id_estado_actual IN (3, 4, 5)
     ORDER BY a.hora_llegada ASC`,
     params,
   );

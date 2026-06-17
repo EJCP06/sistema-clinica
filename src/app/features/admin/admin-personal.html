@@ -155,24 +155,6 @@
           <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Cédula <span class="text-rose-500">*</span></label>
           <div class="flex gap-2">
             <input [(ngModel)]="formPersonal.cedula" (keypress)="soloNumeros($event)" placeholder="Ej: 13894759" class="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
-            <input #fotoPersonal type="file" accept="image/*" capture="environment"
-              (change)="procesarFoto(fotoPersonal)" class="hidden" />
-            <button type="button" (click)="fotoPersonal.click()" [disabled]="procesandoFoto" title="Escanear cédula con cámara"
-              class="px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold shadow-lg shadow-emerald-600/20 disabled:opacity-50">
-              📷
-            </button>
-          </div>
-          <div *ngIf="procesandoFoto" class="mt-2 space-y-1 animate-in fade-in duration-200">
-            <div class="flex items-center gap-2">
-              <div class="flex-1 bg-slate-200 rounded-full h-1.5">
-                <div class="bg-emerald-500 h-1.5 rounded-full transition-all duration-300" [style.width.%]="ocrProgreso"></div>
-              </div>
-              <span class="text-[10px] font-bold text-emerald-600 w-8 text-right">{{ ocrProgreso }}%</span>
-            </div>
-            <div class="flex items-center justify-between">
-              <p class="text-[10px] text-emerald-600 font-bold">Leyendo datos de la cédula...</p>
-              <button type="button" (click)="cancelarOcr()" class="text-[10px] font-bold text-rose-500 hover:text-rose-600 uppercase tracking-wider">Cancelar</button>
-            </div>
           </div>
         </div>
         <div class="lg:col-span-2 space-y-1.5">
@@ -184,11 +166,11 @@
             </button>
             <div *ngIf="showRolDropdown" class="absolute z-[100] w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600">
               <div class="max-h-48 overflow-y-auto custom-scrollbar p-1">
-                <div *ngFor="let r of rolesLista" (click)="selectRol(r.key)" class="px-4 py-2 text-sm hover:bg-slate-50 cursor-pointer transition-colors rounded-lg flex items-center justify-between" [class.bg-blue-50]="formPersonal.rol === r.key">
+                <div *ngFor="let r of rolesPorSede" (click)="selectRol(r.key)" class="px-4 py-2 text-sm hover:bg-slate-50 cursor-pointer transition-colors rounded-lg flex items-center justify-between" [class.bg-blue-50]="formPersonal.rol === r.key">
                   <span class="font-bold">{{ toTitleCase(r.nombre) }}</span>
                   <lucide-icon *ngIf="formPersonal.rol === r.key" [name]="CheckCircle2" class="w-3.5 h-3.5 text-blue-600"></lucide-icon>
                 </div>
-                <div *ngIf="rolesLista.length === 0" class="px-4 py-4 text-xs text-slate-400 italic text-center">NO HAY DATOS</div>
+                <div *ngIf="rolesPorSede.length === 0" class="px-4 py-4 text-xs text-slate-400 italic text-center">NO HAY DATOS</div>
               </div>
             </div>
           </div>

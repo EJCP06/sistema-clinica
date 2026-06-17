@@ -23,12 +23,6 @@ const login = async (req, res) => {
       return res.status(401).json({ mensaje: 'Contraseña inválida' });
     }
 
-    if (usuario.sesion_token) {
-      return res.status(401).json({
-        mensaje: 'Ya hay una sesión activa de este usuario en otro dispositivo.'
-      });
-    }
-
     const sesionToken = crypto.randomUUID();
     await usuarioRepo.actualizarSesionToken(usuario.id, sesionToken);
 
@@ -36,6 +30,7 @@ const login = async (req, res) => {
       id: usuario.id,
       cedula: usuario.cedula,
       nombre: usuario.nombre,
+      apellido: usuario.apellido,
       rol: usuario.rol,
       permisos: usuario.permisos || [],
       servicio_id: usuario.servicio_id,

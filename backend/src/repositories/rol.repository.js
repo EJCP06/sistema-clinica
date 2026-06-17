@@ -1,14 +1,16 @@
 const pool = require('../config/db');
 
 const getAll = async (sede) => {
-  const result = await pool.query(
-    `SELECT r.id_rol as id, r.nombre, r.key, r.id_sede, r.activo, s.nombre as sede_nombre
+  let query = `SELECT r.id_rol as id, r.nombre, r.key, r.id_sede, r.activo, s.nombre as sede_nombre
      FROM "Roles" r
-     LEFT JOIN "Sedes" s ON r.id_sede = s.id_sede
-     WHERE r.id_sede IS NULL OR r.id_sede = $1
-     ORDER BY r.id_rol`,
-    [sede]
-  );
+     LEFT JOIN "Sedes" s ON r.id_sede = s.id_sede`;
+  const params = [];
+  if (sede != null) {
+    query += ` WHERE r.id_sede = $1`;
+    params.push(sede);
+  }
+  query += ` ORDER BY r.id_rol`;
+  const result = await pool.query(query, params);
   return result.rows;
 };
 

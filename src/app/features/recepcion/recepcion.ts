@@ -36,10 +36,8 @@ import { AuthService } from '../../core/services/auth.service';
 import { SwalService } from '../../core/services/swal.service';
 import { EspecialidadesService } from '../../core/services/especialidades.service';
 import { ScrollService } from '../../core/services/scroll.service';
-import { ScannerService, ScannerData } from '../../core/services/scanner.service';
-import { OcrService } from '../../core/services/ocr.service';
-import { Subject, Subscription } from 'rxjs';
-import { debounceTime } from 'rxjs/operators';
+import { Subject, Subscription, of } from 'rxjs';
+import { debounceTime, catchError } from 'rxjs/operators';
 
 import { Sidebar } from '../../shared/components/sidebar/sidebar';
 import { Header } from '../../shared/components/header/header';
@@ -187,8 +185,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
   esRegistroDirecto: boolean = false;
   pacienteExistenteCargado: boolean = false;
-  procesandoFoto: boolean = false;
-  ocrProgreso: number = 0;
 
   pageTitle: string = 'Admisión de Pacientes';
   pageSubtitle: string = 'Gestión de entrada y asignación de turnos médicos';
@@ -209,8 +205,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   constructor(
     private api: ApiService,
     private router: Router,
-    private scanner: ScannerService,
-    private ocr: OcrService,
   ) {}
 
   get mostrarRegistro() {
@@ -230,14 +224,17 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   private modalTrigger: HTMLElement | null = null;
 
   abrirModalRegistro(trigger?: EventTarget | null) {
+    if (!this.isEditMode) {
+      this.prepararNuevoPaciente();
+    }
     this.modalTrigger = trigger instanceof HTMLElement ? trigger : null;
     this.mostrarRegistro = true;
-    this.ocr.initWorker();
   }
 
   cerrarModalRegistro() {
     this.mostrarRegistro = false;
     this.modalTrigger = null;
+    this.isEditMode = false;
   }
 
   @HostListener('document:click', ['$event'])
@@ -264,7 +261,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   }
 
   private cambiosSub?: Subscription;
-  private scanSub?: Subscription;
 
   ngOnInit() {
     const data = this.route.snapshot.data;
@@ -288,9 +284,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Escáner PDF417
-    this.scanSub = this.scanner.scan$.subscribe(data => this.handleScan(data));
-
     // Setup live search
     this.searchSubscription = this.searchSubject
       .pipe(debounceTime(80))
@@ -305,14 +298,12 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.cambiosSub?.unsubscribe();
-    this.scanSub?.unsubscribe();
     if (this.searchSubscription) {
       this.searchSubscription.unsubscribe();
     }
     if (this.busquedaSubscription) {
       this.busquedaSubscription.unsubscribe();
     }
-    this.ocr.dispose();
   }
 
   onTabChange(tab: string) {
@@ -625,93 +616,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       nombre_servicio_label: '',
       nombre_medico_label: '',
     };
-    this.categoriaServicio = '';
-    this.pacientesEncontrados = [];
-    this.mostrarResultadosBusqueda = false;
-  }
-
-  cancelarOcr() {
-    this.ocr.cancel();
-    this.procesandoFoto = false;
-    this.ocrProgreso = 0;
-  }
-
-  async procesarFoto(input: HTMLInputElement) {
-    if (this.isAseguradorasView || !input.files?.length) return;
-    const file = input.files[0];
-    this.procesandoFoto = true;
-    this.ocrProgreso = 0;
-    input.value = '';
-
-    const timer = setInterval(() => {
-      this.ocrProgreso = this.ocr.progress;
-      this.cdr.detectChanges();
-    }, 200);
-
-    const limpiar = () => {
-      clearInterval(timer);
-      this.procesandoFoto = false;
-      this.ocrProgreso = 0;
-    };
-
-    this.ocr.recognize(file).subscribe({
-      next: (data) => {
-        limpiar();
-        if (!data.cedula && !data.primer_nombre) {
-          console.log('OCR raw text:', data.raw);
-          this.swal.error(
-            'No se pudieron extraer los datos.\n\n' +
-            'Texto leído por el OCR:\n' + (data.raw?.slice(0, 600) || '(vacío)') + '\n\n' +
-            'Ingresa los datos manualmente.'
-          );
-          return;
-        }
-        this.abrirModalRegistro();
-        this.isEditMode = false;
-        this.handleScan(data);
-      },
-      error: (err) => {
-        limpiar();
-        if (err?.message === 'Cancelado por el usuario') return;
-        console.error('OCR error:', err);
-        this.swal.error('No se pudieron leer los datos. Asegúrate de que la imagen sea clara y vuelve a intentar.');
-      },
-    });
-  }
-
-  handleScan(data: ScannerData) {
-    if (this.isAseguradorasView) return;
-    this.abrirModalRegistro();
-    this.isEditMode = false;
-
-    this.nuevoPaciente.cedula = data.cedula;
-    this.nuevoPaciente.primer_nombre = data.primer_nombre.toUpperCase();
-    this.nuevoPaciente.segundo_nombre = data.segundo_nombre.toUpperCase();
-    this.nuevoPaciente.primer_apellido = data.primer_apellido.toUpperCase();
-    this.nuevoPaciente.segundo_apellido = data.segundo_apellido.toUpperCase();
-    this.nuevoPaciente.fecha_nacimiento = data.fecha_nacimiento;
-    this.nuevoPaciente.id_paciente = null;
-    this.pacienteExistenteCargado = false;
-
-    this.api.get<any[]>(`recepcion/pacientes/${data.cedula}`).subscribe({
-      next: (result) => {
-        const p = result ? result.find((pac: any) => pac.cedula === data.cedula) : null;
-        if (p) {
-          this.nuevoPaciente.id_paciente = p.id_paciente || p.id;
-          this.nuevoPaciente.primer_nombre = (p.primer_nombre || p.nombre || '').toUpperCase();
-          this.nuevoPaciente.segundo_nombre = (p.segundo_nombre || '').toUpperCase();
-          this.nuevoPaciente.primer_apellido = (p.primer_apellido || p.apellido || '').toUpperCase();
-          this.nuevoPaciente.segundo_apellido = (p.segundo_apellido || '').toUpperCase();
-          this.nuevoPaciente.fecha_nacimiento = p.fecha_nacimiento || '';
-          this.nuevoPaciente.telefono = p.telefono || '';
-          this.pacienteExistenteCargado = true;
-        }
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.pacienteExistenteCargado = false;
-      },
-    });
   }
 
   private finalizarGuardado(accion?: () => void) {
@@ -725,53 +629,12 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
   registrarYContinuar() {
     if (this.isAseguradorasView) {
-      const nombreAseguradora = (this.nuevoPaciente.nombre || '').toString().trim();
-      if (!nombreAseguradora) {
-        this.swal.warning('Debe ingresar el nombre de la aseguradora');
-        return;
-      }
-      this.isSaving = true;
-      this.inicioGuardado = Date.now();
-
-      if (this.isEditMode && this.nuevoPaciente.id_cliente) {
-        this.api
-          .put(`admin/aseguradoras/${this.nuevoPaciente.id_cliente}`, { nombre: nombreAseguradora })
-          .subscribe({
-            next: () => {
-              this.finalizarGuardado(() => {
-                this.cargarAseguradoras();
-                this.mostrarRegistro = false;
-                this.swal.success('Aseguradora actualizada correctamente');
-              });
-            },
-            error: (err: any) => {
-              this.finalizarGuardado(() => {
-                this.swal.error('Error al actualizar aseguradora');
-              });
-            },
-          });
-      } else {
-        this.api.crearAseguradora({ nombre: nombreAseguradora }).subscribe({
-          next: () => {
-            this.finalizarGuardado(() => {
-              this.cargarAseguradoras();
-              this.mostrarRegistro = false;
-              this.swal.success('Aseguradora registrada correctamente');
-            });
-          },
-          error: (err: any) => {
-            this.finalizarGuardado(() => {
-              this.swal.error('Error al registrar aseguradora');
-            });
-          },
-        });
-      }
+      this.procesarAseguradora();
       return;
     }
 
-    // Validación estricta para asegurar que se cree la atención (ticket)
     if (!this.seleccion.id_responsable || !this.seleccion.id_servicio) {
-      this.swal.warning('Debe seleccionar Responsable de Pago y el Servicio (Especialidad/Lab/Imagen)');
+      this.swal.warning('Debe seleccionar Responsable de Pago y el Servicio');
       return;
     }
 
@@ -784,21 +647,68 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     this.inicioGuardado = Date.now();
 
     if (this.isEditMode) {
-      const id_paciente = this.nuevoPaciente.id_paciente;
-      const id_atencion = this.seleccion.id_atencion;
+      this.actualizarPacienteExistente(this.nuevoPaciente.id_paciente, true);
+    } else if (this.pacienteExistenteCargado && this.nuevoPaciente.id_paciente) {
+      this.generarAtencionDirecta(this.nuevoPaciente.id_paciente);
+    } else {
+      // Verificar existencia antes de crear
+      this.api.get<any[]>(`recepcion/pacientes/${this.nuevoPaciente.cedula}`).subscribe({
+        next: (data) => {
+          const p = data ? data.find((paciente: any) => paciente.cedula === this.nuevoPaciente.cedula) : null;
+          if (p) {
+            this.actualizarPacienteExistente(p.id_paciente || p.id, false);
+          } else {
+            this.crearNuevoPaciente();
+          }
+        },
+        error: () => this.crearNuevoPaciente()
+      });
+    }
+  }
 
-      const datosPaciente = {
-        cedula: (this.nuevoPaciente.cedula || '').toString().replace(/\D/g, '').trim(),
-        primer_nombre: (this.nuevoPaciente.primer_nombre || '').toString().toUpperCase().trim(),
-        segundo_nombre: (this.nuevoPaciente.segundo_nombre || '').toString().toUpperCase().trim(),
-        primer_apellido: (this.nuevoPaciente.primer_apellido || '').toString().toUpperCase().trim(),
-        segundo_apellido: (this.nuevoPaciente.segundo_apellido || '').toString().toUpperCase().trim(),
-        fecha_nacimiento: this.nuevoPaciente.fecha_nacimiento || null,
-        telefono: (this.nuevoPaciente.telefono || '').toString().replace(/\D/g, '').trim(),
-      };
+  private crearNuevoPaciente() {
+    const datosPaciente = {
+      cedula: (this.nuevoPaciente.cedula || '').toString().replace(/\D/g, ''),
+      primer_nombre: (this.nuevoPaciente.primer_nombre || '').toUpperCase().trim(),
+      segundo_nombre: (this.nuevoPaciente.segundo_nombre || '').toUpperCase().trim(),
+      primer_apellido: (this.nuevoPaciente.primer_apellido || '').toUpperCase().trim(),
+      segundo_apellido: (this.nuevoPaciente.segundo_apellido || '').toUpperCase().trim(),
+      fecha_nacimiento: this.nuevoPaciente.fecha_nacimiento || null,
+      telefono: (this.nuevoPaciente.telefono || '').toString().replace(/\D/g, ''),
+      status: true,
+    };
 
-      this.api.put(`recepcion/pacientes/${id_paciente}`, datosPaciente).subscribe({
-        next: () => {
+    this.api.post('recepcion/pacientes', datosPaciente).subscribe({
+      next: (paciente: any) => {
+        this.generarAtencionDirecta(paciente.id_paciente || paciente.id);
+      },
+      error: (err: any) => {
+        console.error('Error registrando:', err);
+        this.finalizarGuardado(() => {
+          if (err.status === 409) {
+            this.swal.error('El paciente con esta cédula ya está registrado en esta sede.');
+          } else {
+            this.swal.error('Error al registrar paciente');
+          }
+        });
+      },
+    });
+  }
+
+  private actualizarPacienteExistente(id_paciente: number, esEdicionTotal: boolean) {
+    const datosPaciente = {
+      cedula: (this.nuevoPaciente.cedula || '').toString().replace(/\D/g, '').trim(),
+      primer_nombre: (this.nuevoPaciente.primer_nombre || '').toString().toUpperCase().trim(),
+      segundo_nombre: (this.nuevoPaciente.segundo_nombre || '').toString().toUpperCase().trim(),
+      primer_apellido: (this.nuevoPaciente.primer_apellido || '').toString().toUpperCase().trim(),
+      segundo_apellido: (this.nuevoPaciente.segundo_apellido || '').toString().toUpperCase().trim(),
+      fecha_nacimiento: this.nuevoPaciente.fecha_nacimiento || null,
+      telefono: (this.nuevoPaciente.telefono || '').toString().replace(/\D/g, '').trim(),
+    };
+
+    this.api.put(`recepcion/pacientes/${id_paciente}`, datosPaciente).subscribe({
+      next: () => {
+        if (esEdicionTotal) {
           const bodyAtencion = {
             id_servicio: this.seleccion.id_servicio,
             id_responsable: this.seleccion.id_responsable,
@@ -807,7 +717,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
             id_medico: this.seleccion.id_medico || null,
             id_consultorio: this.seleccion.id_consultorio || null,
           };
-          this.api.put(`recepcion/atencion/${id_atencion}`, bodyAtencion).subscribe({
+          this.api.put(`recepcion/atencion/${this.seleccion.id_atencion}`, bodyAtencion).subscribe({
             next: () => {
               this.finalizarGuardado(() => {
                 this.mostrarRegistro = false;
@@ -815,50 +725,48 @@ export class RecepcionComponent implements OnInit, OnDestroy {
                 this.cargarUltimasAdmisiones();
               });
             },
-            error: (err: any) => {
-              this.finalizarGuardado(() => {
-                this.swal.error('Error al actualizar la atención');
-              });
-            },
+            error: () => this.finalizarGuardado(() => this.swal.error('Error al actualizar la atención'))
           });
-        },
-        error: (err: any) => {
-          this.finalizarGuardado(() => {
-            this.swal.error('Error al actualizar datos del paciente');
-          });
-        },
-      });
+        } else {
+          this.generarAtencionDirecta(id_paciente);
+        }
+      },
+      error: () => this.finalizarGuardado(() => this.swal.error('Error al actualizar datos del paciente'))
+    });
+  }
+
+  private procesarAseguradora() {
+    const nombreAseguradora = (this.nuevoPaciente.nombre || '').toString().trim();
+    if (!nombreAseguradora) {
+      this.swal.warning('Debe ingresar el nombre de la aseguradora');
       return;
     }
+    this.isSaving = true;
+    this.inicioGuardado = Date.now();
 
-    // MODO CREACIÓN (Original)
-    if (this.pacienteExistenteCargado && this.nuevoPaciente.id_paciente) {
-      // Generar atención directamente para paciente existente
-      this.generarAtencionDirecta(this.nuevoPaciente.id_paciente);
+    if (this.isEditMode && this.nuevoPaciente.id_cliente) {
+      this.api
+        .put(`admin/aseguradoras/${this.nuevoPaciente.id_cliente}`, { nombre: nombreAseguradora })
+        .subscribe({
+          next: () => {
+            this.finalizarGuardado(() => {
+              this.cargarAseguradoras();
+              this.mostrarRegistro = false;
+              this.swal.success('Aseguradora actualizada correctamente');
+            });
+          },
+          error: () => this.finalizarGuardado(() => this.swal.error('Error al actualizar aseguradora')),
+        });
     } else {
-      // Crear nuevo paciente y luego generar atención
-      const datosPaciente = {
-        cedula: (this.nuevoPaciente.cedula || '').toString().replace(/\D/g, ''),
-        primer_nombre: (this.nuevoPaciente.primer_nombre || '').toUpperCase().trim(),
-        segundo_nombre: (this.nuevoPaciente.segundo_nombre || '').toUpperCase().trim(),
-        primer_apellido: (this.nuevoPaciente.primer_apellido || '').toUpperCase().trim(),
-        segundo_apellido: (this.nuevoPaciente.segundo_apellido || '').toUpperCase().trim(),
-        fecha_nacimiento: this.nuevoPaciente.fecha_nacimiento || null,
-        telefono: (this.nuevoPaciente.telefono || '').toString().replace(/\D/g, ''),
-        status: true,
-      };
-
-      this.api.post('recepcion/pacientes', datosPaciente).subscribe({
-        next: (paciente: any) => {
-          const id_paciente = paciente.id_paciente || paciente.id;
-          this.generarAtencionDirecta(id_paciente);
-        },
-        error: (err: any) => {
-          console.error('Error registrando:', err);
+      this.api.crearAseguradora({ nombre: nombreAseguradora }).subscribe({
+        next: () => {
           this.finalizarGuardado(() => {
-            this.swal.error('Error al registrar paciente');
+            this.cargarAseguradoras();
+            this.mostrarRegistro = false;
+            this.swal.success('Aseguradora registrada correctamente');
           });
         },
+        error: () => this.finalizarGuardado(() => this.swal.error('Error al registrar aseguradora')),
       });
     }
   }
@@ -1172,8 +1080,10 @@ export class RecepcionComponent implements OnInit, OnDestroy {
         this.nuevoPaciente = {
          id_paciente: fila.id_paciente,
          cedula: fila.cedula,
-         nombre: fila.nombre,
-         apellido: fila.apellido,
+         primer_nombre: fila.nombre,
+         segundo_nombre: fila.segundo_nombre,
+         primer_apellido: fila.apellido,
+         segundo_apellido: fila.segundo_apellido,
          telefono: fila.telefono,
        };
 

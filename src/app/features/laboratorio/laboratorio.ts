@@ -116,7 +116,7 @@ export class LaboratorioComponent implements OnInit, OnDestroy {
       next: (data) => {
         const items = data || [];
         this.ultimasAdmisiones = items.filter(a => {
-          if (a.id_estado_actual === 5 || a.id_estado_actual === 6) return false;
+          if ([5, 6, 7].includes(Number(a.id_estado_actual))) return false;
           
           const servicioLower = (a.nombre_servicio || '').toLowerCase();
           const esLaboratorio = servicioLower.includes('laboratorio');

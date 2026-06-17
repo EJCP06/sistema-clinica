@@ -179,7 +179,7 @@
                           <lucide-icon [name]="Undo2" class="w-4 h-4"></lucide-icon>
                         </button>
                         <button
-                          *ngIf="auth.esCoordinador() && (a.id_estado_actual === 2 || a.id_estado_actual === 3 || a.id_estado_actual === 8 || a.id_estado_actual === 7)"
+                          *ngIf="auth.tieneRol(['coordinador', 'administrador']) && (a.id_estado_actual === 2 || a.id_estado_actual === 3 || a.id_estado_actual === 8 || a.id_estado_actual === 7)"
                           (click)="marcarAusente(a)"
                           class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl focus:outline-none"
                           title="Marcar como ausente"

@@ -114,16 +114,23 @@ const startServer = async () => {
           "fecha_creacion" TIMESTAMP DEFAULT (now()),
           UNIQUE ("key", "id_sede")
         );
-        INSERT INTO "Roles" ("nombre", "key", "id_sede", "activo") VALUES
-          ('ADMINISTRADOR', 'administrador', NULL, true),
-          ('RECEPCIONISTA', 'recepcionista', NULL, true),
-          ('MEDICO', 'medico', NULL, true),
-          ('COORDINADOR', 'coordinador', NULL, true),
-          ('ANALISTA', 'analista', NULL, true),
-          ('LABORATORIO', 'laboratorio', NULL, true),
-          ('IMAGENES', 'imagenes', NULL, true)
-        ON CONFLICT ("key", "id_sede") DO NOTHING;
       `);
+
+      const sedesExistentes = await pool.query('SELECT id_sede FROM "Sedes"');
+      for (const sede of sedesExistentes.rows) {
+        await pool.query(`
+          INSERT INTO "Roles" ("nombre", "key", "id_sede", "activo") VALUES
+            ('ADMINISTRADOR', 'administrador', $1, true),
+            ('RECEPCIONISTA', 'recepcionista', $1, true),
+            ('MEDICO', 'medico', $1, true),
+            ('COORDINADOR', 'coordinador', $1, true),
+            ('ANALISTA', 'analista', $1, true),
+            ('LABORATORIO', 'laboratorio', $1, true),
+            ('IMAGENES', 'imagenes', $1, true),
+            ('ENFERMERO', 'enfermero', $1, true)
+          ON CONFLICT ("key", "id_sede") DO NOTHING
+        `, [sede.id_sede]);
+      }
 
       try {
         await pool.query(`

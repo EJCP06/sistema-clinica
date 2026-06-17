@@ -36,7 +36,7 @@ const marcarAusente = async (req, res) => {
 
     const usuario = req.usuario;
     
-    if (!usuario || usuario.rol !== 'coordinador') {
+    if (!usuario || (usuario.rol !== 'coordinador' && usuario.rol !== 'administrador')) {
       return res.status(403).json({ mensaje: 'Solo los coordinadores pueden marcar pacientes como ausentes' });
     }
 
@@ -117,6 +117,12 @@ const crearPaciente = async (req, res) => {
 
     if (!cedula || !pn || !pa) {
       return res.status(400).json({ mensaje: 'Cédula, primer nombre y primer apellido son requeridos' });
+    }
+
+    // Check if patient exists
+    const existing = await pacienteRepo.findByCedula(cedula, sede);
+    if (existing) {
+      return res.status(409).json({ mensaje: 'Ya existe un paciente con esa cédula en esta sede' });
     }
 
     const paciente = await pacienteRepo.crearPaciente({

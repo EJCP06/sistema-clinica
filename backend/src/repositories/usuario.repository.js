@@ -33,12 +33,40 @@ const findByCedula = async (cedula) => {
   return result.rows[0] || null;
 };
 
+const findManyByCedula = async (cedula) => {
+  const result = await pool.query(`
+    SELECT u.id_usuario as id, u.cedula, u.password_hash, r.key as rol, u.id_rol,
+           u.primer_nombre AS nombre, u.primer_apellido AS apellido,
+           u.id_servicio as servicio_id, u.id_consultorio as consultorio_id, u.id_sede,
+           u.id_especialidad, e.nombre as especialidad_nombre,
+           u.sesion_token,
+           COALESCE(
+             (SELECT json_agg(rec.key || ':' || acc.key)
+              FROM "Roles_Recursos_Acciones" rra
+              INNER JOIN "Recursos" rec ON rra.id_recurso = rec.id_recurso
+              INNER JOIN "Acciones" acc ON rra.id_accion = acc.id_accion
+              WHERE rra.id_rol = u.id_rol),
+             '[]'::json
+           ) as permisos
+    FROM "Usuarios" u
+    LEFT JOIN "Roles" r ON u.id_rol = r.id_rol
+    LEFT JOIN "Especialidades" e ON u.id_especialidad = e.id_especialidad
+    WHERE u.cedula = $1
+  `, [cedula]);
+  return result.rows;
+};
+
 const actualizarSesionToken = async (id, token) => {
   await pool.query('UPDATE "Usuarios" SET sesion_token = $1 WHERE id_usuario = $2', [token, id]);
 };
 
 const findByCedulaSimple = async (cedula) => {
   const result = await pool.query('SELECT id_usuario FROM "Usuarios" WHERE cedula = $1', [cedula]);
+  return result.rows[0] || null;
+};
+
+const findByCedulaSede = async (cedula, idSede) => {
+  const result = await pool.query('SELECT id_usuario FROM "Usuarios" WHERE cedula = $1 AND id_sede = $2', [cedula, idSede]);
   return result.rows[0] || null;
 };
 
@@ -59,7 +87,7 @@ const deleteByCedula = async (cedula) => {
 };
 
 const insertAdmin = async (hash, rolKey, nombre, apellido, cedula, idSede, status) => {
-  const rolRes = await pool.query('SELECT id_rol FROM "Roles" WHERE key = $1', [rolKey]);
+  const rolRes = await pool.query('SELECT id_rol FROM "Roles" WHERE key = $1 AND id_sede = $2', [rolKey, idSede || 1]);
   const idRol = rolRes.rows[0]?.id_rol;
   
   if (!idRol) throw new Error(`Rol no encontrado: ${rolKey}`);
@@ -106,7 +134,7 @@ const crearPersonal = async (data) => {
   // Buscamos el id_rol si se pasa el key (rol)
   let idRol = data.id_rol;
   if (!idRol && data.rol) {
-    const rolRes = await pool.query('SELECT id_rol FROM "Roles" WHERE key = $1', [data.rol]);
+    const rolRes = await pool.query('SELECT id_rol FROM "Roles" WHERE key = $1 AND id_sede = $2', [data.rol, data.sede]);
     idRol = rolRes.rows[0]?.id_rol;
   }
 
@@ -126,7 +154,7 @@ const actualizarPersonal = async (id, sede, sets, values, idx) => {
   const rolIdx = sets.findIndex((s) => s.startsWith('rol ='));
   if (rolIdx !== -1) {
     const rolKey = values[rolIdx];
-    const rolRes = await pool.query('SELECT id_rol FROM "Roles" WHERE key = $1', [rolKey]);
+    const rolRes = await pool.query('SELECT id_rol FROM "Roles" WHERE key = $1 AND id_sede = $2', [rolKey, sede]);
     const idRol = rolRes.rows[0]?.id_rol;
     if (idRol) {
       sets[rolIdx] = `id_rol = $${rolIdx + 1}`;
@@ -152,7 +180,9 @@ const eliminarPersonal = async (id, sede) => {
 module.exports = {
   findByCedulas,
   findByCedula,
+  findManyByCedula,
   findByCedulaSimple,
+  findByCedulaSede,
   actualizarSesionToken,
   updatePasswordByCedula,
   findByCedulaAndEmail,
