@@ -114,6 +114,8 @@ const llamarSiguiente = async (req, res) => {
     if (req.io) {
       req.io.emit('estado-actualizado', { tipo: 'llamado', id_atencion: turno.id });
       req.io.emit('nuevo-llamado', { 
+        tipo: 'llamado',
+        id_atencion: turno.id,
         turno: turno.numero, 
         consultorio: servicioNombre,
         paciente: turno.nombre_paciente,
@@ -181,7 +183,7 @@ const iniciarAtencion = async (req, res) => {
     await historialRepo.insert(client, atencionId, 5);
     await client.query('COMMIT');
 
-    if (req.io) req.io.emit('estado-actualizado', { id_atencion: atencionId });
+    if (req.io) req.io.emit('estado-actualizado', { tipo: 'liberacion', id_atencion: atencionId });
 
     res.json({ mensaje: 'Atención iniciada correctamente', id_atencion: atencionId });
   } catch (error) {

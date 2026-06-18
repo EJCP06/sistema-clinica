@@ -322,7 +322,7 @@ const crearPersonal = async (req, res) => {
       return res.status(409).json({ mensaje: 'Ya existe un usuario con esa cédula en esta sede' });
     }
 
-    const password_hash = password
+    const password_hash = password ? await bcrypt.hash(password, 10) : await bcrypt.hash(crypto.randomBytes(6).toString('hex'), 10);
     const emailFinal = email ? email.toLowerCase().trim() : null;
 
     const result = await usuarioRepo.crearPersonal({
@@ -447,6 +447,17 @@ const actualizarPersonal = async (req, res) => {
     }
 
     await usuarioRepo.actualizarPersonal(id, sede, sets, values, idx);
+
+    // Si el usuario fue desactivado, notificar en tiempo real a su sesión activa
+    if (status === false && req.io) {
+      for (const socket of req.io.sockets.sockets.values()) {
+        if (socket.usuario && Number(socket.usuario.id) === Number(id)) {
+          socket.emit('usuario-desactivado');
+          break;
+        }
+      }
+    }
+
     res.json({ mensaje: 'Personal actualizado' });
   } catch (error) {
     logger.error(error);
@@ -469,7 +480,7 @@ const eliminarPersonal = async (req, res) => {
       return res.status(404).json({ mensaje: 'Usuario no encontrado' });
     }
 
-    res.json({ mensaje: 'Personal desactivado' });
+    res.json({ mensaje: 'Personal eliminado' });
   } catch (error) {
     logger.error(error);
     res.status(500).json({ mensaje: 'Error al eliminar personal' });

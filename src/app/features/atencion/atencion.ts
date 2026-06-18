@@ -295,17 +295,6 @@ export class Atencion implements OnInit, OnDestroy {
         this.consultorioEstado = 'OCUPADO';
         this.atendiendoLocalmente = true;
         this.iniciarTemporizador();
-        
-        // Solo reproducir audio si el turno está en estado 'Llamado' (asumiendo que es el estado por defecto tras llamar)
-        // O si el estado no es 'En Atencion' (5). 
-        // Basado en el backend, el estado 4 es 'Llamado'.
-        if (res.turno.estado !== 'EN_ATENCION' && res.turno.id_estado_actual !== 5) {
-          this.reproducirAudio(
-            res.turno.paciente.nombre, 
-            res.turno.paciente.apellido || '', 
-            this.consultorioNombre
-          );
-        }
       },
       error: (err: any) => {
         this.cargando = false;
@@ -328,44 +317,6 @@ export class Atencion implements OnInit, OnDestroy {
         }
       }
     });
-  }
-
-  private vozFemenina: SpeechSynthesisVoice | null = null;
-  private cargarVozFemenina() {
-    if (!('speechSynthesis' in window)) return;
-    const voces = window.speechSynthesis.getVoices();
-    
-    // Prioridad 1: Microsoft Sabina (es-MX)
-    // Prioridad 2: Cualquier otra voz de Español México (es-MX) + Femenino
-    // Prioridad 3: Español México (es-MX)
-    this.vozFemenina = voces.find(v => v.name.includes('Microsoft Sabina'))
-                       || voces.find(v => v.lang.startsWith('es-MX') && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('femenina') || v.name.toLowerCase().includes('mujer')))
-                       || voces.find(v => v.lang.startsWith('es-MX'))
-                       || voces.find(v => v.lang.startsWith('es') && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('femenina') || v.name.toLowerCase().includes('mujer')))
-                       || voces.find(v => v.lang.startsWith('es')) 
-                       || null;
-  }
-
-  private reproducirAudio(nombre: string, apellido: string, consultorio: string) {
-    if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    const nombreCompleto = `${nombre} ${apellido}`.trim();
-    let texto: string;
-    const c = consultorio.toLowerCase();
-    if (c.includes('laboratorio')) {
-      texto = `Paciente ${nombreCompleto}, diríjase a laboratorio`;
-    } else if (c.includes('imágenes') || c.includes('imagenes')) {
-      texto = `Paciente ${nombreCompleto}, diríjase a imágenes`;
-    } else {
-      const cFormateado = consultorio.replace(/\b0+(\d+)\b/g, '$1');
-      texto = `Paciente ${nombreCompleto}, diríjase al consultorio ${cFormateado}`;
-    }
-    const utterance = new SpeechSynthesisUtterance(texto);
-    utterance.lang = 'es-MX';
-    utterance.rate = 0.9;
-    if (!this.vozFemenina) this.cargarVozFemenina();
-    if (this.vozFemenina) utterance.voice = this.vozFemenina;
-    window.speechSynthesis.speak(utterance);
   }
 
   liberarConsultorio() {

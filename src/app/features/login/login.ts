@@ -6,6 +6,7 @@ import { AuthService } from '@core/services/auth.service';
 import { ThemeService } from '@core/services/theme.service';
 import { SwalService } from '../../core/services/swal.service';
 import { LucideAngularModule, Eye, EyeOff, LogIn, Activity, User, Lock, Sun, Moon, XCircle, KeyRound, ArrowLeft, MonitorSpeaker, Mail, Shield, Clock, CheckCircle2 } from 'lucide-angular';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-login',
@@ -248,7 +249,23 @@ export class Login implements OnDestroy {
           const restante = Math.max(0, MIN_CARGANDO - elapsed);
           const mostrarError = () => {
             this.cargando = false;
-            this.swal.error(err.error?.mensaje || err.message || 'Error de autenticación');
+            if (err.status === 409) {
+              Swal.fire({
+                icon: 'warning',
+                title: 'Sesión activa',
+                text: err.error?.mensaje || 'Ya hay una sesión activa con este usuario.',
+                confirmButtonColor: '#2563eb',
+              });
+            } else if (err.status === 403) {
+              Swal.fire({
+                icon: 'error',
+                title: 'Usuario inactivo',
+                text: err.error?.mensaje || 'Su usuario se encuentra inactivo. Contacte al administrador.',
+                confirmButtonColor: '#2563eb',
+              });
+            } else {
+              this.swal.error(err.error?.mensaje || err.message || 'Error de autenticación');
+            }
           };
           if (restante > 0) setTimeout(mostrarError, restante);
           else mostrarError();

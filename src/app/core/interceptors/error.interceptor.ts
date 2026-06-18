@@ -14,7 +14,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((error) => {
-      const esAuth = req.url.toLowerCase().includes('/auth/login') || req.url.toLowerCase().includes('/auth/recuperacion/');
+      const esAuth =
+        req.url.toLowerCase().includes('/auth/login') ||
+        req.url.toLowerCase().includes('/auth/recuperacion/');
 
       if (esAuth) {
         return throwError(() => error);
@@ -28,15 +30,17 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
             title: 'Error',
             text: 'No se puede conectar con el servidor. Verifique su conexión.',
             confirmButtonColor: '#2563eb',
-          }).then(() => { alertaMostrandose = false; });
+          }).then(() => {
+            alertaMostrandose = false;
+          });
         }
       } else if (error.status === 401) {
         if (!redirigiendo) {
           redirigiendo = true;
           authService.logout(true); // Limpia sesión sin llamar al backend
-          
-          const mensaje = error.error?.mensaje || 'Sesión expirada. Debe iniciar sesión nuevamente.';
-          
+
+          const mensaje = 'Su sesión ha expirado';
+
           // No mostramos alerta si ya estamos en login o si es el verifySession fallando al inicio
           const esVerify = req.url.includes('/auth/verify');
           const enLogin = router.url.includes('/login');
@@ -48,9 +52,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
               title: 'Error',
               text: mensaje,
               confirmButtonColor: '#2563eb',
-            }).then(() => { 
-              alertaMostrandose = false; 
-              redirigiendo = false; 
+            }).then(() => {
+              alertaMostrandose = false;
+              redirigiendo = false;
             });
           } else {
             redirigiendo = false;

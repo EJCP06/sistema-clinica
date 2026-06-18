@@ -123,7 +123,7 @@
         >
           <div class="flex flex-col justify-between">
             <div class="overflow-x-auto">
-<table class="w-full min-w-[800px] text-left text-sm ">
+<table class="w-full min-w-[1100px] text-left text-sm ">
               <thead
                 class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800"
               >
@@ -169,13 +169,6 @@
                         </button>
                         <button *ngIf="a.id_estado_actual === 2 && tienePermiso('imagenes_pasar_sala_espera')" (click)="enviarACaja(a.id_atencion)" aria-label="Enviar a sala de espera" title="Enviar a Sala de Espera" class="p-2 text-teal-500 hover:bg-teal-50 rounded-xl transition-all">
                           <lucide-icon [name]="CheckCircle2" class="w-4 h-4"></lucide-icon>
-                        </button>
-
-                        <button *ngIf="a.id_estado_actual === 4 && (tienePermiso('imagenes_marcar_ausente') || tienePermiso('marcar_ausente'))" (click)="marcarAusente(a.id_atencion)" aria-label="Marcar como ausente" title="Marcar como Ausente" class="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-all">
-                          <lucide-icon [name]="XCircle" class="w-4 h-4"></lucide-icon>
-                        </button>
-                        <button *ngIf="a.id_estado_actual === 7 && (tienePermiso('imagenes_reincorporar') || tienePermiso('reincorporar'))" (click)="reincorporar(a.id_atencion)" aria-label="Reincorporar a sala de espera" title="Reincorporar a Sala de Espera" class="p-2 text-orange-500 hover:bg-orange-50 rounded-xl transition-all">
-                          <lucide-icon [name]="Undo2" class="w-4 h-4"></lucide-icon>
                         </button>
                       </div>
                     </td>

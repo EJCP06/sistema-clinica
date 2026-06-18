@@ -32,7 +32,7 @@ export class ApiService {
   private http = inject(HttpClient);
   private base = environment.apiUrl;
   private socket: Socket;
-  public cambios$ = new Subject<{ tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; id_sede?: number }>();
+  public cambios$ = new Subject<{ tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; apellido?: string; id_sede?: number }>();
 
   constructor() {
     const token = sessionStorage.getItem('clinica_token');
@@ -51,9 +51,19 @@ export class ApiService {
     this.socket.on('permisos-actualizados', (data: unknown) => {
       this.cambios$.next({ tipo: 'permisos', ...(data as Record<string, any>) } as { tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; id_sede?: number });
     });
+    this.socket.on('usuario-desactivado', () => {
+      this.cambios$.next({ tipo: 'usuario-desactivado' } as any);
+    });
     this.socket.on('connect_error', () => {
       setTimeout(() => { if (!this.socket.connected) this.socket.connect(); }, 3000);
     });
+  }
+
+  actualizarSocketToken(token: string | null) {
+    if (this.socket) {
+      this.socket.auth = { token };
+      this.socket.disconnect().connect();
+    }
   }
 
   // =========================

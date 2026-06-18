@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { LucideAngularModule, Bell, Volume2, Clock, Users, Stethoscope, FlaskConical, ScanLine, Megaphone, ClipboardList, LucideIconData } from 'lucide-angular';
+import { LucideAngularModule, Bell, Volume2, Clock, Users, Stethoscope, FlaskConical, ScanLine, ClipboardList, LucideIconData } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
 import { TurnoDTO } from '../../core/models/dto.models';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -101,6 +101,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
   turnos: TurnoDTO[] = [];
   fechaActual: Date = new Date();
   horaFormateada: string = '';
+  sede: number | null = null;
 
   sala: SalaMode = 'aps';
   config!: SalaConfig;
@@ -119,7 +120,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       id: 1,
       titulo: 'LABORATORIO / IMÁGENES (PARTICULARES Y ASEGURADORAS)',
       filtro: {
-        estados: [1, 2, 7, 8],
+        estados: [1, 2, 8],
         servicios: [2, 3],
         responsable: [1, 2],
       }
@@ -128,7 +129,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       id: 2,
       titulo: 'CONSULTA (PARTICULARES Y ASEGURADORAS)',
       filtro: {
-        estados: [1, 2, 7, 8],
+        estados: [1, 2, 8],
         servicios: [1],
         responsable: [1, 2],
       }
@@ -164,11 +165,11 @@ export class TurneroComponent implements OnInit, OnDestroy {
   readonly labSections: APSSeccion[] = [
     {
       id: 1,
-      titulo: 'LABORATORIO (PARTICULARES)',
+      titulo: 'LABORATORIO (PARTICULARES Y ASEGURADORAS)',
       filtro: {
         estados: [1, 2, 8],
         servicios: [2],
-        responsable: [1],
+        responsable: [1, 2],
       }
     },
   ];
@@ -192,11 +193,11 @@ export class TurneroComponent implements OnInit, OnDestroy {
   readonly imgSections: APSSeccion[] = [
     {
       id: 1,
-      titulo: 'IMÁGENES (PARTICULARES)',
+      titulo: 'IMÁGENES (PARTICULARES Y ASEGURADORAS)',
       filtro: {
         estados: [1, 2, 8],
         servicios: [3],
-        responsable: [1],
+        responsable: [1, 2],
       }
     },
   ];
@@ -237,46 +238,56 @@ export class TurneroComponent implements OnInit, OnDestroy {
   private timerSub: Subscription | null = null;
   private clockSub: Subscription | null = null;
   private cambiosSub: Subscription | null = null;
-  private repeatSubscription: Subscription | null = null;
+  
+  private repeatTimerId: any = null;
+  private ultimoIdAtencion: number | null = null;
   private pacienteParaRepetir: { paciente: string; apellido: string; consultorio: string } | null = null;
 
   constructor(
-    private api: ApiService,
-    private route: ActivatedRoute,
-    private router: Router,
+    readonly api: ApiService,
+    readonly route: ActivatedRoute,
+    readonly router: Router,
   ) {}
 
   ngOnInit() {
-    this.cargarVozFemenina();
+    // Cargar voces al inicio
+    const cargarVoces = () => {
+      if (window.speechSynthesis.getVoices().length > 0) {
+        this.cargarVozFemenina();
+      } else {
+        window.speechSynthesis.onvoiceschanged = () => this.cargarVozFemenina();
+      }
+    };
+    cargarVoces();
+
     this.queryParamsSub = this.route.queryParams.subscribe(params => {
       const sala = params['sala'] as SalaMode;
       this.sala = SALAS[sala] ? sala : 'aps';
       this.config = SALAS[this.sala];
+      const sedeParam = this.route.snapshot.params['sede'];
+      this.sede = sedeParam ? Number(sedeParam) : null;
       this.cargarDatosSala();
     });
 
-    this.cambiosSub = this.api.cambios$.subscribe((data) => {
-      const llamado = data as any;
+    this.cambiosSub = this.api.cambios$.subscribe((data: any) => {
+      if (data.id_sede && this.sede && data.id_sede !== this.sede) {
+        this.cargarDatosSala();
+        return;
+      }
       
-      // Detener repetición si el evento indica que el turno ya no debe ser llamado (estado activo o final)
-      const esEstadoFinal = [
-        'marcar_ausente', 'finalizar', 'ausente', 'finalizado', 
-        'iniciar', 'atencion', 'iniciado'
-      ].includes(llamado.accion) || 
-      ['ausente', 'finalizado', 'iniciado', 'atencion'].includes(llamado.estado);
-      
-      if (esEstadoFinal) {
+      const esLlamado = data.tipo === 'llamado' && data.paciente && data.consultorio;
+      const esMismoPaciente = data.id_atencion && data.id_atencion === this.ultimoIdAtencion;
+      const esLiberacion = data.tipo === 'liberacion' || (data.tipo === 'estado-actualizado' && data.estado && data.estado.toUpperCase() !== 'LLAMADO');
+
+      if (esLiberacion) {
         this.detenerRepeticion();
       }
 
-      if (llamado.paciente && llamado.consultorio) {
-        this.pacienteParaRepetir = {
-          paciente: llamado.paciente,
-          apellido: llamado.apellido || '',
-          consultorio: llamado.consultorio
-        };
-        // Pasar el estado para que 'reproducirAudio' pueda filtrar
-        this.reproducirAudio(llamado.paciente, llamado.apellido || '', llamado.consultorio, llamado.estado);
+      if (esLlamado && !esMismoPaciente) {
+        this.pacienteParaRepetir = { paciente: data.paciente, apellido: data.apellido || '', consultorio: data.consultorio };
+        this.ultimoIdAtencion = data.id_atencion;
+        
+        this.reproducirAudio(data.paciente, data.apellido || '', data.consultorio);
         this.iniciarTemporizadorRepeticion();
       }
       this.cargarDatosSala();
@@ -313,16 +324,34 @@ export class TurneroComponent implements OnInit, OnDestroy {
   }
 
   private iniciarTemporizadorRepeticion() {
-    this.repeatSubscription?.unsubscribe();
-    this.repeatSubscription = interval(20000).subscribe(() => {
+    this.detenerRepeticionTimer();
+    this.repeatTimerId = setInterval(() => {
       if (this.pacienteParaRepetir) {
         this.reproducirAudio(
           this.pacienteParaRepetir.paciente,
           this.pacienteParaRepetir.apellido,
           this.pacienteParaRepetir.consultorio
         );
+      } else {
+        this.detenerRepeticionTimer();
       }
-    });
+    }, 20000); // 20 segundos
+  }
+
+  private detenerRepeticionTimer() {
+    if (this.repeatTimerId) {
+      clearInterval(this.repeatTimerId);
+      this.repeatTimerId = null;
+    }
+  }
+
+  private detenerRepeticion() {
+    this.detenerRepeticionTimer();
+    this.pacienteParaRepetir = null;
+    this.ultimoIdAtencion = null;
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
   }
 
   ngOnDestroy() {
@@ -330,17 +359,22 @@ export class TurneroComponent implements OnInit, OnDestroy {
     this.cambiosSub?.unsubscribe();
     this.timerSub?.unsubscribe();
     this.clockSub?.unsubscribe();
-    this.repeatSubscription?.unsubscribe();
+    this.detenerRepeticionTimer();
   }
 
   cambiarSala(sala: SalaMode) {
     this.router.navigate([], { queryParams: { sala }, replaceUrl: true });
   }
 
+  private addSede(params: URLSearchParams) {
+    if (this.sede) params.set('sede', String(this.sede));
+  }
+
   cargarTurnos() {
     const params = new URLSearchParams();
     if (this.config.estados.length > 0) params.set('estados', this.config.estados.join(','));
     if (this.config.servicios) params.set('servicios', this.config.servicios.join(','));
+    this.addSede(params);
 
     this.api.get<TurnoDTO[]>(`turnero/pacientes?${params.toString()}`).subscribe({
       next: (data) => this.turnos = data,
@@ -354,7 +388,8 @@ export class TurneroComponent implements OnInit, OnDestroy {
       const params = new URLSearchParams();
       if (seccion.filtro.estados?.length) params.set('estados', seccion.filtro.estados.join(','));
       if (seccion.filtro.servicios?.length) params.set('servicios', seccion.filtro.servicios.join(','));
-      if (seccion.filtro.responsable?.length) params.set('responsable', seccion.filtro.responsable.join(','))
+      if (seccion.filtro.responsable?.length) params.set('responsable', seccion.filtro.responsable.join(','));
+      this.addSede(params);
 
       this.api.get<TurnoDTO[]>(`turnero/pacientes?${params.toString()}`).subscribe({
         next: (data) => {
@@ -377,7 +412,8 @@ export class TurneroComponent implements OnInit, OnDestroy {
       const params = new URLSearchParams();
       if (seccion.filtro.estados?.length) params.set('estados', seccion.filtro.estados.join(','));
       if (seccion.filtro.servicios?.length) params.set('servicios', seccion.filtro.servicios.join(','));
-      if (seccion.filtro.responsable?.length) params.set('responsable', seccion.filtro.responsable.join(','))
+      if (seccion.filtro.responsable?.length) params.set('responsable', seccion.filtro.responsable.join(','));
+      this.addSede(params);
 
       this.api.get<TurnoDTO[]>(`turnero/pacientes?${params.toString()}`).subscribe({
         next: (data) => {
@@ -401,6 +437,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       if (seccion.filtro.estados?.length) params.set('estados', seccion.filtro.estados.join(','));
       if (seccion.filtro.servicios?.length) params.set('servicios', seccion.filtro.servicios.join(','));
       if (seccion.filtro.responsable?.length) params.set('responsable', seccion.filtro.responsable.join(','));
+      this.addSede(params);
 
       this.api.get<TurnoDTO[]>(`turnero/pacientes?${params.toString()}`).subscribe({
         next: (data) => {
@@ -424,6 +461,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       if (seccion.filtro.estados?.length) params.set('estados', seccion.filtro.estados.join(','));
       if (seccion.filtro.servicios?.length) params.set('servicios', seccion.filtro.servicios.join(','));
       if (seccion.filtro.responsable?.length) params.set('responsable', seccion.filtro.responsable.join(','));
+      this.addSede(params);
 
       this.api.get<TurnoDTO[]>(`turnero/pacientes?${params.toString()}`).subscribe({
         next: (data) => {
@@ -447,6 +485,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       if (seccion.filtro.estados?.length) params.set('estados', seccion.filtro.estados.join(','));
       if (seccion.filtro.servicios?.length) params.set('servicios', seccion.filtro.servicios.join(','));
       if (seccion.filtro.responsable?.length) params.set('responsable', seccion.filtro.responsable.join(','));
+      this.addSede(params);
 
       this.api.get<TurnoDTO[]>(`turnero/pacientes?${params.toString()}`).subscribe({
         next: (data) => {
@@ -470,6 +509,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       if (seccion.filtro.estados?.length) params.set('estados', seccion.filtro.estados.join(','));
       if (seccion.filtro.servicios?.length) params.set('servicios', seccion.filtro.servicios.join(','));
       if (seccion.filtro.responsable?.length) params.set('responsable', seccion.filtro.responsable.join(','));
+      this.addSede(params);
 
       this.api.get<TurnoDTO[]>(`turnero/pacientes?${params.toString()}`).subscribe({
         next: (data) => {
@@ -493,6 +533,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       if (seccion.filtro.estados?.length) params.set('estados', seccion.filtro.estados.join(','));
       if (seccion.filtro.servicios?.length) params.set('servicios', seccion.filtro.servicios.join(','));
       if (seccion.filtro.responsable?.length) params.set('responsable', seccion.filtro.responsable.join(','));
+      this.addSede(params);
 
       this.api.get<TurnoDTO[]>(`turnero/pacientes?${params.toString()}`).subscribe({
         next: (data) => {
@@ -523,16 +564,55 @@ export class TurneroComponent implements OnInit, OnDestroy {
     if (!('speechSynthesis' in window)) return;
     const buscarVoz = () => {
       const voces = window.speechSynthesis.getVoices();
-      
-      // Prioridad 1: Microsoft Sabina (es-MX)
-      // Prioridad 2: Cualquier otra voz de Español México (es-MX) + Femenino
-      // Prioridad 3: Español México (es-MX)
-      this.vozFemenina = voces.find(v => v.name.includes('Microsoft Sabina'))
-                         || voces.find(v => v.lang.startsWith('es-MX') && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('femenina') || v.name.toLowerCase().includes('mujer')))
-                         || voces.find(v => v.lang.startsWith('es-MX'))
-                         || voces.find(v => v.lang.startsWith('es') && (v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('femenina') || v.name.toLowerCase().includes('mujer')))
-                         || voces.find(v => v.lang.startsWith('es'))
-                         || null;
+      if (voces.length === 0) return;
+
+      const femaleKeywords = [
+        'female', 'femenina', 'mujer', 'girl', 'sabina', 'paulina', 'helena', 
+        'monica', 'mónica', 'siri', 'luz', 'marisol', 'rosa', 'alicia', 'elena', 
+        'carmen', 'valeria', 'sofia', 'sofía', 'maria', 'maría', 'lucia', 'lucía', 
+        'irene', 'cristina', 'sara', 'laura', 'patricia', 'silvia', 'yolanda', 
+        'gloria', 'marta', 'ana', 'rebeca', 'victoria', 'julia', 'claudia'
+      ];
+
+      // 1. Buscar voz femenina en Español México (es-MX)
+      let voz = voces.find(v => {
+        const langLower = v.lang.toLowerCase();
+        const isMX = langLower === 'es-mx' || langLower === 'es_mx';
+        if (!isMX) return false;
+        const nameLower = v.name.toLowerCase();
+        return femaleKeywords.some(keyword => nameLower.includes(keyword));
+      });
+
+      // 2. Si no hay femenina en es-MX, buscar cualquier voz en es-MX
+      if (!voz) {
+        voz = voces.find(v => {
+          const langLower = v.lang.toLowerCase();
+          return langLower === 'es-mx' || langLower === 'es_mx';
+        });
+      }
+
+      // 3. Si no hay es-MX, buscar cualquier voz femenina en Español (es)
+      if (!voz) {
+        voz = voces.find(v => {
+          const langLower = v.lang.toLowerCase();
+          const isEs = langLower.startsWith('es');
+          if (!isEs) return false;
+          const nameLower = v.name.toLowerCase();
+          return femaleKeywords.some(keyword => nameLower.includes(keyword));
+        });
+      }
+
+      // 4. Si no hay femenina en es, buscar cualquier voz en Español (es)
+      if (!voz) {
+        voz = voces.find(v => v.lang.toLowerCase().startsWith('es'));
+      }
+
+      // 5. Fallback a cualquier voz si no hay español
+      if (!voz) {
+        voz = voces[0] || null;
+      }
+
+      this.vozFemenina = voz;
     };
     buscarVoz();
     if (!this.vozFemenina) {
@@ -540,54 +620,60 @@ export class TurneroComponent implements OnInit, OnDestroy {
     }
   }
 
-  private detenerRepeticion() {
-    console.log('Turnero: Deteniendo repetición y audio...');
-    this.repeatSubscription?.unsubscribe();
-    this.repeatSubscription = null;
-    this.pacienteParaRepetir = null;
-    
-    // Acción más agresiva para detener el audio
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      // En algunos navegadores es necesario pausar y luego cancelar para limpiar la cola
-      window.speechSynthesis.pause();
-      window.speechSynthesis.resume();
-      window.speechSynthesis.cancel();
-    }
-  }
-
-  private reproducirAudio(nombre: string, apellido: string, consultorio: string, estado?: string) {
-    // Depuración
-    console.log(`Turnero: Intentando reproducir audio para ${nombre}, estado: ${estado}`);
-    
-    // Solo reproducir si el estado es explícitamente 'LLAMADO'
-    if (estado && estado.toUpperCase() !== 'LLAMADO') {
-      console.log('Turnero: Audio bloqueado por estado no válido.');
+  private reproducirAudio(nombre: string, apellido: string, consultorio: string) {
+    if (!('speechSynthesis' in window)) {
+      console.error('SpeechSynthesis no soportado.');
       return;
     }
-
-    if (!('speechSynthesis' in window)) return;
     
-    // Limpieza previa antes de nueva reproducción
-    window.speechSynthesis.cancel();
+    // Forzamos la recarga si no hay voz cargada o si la que hay no es del español de México
+    const esVozMX = this.vozFemenina && (this.vozFemenina.lang.toLowerCase() === 'es-mx' || this.vozFemenina.lang.toLowerCase() === 'es_mx');
+    if (!this.vozFemenina || !esVozMX) {
+      this.cargarVozFemenina();
+    }
     
     const nombreCompleto = `${nombre} ${apellido}`.trim();
-    let texto: string;
+
+    // Eliminar ceros iniciales de los números en el nombre del consultorio
+    // Ej: "Consultorio 05" → "Consultorio 5", "C-05" → "C-5"
+    const consultorioLimpio = consultorio.replace(/\b0+(\d+)\b/g, '$1');
+
+    let texto = `Paciente ${nombreCompleto}, diríjase al consultorio ${consultorioLimpio}`;
+    
+    // Mantenemos la lógica de laboratorio/imágenes
     const c = consultorio.toLowerCase();
     if (c.includes('laboratorio')) {
       texto = `Paciente ${nombreCompleto}, diríjase a laboratorio`;
     } else if (c.includes('imágenes') || c.includes('imagenes')) {
       texto = `Paciente ${nombreCompleto}, diríjase a imágenes`;
-    } else {
-      const cFormateado = consultorio.replace(/\b0+(\d+)\b/g, '$1');
-      texto = `Paciente ${nombreCompleto}, diríjase al consultorio ${cFormateado}`;
     }
-    const utterance = new SpeechSynthesisUtterance(texto);
-    utterance.lang = 'es-MX';
+
+    const esMovil = this.detectarMovil();
+    const textoFinal = esMovil ? texto.toLowerCase() : texto.toUpperCase();
+
+    // Cancelar cualquier anuncio previo antes de hablar
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(textoFinal);
+    if (this.vozFemenina) {
+        utterance.voice = this.vozFemenina;
+        utterance.lang = this.vozFemenina.lang;
+    } else {
+        utterance.lang = 'es-MX';
+    }
     utterance.rate = 0.9;
-    if (!this.vozFemenina) this.cargarVozFemenina();
-    if (this.vozFemenina) utterance.voice = this.vozFemenina;
-    window.speechSynthesis.speak(utterance);
+    
+    // Agregamos setTimeout para evitar que el cancel() asíncrono aborte este speak()
+    setTimeout(() => {
+      window.speechSynthesis.speak(utterance);
+    }, 100);
+  }
+
+  private detectarMovil(): boolean {
+    const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+    const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    return isMobileUA || isTouch;
   }
 
 }

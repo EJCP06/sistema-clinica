@@ -1,17 +1,20 @@
-import { Injectable } from '@angular/core';
+import { Injectable, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
-import { BehaviorSubject, of } from 'rxjs';
+import { BehaviorSubject, Subscription, of } from 'rxjs';
 import { Usuario, Rol } from '@core/models/usuario.model';
 
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap, map, catchError, throwError } from 'rxjs';
 import { environment } from '@env/environment';
+import { ApiService } from './api.service';
+import Swal from 'sweetalert2';
 
 @Injectable({ providedIn: 'root' })
-export class AuthService {
+export class AuthService implements OnDestroy {
   private STORAGE_KEY = 'clinica_usuario';
   private TOKEN_KEY = 'clinica_token';
   private usuarioSubject = new BehaviorSubject<Usuario | null>(this.cargarSesion());
+  private permisosSub: Subscription;
 
   private LEGACY_KEY_MAP: Record<string, string> = {
     ver_reportes: 'reportes:ver',
@@ -70,7 +73,47 @@ export class AuthService {
 
   usuario$ = this.usuarioSubject.asObservable();
 
-  constructor(private router: Router, private http: HttpClient) {}
+  constructor(private router: Router, private http: HttpClient, private api: ApiService) {
+    this.permisosSub = this.api.cambios$.subscribe((data) => {
+      const event = data as any;
+
+      if (event.tipo === 'permisos' && event.id_rol) {
+        const usuario = this.usuarioActual;
+        if (usuario?.id_rol && usuario.id_rol === event.id_rol) {
+          Swal.fire({
+            icon: 'info',
+            title: 'Permisos actualizados',
+            text: 'Tus permisos han sido modificados. Debes iniciar sesión nuevamente.',
+            timer: 10000,
+            timerProgressBar: true,
+            confirmButtonColor: '#2563eb',
+            willClose: () => {
+              this.emergencyLogout();
+            },
+          });
+        }
+      }
+
+      if (event.tipo === 'usuario-desactivado' && this.usuarioActual) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Usuario desactivado',
+          text: 'Tu cuenta ha sido desactivada por un administrador. Serás redirigido al inicio de sesión.',
+          timer: 8000,
+          timerProgressBar: true,
+          confirmButtonColor: '#2563eb',
+          allowOutsideClick: false,
+          willClose: () => {
+            this.emergencyLogout();
+          },
+        });
+      }
+    });
+  }
+
+  ngOnDestroy() {
+    this.permisosSub?.unsubscribe();
+  }
 
   get usuarioActual(): Usuario | null {
     return this.usuarioSubject.value;
@@ -90,9 +133,10 @@ export class AuthService {
           };
           sessionStorage.setItem(this.TOKEN_KEY, response.token);
           sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(usuario));
+          this.api.actualizarSocketToken(response.token);
           this.usuarioSubject.next(usuario);
         }),
-        catchError(err => throwError(() => new Error(err.error?.mensaje || 'Error en login')))
+        catchError(err => throwError(() => err))
       );
   }
 
@@ -178,6 +222,7 @@ export class AuthService {
   private limpiarSesion() {
     sessionStorage.removeItem(this.STORAGE_KEY);
     sessionStorage.removeItem(this.TOKEN_KEY);
+    this.api.actualizarSocketToken(null);
     this.usuarioSubject.next(null);
     if (this.router.url !== '/login') {
       this.router.navigate(['/login']);

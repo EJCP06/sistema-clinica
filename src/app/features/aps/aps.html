@@ -147,14 +147,15 @@
                     <td class="px-3 md:px-6 py-3 md:py-4 text-center">
                       <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border"
                         [ngClass]="{
-                          'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20': a.id_estado_actual === 1,
-                          'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20': a.id_estado_actual === 2,
-                          'bg-teal-50 text-teal-600 border-teal-200 dark:bg-teal-500/10 dark:text-teal-400 dark:border-teal-500/20': a.id_estado_actual === 3,
-                          'bg-[#faf6f0] text-[#8d6e63] border-[#d7ccc8] dark:bg-[#8d6e63]/10 dark:text-[#d7ccc8] dark:border-[#8d6e63]/20': a.id_estado_actual === 4,
-                          'bg-sky-50 text-sky-600 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20': a.id_estado_actual === 5,
-                          'bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20': a.id_estado_actual === 6,
-                          'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20': a.id_estado_actual === 7,
-                          'bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20': a.id_estado_actual === 8
+                          'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-0': a.id_estado_actual === 1,
+                          'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-0': a.id_estado_actual === 2,
+                          'bg-teal-50 text-teal-600 border-teal-200 dark:bg-teal-500/10 dark:text-teal-400 dark:border-0': a.id_estado_actual === 3,
+                          'bg-[#faf6f0] text-[#8d6e63] border-[#d7ccc8] dark:bg-[#8d6e63]/10 dark:text-[#d7ccc8] dark:border-0': a.id_estado_actual === 4,
+                          'bg-sky-50 text-sky-600 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-0': a.id_estado_actual === 5,
+                          'bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-0': a.id_estado_actual === 6,
+                          'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-0': a.id_estado_actual === 7,
+                          'bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-0': a.id_estado_actual === 8,
+                          'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-0': a.id_estado_actual === 9
                         }">
                         {{ a.nombre_estado || 'Sin asignar' }}
                       </span>

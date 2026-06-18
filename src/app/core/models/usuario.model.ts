@@ -2,6 +2,7 @@ export type Rol = string;
 
 export interface Usuario {
   id: number;
+  id_rol?: number;
   nombre: string;
   apellido?: string;
   username: string;

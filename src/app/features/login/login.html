@@ -125,7 +125,7 @@
             </div>
 
             <div class="pt-2">
-              <button type="submit" [disabled]="cargando" class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-0.5 active:translate-y-0 transition-transform flex items-center justify-center gap-3 text-sm uppercase tracking-widest">
+              <button type="submit" [disabled]="cargando" class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 flex items-center justify-center gap-3 text-sm uppercase tracking-widest">
                 <span *ngIf="!cargando" class="flex items-center gap-2">
                   Iniciar Sesión
                   <lucide-icon [name]="LogIn" class="w-5 h-5"></lucide-icon>
@@ -139,7 +139,7 @@
           </form>
 
           <div class="mt-6 text-center">
-            <a routerLink="/turnero" [queryParams]="{sala: 'llegada'}" class="text-[10px] font-bold text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 uppercase tracking-[2px] transition-colors">
+            <a routerLink="/turnero" class="text-[10px] font-bold text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 uppercase tracking-[2px] transition-colors">
               Acceder al Turnero
             </a>
           </div>

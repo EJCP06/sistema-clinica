@@ -131,6 +131,11 @@ export const routes: Routes = [
   // Pantalla Pública del Turnero (Acceso público para TVs)
   {
     path: 'turnero',
+    pathMatch: 'full',
+    loadComponent: () => import('./features/turnero/turnero-sede-selector').then(m => m.TurneroSedeSelector)
+  },
+  {
+    path: 'turnero/:sede',
     loadComponent: () => import('./features/turnero/turnero').then(m => m.TurneroComponent)
   },
 

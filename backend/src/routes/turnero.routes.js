@@ -5,9 +5,9 @@ const atencionRepo = require('../repositories/atencion.repository');
 
 router.get('/pacientes', async (req, res) => {
   try {
-    const { estados, servicios, responsable } = req.query;
+    const { estados, servicios, responsable, sede } = req.query;
 
-    const rows = await atencionRepo.getTurneroPacientes(estados, servicios, responsable);
+    const rows = await atencionRepo.getTurneroPacientes(estados, servicios, responsable, sede);
 
     const pacientes = rows.map(r => ({
       id_atencion: r.id_atencion,

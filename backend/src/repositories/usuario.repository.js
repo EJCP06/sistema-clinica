@@ -16,7 +16,7 @@ const findByCedula = async (cedula) => {
            u.primer_nombre AS nombre, u.primer_apellido AS apellido,
            u.id_servicio as servicio_id, u.id_consultorio as consultorio_id, u.id_sede,
            u.id_especialidad, e.nombre as especialidad_nombre,
-           u.sesion_token,
+           u.sesion_token, u.status,
            COALESCE(
              (SELECT json_agg(rec.key || ':' || acc.key)
               FROM "Roles_Recursos_Acciones" rra
@@ -39,7 +39,7 @@ const findManyByCedula = async (cedula) => {
            u.primer_nombre AS nombre, u.primer_apellido AS apellido,
            u.id_servicio as servicio_id, u.id_consultorio as consultorio_id, u.id_sede,
            u.id_especialidad, e.nombre as especialidad_nombre,
-           u.sesion_token,
+           u.sesion_token, u.status,
            COALESCE(
              (SELECT json_agg(rec.key || ':' || acc.key)
               FROM "Roles_Recursos_Acciones" rra
@@ -170,11 +170,33 @@ const actualizarPersonal = async (id, sede, sets, values, idx) => {
 };
 
 const eliminarPersonal = async (id, sede) => {
-  const result = await pool.query(
-    'UPDATE "Usuarios" SET status = false WHERE id_usuario = $1 AND id_sede = $2 RETURNING id_usuario',
-    [id, sede],
-  );
-  return result.rowCount > 0;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    
+    // 1. Delete from "Recuperacion_Clave"
+    await client.query('DELETE FROM "Recuperacion_Clave" WHERE id_usuario = $1', [id]);
+    
+    // 2. Set id_medico to NULL in "Atencion"
+    await client.query('UPDATE "Atencion" SET id_medico = NULL WHERE id_medico = $1', [id]);
+    
+    // 3. Set id_usuario_registro to NULL in "Atencion"
+    await client.query('UPDATE "Atencion" SET id_usuario_registro = NULL WHERE id_usuario_registro = $1', [id]);
+    
+    // 4. Finally delete the user from "Usuarios"
+    const result = await client.query(
+      'DELETE FROM "Usuarios" WHERE id_usuario = $1 AND id_sede = $2 RETURNING id_usuario',
+      [id, sede]
+    );
+    
+    await client.query('COMMIT');
+    return result.rowCount > 0;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 };
 
 module.exports = {

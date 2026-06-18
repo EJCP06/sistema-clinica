@@ -150,10 +150,10 @@ const insertarTurno = async (data) => {
   return result.rows[0];
 };
 
-const marcarAusente = async (client, id) => {
+const marcarAusente = async (client, id, targetState = 7) => {
   const result = await client.query(
-    'UPDATE "Atencion" SET id_estado_actual = 7, hora_salida = NOW() WHERE id_atencion = $1 RETURNING id_consultorio',
-    [id],
+    'UPDATE "Atencion" SET id_estado_actual = $2, hora_salida = NOW() WHERE id_atencion = $1 RETURNING id_consultorio',
+    [id, targetState],
   );
   return result.rows[0] || null;
 };
@@ -386,7 +386,7 @@ const getAtendidosHoy = async (sede, idServicio, idEspecialidad) => {
   return result.rows;
 };
 
-const getTurneroPacientes = async (estados, servicios, responsable) => {
+const getTurneroPacientes = async (estados, servicios, responsable, sede) => {
   const condiciones = [`a.hora_llegada >= CURRENT_DATE`];
   const params = [];
   let paramIndex = 1;
@@ -422,6 +422,11 @@ const getTurneroPacientes = async (estados, servicios, responsable) => {
       });
       condiciones.push(`a.id_responsable IN (${placeholders.join(',')})`);
     }
+  }
+
+  if (sede) {
+    params.push(Number(sede));
+    condiciones.push(`a.id_sede = $${paramIndex++}`);
   }
 
   const where = condiciones.length > 0 ? `WHERE ${condiciones.join(' AND ')}` : '';
