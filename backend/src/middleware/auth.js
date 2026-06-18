@@ -14,12 +14,15 @@ const authMiddleware = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     const result = await pool.query(
-      'SELECT sesion_token FROM "Usuarios" WHERE id_usuario = $1',
+      'SELECT sesion_token, status FROM "Usuarios" WHERE id_usuario = $1',
       [decoded.id],
     );
 
     const usuario = result.rows[0];
-    if (!usuario || usuario.sesion_token !== decoded.sesion_token) {
+    if (!usuario || usuario.status === false) {
+      return res.status(401).json({ mensaje: 'Sesión inválida. Tu usuario ha sido desactivado.' });
+    }
+    if (usuario.sesion_token !== decoded.sesion_token) {
       return res.status(401).json({ mensaje: 'Sesión inválida. Otro usuario ha iniciado sesión con tus credenciales.' });
     }
 

@@ -23,11 +23,31 @@ const login = async (req, res) => {
       return res.status(401).json({ mensaje: 'Contraseña inválida' });
     }
 
+    if (usuario.status === false) {
+      return res.status(403).json({ mensaje: 'Su usuario se encuentra inactivo. Contacte al administrador.' });
+    }
+
+    // Verificar si ya existe una sesión activa (a través de WebSocket) para este usuario
+    let sesionActiva = false;
+    if (req.io && req.io.sockets && req.io.sockets.sockets) {
+      for (const socket of req.io.sockets.sockets.values()) {
+        if (socket.usuario && Number(socket.usuario.id) === Number(usuario.id)) {
+          sesionActiva = true;
+          break;
+        }
+      }
+    }
+
+    if (sesionActiva) {
+      return res.status(409).json({ mensaje: 'Ya hay un usuario con estas credenciales' });
+    }
+
     const sesionToken = crypto.randomUUID();
     await usuarioRepo.actualizarSesionToken(usuario.id, sesionToken);
 
     const payload = {
       id: usuario.id,
+      id_rol: usuario.id_rol,
       cedula: usuario.cedula,
       nombre: usuario.nombre,
       apellido: usuario.apellido,

@@ -31,7 +31,7 @@ export class LaboratorioComponent implements OnInit, OnDestroy {
   readonly DollarSign = DollarSign;
   readonly XCircle = XCircle;
 
-  pageSize = 4;
+  pageSize = 6;
   currentPage = 1;
 
   sidebarOpen = false;
@@ -116,18 +116,16 @@ export class LaboratorioComponent implements OnInit, OnDestroy {
       next: (data) => {
         const items = data || [];
         this.ultimasAdmisiones = items.filter(a => {
-          if ([5, 6, 7].includes(Number(a.id_estado_actual))) return false;
+          if ([6, 9].includes(Number(a.id_estado_actual))) return false;
           
           const servicioLower = (a.nombre_servicio || '').toLowerCase();
           const esLaboratorio = servicioLower.includes('laboratorio');
-          const esImagenes = servicioLower.includes('imágenes') || servicioLower.includes('imagenes');
-          const esConsulta = !esLaboratorio && !esImagenes && a.nombre_servicio !== 'SIN ASIGNAR';
 
           const modalidadPagoLower = (a.modalidad_pago || '').toLowerCase();
-          const esSeguro = modalidadPagoLower === 'seguro';
+          const esSeguro = modalidadPagoLower === 'seguro' || modalidadPagoLower.includes('asegur');
           const esParticular = modalidadPagoLower === 'particular';
 
-          if (esLaboratorio) return esParticular;
+          if (esLaboratorio) return esParticular || esSeguro;
           return false;
         });
       },

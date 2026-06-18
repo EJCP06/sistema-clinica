@@ -117,7 +117,7 @@ export class ApsComponent implements OnInit, OnDestroy {
       next: (data) => {
         const items = data || [];
         this.ultimasAdmisiones = items.filter(a => {
-          if ([6].includes(Number(a.id_estado_actual))) return false;
+          if ([6, 9].includes(Number(a.id_estado_actual))) return false;
           
           const servicioLower = (a.nombre_servicio || '').toLowerCase();
           const esLaboratorio = servicioLower.includes('laboratorio');
@@ -209,23 +209,23 @@ export class ApsComponent implements OnInit, OnDestroy {
   }
 
   async marcarAusente(admision: any) {
-    const result = await this.swal.confirm('¿Deseas marcar este paciente como ausente?', '¿Estás seguro?');
+    const result = await this.swal.confirm('¿Quieres retirar al paciente?', '¿Estás seguro?');
     if (!result.isConfirmed) return;
 
-    this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== admision.id_atencion);
     this.marcandoAusente = true;
 
-    if (admision.id_estado_actual !== 7) {
-      this.api.put(`recepcion/atencion/${admision.id_atencion}/marcar_ausente`, {}).pipe(
-        finalize(() => this.marcandoAusente = false)
-      ).subscribe({
-        error: () => {
-          this.swal.error('Error al marcar como ausente en la base de datos');
-        },
-      });
-    } else {
-      this.marcandoAusente = false;
-    }
+    this.api.put(`recepcion/atencion/${admision.id_atencion}/marcar_ausente`, {}).pipe(
+      finalize(() => this.marcandoAusente = false)
+    ).subscribe({
+      next: () => {
+        this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== admision.id_atencion);
+        this.api.cambios$.next({ id_atencion: admision.id_atencion });
+        this.swal.success('Paciente retirado correctamente');
+      },
+      error: () => {
+        this.swal.error('Error al retirar paciente');
+      },
+    });
   }
 
   esAseguradora(dto: { modalidad_pago?: string }): boolean {

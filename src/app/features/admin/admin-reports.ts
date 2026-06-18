@@ -69,6 +69,7 @@ export class AdminReports implements OnInit, OnDestroy {
   currentPage = 1;
 
   turnos: ReporteDiarioDTO['turnos'] = [];
+  turnosOriginal: ReporteDiarioDTO['turnos'] = [];
   sedes: SedeDTO[] = [];
   totalHoy = 0;
   totalAtendidos = 0;
@@ -96,6 +97,7 @@ export class AdminReports implements OnInit, OnDestroy {
     this.apiService.getReporteDiario().subscribe({
       next: (rep: ReporteDiarioDTO) => {
         console.log('Reporte diario recibido:', rep);
+        this.turnosOriginal = rep.turnos ?? [];
         this.turnos = (rep.turnos ?? []).filter(t => t.estado?.toUpperCase() !== 'ATENDIDO');
         this.totalHoy = rep.total ?? 0;
         this.totalAtendidos = rep.estadisticas?.atendidos ?? 0;
@@ -148,7 +150,7 @@ export class AdminReports implements OnInit, OnDestroy {
     doc.text(`Generado: ${fecha} a las ${hora}  |  Por: ${nombreUsuario}  |  Sede: ${nombreSede}`, pageWidth / 2, 26, { align: 'center' });
 
     // --- SORT TURNOS: extract numeric part from numero and sort ascending ---
-    const sortedTurnos = [...(this.turnos ?? [])].sort((a, b) => {
+    const sortedTurnos = [...(this.turnosOriginal ?? [])].sort((a, b) => {
       const numA = parseInt((a.numero || String(a.id)).replace(/[^0-9]/g, ''), 10) || 0;
       const numB = parseInt((b.numero || String(b.id)).replace(/[^0-9]/g, ''), 10) || 0;
       return numA - numB;

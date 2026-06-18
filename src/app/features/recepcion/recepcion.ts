@@ -391,7 +391,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
           this.ultimasAdmisiones = (data || []).filter((admision: any) => {
              const estadoActual = admision.id_estado_actual;
-             return estadoActual !== 5 && estadoActual !== 6 && estadoActual !== 7;
+              return estadoActual !== 5 && estadoActual !== 6 && estadoActual !== 7 && estadoActual !== 9;
            });
 
          this.appRef.tick();
@@ -591,6 +591,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   }
 
   seleccionarPaciente(paciente: any) {
+    this.mostrarResultadosBusqueda = false;
     this.pacienteExistenteCargado = true;
     this.isEditMode = false;
     this.abrirModalRegistro();

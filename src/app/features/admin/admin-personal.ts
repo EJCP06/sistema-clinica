@@ -323,15 +323,15 @@ export class AdminPersonal implements OnInit {
   }
 
   async eliminarPersonal(id: number) {
-    const result = await this.swal.confirmDelete('¿Desactivar este usuario?');
+    const result = await this.swal.confirmDelete('¿Eliminar este usuario?');
     if (!result.isConfirmed) return;
     this.apiService.eliminarPersonal(id).subscribe({
       next: () => {
         this.cargarPersonal();
-        this.swal.success('Personal desactivado correctamente');
+        this.swal.success('Personal eliminado correctamente');
       },
       error: () => {
-        this.swal.error('Error al desactivar personal');
+        this.swal.error('Error al eliminar personal');
       },
     });
   }

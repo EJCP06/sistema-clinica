@@ -152,9 +152,12 @@ export class Sidebar implements OnInit {
 
   logout() {
     this.cargando = true;
+    const MIN_CARGANDO = 800;
+
     setTimeout(() => {
       this.auth.logout();
-    }, 800);
+      this.cargando = false;
+    }, MIN_CARGANDO);
   }
 
   onClose() {

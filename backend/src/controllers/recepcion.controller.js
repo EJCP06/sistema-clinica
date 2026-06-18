@@ -42,23 +42,23 @@ const marcarAusente = async (req, res) => {
 
     const idEstadoActual = atencion.id_estado_actual;
     
-    if (![2, 3, 8].includes(idEstadoActual)) {
-      return res.status(400).json({ mensaje: 'Solo se pueden marcar ausentes pacientes en estados 2 (En Espera), 3 (Llamado) o 8 (Aseguradora)' });
+    if (![2, 3, 7, 8].includes(idEstadoActual)) {
+      return res.status(400).json({ mensaje: 'Solo se pueden retirar pacientes en estados válidos' });
     }
 
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
       
-      const result = await atencionRepo.marcarAusente(client, id);
+      const result = await atencionRepo.marcarAusente(client, id, 9);
       
       await client.query('COMMIT');
       
       if (req.io) req.io.emit('estado-actualizado', { id_atencion: id });
       
-      await historialRepo.insertSinTransaccion(id, 7);
+      await historialRepo.insertSinTransaccion(id, 9);
       
-      res.json({ mensaje: 'Paciente marcado como ausente correctamente' });
+      res.json({ mensaje: 'Paciente retirado correctamente' });
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;

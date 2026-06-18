@@ -250,7 +250,8 @@ INSERT INTO "Estado" ("id_estado", "nombre_estado") VALUES
   (5, 'En Atencion'),
   (6, 'Atendido'),
   (7, 'Ausente'),
-  (8, 'Espera de clave');
+  (8, 'Espera de clave'),
+  (9, 'Retirado');
 
 -- CONSULTORIOS
 INSERT INTO "Consultorios" ("id_consultorio", "nombre", "piso", "id_servicio", "id_sede", "estado_fisico") VALUES

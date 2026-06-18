@@ -73,13 +73,14 @@
               <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ t.paciente.documento || 'Sin asignar' }}</td>
               <td class="px-3 md:px-6 py-3 md:py-4 text-center">
                 <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [ngClass]="{
-                  'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20': t.estado === 'Registrado',
-                  'bg-teal-50 text-teal-600 border-teal-200 dark:bg-teal-500/10 dark:text-teal-400 dark:border-teal-500/20': t.estado === 'En Caja',
-                  'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20': t.estado === 'Sala de Espera',
-                  'bg-sky-50 text-sky-600 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20': t.estado === 'Llamado' || t.estado === 'En Atención',
-                  'bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20': t.estado === 'Atendido',
-                  'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20': t.estado === 'Ausente',
-                  'bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20': t.estado === 'Espera de clave'
+                  'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-0': t.estado === 'Registrado',
+                  'bg-teal-50 text-teal-600 border-teal-200 dark:bg-teal-500/10 dark:text-teal-400 dark:border-0': t.estado === 'En Caja',
+                  'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-0': t.estado === 'Sala de Espera',
+                  'bg-sky-50 text-sky-600 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-0': t.estado === 'Llamado' || t.estado === 'En Atención',
+                  'bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-0': t.estado === 'Atendido',
+                  'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-0': t.estado === 'Ausente',
+                  'bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-0': t.estado === 'Espera de clave',
+                  'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-0': t.estado === 'Retirado'
                 }">{{ t.estado }}</span>
               </td>
               <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold uppercase text-center">{{ t.servicio_nombre || 'Sin asignar' }}</td>
