@@ -44,6 +44,7 @@ import { Header } from '../../shared/components/header/header';
 import { PaginationComponent } from '../../shared/components/pagination/pagination';
 import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
 import { FillersPipe } from '../../shared/pipes/fillers.pipe';
+import { SedeDTO } from '@core/models/dto.models';
 
 
 @Component({
@@ -124,6 +125,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   aseguradoras: any[] = [];
   medicos: any[] = [];
   consultorios: any[] = [];
+  sedes: SedeDTO[] = [];
 
   get admisionesFiltradas() {
     if (this.isAseguradorasView) {
@@ -219,6 +221,43 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     } else {
       this.scrollService.unblock();
     }
+  }
+
+  // --- Preview Modal ---
+  showPreviewModal = false;
+  previewData: any[] = [];
+
+  // --- Sede Mapping ---
+  getSedeNombre(id_sede: number | string | null | undefined): string {
+    if (id_sede === undefined || id_sede === null || id_sede === '') return 'SIN ASIGNAR';
+    const finalId = Number(id_sede);
+    if (isNaN(finalId)) return 'SIN ASIGNAR';
+    const sede = this.sedes.find((s: SedeDTO) => Number(s.id_sede) === finalId || Number(s.id) === finalId);
+    if (!sede) return 'SIN ASIGNAR';
+    return sede.nombre.toUpperCase();
+  }
+
+  confirmarImportacion() {
+    // Apply sede mapping to preview data
+    const mappedData = this.previewData.map(row => {
+      const mappedRow = { ...row };
+      if (row.id_sede !== undefined && row.id_sede !== null) {
+        mappedRow.id_sede = this.getSedeNombre(row.id_sede);
+      }
+      return mappedRow;
+    });
+
+    this.api.importarAseguradoras({ rows: mappedData }).subscribe({
+      next: (res: any) => {
+        this.cargarAseguradoras();
+        this.swal.success(res.mensaje || `Importación exitosa: ${res.importados || this.previewData.length} registros`);
+        this.showPreviewModal = false;
+        this.previewData = [];
+      },
+      error: (err) => {
+        this.swal.error(err.error?.mensaje || 'Error al importar datos');
+      },
+    });
   }
 
   private modalTrigger: HTMLElement | null = null;
@@ -428,15 +467,8 @@ export class RecepcionComponent implements OnInit, OnDestroy {
             return;
           }
 
-          this.api.importarAseguradoras({ rows }).subscribe({
-            next: (res: any) => {
-              this.cargarAseguradoras();
-              this.swal.success(res.mensaje || `Importación exitosa: ${res.importados || rows.length} registros`);
-            },
-            error: (err) => {
-              this.swal.error(err.error?.mensaje || 'Error al importar datos');
-            },
-          });
+          this.previewData = rows;
+          this.showPreviewModal = true;
         } catch (err) {
           this.swal.error('Error al leer el archivo Excel');
           console.error(err);

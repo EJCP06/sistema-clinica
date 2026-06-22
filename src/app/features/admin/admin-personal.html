@@ -60,8 +60,8 @@
           <table class="w-full min-w-[800px] text-left text-sm">
             <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
               <tr class="h-[52px] md:h-[64px] text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
-                <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombre</th>
-                <th class="px-3 md:px-6 py-3 md:py-4 text-center">Apellido</th>
+                <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombres</th>
+                <th class="px-3 md:px-6 py-3 md:py-4 text-center">Apellidos</th>
                 <th class="px-3 md:px-6 py-3 md:py-4 text-center">Cédula</th>
                 <th class="px-3 md:px-6 py-3 md:py-4 text-center">Rol</th>
                 <th class="px-3 md:px-6 py-3 md:py-4 text-center">Teléfono</th>
@@ -73,8 +73,8 @@
             <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
               <ng-container *ngFor="let p of personalFiltrados | paginate: currentPage : pageSize; trackBy: trackById">
                 <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
-                  <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ p.nombre || 'SIN ASIGNAR' }}</td>
-                  <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ p.apellido || 'SIN ASIGNAR' }}</td>
+                  <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ (p.primer_nombre || '') + (p.segundo_nombre ? ' ' + p.segundo_nombre : '') || p.nombre || 'SIN ASIGNAR' }}</td>
+                  <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ (p.primer_apellido || '') + (p.segundo_apellido ? ' ' + p.segundo_apellido : '') || p.apellido || 'SIN ASIGNAR' }}</td>
                   <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ p.cedula || 'SIN ASIGNAR' }}</td>
                   <td class="px-3 md:px-6 py-3 md:py-4 text-center">
                     <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [ngClass]="getRolBadgeClass(p.rol)">{{ getRolLabel(p.rol) }}</span>
@@ -114,7 +114,69 @@
           [pageSize]="pageSize"
           (pageChange)="currentPage = $event"
         ></app-pagination>
+          </div>
+        </div>
       </div>
+</div>
+
+<!-- Modal de Previsualización -->
+<div *ngIf="showPreviewModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" (click)="showPreviewModal = false"></div>
+  <div class="bg-white rounded-[32px] shadow-2xl w-full max-w-4xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 flex flex-col max-h-[90vh]">
+    <div class="bg-emerald-600 p-6 text-white flex items-center justify-between border-b border-emerald-500/50">
+      <h2 class="text-xl font-black tracking-tight text-white">Vista Previa de Importación</h2>
+      <button (click)="showPreviewModal = false" class="p-2 hover:bg-white/10 rounded-lg transition-colors"><lucide-icon [name]="XCircle" class="w-5 h-5 text-white"></lucide-icon></button>
+    </div>
+    <div class="p-4 md:p-8 flex-1 overflow-y-auto">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead>
+            <tr class="bg-slate-50 text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
+              <th class="px-4 py-3" *ngFor="let key of (previewData[0] | keyvalue)">{{ key.key }}</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr *ngFor="let row of previewData" class="hover:bg-slate-50">
+              <td class="px-4 py-3 text-slate-700" *ngFor="let col of (row | keyvalue)">{{ col.value }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+      <button (click)="showPreviewModal = false" class="px-6 py-3 bg-slate-200 hover:bg-slate-300 rounded-xl font-bold text-sm">Cancelar</button>
+      <button (click)="confirmarImportacion()" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm">Confirmar Importación</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Previsualización Importación Personal -->
+<div *ngIf="showPreviewModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" (click)="showPreviewModal = false"></div>
+  <div class="bg-white rounded-[32px] shadow-2xl w-full max-w-4xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 flex flex-col max-h-[90vh]">
+    <div class="bg-emerald-600 p-6 text-white flex items-center justify-between border-b border-emerald-500/50">
+      <h2 class="text-xl font-black tracking-tight text-white">Vista Previa de Importación</h2>
+      <button (click)="showPreviewModal = false" class="p-2 hover:bg-white/10 rounded-lg transition-colors"><lucide-icon [name]="XCircle" class="w-5 h-5 text-white"></lucide-icon></button>
+    </div>
+    <div class="p-4 md:p-8 flex-1 overflow-y-auto">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead>
+            <tr class="bg-slate-50 text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
+              <th class="px-4 py-3" *ngFor="let key of (previewData[0] | keyvalue)">{{ key.key }}</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr *ngFor="let row of previewData" class="hover:bg-slate-50">
+              <td class="px-4 py-3 text-slate-700" *ngFor="let col of (row | keyvalue)">{{ col.value }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+      <button (click)="showPreviewModal = false" class="px-6 py-3 bg-slate-200 hover:bg-slate-300 rounded-xl font-bold text-sm">Cancelar</button>
+      <button (click)="confirmarImportacion()" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm">Confirmar Importación</button>
     </div>
   </div>
 </div>

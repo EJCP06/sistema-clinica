@@ -45,6 +45,6 @@ router.post('/generar-turno', [
 router.put('/atencion/:id', ctrl.actualizarAtencion);
 router.put('/atencion/:id/estado', ctrl.actualizarEstadoAtencion);
 router.delete('/atencion/:id', ctrl.eliminarAtencion);
-router.put('/atencion/:id/marcar_ausente', perm('COORDINADOR_AYUDA'), ctrl.marcarAusente);
+router.put('/atencion/:id/marcar_ausente', perm('COORDINADOR_AYUDA', 'LABORATORIO_TOTAL', 'IMAGENES_TOTAL'), ctrl.marcarAusente);
 
 module.exports = router;

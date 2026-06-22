@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, HostListener, ElementRef, inject, Destroy
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronDown, Undo2, DollarSign, XCircle } from 'lucide-angular';
+import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronDown, Undo2, DollarSign, XCircle, Trash2 } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { SwalService } from '../../core/services/swal.service';
@@ -30,6 +30,7 @@ export class LaboratorioComponent implements OnInit, OnDestroy {
   readonly Undo2 = Undo2;
   readonly DollarSign = DollarSign;
   readonly XCircle = XCircle;
+  readonly Trash2 = Trash2;
 
   pageSize = 6;
   currentPage = 1;
@@ -189,12 +190,18 @@ export class LaboratorioComponent implements OnInit, OnDestroy {
     });
   }
 
-  async marcarAusente(id_atencion: number) {
-    const result = await this.swal.confirm('¿Marcar este paciente como ausente?');
+  async marcarAusente(admision: any) {
+    const result = await this.swal.confirm('¿Quieres retirar al paciente?', '¿Estás seguro?');
     if (!result.isConfirmed) return;
-    this.api.actualizarEstadoAtencion(id_atencion, 7).subscribe({
-      next: () => this.cargarUltimasAdmisiones(),
-      error: (err) => this.swal.error(err.error?.mensaje || 'Error al marcar ausente')
+    this.api.put(`recepcion/atencion/${admision.id_atencion}/marcar_ausente`, {}).subscribe({
+      next: () => {
+        this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== admision.id_atencion);
+        this.api.cambios$.next({ id_atencion: admision.id_atencion });
+        this.swal.success('Paciente retirado correctamente');
+      },
+      error: () => {
+        this.swal.error('Error al retirar paciente');
+      },
     });
   }
 
