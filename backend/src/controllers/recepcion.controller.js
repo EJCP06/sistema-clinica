@@ -36,8 +36,8 @@ const marcarAusente = async (req, res) => {
 
     const usuario = req.usuario;
     
-    if (!usuario || (usuario.rol !== 'coordinador' && usuario.rol !== 'administrador')) {
-      return res.status(403).json({ mensaje: 'Solo los coordinadores pueden marcar pacientes como ausentes' });
+    if (!usuario || (usuario.rol !== 'coordinador' && usuario.rol !== 'administrador' && usuario.rol !== 'laboratorio' && usuario.rol !== 'imagenes')) {
+      return res.status(403).json({ mensaje: 'No tienes permiso para marcar pacientes como ausentes' });
     }
 
     const idEstadoActual = atencion.id_estado_actual;

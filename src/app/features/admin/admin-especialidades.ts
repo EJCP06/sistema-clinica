@@ -64,7 +64,28 @@ export class AdminEspecialidades implements OnInit {
   showSearchFilterDropdown = false;
   showSedeDropdown = false;
 
+  // --- Sede Mapping ---
+  getSedeNombre(id_sede: number | string | null | undefined, forDropdown = false): string {
+    if (id_sede === undefined || id_sede === null || id_sede === '') return forDropdown ? 'Seleccione...' : 'SIN ASIGNAR';
+    const finalId = Number(id_sede);
+    if (isNaN(finalId)) return forDropdown ? 'Seleccione...' : 'SIN ASIGNAR';
+    const sede = this.sedes.find((s) => Number(s.id_sede) === finalId || Number(s.id) === finalId);
+    if (!sede) return forDropdown ? 'Seleccione...' : 'SIN ASIGNAR';
+    return forDropdown ? this.toTitleCase(sede.nombre) : sede.nombre.toUpperCase();
+  }
+
+  getSedeIdByName(nombre: string): number | null {
+    if (!nombre) return null;
+    const normalized = nombre.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const sede = this.sedes.find((s) => 
+      (s.nombre || '').toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '') === normalized
+    );
+    return sede ? Number(sede.id_sede || sede.id) : null;
+  }
+
   showModalEspecialidad = false;
+  showPreviewModal = false;
+  previewData: any[] = [];
   isEditing = false;
   editingId: number | null = null;
   isSaving = false;
@@ -316,15 +337,18 @@ export class AdminEspecialidades implements OnInit {
             return;
           }
 
-          this.apiService.importarEspecialidades({ rows }).subscribe({
-            next: (res: any) => {
-              this.cargarEspecialidades();
-              this.swal.success(res.mensaje || `Importación exitosa: ${res.importados || rows.length} registros`);
-            },
-            error: (err) => {
-              this.swal.error(err.error?.mensaje || 'Error al importar datos');
-            },
-          });
+          // Validación de estructura
+          const headers = Object.keys(rows[0]).map(h => h.toLowerCase().trim());
+          const required = ['nombre', 'prefijo', 'piso', 'sede'];
+          const missing = required.filter(col => !headers.some(h => h === col));
+
+          if (missing.length > 0) {
+            this.swal.error('El archivo Excel no parece ser de Especialidades. Faltan columnas requeridas: ' + missing.join(', ') + '. El estado (activo/inactivo) se asigna automáticamente.');
+            return;
+          }
+
+          this.previewData = rows;
+          this.showPreviewModal = true;
         } catch (err) {
           this.swal.error('Error al leer el archivo Excel');
           console.error(err);
@@ -336,6 +360,33 @@ export class AdminEspecialidades implements OnInit {
     });
 
     fileInput.value = '';
+  }
+
+  confirmarImportacion() {
+    // Apply sede mapping to preview data
+    const mappedData = this.previewData.map(row => {
+      const mappedRow = { ...row };
+      // Convertir nombre de sede a ID (acepta "Santa Mónica", "Plaza Sucre", etc.)
+      if (row.sede !== undefined && row.sede !== null && row.sede !== '') {
+        const sedeId = this.getSedeIdByName(row.sede);
+        if (sedeId) mappedRow.id_sede = sedeId;
+      }
+      // Default activo = true si no viene en el Excel
+      mappedRow.activo = true;
+      return mappedRow;
+    });
+
+    this.apiService.importarEspecialidades({ rows: mappedData }).subscribe({
+      next: (res: any) => {
+        this.cargarEspecialidades();
+        this.swal.success(res.mensaje || `Importación exitosa: ${res.importados || this.previewData.length} registros`);
+        this.showPreviewModal = false;
+        this.previewData = [];
+      },
+      error: (err) => {
+        this.swal.error(err.error?.mensaje || 'Error al importar datos');
+      },
+    });
   }
 
   trackById = (index: number, item: EspecialidadDTO) => item?.id ?? item?.id_especialidad ?? index;

@@ -667,8 +667,39 @@
               </button>
             </div>
           </div>
+      </div>
+    </div>
+
+    <!-- Modal de Previsualización -->
+    <div *ngIf="showPreviewModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" (click)="showPreviewModal = false"></div>
+      <div class="bg-white rounded-[32px] shadow-2xl w-full max-w-4xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 flex flex-col max-h-[90vh]">
+        <div class="bg-emerald-600 p-6 text-white flex items-center justify-between border-b border-emerald-500/50">
+          <h2 class="text-xl font-black tracking-tight text-white">Vista Previa de Importación</h2>
+          <button (click)="showPreviewModal = false" class="p-2 hover:bg-white/10 rounded-lg transition-colors"><lucide-icon [name]="XCircle" class="w-5 h-5 text-white"></lucide-icon></button>
+        </div>
+        <div class="p-4 md:p-8 flex-1 overflow-y-auto">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead>
+                <tr class="bg-slate-50 text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
+                  <th class="px-4 py-3" *ngFor="let key of (previewData[0] | keyvalue)">{{ key.key }}</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr *ngFor="let row of previewData" class="hover:bg-slate-50">
+                  <td class="px-4 py-3 text-slate-700" *ngFor="let col of (row | keyvalue)">{{ col.value }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+          <button (click)="showPreviewModal = false" class="px-6 py-3 bg-slate-200 hover:bg-slate-300 rounded-xl font-bold text-sm">Cancelar</button>
+          <button (click)="confirmarImportacion()" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm">Confirmar Importación</button>
         </div>
       </div>
+    </div>
 
       <!-- PANEL DE CONTROL -->
       <div class="mt-12 animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">

@@ -130,6 +130,18 @@ const importarEspecialidades = async (req, res) => {
   let omitidos = 0;
   let errores = 0;
 
+  // Obtener mapeo de sedes: { "nombre": id } (Normalizado: minúsculas y sin acentos)
+  const sedesResult = await db.query('SELECT id_sede, nombre FROM "Sedes"');
+  const mapaSedes = {};
+  sedesResult.rows.forEach(s => {
+    const nombreNormalizado = s.nombre
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim();
+    mapaSedes[nombreNormalizado] = s.id_sede;
+  });
+
   // Obtener nombres existentes para evitar duplicados
   const nombresExcel = rows.map(r =>
     (r.nombre || r.Nombre || r.NOMBRE || '').toString().toUpperCase().trim()
@@ -145,7 +157,25 @@ const importarEspecialidades = async (req, res) => {
       const nombre = (row.nombre || row.Nombre || row.NOMBRE || '').toString().toUpperCase().trim();
       const prefijo = (row.prefijo || row.Prefijo || row.PREFIJO || '').toString().toUpperCase().trim();
       const piso = (row.piso || row.Piso || row.PISO || '').toString().replace(/\D/g, '');
-      const idSede = row.id_sede || row.sede || row.Sede || row.SEDE || 1;
+      
+      // Lógica inteligente para la sede (Normalizada)
+      const nombreSedeRaw = (row.sede || row.Sede || row.SEDE || '').toString();
+      const nombreSedeNormalizado = nombreSedeRaw
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+      const idSede = mapaSedes[nombreSedeNormalizado] || 1; 
+
+      // Lógica inteligente para el estado activo (Normalizada)
+      const valorActivoRaw = (row.activo || row.Activo || row.ACTIVO || true).toString();
+      const valorActivoNormalizado = valorActivoRaw
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+      
+      const esActivo = valorActivoNormalizado === 'verdadero' || valorActivoNormalizado === 'true';
 
       if (!nombre) {
         errores++;
@@ -162,7 +192,7 @@ const importarEspecialidades = async (req, res) => {
         await client.query(
           `INSERT INTO "Especialidades" (nombre, prefijo, id_servicio, id_sede, piso, activo)
            VALUES ($1, $2, $3, $4, $5, $6)`,
-          [nombre, prefijo || null, 1, Number(idSede), piso || null, row.activo !== undefined ? !!row.activo : true],
+          [nombre, prefijo || null, 1, Number(idSede), piso || null, esActivo],
         );
         importados++;
       } finally {

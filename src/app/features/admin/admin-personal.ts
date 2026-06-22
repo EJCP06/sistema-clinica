@@ -122,6 +122,10 @@ export class AdminPersonal implements OnInit {
   private readonly MIN_GUARDADO = 800;
   showPassword = false;
 
+  // --- Preview Modal ---
+  showPreviewModal = false;
+  previewData: any[] = [];
+
   formPersonal: {
     rol: string;
     username: string;
@@ -484,6 +488,15 @@ export class AdminPersonal implements OnInit {
     return sede ? sede.nombre : '';
   }
 
+  getSedeIdByName(nombre: string): number | null {
+    if (!nombre) return null;
+    const normalized = nombre.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const sede = this.sedes.find((s) => 
+      (s.nombre || '').toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '') === normalized
+    );
+    return sede ? Number(sede.id_sede || sede.id) : null;
+  }
+
   formatPiso(piso?: string | null): string {
     const p = (piso || '').toString();
     const num = p.replace(/\D/g, '');
@@ -561,26 +574,52 @@ export class AdminPersonal implements OnInit {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
           const workbook = XLSX.read(data, { type: 'array' });
           const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          const rows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+          const rowsRaw: Record<string, unknown>[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
 
-          if (rows.length === 0) {
+          if (rowsRaw.length === 0) {
             this.swal.error('El archivo Excel está vacío');
             return;
           }
 
-          const rol = this.formPersonal.rol || 'medico';
+          // Mapa de sinónimos para normalizar cabeceras
+          const headerMap: Record<string, string[]> = {
+            nombre: ['nombre', 'nombre completo', 'nombre y apellido', 'nombre personal'],
+            cedula: ['cedula', 'cédula', 'dni', 'identificación', 'documento'],
+            rol: ['rol', 'cargo', 'puesto', 'rol usuario'],
+            telefono: ['telefono', 'teléfono', 'tel', 'celular', 'contacto'],
+            email: ['email', 'correo', 'correo electrónico', 'email usuario'],
+            sede: ['sede', 'sucursalmacen', 'id_sede', 'sede id']
+          };
 
-          const body = { rows, rol };
+          const actualHeaders = Object.keys(rowsRaw[0]).map(h => 
+            h.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+          );
 
-          this.apiService.importarPersonal(body).subscribe({
-            next: (res: any) => {
-              this.cargarPersonal();
-              this.swal.success(res.mensaje || `Importación exitosa: ${res.importados || rows.length} registros`);
-            },
-            error: (err) => {
-              this.swal.error(err.error?.mensaje || 'Error al importar datos');
-            },
+          const normalizedRows: any[] = rowsRaw.map(row => {
+            const normalizedRow: any = {};
+            Object.entries(headerMap).forEach(([standardKey, synonyms]) => {
+              const foundHeader = Object.keys(row).find(h => {
+                const normalizedH = h.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                return synonyms.includes(normalizedH);
+              });
+              normalizedRow[standardKey] = foundHeader ? row[foundHeader] : '';
+            });
+            return normalizedRow;
           });
+
+          // Verificar si faltan columnas esenciales basándonos en el mapeo
+          const missing = Object.keys(headerMap).filter(standardKey => {
+            const synonyms = headerMap[standardKey];
+            return !actualHeaders.some(h => synonyms.includes(h));
+          });
+
+          if (missing.length > 0) {
+            this.swal.error('El archivo Excel no parece ser de Personal. Faltan columnas requeridas: ' + missing.join(', ') + '. El estado (activo/inactivo) se asigna automáticamente.');
+            return;
+          }
+
+          this.previewData = normalizedRows;
+          this.showPreviewModal = true;
         } catch (err) {
           this.swal.error('Error al leer el archivo Excel');
           console.error(err);
@@ -592,6 +631,36 @@ export class AdminPersonal implements OnInit {
     });
 
     fileInput.value = '';
+  }
+
+  confirmarImportacion() {
+    // Apply sede mapping to preview data
+    const mappedData = this.previewData.map(row => {
+      const mappedRow = { ...row };
+      // Convertir nombre de sede a ID (acepta "Santa Mónica", "Plaza Sucre", etc.)
+      if (row.sede !== undefined && row.sede !== null && row.sede !== '') {
+        const sedeId = this.getSedeIdByName(row.sede);
+        if (sedeId) mappedRow.id_sede = sedeId;
+      }
+      // Default activo = true si no viene en el Excel
+      mappedRow.activo = true;
+      return mappedRow;
+    });
+
+    const rol = this.formPersonal.rol || 'medico';
+    const body = { rows: mappedData, rol };
+
+    this.apiService.importarPersonal(body).subscribe({
+      next: (res: any) => {
+        this.cargarPersonal();
+        this.swal.success(res.mensaje || `Importación exitosa: ${res.importados || this.previewData.length} registros`);
+        this.showPreviewModal = false;
+        this.previewData = [];
+      },
+      error: (err) => {
+        this.swal.error(err.error?.mensaje || 'Error al importar datos');
+      },
+    });
   }
 
   trackById = (index: number, item: PersonalDTO) => (item as any)?.id ?? (item as any)?.id_usuario ?? index;
