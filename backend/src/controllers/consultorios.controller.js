@@ -81,7 +81,7 @@ const llamarSiguiente = async (req, res) => {
     } else {
       // Otros roles: requieren consultorio
       if (!consultorioId) { await client.query('ROLLBACK'); return res.status(400).json({ mensaje: 'Usuario sin consultorio' }); }
-      const consultorio = await consultorioRepo.getConsultorioById(consultorioId);
+      const consultorio = await consultorioRepo.getConsultorioById(client, consultorioId);
       if (!consultorio) throw new Error('Consultorio no encontrado');
       if (consultorio.estado !== 'LIBRE') { await client.query('ROLLBACK'); return res.status(400).json({ mensaje: 'El consultorio debe estar LIBRE para llamar' }); }
       servicioId = consultorio.servicio_id;

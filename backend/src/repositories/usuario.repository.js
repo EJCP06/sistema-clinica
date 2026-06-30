@@ -101,7 +101,7 @@ const insertAdmin = async (hash, rolKey, nombre, apellido, cedula, idSede, statu
 const getPersonal = async (sede, rolKey) => {
   let query = `SELECT
       u.id_usuario, u.cedula, r.key as rol, u.id_rol,
-      u.primer_nombre AS nombre, u.primer_apellido AS apellido,
+      u.primer_nombre AS nombre, u.segundo_nombre, u.primer_apellido AS apellido, u.segundo_apellido,
       u.telefono, u.email,
       u.piso, u.id_consultorio, u.id_servicio, u.id_especialidad, u.id_sede, u.status,
       u.fecha_creacion, c.nombre AS consultorio_nombre, s.nombre_servicio AS servicio_nombre

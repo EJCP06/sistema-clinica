@@ -47,22 +47,34 @@ describe('recepcionController', () => {
 
   describe('crearPaciente', () => {
     test('debe retornar 400 si faltan campos', async () => {
-      req.body = { cedula: '', nombre: '', apellido: '' };
+      req.body = { cedula: '', primer_nombre: '', primer_apellido: '' };
       await ctrl.crearPaciente(req, res);
       expect(res.status).toHaveBeenCalledWith(400);
     });
 
     test('debe crear paciente exitosamente', async () => {
-      req.body = { cedula: '123', nombre: 'Juan', apellido: 'Pérez', telefono: '555' };
-      mockPool.query.mockResolvedValue({ rows: [{ id_paciente: 1, cedula: '123', nombre: 'Juan', apellido: 'Pérez', telefono: '555' }] });
+      req.body = { cedula: '123', primer_nombre: 'Juan', primer_apellido: 'Pérez', telefono: '555' };
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [{ id_paciente: 1, cedula: '123', primer_nombre: 'Juan', primer_apellido: 'Pérez', telefono: '555' }] });
       await ctrl.crearPaciente(req, res);
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ id_paciente: 1 }));
     });
 
+    test('debe retornar 409 si la cédula ya existe en la sede', async () => {
+      req.body = { cedula: '123', primer_nombre: 'Juan', primer_apellido: 'Pérez' };
+      mockPool.query.mockResolvedValueOnce({ rows: [{ id_paciente: 1, cedula: '123' }] });
+      await ctrl.crearPaciente(req, res);
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith({ mensaje: 'Ya existe un paciente con esa cédula en esta sede' });
+    });
+
     test('debe retornar 400 si la cédula ya existe (23505)', async () => {
-      req.body = { cedula: '123', nombre: 'Juan', apellido: 'Pérez' };
-      mockPool.query.mockRejectedValue({ code: '23505' });
+      req.body = { cedula: '123', primer_nombre: 'Juan', primer_apellido: 'Pérez' };
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [] })
+        .mockRejectedValueOnce({ code: '23505' });
       await ctrl.crearPaciente(req, res);
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({ mensaje: 'Ya existe un paciente con esa cédula' });
@@ -72,16 +84,16 @@ describe('recepcionController', () => {
   describe('actualizarPaciente', () => {
     test('debe retornar 404 si no encuentra el paciente', async () => {
       req.params = { id: '999' };
-      req.body = { nombre: 'Juan' };
-      mockPool.query.mockResolvedValue({ rowCount: 0 });
+      req.body = { primer_nombre: 'Juan' };
+      mockPool.query.mockResolvedValue({ rowCount: 0, rows: [] });
       await ctrl.actualizarPaciente(req, res);
       expect(res.status).toHaveBeenCalledWith(404);
     });
 
     test('debe actualizar paciente exitosamente', async () => {
       req.params = { id: '1' };
-      req.body = { nombre: 'Juan Updated', cedula: '123' };
-      mockPool.query.mockResolvedValue({ rowCount: 1, rows: [{ id_paciente: 1, cedula: '123', nombre: 'Juan Updated' }] });
+      req.body = { primer_nombre: 'Juan Updated', cedula: '123' };
+      mockPool.query.mockResolvedValue({ rowCount: 1, rows: [{ id_paciente: 1, cedula: '123', primer_nombre: 'Juan Updated' }] });
       await ctrl.actualizarPaciente(req, res);
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ id_paciente: 1 }));
     });

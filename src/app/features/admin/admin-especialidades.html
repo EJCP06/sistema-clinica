@@ -1,7 +1,7 @@
 <div class="space-y-8 animate-in fade-in duration-500">
   <div class="flex flex-col sm:flex-row justify-end items-stretch sm:items-center gap-3">
     <input #excelInput type="file" accept=".xlsx,.xls" (change)="importExcel(excelInput)" class="hidden" />
-    <button (click)="excelInput.click()" class="px-6 py-4 sm:py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 group whitespace-nowrap font-bold text-sm">
+    <button (click)="showExcelFormat = true" class="px-6 py-4 sm:py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 group whitespace-nowrap font-bold text-sm">
       <lucide-icon [name]="Upload" class="w-4 h-4"></lucide-icon>
       Importar Excel
     </button>
@@ -51,7 +51,7 @@
         <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
           <tr class="h-[52px] md:h-[64px] text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
             <th class="px-3 md:px-6 py-3 md:py-4 text-center">Prefijo</th>
-            <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombre de Especialidad</th>
+            <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombre de la Especialidad</th>
             <th class="px-3 md:px-6 py-3 md:py-4 text-center">Piso</th>
             <th class="px-3 md:px-6 py-3 md:py-4 text-center">Consultorio</th>
             <th class="px-3 md:px-6 py-3 md:py-4 text-center">Sede</th>
@@ -117,12 +117,20 @@
         <table class="w-full text-left text-sm">
           <thead>
             <tr class="bg-slate-50 text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
-              <th class="px-4 py-3" *ngFor="let key of (previewData[0] | keyvalue)">{{ key.key }}</th>
+              <th class="px-4 py-3">Prefijo</th>
+              <th class="px-4 py-3">Nombre de Especialidad</th>
+              <th class="px-4 py-3">Piso</th>
+              <th class="px-4 py-3">Consultorios</th>
+              <th class="px-4 py-3">Sede</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
             <tr *ngFor="let row of previewData" class="hover:bg-slate-50">
-              <td class="px-4 py-3 text-slate-700" *ngFor="let col of (row | keyvalue)">{{ col.value }}</td>
+              <td class="px-4 py-3 text-slate-700">{{ row.prefijo || '' }}</td>
+              <td class="px-4 py-3 text-slate-700">{{ row.nombre || '' }}</td>
+              <td class="px-4 py-3 text-slate-700">{{ row.piso || '' }}</td>
+              <td class="px-4 py-3 text-slate-700">{{ row.consultorio || '' }}</td>
+              <td class="px-4 py-3 text-slate-700">{{ row.sede || '' }}</td>
             </tr>
           </tbody>
         </table>
@@ -130,7 +138,88 @@
     </div>
     <div class="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
       <button (click)="showPreviewModal = false" class="px-6 py-3 bg-slate-200 hover:bg-slate-300 rounded-xl font-bold text-sm">Cancelar</button>
-      <button (click)="confirmarImportacion()" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm">Confirmar Importación</button>
+      <button [disabled]="isSaving" (click)="confirmarImportacion()" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl font-bold text-sm">
+        <span *ngIf="!isSaving" class="flex items-center gap-2">Confirmar Importación</span>
+        <div *ngIf="isSaving" class="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-[800ms]">
+          <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+          <span class="animate-pulse">Cargando...</span>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Formato Excel Especialidades -->
+<div *ngIf="showExcelFormat" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" (click)="showExcelFormat = false"></div>
+  <div class="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200">
+    <div class="bg-blue-600 p-6 text-white flex items-center justify-between border-b border-blue-500/50">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center"><lucide-icon [name]="Info" class="w-5 h-5 text-white"></lucide-icon></div>
+        <div>
+          <h2 class="text-xl font-black tracking-tight text-white">Importar Especialidades (Excel)</h2>
+          <p class="text-blue-100 text-[10px] uppercase font-bold tracking-widest mt-0.5">Columnas del archivo</p>
+        </div>
+      </div>
+      <button (click)="showExcelFormat = false" class="p-2 hover:bg-white/10 rounded-lg transition-colors"><lucide-icon [name]="XCircle" class="w-5 h-5 text-white"></lucide-icon></button>
+    </div>
+    <div class="p-6 md:p-8">
+      <p class="text-slate-600 text-sm mb-6">El archivo Excel debe tener las siguientes columnas:</p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead>
+            <tr class="bg-slate-50 text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
+              <th class="px-4 py-3">Columna</th>
+              <th class="px-4 py-3">Descripción</th>
+              <th class="px-4 py-3">Requerido</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr class="hover:bg-slate-50">
+              <td class="px-4 py-3 font-bold text-slate-800">Prefijo</td>
+              <td class="px-4 py-3 text-slate-600">Prefijo abreviado (ej: CARD)</td>
+              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600">Requerido</span></td>
+            </tr>
+            <tr class="hover:bg-slate-50">
+              <td class="px-4 py-3 font-bold text-slate-800">Nombre de la Especialidad</td>
+              <td class="px-4 py-3 text-slate-600">Nombre de la especialidad</td>
+              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600">Requerido</span></td>
+            </tr>
+            <tr class="hover:bg-slate-50">
+              <td class="px-4 py-3 font-bold text-slate-800">Piso</td>
+              <td class="px-4 py-3 text-slate-600">Número de piso</td>
+              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600">Requerido</span></td>
+            </tr>
+            <tr class="hover:bg-slate-50">
+              <td class="px-4 py-3 font-bold text-slate-800">Consultorio</td>
+              <td class="px-4 py-3 text-slate-600">Nombres de consultorio separados por coma (ej: 02, 05, 03)</td>
+              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600">Requerido</span></td>
+            </tr>
+            <tr class="hover:bg-slate-50">
+              <td class="px-4 py-3 font-bold text-slate-800">Sede</td>
+              <td class="px-4 py-3 text-slate-600">Plaza Sucre o Santa Mónica</td>
+              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600">Requerido</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+        <p class="text-amber-800 text-xs font-bold uppercase tracking-wider">Ejemplo de fila:</p>
+        <p class="text-amber-700 text-sm mt-1 font-mono">CARD, Cardiología, 1, 02, 05, Plaza Sucre</p>
+      </div>
+    </div>
+    <div class="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+      <button (click)="showExcelFormat = false" class="px-6 py-3 bg-slate-200 hover:bg-slate-300 rounded-xl font-bold text-sm">Cancelar</button>
+      <button [disabled]="isImporting" (click)="excelInput.click()" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl font-bold text-sm flex items-center gap-2">
+        <span *ngIf="!isImporting" class="flex items-center gap-2">
+          <lucide-icon [name]="Upload" class="w-4 h-4"></lucide-icon>
+          Subir Excel
+        </span>
+        <div *ngIf="isImporting" class="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-[800ms]">
+          <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+          <span class="animate-pulse">Cargando...</span>
+        </div>
+      </button>
     </div>
   </div>
 </div>
@@ -156,13 +245,13 @@
           <input [(ngModel)]="formEsp.nombre" (keypress)="soloLetras($event)" placeholder="Ej: Cardiología" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
         </div>
         <div class="space-y-1.5">
-          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Prefijo</label>
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Prefijo <span class="text-rose-500">*</span></label>
           <input [(ngModel)]="formEsp.prefijo" (keypress)="soloLetras($event)" placeholder="Ej: CARD" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium uppercase" />
         </div>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="space-y-1.5">
-          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Sede</label>
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Sede <span class="text-rose-500">*</span></label>
           <div class="relative sede-dropdown-container">
             <button type="button" (click)="toggleSedeDropdown()" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600">
               <span class="whitespace-nowrap truncate mr-2" [class.text-slate-400]="!formEsp.id_sede">{{ getSedeLabel(formEsp.id_sede, true) }}</span>
@@ -180,13 +269,13 @@
           </div>
         </div>
         <div class="space-y-1.5">
-          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Piso</label>
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Piso <span class="text-rose-500">*</span></label>
           <input type="text" [(ngModel)]="formEsp.piso" (keypress)="soloNumeros($event)" placeholder="Ej: 1" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
         </div>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div class="md:col-span-4 space-y-1.5">
-          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Consultorios</label>
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Consultorios <span class="text-rose-500">*</span></label>
           <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
             <div *ngFor="let c of consultorios" (click)="toggleConsultorioEsp(c.id)" class="flex items-center gap-2 px-3 py-2 border rounded-xl cursor-pointer transition-all" [class.bg-blue-50]="isConsultorioEspSelected(c.id)" [class.border-blue-300]="isConsultorioEspSelected(c.id)" [class.border-slate-200]="!isConsultorioEspSelected(c.id)">
 

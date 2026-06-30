@@ -39,6 +39,7 @@ import {
   Sun,
   Moon,
   Upload,
+  Info,
 } from 'lucide-angular';
 import { PaginationComponent } from '../../shared/components/pagination/pagination';
 import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
@@ -84,6 +85,7 @@ export class AdminPersonal implements OnInit {
   readonly Sun = Sun;
   readonly Moon = Moon;
   readonly Upload = Upload;
+  readonly Info = Info;
 
   private auth = inject(AuthService);
   private apiService = inject(ApiService);
@@ -108,7 +110,6 @@ export class AdminPersonal implements OnInit {
   showRolDropdown = false;
   showMedicoEspDropdown = false;
   showMedicoConDropdown = false;
-  showMedicoPisoDropdown = false;
   showSedeDropdown = false;
   showSearchFilterDropdown = false;
 
@@ -126,6 +127,9 @@ export class AdminPersonal implements OnInit {
   showPreviewModal = false;
   previewData: any[] = [];
 
+  showExcelFormat = false;
+  isImporting = false;
+
   formPersonal: {
     rol: string;
     username: string;
@@ -141,7 +145,6 @@ export class AdminPersonal implements OnInit {
     servicio_id: string | number;
     especialidad_id: string | number;
     consultorio_id: string | number;
-    piso: string;
     id_sede: string | number;
   } = {
     rol: '',
@@ -158,7 +161,6 @@ export class AdminPersonal implements OnInit {
     servicio_id: '',
     especialidad_id: '',
     consultorio_id: '',
-    piso: '',
     id_sede: '',
   };
 
@@ -225,13 +227,8 @@ export class AdminPersonal implements OnInit {
         servicio_id: user.servicio_id || '',
         especialidad_id: user.id_especialidad || '',
         consultorio_id: user.consultorio_id || '',
-        piso: user.piso || '',
         id_sede: user.id_sede || '',
       };
-      if (!this.formPersonal.piso && this.formPersonal.especialidad_id) {
-        const esp = this.especialidades.find(e => e.id == this.formPersonal.especialidad_id);
-        if (esp?.piso) this.formPersonal.piso = String(esp.piso);
-      }
     } else {
       this.formPersonal = {
         rol: '',
@@ -248,7 +245,6 @@ export class AdminPersonal implements OnInit {
         servicio_id: '',
         especialidad_id: '',
         consultorio_id: '',
-        piso: '',
         id_sede: '',
       };
     }
@@ -295,8 +291,6 @@ export class AdminPersonal implements OnInit {
       telefono: (this.formPersonal.telefono || '').toString().replace(/\D/g, ''),
       email: this.formPersonal.email ? this.formPersonal.email.toLowerCase().trim() : null,
       password: this.formPersonal.password ? this.formPersonal.password.replace(/\s/g, '') : null,
-      piso: (rol === 'medico' || rol === 'recepcionista' || rol === 'coordinador' || rol === 'analista' || rol === 'laboratorio' || rol === 'imagenes') && this.formPersonal.piso
-        ? this.formPersonal.piso.toString().trim() : null,
       id_sede: this.formPersonal.id_sede ? Number(this.formPersonal.id_sede) : 1,
       id_consultorio: rol === 'medico'
         ? (this.formPersonal.consultorio_id ? Number(this.formPersonal.consultorio_id) : null) : null,
@@ -349,8 +343,8 @@ export class AdminPersonal implements OnInit {
     return this.todoPersonal.filter((p) => {
       const query = this.normalize(this.searchQuery || '');
       if (!query) return true;
-      const matchNombre = this.normalize(p.nombre || p.primer_nombre || '').includes(query);
-      const matchApellido = this.normalize(p.apellido || p.primer_apellido || '').includes(query);
+      const matchNombre = this.normalize(((p.nombre || '') + ' ' + (p.segundo_nombre || '')).trim()).includes(query);
+      const matchApellido = this.normalize(((p.apellido || '') + ' ' + (p.segundo_apellido || '')).trim()).includes(query);
       const matchCedula = (p.cedula || '').toLowerCase().includes(this.searchQuery.toLowerCase());
       const matchRol = this.normalize(this.getRolLabel(p.rol)).includes(query);
       if (this.searchFilter === 'nombre') return matchNombre;
@@ -370,19 +364,11 @@ export class AdminPersonal implements OnInit {
   toggleMedicoConDropdown() {
     this.showMedicoConDropdown = !this.showMedicoConDropdown;
     this.showMedicoEspDropdown = false;
-    this.showMedicoPisoDropdown = false;
-  }
-
-  toggleMedicoPisoDropdown() {
-    this.showMedicoPisoDropdown = !this.showMedicoPisoDropdown;
-    this.showMedicoEspDropdown = false;
-    this.showMedicoConDropdown = false;
   }
 
   selectMedicoEsp(esp: EspecialidadDTO) {
     this.formPersonal.especialidad_id = esp.id ?? '';
     this.formPersonal.servicio_id = esp.id_servicio ?? '';
-    this.formPersonal.piso = esp.piso ?? '';
     this.formPersonal.consultorio_id = '';
     this.showMedicoEspDropdown = false;
   }
@@ -399,21 +385,10 @@ export class AdminPersonal implements OnInit {
     this.showMedicoConDropdown = false;
   }
 
-  selectMedicoPiso(piso: string) {
-    this.formPersonal.piso = piso;
-    this.showMedicoPisoDropdown = false;
-  }
-
-  getPisosDisponibles(): string[] {
-    const pisos = this.especialidades.map((e) => String(e.piso)).filter((p) => p);
-    return [...new Set(pisos)].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-  }
-
   toggleSedeDropdown() {
     this.showSedeDropdown = !this.showSedeDropdown;
     this.showMedicoEspDropdown = false;
     this.showMedicoConDropdown = false;
-    this.showMedicoPisoDropdown = false;
   }
 
   selectSede(id: number) {
@@ -497,12 +472,6 @@ export class AdminPersonal implements OnInit {
     return sede ? Number(sede.id_sede || sede.id) : null;
   }
 
-  formatPiso(piso?: string | null): string {
-    const p = (piso || '').toString();
-    const num = p.replace(/\D/g, '');
-    return num ? num : 'SIN ASIGNAR';
-  }
-
   toTitleCase(str: string): string {
     if (!str) return '';
     return str.toLowerCase().split(' ').map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
@@ -540,7 +509,6 @@ export class AdminPersonal implements OnInit {
     if (!target.closest('.search-filter-container')) this.showSearchFilterDropdown = false;
     if (!target.closest('.medico-esp-container')) this.showMedicoEspDropdown = false;
     if (!target.closest('.medico-con-container')) this.showMedicoConDropdown = false;
-    if (!target.closest('.medico-piso-container')) this.showMedicoPisoDropdown = false;
     if (!target.closest('.rol-dropdown-container')) this.showRolDropdown = false;
     if (!target.closest('.sede-dropdown-container')) this.showSedeDropdown = false;
   }
@@ -566,6 +534,8 @@ export class AdminPersonal implements OnInit {
   importExcel(fileInput: HTMLInputElement) {
     const file = fileInput?.files?.[0];
     if (!file) return;
+    this.showExcelFormat = false;
+    this.isImporting = true;
 
     import('xlsx').then(XLSX => {
       const reader = new FileReader();
@@ -577,17 +547,20 @@ export class AdminPersonal implements OnInit {
           const rowsRaw: Record<string, unknown>[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
 
           if (rowsRaw.length === 0) {
+            this.isImporting = false;
             this.swal.error('El archivo Excel está vacío');
             return;
           }
 
           // Mapa de sinónimos para normalizar cabeceras
           const headerMap: Record<string, string[]> = {
-            nombre: ['nombre', 'nombre completo', 'nombre y apellido', 'nombre personal'],
+            primer_nombre: ['primer nombre', 'primer_nombre', 'primernombre'],
+            segundo_nombre: ['segundo nombre', 'segundo_nombre', 'segundonombre'],
+            primer_apellido: ['primer apellido', 'primer_apellido', 'primerapellido'],
+            segundo_apellido: ['segundo apellido', 'segundo_apellido', 'segundoapellido'],
             cedula: ['cedula', 'cédula', 'dni', 'identificación', 'documento'],
             rol: ['rol', 'cargo', 'puesto', 'rol usuario'],
             telefono: ['telefono', 'teléfono', 'tel', 'celular', 'contacto'],
-            email: ['email', 'correo', 'correo electrónico', 'email usuario'],
             sede: ['sede', 'sucursalmacen', 'id_sede', 'sede id']
           };
 
@@ -614,13 +587,16 @@ export class AdminPersonal implements OnInit {
           });
 
           if (missing.length > 0) {
-            this.swal.error('El archivo Excel no parece ser de Personal. Faltan columnas requeridas: ' + missing.join(', ') + '. El estado (activo/inactivo) se asigna automáticamente.');
+            this.isImporting = false;
+            this.swal.error('Al archivo Excel le faltan columnas requeridas');
             return;
           }
 
           this.previewData = normalizedRows;
+          this.isImporting = false;
           this.showPreviewModal = true;
         } catch (err) {
+          this.isImporting = false;
           this.swal.error('Error al leer el archivo Excel');
           console.error(err);
         }
@@ -634,15 +610,17 @@ export class AdminPersonal implements OnInit {
   }
 
   confirmarImportacion() {
+    if (this.isSaving) return;
+    this.isSaving = true;
+    this.inicioGuardado = Date.now();
+
     // Apply sede mapping to preview data
     const mappedData = this.previewData.map(row => {
       const mappedRow = { ...row };
-      // Convertir nombre de sede a ID (acepta "Santa Mónica", "Plaza Sucre", etc.)
       if (row.sede !== undefined && row.sede !== null && row.sede !== '') {
         const sedeId = this.getSedeIdByName(row.sede);
         if (sedeId) mappedRow.id_sede = sedeId;
       }
-      // Default activo = true si no viene en el Excel
       mappedRow.activo = true;
       return mappedRow;
     });
@@ -652,13 +630,17 @@ export class AdminPersonal implements OnInit {
 
     this.apiService.importarPersonal(body).subscribe({
       next: (res: any) => {
-        this.cargarPersonal();
-        this.swal.success(res.mensaje || `Importación exitosa: ${res.importados || this.previewData.length} registros`);
-        this.showPreviewModal = false;
-        this.previewData = [];
+        this.finalizarGuardado(() => {
+          this.cargarPersonal();
+          this.swal.success(res.mensaje || `Importación exitosa: ${res.importados || this.previewData.length} registros`);
+          this.showPreviewModal = false;
+          this.previewData = [];
+        });
       },
       error: (err) => {
-        this.swal.error(err.error?.mensaje || 'Error al importar datos');
+        this.finalizarGuardado(() => {
+          this.swal.error(err.error?.mensaje || 'Error al importar datos');
+        });
       },
     });
   }
