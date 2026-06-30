@@ -524,16 +524,27 @@ const importarPersonal = async (req, res) => {
   for (const row of rows) {
     try {
       const cedula = String(row.cedula || row.Cedula || row.CÉDULA || row.documento || row.Documento || '').replace(/\D/g, '');
-      const nombre = (row.nombre || row.Nombre || row.NOMBRE || '').toString().toUpperCase().trim();
-      const apellido = (row.apellido || row.Apellido || row.APELLIDO || '').toString().toUpperCase().trim();
       const telefono = (row.telefono || row.Teléfono || row.TELEFONO || row.Telefono || row.telefono || '').toString().replace(/\D/g, '');
       const email = (row.email || row.Email || row.EMAIL || row.correo || row.Correo || '').toString().toLowerCase().trim() || null;
       const piso = row.piso || row.Piso || row.PISO || null;
-      
-      const [primerNombre, ...restoNombre] = nombre.split(' ');
-      const [primerApellido, ...restoApellido] = apellido.split(' ');
-      const segundoNombre = restoNombre.join(' ') || null;
-      const segundoApellido = restoApellido.join(' ') || null;
+
+      let primerNombre, segundoNombre, primerApellido, segundoApellido;
+
+      if (row.primer_nombre) {
+        primerNombre = (row.primer_nombre || '').toString().toUpperCase().trim();
+        segundoNombre = (row.segundo_nombre || '').toString().toUpperCase().trim() || null;
+        primerApellido = (row.primer_apellido || '').toString().toUpperCase().trim();
+        segundoApellido = (row.segundo_apellido || '').toString().toUpperCase().trim() || null;
+      } else {
+        const nombre = (row.nombre || row.Nombre || row.NOMBRE || '').toString().toUpperCase().trim();
+        const apellido = (row.apellido || row.Apellido || row.APELLIDO || '').toString().toUpperCase().trim();
+        const [pn, ...rn] = nombre.split(' ');
+        const [pa, ...ra] = apellido.split(' ');
+        primerNombre = pn;
+        segundoNombre = rn.join(' ') || null;
+        primerApellido = pa;
+        segundoApellido = ra.join(' ') || null;
+      }
 
       const rolFila = row.rol || row.Rol || row.ROL || row.puesto || row.Puesto || row.cargo || row.Cargo || null;
       const rolFinal = normalizarRol(rolFila) || normalizarRol(rolGlobal) || 'medico';

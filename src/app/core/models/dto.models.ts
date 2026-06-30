@@ -47,7 +47,9 @@ export interface AdmisionDTO {
   id_especialidad?: number;
   id_responsable?: number;
   nombre: string;
+  segundo_nombre?: string;
   apellido: string;
+  segundo_apellido?: string;
   cedula: string;
   telefono?: string;
   nombre_estado: string;

@@ -28,15 +28,29 @@
       <!-- Botones de Acción -->
       <div class="mb-10 animate-in fade-in duration-500">
         <div class="flex flex-col sm:flex-row justify-end items-stretch sm:items-center gap-3">
+          <input
+            #excelInput
+            type="file"
+            accept=".xlsx,.xls"
+            (change)="importarAseguradorasExcel(excelInput)"
+            class="hidden"
+          />
           <ng-container *ngIf="isAseguradorasView">
-            <input #excelInput type="file" accept=".xlsx,.xls" (change)="importarAseguradorasExcel(excelInput)" class="hidden" />
-            <button *ngIf="tienePermiso('aseguradoras_importar_excel')" (click)="excelInput.click()" class="px-6 py-4 sm:py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 group whitespace-nowrap font-bold text-sm">
+            <button
+              *ngIf="tienePermiso('aseguradoras_importar_excel')"
+              (click)="showExcelFormat = true"
+              class="px-6 py-4 sm:py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 group whitespace-nowrap font-bold text-sm"
+            >
               <lucide-icon [name]="Upload" class="w-4 h-4"></lucide-icon>
               Importar Excel
             </button>
           </ng-container>
           <button
-            *ngIf="isAseguradorasView ? tienePermiso('aseguradoras_crear') : tienePermiso('admision_crear')"
+            *ngIf="
+              isAseguradorasView
+                ? tienePermiso('aseguradoras_crear')
+                : tienePermiso('admision_crear')
+            "
             (click)="abrirModalRegistro($event.target)"
             class="px-6 py-4 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-lg shadow-blue-600/20 transition-all flex items-center justify-center gap-2 group whitespace-nowrap font-bold text-sm"
           >
@@ -203,7 +217,10 @@
                   <lucide-icon [name]="UserPlus" class="w-5 h-5 text-white"></lucide-icon>
                 </div>
                 <div>
-                  <h2 id="modal-title" class="text-lg md:text-xl font-black tracking-tight text-white leading-tight">
+                  <h2
+                    id="modal-title"
+                    class="text-lg md:text-xl font-black tracking-tight text-white leading-tight"
+                  >
                     {{
                       isAseguradorasView
                         ? isEditMode
@@ -236,35 +253,74 @@
                 <!-- FILA 1: PRIMER NOMBRE | SEGUNDO NOMBRE (pacientes) / NOMBRE (aseguradoras) -->
                 <ng-container *ngIf="!isAseguradorasView; else aseguradoraNombre">
                   <div class="space-y-1.5">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Primer Nombre <span class="text-rose-500">*</span></label>
-                    <input type="text" [(ngModel)]="nuevoPaciente.primer_nombre" (keypress)="soloLetras($event)" placeholder="Ej: Juan"
-                      class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white" />
+                    <label
+                      class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                      >Primer Nombre <span class="text-rose-500">*</span></label
+                    >
+                    <input
+                      type="text"
+                      [(ngModel)]="nuevoPaciente.primer_nombre"
+                      (keypress)="soloLetras($event)"
+                      placeholder="Ej: Juan"
+                      class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
+                    />
                   </div>
                   <div class="space-y-1.5">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Segundo Nombre</label>
-                    <input type="text" [(ngModel)]="nuevoPaciente.segundo_nombre" (keypress)="soloLetras($event)" placeholder="Ej: Jose"
-                      class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white" />
+                    <label
+                      class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                      >Segundo Nombre</label
+                    >
+                    <input
+                      type="text"
+                      [(ngModel)]="nuevoPaciente.segundo_nombre"
+                      (keypress)="soloLetras($event)"
+                      placeholder="Ej: Jose"
+                      class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
+                    />
                   </div>
                 </ng-container>
                 <ng-template #aseguradoraNombre>
                   <div class="space-y-1.5">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Nombre <span class="text-rose-500">*</span></label>
-                    <input type="text" [(ngModel)]="nuevoPaciente.nombre" placeholder="Ej: Seguros Caracas"
-                      class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white" />
+                    <label
+                      class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                      >Nombre <span class="text-rose-500">*</span></label
+                    >
+                    <input
+                      type="text"
+                      [(ngModel)]="nuevoPaciente.nombre"
+                      placeholder="Ej: Seguros Caracas"
+                      class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
+                    />
                   </div>
                 </ng-template>
 
                 <!-- FILA 2: PRIMER APELLIDO | SEGUNDO APELLIDO -->
                 <ng-container *ngIf="!isAseguradorasView">
                   <div class="space-y-1.5">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Primer Apellido <span class="text-rose-500">*</span></label>
-                    <input type="text" [(ngModel)]="nuevoPaciente.primer_apellido" (keypress)="soloLetras($event)" placeholder="Ej: Perez"
-                      class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white" />
+                    <label
+                      class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                      >Primer Apellido <span class="text-rose-500">*</span></label
+                    >
+                    <input
+                      type="text"
+                      [(ngModel)]="nuevoPaciente.primer_apellido"
+                      (keypress)="soloLetras($event)"
+                      placeholder="Ej: Perez"
+                      class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
+                    />
                   </div>
                   <div class="space-y-1.5">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Segundo Apellido</label>
-                    <input type="text" [(ngModel)]="nuevoPaciente.segundo_apellido" (keypress)="soloLetras($event)" placeholder="Ej: Rodriguez"
-                      class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white" />
+                    <label
+                      class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                      >Segundo Apellido</label
+                    >
+                    <input
+                      type="text"
+                      [(ngModel)]="nuevoPaciente.segundo_apellido"
+                      (keypress)="soloLetras($event)"
+                      placeholder="Ej: Rodriguez"
+                      class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
+                    />
                   </div>
                 </ng-container>
 
@@ -287,9 +343,15 @@
                     </div>
                   </div>
                   <div class="space-y-1.5">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Fecha de Nacimiento</label>
-                    <input type="date" [(ngModel)]="nuevoPaciente.fecha_nacimiento"
-                      class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white" />
+                    <label
+                      class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                      >Fecha de Nacimiento</label
+                    >
+                    <input
+                      type="date"
+                      [(ngModel)]="nuevoPaciente.fecha_nacimiento"
+                      class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
+                    />
                   </div>
                   <div class="space-y-1.5">
                     <label
@@ -311,66 +373,66 @@
                   <div class="space-y-1.5">
                     <label
                       class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
-                    >Responsable de Pago <span class="text-rose-500">*</span></label
+                      >Responsable de Pago <span class="text-rose-500">*</span></label
                     >
-                     <div class="relative payer-dropdown-container">
-                        <button
-                          type="button"
-                          (click)="togglePayerDropdown()"
-                          [disabled]="filaEnEdicion && filaEnEdicion.id_estado_actual !== 1"
-                         class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white"
-                       >
-                         <span
-                           class="lowercase first-letter:uppercase"
-                           [class.text-slate-400]="!seleccion.id_responsable"
-                           >{{
-                             getNombreResponsable(seleccion.id_responsable) || 'Seleccione...'
-                           }}</span
-                         >
-                         <lucide-icon
-                           [name]="ChevronDown"
-                           class="w-4 h-4 text-slate-400"
-                           [class.rotate-180]="showPayerDropdown"
-                         ></lucide-icon>
-                       </button>
-                       <div
-                         *ngIf="showPayerDropdown"
-                         class="absolute z-[110] w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600"
-                       >
-                         <div class="p-1.5 max-h-48 overflow-y-auto space-y-1">
-                           <div
-                             (click)="selectPayer(1)"
-                             class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
-                             [class.bg-blue-50]="seleccion.id_responsable === 1"
-                           >
-                             <span
-                               class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
-                               >Particular</span
-                             >
-                             <lucide-icon
-                               *ngIf="seleccion.id_responsable === 1"
-                               [name]="CheckCircle2"
-                               class="w-4 h-4 text-blue-600"
-                             ></lucide-icon>
-                           </div>
-                           <div
-                             (click)="selectPayer(2)"
-                             class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
-                             [class.bg-blue-50]="seleccion.id_responsable === 2"
-                           >
-                             <span
-                               class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
-                               >Aseguradora</span
-                             >
-                             <lucide-icon
-                               *ngIf="seleccion.id_responsable === 2"
-                               [name]="CheckCircle2"
-                               class="w-4 h-4 text-blue-600"
-                             ></lucide-icon>
-                           </div>
-                         </div>
-                       </div>
-                     </div>
+                    <div class="relative payer-dropdown-container">
+                      <button
+                        type="button"
+                        (click)="togglePayerDropdown()"
+                        [disabled]="filaEnEdicion && filaEnEdicion.id_estado_actual !== 1"
+                        class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white"
+                      >
+                        <span
+                          class="lowercase first-letter:uppercase"
+                          [class.text-slate-400]="!seleccion.id_responsable"
+                          >{{
+                            getNombreResponsable(seleccion.id_responsable) || 'Seleccione...'
+                          }}</span
+                        >
+                        <lucide-icon
+                          [name]="ChevronDown"
+                          class="w-4 h-4 text-slate-400"
+                          [class.rotate-180]="showPayerDropdown"
+                        ></lucide-icon>
+                      </button>
+                      <div
+                        *ngIf="showPayerDropdown"
+                        class="absolute z-[110] w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600"
+                      >
+                        <div class="p-1.5 max-h-48 overflow-y-auto space-y-1">
+                          <div
+                            (click)="selectPayer(1)"
+                            class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
+                            [class.bg-blue-50]="seleccion.id_responsable === 1"
+                          >
+                            <span
+                              class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
+                              >Particular</span
+                            >
+                            <lucide-icon
+                              *ngIf="seleccion.id_responsable === 1"
+                              [name]="CheckCircle2"
+                              class="w-4 h-4 text-blue-600"
+                            ></lucide-icon>
+                          </div>
+                          <div
+                            (click)="selectPayer(2)"
+                            class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
+                            [class.bg-blue-50]="seleccion.id_responsable === 2"
+                          >
+                            <span
+                              class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
+                              >Aseguradora</span
+                            >
+                            <lucide-icon
+                              *ngIf="seleccion.id_responsable === 2"
+                              [name]="CheckCircle2"
+                              class="w-4 h-4 text-blue-600"
+                            ></lucide-icon>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   <div
                     *ngIf="seleccion.id_responsable === 2"
@@ -418,7 +480,12 @@
                               class="w-4 h-4 text-blue-600"
                             ></lucide-icon>
                           </div>
-                          <div *ngIf="aseguradoras.length === 0" class="px-4 py-4 text-xs text-slate-400 italic text-center">NO HAY DATOS</div>
+                          <div
+                            *ngIf="aseguradoras.length === 0"
+                            class="px-4 py-4 text-xs text-slate-400 italic text-center"
+                          >
+                            NO HAY DATOS
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -429,201 +496,222 @@
                       class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
                       >Servicio <span class="text-rose-500">*</span></label
                     >
-                   <div class="relative service-dropdown-container">
-                       <button
-                         type="button"
-                         (click)="toggleServiceDropdown()"
-                          [disabled]="filaEnEdicion && filaEnEdicion.id_estado_actual !== 1"
-                          class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white"
-                        >
-                          <span
-                            class="lowercase first-letter:uppercase"
-                            [class.text-slate-400]="!categoriaServicio"
-                            >{{ categoriaServicio || 'Seleccione...' }}</span
-                          >
-                          <lucide-icon
-                            [name]="ChevronDown"
-                            class="w-4 h-4 text-slate-400"
-                           [class.rotate-180]="showServiceDropdown"
-                         ></lucide-icon>
-                       </button>
-                       <div
-                         *ngIf="showServiceDropdown"
-                         class="absolute z-[110] w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600"
-                       >
-                         <div class="p-1.5 max-h-24 overflow-y-auto space-y-1">
-                           <div
-                             (click)="selectCategoria('Consulta')"
-                             class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
-                             [class.bg-blue-50]="categoriaServicio === 'Consulta'"
-                           >
-                             <span
-                               class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
-                               >Consulta</span
-                             >
-                             <lucide-icon
-                               *ngIf="categoriaServicio === 'Consulta'"
-                               [name]="CheckCircle2"
-                               class="w-4 h-4 text-blue-600"
-                             ></lucide-icon>
-                           </div>
-                           <div
-                             (click)="selectCategoria('Laboratorio')"
-                             class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
-                             [class.bg-blue-50]="categoriaServicio === 'Laboratorio'"
-                           >
-                             <span
-                               class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
-                               >Laboratorio</span
-                             >
-                             <lucide-icon
-                               *ngIf="categoriaServicio === 'Laboratorio'"
-                               [name]="CheckCircle2"
-                               class="w-4 h-4 text-blue-600"
-                             ></lucide-icon>
-                           </div>
-                           <div
-                             (click)="selectCategoria('Imágenes')"
-                             class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
-                             [class.bg-blue-50]="categoriaServicio === 'Imágenes'"
-                           >
-                             <span
-                               class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
-                               >Imágenes</span
-                             >
-                             <lucide-icon
-                               *ngIf="categoriaServicio === 'Imágenes'"
-                               [name]="CheckCircle2"
-                               class="w-4 h-4 text-blue-600"
-                             ></lucide-icon>
-                           </div>
-                         </div>
-                       </div>
-                     </div>
-                  </div>
-
-                     <div
-                       *ngIf="categoriaServicio === 'Consulta'"
-                       class="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300"
-                     >
-                       <label
-                         class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
-                         >Especialidad <span class="text-rose-500">*</span></label
-                       >
-                       <div class="relative especialidad-dropdown-container">
-                         <button
-                           type="button"
-                           (click)="toggleEspecialidadDropdown()"
-                            [disabled]="filaEnEdicion && filaEnEdicion.id_estado_actual !== 1"
-                            class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white"
-                          >
-                            <span
-                              class="lowercase first-letter:uppercase"
-                              [class.text-slate-400]="!seleccion.id_servicio"
-                              >{{ (categoriaServicio === 'Consulta' && seleccion.nombre_especialidad_label) ? seleccion.nombre_especialidad_label : getNombreServicioLabel(seleccion.id_servicio) }}</span
-                           >
-                           <lucide-icon
-                             [name]="ChevronDown"
-                             class="w-4 h-4 text-slate-400"
-                             [class.rotate-180]="showEspecialidadDropdown"
-                           ></lucide-icon>
-                         </button>
-                         <div
-                           *ngIf="showEspecialidadDropdown"
-                           class="absolute z-[110] w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600"
-                         >
-                           <div class="p-1.5 max-h-24 overflow-y-auto space-y-1">
-                             <div
-                               *ngFor="let s of getEspecialidades()"
-                               (click)="selectEspecialidad(s)"
-                               class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
-                               [class.bg-blue-50]="
-                                 (categoriaServicio === 'Consulta'
-                                   ? seleccion.id_especialidad
-                                   : seleccion.id_servicio) === (s.id_especialidad || s.id)
-                               "
-                             >
-                               <span
-                                 class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
-                                 >{{ s.nombre || s.nombre_servicio }}</span
-                               >
-                               <lucide-icon
-                                 *ngIf="
-                                   (categoriaServicio === 'Consulta'
-                                     ? seleccion.id_especialidad
-                                     : seleccion.id_servicio) === (s.id_especialidad || s.id)
-                                 "
-                                 [name]="CheckCircle2"
-                                 class="w-4 h-4 text-blue-600"
-                               ></lucide-icon>
-                             </div>
-                             <div *ngIf="getEspecialidades().length === 0" class="px-4 py-4 text-xs text-slate-400 italic text-center">NO HAY DATOS</div>
-                           </div>
-                         </div>
-                        </div>
-                      </div>
-                      <div
-                        *ngIf="categoriaServicio === 'Consulta'"
-                        class="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300"
+                    <div class="relative service-dropdown-container">
+                      <button
+                        type="button"
+                        (click)="toggleServiceDropdown()"
+                        [disabled]="filaEnEdicion && filaEnEdicion.id_estado_actual !== 1"
+                        class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white"
                       >
-                        <label
-                          class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
-                          >Médico</label
+                        <span
+                          class="lowercase first-letter:uppercase"
+                          [class.text-slate-400]="!categoriaServicio"
+                          >{{ categoriaServicio || 'Seleccione...' }}</span
                         >
-                        <div class="relative medico-dropdown-container">
-                          <button
-                            type="button"
-                            (click)="toggleMedicoDropdown()"
-                             [disabled]="!seleccion.id_especialidad || (filaEnEdicion && filaEnEdicion.id_estado_actual !== 1)"
-                             class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white"
+                        <lucide-icon
+                          [name]="ChevronDown"
+                          class="w-4 h-4 text-slate-400"
+                          [class.rotate-180]="showServiceDropdown"
+                        ></lucide-icon>
+                      </button>
+                      <div
+                        *ngIf="showServiceDropdown"
+                        class="absolute z-[110] w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600"
+                      >
+                        <div class="p-1.5 max-h-24 overflow-y-auto space-y-1">
+                          <div
+                            (click)="selectCategoria('Consulta')"
+                            class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
+                            [class.bg-blue-50]="categoriaServicio === 'Consulta'"
                           >
                             <span
-                              class="lowercase first-letter:uppercase"
-                              [class.text-slate-400]="!seleccion.id_medico"
-                              >{{ seleccion.id_medico ? getNombreMedicoLabel(seleccion.id_medico) : 'Seleccione...' }}</span
+                              class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
+                              >Consulta</span
                             >
                             <lucide-icon
-                              [name]="ChevronDown"
-                              class="w-4 h-4 text-slate-400"
-                              [class.rotate-180]="showMedicoDropdown"
+                              *ngIf="categoriaServicio === 'Consulta'"
+                              [name]="CheckCircle2"
+                              class="w-4 h-4 text-blue-600"
                             ></lucide-icon>
-                          </button>
+                          </div>
                           <div
-                            *ngIf="showMedicoDropdown"
-                            class="absolute z-[110] w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600"
+                            (click)="selectCategoria('Laboratorio')"
+                            class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
+                            [class.bg-blue-50]="categoriaServicio === 'Laboratorio'"
                           >
-                             <div class="p-1.5 max-h-24 overflow-y-auto space-y-1">
-                              <div
-                                *ngFor="let m of medicosFiltrados"
-                                (click)="selectMedico(m)"
-                                class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
-                                [class.bg-blue-50]="seleccion.id_medico === (m.id_usuario || m.id)"
-                              >
-                                <div class="flex flex-col">
-                                  <span
-                                    class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
-                                    >{{ m.nombre }} {{ m.apellido }}</span
-                                  >
-                                </div>
-                                <lucide-icon
-                                *ngIf="seleccion.id_medico === (m.id_usuario || m.id)"
-                                [name]="CheckCircle2"
-                                class="w-4 h-4 text-blue-600"
-                                ></lucide-icon>
-                                </div>
-                                <div *ngIf="medicosFiltrados.length === 0" class="px-4 py-4 text-xs text-slate-400 italic text-center">NO HAY DATOS</div>
-                                </div>
+                            <span
+                              class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
+                              >Laboratorio</span
+                            >
+                            <lucide-icon
+                              *ngIf="categoriaServicio === 'Laboratorio'"
+                              [name]="CheckCircle2"
+                              class="w-4 h-4 text-blue-600"
+                            ></lucide-icon>
+                          </div>
+                          <div
+                            (click)="selectCategoria('Imágenes')"
+                            class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
+                            [class.bg-blue-50]="categoriaServicio === 'Imágenes'"
+                          >
+                            <span
+                              class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
+                              >Imágenes</span
+                            >
+                            <lucide-icon
+                              *ngIf="categoriaServicio === 'Imágenes'"
+                              [name]="CheckCircle2"
+                              class="w-4 h-4 text-blue-600"
+                            ></lucide-icon>
                           </div>
                         </div>
-                        <div
-                          *ngIf="seleccion.id_consultorio"
-                          class="text-[11px] font-bold text-blue-600 px-1"
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    *ngIf="categoriaServicio === 'Consulta'"
+                    class="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300"
+                  >
+                    <label
+                      class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                      >Especialidad <span class="text-rose-500">*</span></label
+                    >
+                    <div class="relative especialidad-dropdown-container">
+                      <button
+                        type="button"
+                        (click)="toggleEspecialidadDropdown()"
+                        [disabled]="filaEnEdicion && filaEnEdicion.id_estado_actual !== 1"
+                        class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white"
+                      >
+                        <span
+                          class="lowercase first-letter:uppercase"
+                          [class.text-slate-400]="!seleccion.id_servicio"
+                          >{{
+                            categoriaServicio === 'Consulta' && seleccion.nombre_especialidad_label
+                              ? seleccion.nombre_especialidad_label
+                              : getNombreServicioLabel(seleccion.id_servicio)
+                          }}</span
                         >
-                          Consultorio: {{ getMedicoConsultorio() }}
+                        <lucide-icon
+                          [name]="ChevronDown"
+                          class="w-4 h-4 text-slate-400"
+                          [class.rotate-180]="showEspecialidadDropdown"
+                        ></lucide-icon>
+                      </button>
+                      <div
+                        *ngIf="showEspecialidadDropdown"
+                        class="absolute z-[110] w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600"
+                      >
+                        <div class="p-1.5 max-h-24 overflow-y-auto space-y-1">
+                          <div
+                            *ngFor="let s of getEspecialidades()"
+                            (click)="selectEspecialidad(s)"
+                            class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
+                            [class.bg-blue-50]="
+                              (categoriaServicio === 'Consulta'
+                                ? seleccion.id_especialidad
+                                : seleccion.id_servicio) === (s.id_especialidad || s.id)
+                            "
+                          >
+                            <span
+                              class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
+                              >{{ s.nombre || s.nombre_servicio }}</span
+                            >
+                            <lucide-icon
+                              *ngIf="
+                                (categoriaServicio === 'Consulta'
+                                  ? seleccion.id_especialidad
+                                  : seleccion.id_servicio) === (s.id_especialidad || s.id)
+                              "
+                              [name]="CheckCircle2"
+                              class="w-4 h-4 text-blue-600"
+                            ></lucide-icon>
+                          </div>
+                          <div
+                            *ngIf="getEspecialidades().length === 0"
+                            class="px-4 py-4 text-xs text-slate-400 italic text-center"
+                          >
+                            NO HAY DATOS
+                          </div>
                         </div>
                       </div>
-                 </ng-container>
-                 <div *ngIf="isAseguradorasView" class="space-y-1.5 md:col-span-2">
+                    </div>
+                  </div>
+                  <div
+                    *ngIf="categoriaServicio === 'Consulta'"
+                    class="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300"
+                  >
+                    <label
+                      class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                      >Médico</label
+                    >
+                    <div class="relative medico-dropdown-container">
+                      <button
+                        type="button"
+                        (click)="toggleMedicoDropdown()"
+                        [disabled]="
+                          !seleccion.id_especialidad ||
+                          (filaEnEdicion && filaEnEdicion.id_estado_actual !== 1)
+                        "
+                        class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white"
+                      >
+                        <span
+                          class="lowercase first-letter:uppercase"
+                          [class.text-slate-400]="!seleccion.id_medico"
+                          >{{
+                            seleccion.id_medico
+                              ? getNombreMedicoLabel(seleccion.id_medico)
+                              : 'Seleccione...'
+                          }}</span
+                        >
+                        <lucide-icon
+                          [name]="ChevronDown"
+                          class="w-4 h-4 text-slate-400"
+                          [class.rotate-180]="showMedicoDropdown"
+                        ></lucide-icon>
+                      </button>
+                      <div
+                        *ngIf="showMedicoDropdown"
+                        class="absolute z-[110] w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600"
+                      >
+                        <div class="p-1.5 max-h-24 overflow-y-auto space-y-1">
+                          <div
+                            *ngFor="let m of medicosFiltrados"
+                            (click)="selectMedico(m)"
+                            class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
+                            [class.bg-blue-50]="seleccion.id_medico === (m.id_usuario || m.id)"
+                          >
+                            <div class="flex flex-col">
+                              <span
+                                class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
+                                >{{ m.nombre }} {{ m.apellido }}</span
+                              >
+                            </div>
+                            <lucide-icon
+                              *ngIf="seleccion.id_medico === (m.id_usuario || m.id)"
+                              [name]="CheckCircle2"
+                              class="w-4 h-4 text-blue-600"
+                            ></lucide-icon>
+                          </div>
+                          <div
+                            *ngIf="medicosFiltrados.length === 0"
+                            class="px-4 py-4 text-xs text-slate-400 italic text-center"
+                          >
+                            NO HAY DATOS
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      *ngIf="seleccion.id_consultorio"
+                      class="text-[11px] font-bold text-blue-600 px-1"
+                    >
+                      Consultorio: {{ getMedicoConsultorio() }}
+                    </div>
+                  </div>
+                </ng-container>
+                <div *ngIf="isAseguradorasView" class="space-y-1.5 md:col-span-2">
                   <label
                     class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
                     >Responsable de Pago</label
@@ -660,46 +748,137 @@
                 <span *ngIf="!isSaving" class="flex items-center gap-2">
                   {{ isEditMode ? 'GUARDAR' : 'CREAR' }}
                 </span>
-                <div *ngIf="isSaving" class="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-700">
-                  <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  <span class="animate-pulse">{{ isEditMode ? 'guardando...' : 'creando...' }}</span>
+                <div
+                  *ngIf="isSaving"
+                  class="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-700"
+                >
+                  <div
+                    class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"
+                  ></div>
+                  <span class="animate-pulse">{{
+                    isEditMode ? 'guardando...' : 'creando...'
+                  }}</span>
                 </div>
               </button>
             </div>
           </div>
-      </div>
-    </div>
-
-    <!-- Modal de Previsualización -->
-    <div *ngIf="showPreviewModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" (click)="showPreviewModal = false"></div>
-      <div class="bg-white rounded-[32px] shadow-2xl w-full max-w-4xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 flex flex-col max-h-[90vh]">
-        <div class="bg-emerald-600 p-6 text-white flex items-center justify-between border-b border-emerald-500/50">
-          <h2 class="text-xl font-black tracking-tight text-white">Vista Previa de Importación</h2>
-          <button (click)="showPreviewModal = false" class="p-2 hover:bg-white/10 rounded-lg transition-colors"><lucide-icon [name]="XCircle" class="w-5 h-5 text-white"></lucide-icon></button>
         </div>
-        <div class="p-4 md:p-8 flex-1 overflow-y-auto">
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
-              <thead>
-                <tr class="bg-slate-50 text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
-                  <th class="px-4 py-3" *ngFor="let key of (previewData[0] | keyvalue)">{{ key.key }}</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100">
-                <tr *ngFor="let row of previewData" class="hover:bg-slate-50">
-                  <td class="px-4 py-3 text-slate-700" *ngFor="let col of (row | keyvalue)">{{ col.value }}</td>
-                </tr>
-              </tbody>
-            </table>
+      </div>
+
+      <!-- Modal de Previsualización -->
+      <div *ngIf="showPreviewModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+          class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm"
+          (click)="showPreviewModal = false"
+        ></div>
+        <div
+          class="bg-white rounded-[32px] shadow-2xl w-full max-w-4xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 flex flex-col max-h-[90vh]"
+        >
+          <div
+            class="bg-emerald-600 p-6 text-white flex items-center justify-between border-b border-emerald-500/50"
+          >
+            <h2 class="text-xl font-black tracking-tight text-white">
+              Vista Previa de Importación
+            </h2>
+            <button
+              (click)="showPreviewModal = false"
+              class="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            >
+              <lucide-icon [name]="XCircle" class="w-5 h-5 text-white"></lucide-icon>
+            </button>
+          </div>
+          <div class="p-4 md:p-8 flex-1 overflow-y-auto">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead>
+                  <tr
+                    class="bg-slate-50 text-slate-500 font-black text-[10px] uppercase tracking-[2px]"
+                  >
+                    <th class="px-4 py-3">Nombre de la Aseguradora</th>
+                    <th class="px-4 py-3">Tipo</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <tr *ngFor="let row of previewData" class="hover:bg-slate-50">
+                    <td class="px-4 py-3 text-slate-700">{{ row.nombre || '' }}</td>
+                    <td class="px-4 py-3 text-slate-700">{{ row.tipo || '' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+            <button (click)="showPreviewModal = false" class="px-6 py-3 bg-slate-200 hover:bg-slate-300 rounded-xl font-bold text-sm">Cancelar</button>
+            <button [disabled]="isSaving" (click)="confirmarImportacion()" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl font-bold text-sm">
+              <span *ngIf="!isSaving" class="flex items-center gap-2">Confirmar Importación</span>
+              <div *ngIf="isSaving" class="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-[800ms]">
+                <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <span class="animate-pulse">Cargando...</span>
+              </div>
+            </button>
           </div>
         </div>
-        <div class="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
-          <button (click)="showPreviewModal = false" class="px-6 py-3 bg-slate-200 hover:bg-slate-300 rounded-xl font-bold text-sm">Cancelar</button>
-          <button (click)="confirmarImportacion()" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm">Confirmar Importación</button>
+      </div>
+
+      <!-- Modal Formato Excel Aseguradoras -->
+      <div *ngIf="showExcelFormat" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" (click)="showExcelFormat = false"></div>
+        <div class="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200">
+          <div class="bg-blue-600 p-6 text-white flex items-center justify-between border-b border-blue-500/50">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center"><lucide-icon [name]="Info" class="w-5 h-5 text-white"></lucide-icon></div>
+              <div>
+                <h2 class="text-xl font-black tracking-tight text-white">Importar Aseguradoras (Excel)</h2>
+                <p class="text-blue-100 text-[10px] uppercase font-bold tracking-widest mt-0.5">Columnas del archivo</p>
+              </div>
+            </div>
+            <button (click)="showExcelFormat = false" class="p-2 hover:bg-white/10 rounded-lg transition-colors"><lucide-icon [name]="XCircle" class="w-5 h-5 text-white"></lucide-icon></button>
+          </div>
+          <div class="p-6 md:p-8">
+            <p class="text-slate-600 text-sm mb-6">El archivo Excel debe tener las siguientes columnas en este orden:</p>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead>
+                  <tr class="bg-slate-50 text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
+                    <th class="px-4 py-3">Columna</th>
+                    <th class="px-4 py-3">Descripción</th>
+                    <th class="px-4 py-3">Requerido</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <tr class="hover:bg-slate-50">
+                    <td class="px-4 py-3 font-bold text-slate-800">Nombre de la Aseguradora</td>
+                    <td class="px-4 py-3 text-slate-600">Nombre de la aseguradora</td>
+                    <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600">Requerido</span></td>
+                  </tr>
+                  <tr class="hover:bg-slate-50">
+                    <td class="px-4 py-3 font-bold text-slate-800">Tipo</td>
+                    <td class="px-4 py-3 text-slate-600">Aseguradora</td>
+                    <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600">Requerido</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+              <p class="text-amber-800 text-xs font-bold uppercase tracking-wider">Ejemplo de fila:</p>
+              <p class="text-amber-700 text-sm mt-1 font-mono">Seguros Caracas, Aseguradora</p>
+            </div>
+          </div>
+          <div class="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+            <button (click)="showExcelFormat = false" class="px-6 py-3 bg-slate-200 hover:bg-slate-300 rounded-xl font-bold text-sm">Cancelar</button>
+            <button [disabled]="isImporting" (click)="excelInput.click()" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl font-bold text-sm flex items-center gap-2">
+              <span *ngIf="!isImporting" class="flex items-center gap-2">
+                <lucide-icon [name]="Upload" class="w-4 h-4"></lucide-icon>
+                Subir Excel
+              </span>
+              <div *ngIf="isImporting" class="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-[800ms]">
+                <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <span class="animate-pulse">Cargando...</span>
+              </div>
+            </button>
+          </div>
         </div>
       </div>
-    </div>
 
       <!-- PANEL DE CONTROL -->
       <div class="mt-12 animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
@@ -716,17 +895,18 @@
                     class="h-[52px] md:h-[64px] text-slate-500 font-black text-[10px] uppercase tracking-[2px]"
                   >
                     <ng-container *ngIf="!isAseguradorasView; else aseguradoraHeaders">
-                      <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombre</th>
-                      <th class="px-3 md:px-6 py-3 md:py-4 text-center">Apellido</th>
+                      <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombres</th>
+                      <th class="px-3 md:px-6 py-3 md:py-4 text-center">Apellidos</th>
                       <th class="px-3 md:px-6 py-3 md:py-4 text-center">Cédula</th>
                       <th class="px-3 md:px-6 py-3 md:py-4 text-center">Teléfono</th>
                       <th class="px-3 md:px-6 py-3 md:py-4 text-center">Responsable</th>
                       <th class="px-3 md:px-6 py-3 md:py-4 text-center">Servicio</th>
+                      <th class="px-3 md:px-6 py-3 md:py-4 text-center">N° Servicio</th>
                       <th class="px-3 md:px-6 py-3 md:py-4 text-center">Hora</th>
                       <th class="px-3 md:px-6 py-3 md:py-4 text-center">Acciones</th>
                     </ng-container>
                     <ng-template #aseguradoraHeaders>
-                      <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombre</th>
+                      <th class="px-3 md:px-6 py-3 md:py-4 text-center">Nombre de la Aseguradora</th>
                       <th class="px-3 md:px-6 py-3 md:py-4 text-center">Tipo</th>
                       <th class="px-3 md:px-6 py-3 md:py-4 text-center">Acciones</th>
                     </ng-template>
@@ -741,12 +921,12 @@
                         <td
                           class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center"
                         >
-                          {{ a.nombre || 'Sin asignar' }}
+                          {{ (a.nombre || '') + (a.segundo_nombre ? ' ' + a.segundo_nombre : '') || 'Sin asignar' }}
                         </td>
                         <td
                           class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center"
                         >
-                          {{ a.apellido || '' }}
+                          {{ (a.apellido || '') + (a.segundo_apellido ? ' ' + a.segundo_apellido : '') || '' }}
                         </td>
                         <td
                           class="px-3 md:px-6 py-3 md:py-4 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tight text-center"
@@ -774,6 +954,11 @@
                         </td>
                         <!-- Columna 'Mensaje' eliminada -->
                         <td
+                          class="px-3 md:px-6 py-3 md:py-4 font-bold text-blue-600 dark:text-blue-400 uppercase text-center"
+                        >
+                          {{ a.numero }}
+                        </td>
+                        <td
                           class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 dark:text-white uppercase text-center"
                         >
                           {{ a.fecha_creacion | date: 'h:mm a' }}
@@ -781,7 +966,13 @@
                         <td class="px-3 md:px-6 py-3 md:py-4 text-center">
                           <div class="flex items-center justify-center gap-2">
                             <button
-                              *ngIf="(a.id_estado_actual === 1 || a.id_estado_actual === 2 || a.id_estado_actual === 3 || a.id_estado_actual === 8) && tienePermiso('admision_editar')"
+                              *ngIf="
+                                (a.id_estado_actual === 1 ||
+                                  a.id_estado_actual === 2 ||
+                                  a.id_estado_actual === 3 ||
+                                  a.id_estado_actual === 8) &&
+                                tienePermiso('admision_editar')
+                              "
                               (click)="editarFila(a, $event.target)"
                               class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl focus:outline-none"
                               aria-label="Editar paciente"

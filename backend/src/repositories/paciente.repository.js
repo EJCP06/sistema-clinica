@@ -55,7 +55,7 @@ const actualizarPaciente = async (id, sede, data) => {
      RETURNING id_paciente, cedula, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, primer_nombre AS nombre, primer_apellido AS apellido, telefono`,
     [data.cedula, data.primer_nombre, data.segundo_nombre || null, data.primer_apellido, data.segundo_apellido || null, data.fecha_nacimiento || null, data.telefono, id, sede],
   );
-  return result.rows[0] || null;
+  return (result.rows && result.rows[0]) || null;
 };
 
 const eliminarPaciente = async (id, sede) => {

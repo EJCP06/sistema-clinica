@@ -14,8 +14,10 @@ const getConsultoriosBySede = async (sede) => {
   return result.rows;
 };
 
-const getConsultorioById = async (consultorioId) => {
-  const result = await pool.query(
+const getConsultorioById = async (clientOrId, idOnly) => {
+  const client = idOnly !== undefined ? clientOrId : pool;
+  const consultorioId = idOnly !== undefined ? idOnly : clientOrId;
+  const result = await client.query(
     'SELECT estado_fisico as estado, id_servicio as servicio_id, nombre FROM "Consultorios" WHERE id_consultorio = $1 FOR UPDATE',
     [consultorioId],
   );

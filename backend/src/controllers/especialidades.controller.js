@@ -157,25 +157,24 @@ const importarEspecialidades = async (req, res) => {
       const nombre = (row.nombre || row.Nombre || row.NOMBRE || '').toString().toUpperCase().trim();
       const prefijo = (row.prefijo || row.Prefijo || row.PREFIJO || '').toString().toUpperCase().trim();
       const piso = (row.piso || row.Piso || row.PISO || '').toString().replace(/\D/g, '');
-      
-      // Lógica inteligente para la sede (Normalizada)
-      const nombreSedeRaw = (row.sede || row.Sede || row.SEDE || '').toString();
-      const nombreSedeNormalizado = nombreSedeRaw
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .trim();
-      const idSede = mapaSedes[nombreSedeNormalizado] || 1; 
 
-      // Lógica inteligente para el estado activo (Normalizada)
-      const valorActivoRaw = (row.activo || row.Activo || row.ACTIVO || true).toString();
-      const valorActivoNormalizado = valorActivoRaw
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .trim();
-      
-      const esActivo = valorActivoNormalizado === 'verdadero' || valorActivoNormalizado === 'true';
+      // Sede: accept both id_sede (number) and sede (name string)
+      let idSede = 1;
+      if (row.id_sede !== undefined && row.id_sede !== null && row.id_sede !== '') {
+        idSede = Number(row.id_sede) || 1;
+      } else if (row.sede || row.Sede || row.SEDE) {
+        const nombreSedeRaw = (row.sede || row.Sede || row.SEDE || '').toString();
+        const nombreSedeNormalizado = nombreSedeRaw
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .trim();
+        idSede = mapaSedes[nombreSedeNormalizado] || 1;
+      }
+
+      // Activo
+      const valorActivoRaw = (row.activo !== undefined ? row.activo : true).toString();
+      const esActivo = valorActivoRaw === 'true' || valorActivoRaw === 'verdadero' || valorActivoRaw === '1';
 
       if (!nombre) {
         errores++;
@@ -187,13 +186,31 @@ const importarEspecialidades = async (req, res) => {
         continue;
       }
 
+      // Consultorios
+      const consultoriosIds = row.consultorios_ids || row.consultoriosIds || [];
+
       const client = await db.connect();
       try {
-        await client.query(
+        const result = await client.query(
           `INSERT INTO "Especialidades" (nombre, prefijo, id_servicio, id_sede, piso, activo)
-           VALUES ($1, $2, $3, $4, $5, $6)`,
+           VALUES ($1, $2, $3, $4, $5, $6) RETURNING id_especialidad`,
           [nombre, prefijo || null, 1, Number(idSede), piso || null, esActivo],
         );
+        const idEspecialidad = result.rows[0].id_especialidad;
+
+        // Insert consultorio relations
+        if (consultoriosIds.length > 0) {
+          for (const idConsultorio of consultoriosIds) {
+            const conId = Number(idConsultorio);
+            if (conId > 0) {
+              await client.query(
+                `INSERT INTO "Especialidad_Consultorio" (id_especialidad, id_consultorio) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+                [idEspecialidad, conId],
+              );
+            }
+          }
+        }
+
         importados++;
       } finally {
         client.release();

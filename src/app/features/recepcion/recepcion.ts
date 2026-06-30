@@ -30,6 +30,7 @@ import {
   Edit2,
   Trash2,
   Upload,
+  Info,
 } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -46,11 +47,19 @@ import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
 import { FillersPipe } from '../../shared/pipes/fillers.pipe';
 import { SedeDTO } from '@core/models/dto.models';
 
-
 @Component({
   selector: 'app-recepcion',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule, Sidebar, Header, PaginationComponent, PaginatePipe, FillersPipe],
+  imports: [
+    CommonModule,
+    FormsModule,
+    LucideAngularModule,
+    Sidebar,
+    Header,
+    PaginationComponent,
+    PaginatePipe,
+    FillersPipe,
+  ],
   templateUrl: './recepcion.html',
 })
 export class RecepcionComponent implements OnInit, OnDestroy {
@@ -72,6 +81,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   readonly Edit2 = Edit2;
   readonly Trash2 = Trash2;
   readonly Upload = Upload;
+  readonly Info = Info;
 
   pageSize: number = 6;
   currentPage: number = 1;
@@ -201,8 +211,12 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   private scrollService = inject(ScrollService);
   private auth = inject(AuthService);
 
-  tienePermiso(permiso: string): boolean { return this.auth.tienePermiso(permiso); }
-  esCoordinador(): boolean { return this.auth.esCoordinador(); }
+  tienePermiso(permiso: string): boolean {
+    return this.auth.tienePermiso(permiso);
+  }
+  esCoordinador(): boolean {
+    return this.auth.esCoordinador();
+  }
 
   constructor(
     private api: ApiService,
@@ -227,35 +241,46 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   showPreviewModal = false;
   previewData: any[] = [];
 
+  showExcelFormat = false;
+  isImporting = false;
+
   // --- Sede Mapping ---
   getSedeNombre(id_sede: number | string | null | undefined): string {
     if (id_sede === undefined || id_sede === null || id_sede === '') return 'SIN ASIGNAR';
     const finalId = Number(id_sede);
     if (isNaN(finalId)) return 'SIN ASIGNAR';
-    const sede = this.sedes.find((s: SedeDTO) => Number(s.id_sede) === finalId || Number(s.id) === finalId);
+    const sede = this.sedes.find(
+      (s: SedeDTO) => Number(s.id_sede) === finalId || Number(s.id) === finalId,
+    );
     if (!sede) return 'SIN ASIGNAR';
     return sede.nombre.toUpperCase();
   }
 
   confirmarImportacion() {
-    // Apply sede mapping to preview data
-    const mappedData = this.previewData.map(row => {
-      const mappedRow = { ...row };
-      if (row.id_sede !== undefined && row.id_sede !== null) {
-        mappedRow.id_sede = this.getSedeNombre(row.id_sede);
-      }
-      return mappedRow;
-    });
+    if (this.isSaving) return;
+    this.isSaving = true;
+    const inicio = Date.now();
 
-    this.api.importarAseguradoras({ rows: mappedData }).subscribe({
+    this.api.importarAseguradoras({ rows: this.previewData }).subscribe({
       next: (res: any) => {
-        this.cargarAseguradoras();
-        this.swal.success(res.mensaje || `Importación exitosa: ${res.importados || this.previewData.length} registros`);
-        this.showPreviewModal = false;
-        this.previewData = [];
+        const restante = Math.max(0, 800 - (Date.now() - inicio));
+        setTimeout(() => {
+          this.cargarAseguradoras();
+          this.swal.success(
+            res.mensaje ||
+              `Importación exitosa: ${res.importados || this.previewData.length} registros`,
+          );
+          this.showPreviewModal = false;
+          this.previewData = [];
+          this.isSaving = false;
+        }, restante);
       },
       error: (err) => {
-        this.swal.error(err.error?.mensaje || 'Error al importar datos');
+        const restante = Math.max(0, 800 - (Date.now() - inicio));
+        setTimeout(() => {
+          this.swal.error(err.error?.mensaje || 'Error al importar datos');
+          this.isSaving = false;
+        }, restante);
       },
     });
   }
@@ -293,8 +318,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       if (!target.closest('.service-dropdown-container')) this.showServiceDropdown = false;
       if (!target.closest('.especialidad-dropdown-container'))
         this.showEspecialidadDropdown = false;
-      if (!target.closest('.medico-dropdown-container'))
-        this.showMedicoDropdown = false;
+      if (!target.closest('.medico-dropdown-container')) this.showMedicoDropdown = false;
       if (!target.closest('.aseguradora-dropdown-container')) this.showAseguradoraDropdown = false;
     }
   }
@@ -324,15 +348,13 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     });
 
     // Setup live search
-    this.searchSubscription = this.searchSubject
-      .pipe(debounceTime(80))
-      .subscribe((value) => {
-        if (!value || value.trim().length < 1) {
-          this.resetSearchOnly();
-        } else {
-          this.ejecutarBusqueda(value);
-        }
-      });
+    this.searchSubscription = this.searchSubject.pipe(debounceTime(80)).subscribe((value) => {
+      if (!value || value.trim().length < 1) {
+        this.resetSearchOnly();
+      } else {
+        this.ejecutarBusqueda(value);
+      }
+    });
   }
 
   ngOnDestroy() {
@@ -382,9 +404,9 @@ export class RecepcionComponent implements OnInit, OnDestroy {
         this.servicios = data;
         console.log('Servicios cargados:', this.servicios.length);
       },
-      error: (err: any) => console.error('Error cargando servicios:', err)
+      error: (err: any) => console.error('Error cargando servicios:', err),
     });
-    
+
     this.espService.getAllEspecialidades().subscribe({
       next: (data: any) => {
         this.especialidades = data;
@@ -395,9 +417,9 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       },
       error: (err: any) => {
         console.error('Error cargando especialidades:', err);
-      }
+      },
     });
-    
+
     this.cargarAseguradoras();
 
     this.api.get('recepcion/responsables-pago').subscribe({
@@ -422,22 +444,24 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     });
   }
 
-   cargarUltimasAdmisiones() {
-     this.api.get<any[]>('recepcion/ultimas-admisiones').subscribe({
-       next: (data) => {
-         const ahora = new Date();
-         const inicioDeHoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+  cargarUltimasAdmisiones() {
+    this.api.get<any[]>('recepcion/ultimas-admisiones').subscribe({
+      next: (data) => {
+        const ahora = new Date();
+        const inicioDeHoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
 
-          this.ultimasAdmisiones = (data || []).filter((admision: any) => {
-             const estadoActual = admision.id_estado_actual;
-              return estadoActual !== 5 && estadoActual !== 6 && estadoActual !== 7 && estadoActual !== 9;
-           });
+        this.ultimasAdmisiones = (data || []).filter((admision: any) => {
+          const estadoActual = admision.id_estado_actual;
+          return (
+            estadoActual !== 5 && estadoActual !== 6 && estadoActual !== 7 && estadoActual !== 9
+          );
+        });
 
-         this.appRef.tick();
-       },
-       error: (err: any) => console.error('Error cargando ultimas admisiones:', err),
-     });
-   }
+        this.appRef.tick();
+      },
+      error: (err: any) => console.error('Error cargando ultimas admisiones:', err),
+    });
+  }
 
   cargarAseguradoras() {
     this.api.getAseguradoras().subscribe({
@@ -452,32 +476,72 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   importarAseguradorasExcel(fileInput: HTMLInputElement) {
     const file = fileInput?.files?.[0];
     if (!file) return;
+    this.showExcelFormat = false;
+    this.isImporting = true;
 
-    import('xlsx').then(XLSX => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          const rows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+    import('xlsx')
+      .then((XLSX) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rowsRaw: Record<string, unknown>[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
 
-          if (rows.length === 0) {
-            this.swal.error('El archivo Excel está vacío');
-            return;
+            if (rowsRaw.length === 0) {
+              this.isImporting = false;
+              this.swal.error('El archivo Excel está vacío');
+              return;
+            }
+
+            const headerMap: Record<string, string[]> = {
+              nombre: ['nombre de la aseguradora', 'nombre de aseguradora', 'nombre aseguradora', 'nombre', 'aseguradora'],
+              tipo: ['tipo', 'type'],
+            };
+
+            const actualHeaders = Object.keys(rowsRaw[0]).map(h =>
+              h.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            );
+
+            const missing = Object.keys(headerMap).filter(standardKey => {
+              const synonyms = headerMap[standardKey];
+              return !actualHeaders.some(h => synonyms.includes(h));
+            });
+
+            if (missing.length > 0) {
+              this.isImporting = false;
+              this.swal.error('Al archivo Excel le faltan columnas requeridas');
+              return;
+            }
+
+            const normalizedRows: any[] = rowsRaw.map(row => {
+              const normalizedRow: any = {};
+              Object.entries(headerMap).forEach(([standardKey, synonyms]) => {
+                const foundHeader = Object.keys(row).find(h => {
+                  const normalizedH = h.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                  return synonyms.includes(normalizedH);
+                });
+                normalizedRow[standardKey] = foundHeader ? row[foundHeader] : '';
+              });
+              return normalizedRow;
+            });
+
+            this.previewData = normalizedRows;
+            this.isImporting = false;
+            this.showPreviewModal = true;
+          } catch (err) {
+            this.isImporting = false;
+            this.swal.error('Error al leer el archivo Excel');
+            console.error(err);
           }
-
-          this.previewData = rows;
-          this.showPreviewModal = true;
-        } catch (err) {
-          this.swal.error('Error al leer el archivo Excel');
-          console.error(err);
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    }).catch(() => {
-      this.swal.error('Error al cargar el lector de Excel');
-    });
+        };
+        reader.readAsArrayBuffer(file);
+      })
+      .catch(() => {
+        this.isImporting = false;
+        this.swal.error('Error al cargar el lector de Excel');
+      });
 
     fileInput.value = '';
   }
@@ -499,21 +563,23 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     this.pacientesEncontrados = [];
 
     const filtro = this.searchFilter !== 'todo' ? `?filtro=${this.searchFilter}` : '';
-    this.busquedaSubscription = this.api.get<any[]>(`recepcion/pacientes/${value}${filtro}`).subscribe({
-      next: (data) => {
-        if (!this.cedulaBusqueda || this.cedulaBusqueda.trim().length < 1) {
-          return;
-        }
-        this.pacientesEncontrados = data || [];
-        this.mostrarResultadosBusqueda = data && data.length > 0;
-        this.buscando = false;
-      },
-      error: (err: any) => {
-        this.buscando = false;
-        this.pacientesEncontrados = [];
-        this.mostrarResultadosBusqueda = false;
-      },
-    });
+    this.busquedaSubscription = this.api
+      .get<any[]>(`recepcion/pacientes/${value}${filtro}`)
+      .subscribe({
+        next: (data) => {
+          if (!this.cedulaBusqueda || this.cedulaBusqueda.trim().length < 1) {
+            return;
+          }
+          this.pacientesEncontrados = data || [];
+          this.mostrarResultadosBusqueda = data && data.length > 0;
+          this.buscando = false;
+        },
+        error: (err: any) => {
+          this.buscando = false;
+          this.pacientesEncontrados = [];
+          this.mostrarResultadosBusqueda = false;
+        },
+      });
   }
 
   resetSearchOnly() {
@@ -687,14 +753,16 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       // Verificar existencia antes de crear
       this.api.get<any[]>(`recepcion/pacientes/${this.nuevoPaciente.cedula}`).subscribe({
         next: (data) => {
-          const p = data ? data.find((paciente: any) => paciente.cedula === this.nuevoPaciente.cedula) : null;
+          const p = data
+            ? data.find((paciente: any) => paciente.cedula === this.nuevoPaciente.cedula)
+            : null;
           if (p) {
             this.actualizarPacienteExistente(p.id_paciente || p.id, false);
           } else {
             this.crearNuevoPaciente();
           }
         },
-        error: () => this.crearNuevoPaciente()
+        error: () => this.crearNuevoPaciente(),
       });
     }
   }
@@ -758,13 +826,15 @@ export class RecepcionComponent implements OnInit, OnDestroy {
                 this.cargarUltimasAdmisiones();
               });
             },
-            error: () => this.finalizarGuardado(() => this.swal.error('Error al actualizar la atención'))
+            error: () =>
+              this.finalizarGuardado(() => this.swal.error('Error al actualizar la atención')),
           });
         } else {
           this.generarAtencionDirecta(id_paciente);
         }
       },
-      error: () => this.finalizarGuardado(() => this.swal.error('Error al actualizar datos del paciente'))
+      error: () =>
+        this.finalizarGuardado(() => this.swal.error('Error al actualizar datos del paciente')),
     });
   }
 
@@ -788,7 +858,8 @@ export class RecepcionComponent implements OnInit, OnDestroy {
               this.swal.success('Aseguradora actualizada correctamente');
             });
           },
-          error: () => this.finalizarGuardado(() => this.swal.error('Error al actualizar aseguradora')),
+          error: () =>
+            this.finalizarGuardado(() => this.swal.error('Error al actualizar aseguradora')),
         });
     } else {
       this.api.crearAseguradora({ nombre: nombreAseguradora }).subscribe({
@@ -799,7 +870,8 @@ export class RecepcionComponent implements OnInit, OnDestroy {
             this.swal.success('Aseguradora registrada correctamente');
           });
         },
-        error: () => this.finalizarGuardado(() => this.swal.error('Error al registrar aseguradora')),
+        error: () =>
+          this.finalizarGuardado(() => this.swal.error('Error al registrar aseguradora')),
       });
     }
   }
@@ -1034,7 +1106,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     if (!this.categoriaServicio) {
       return this.especialidades;
     }
-    
+
     if (this.categoriaServicio === 'Consulta') {
       return this.especialidades;
     }
@@ -1101,50 +1173,52 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     if (this.isAseguradorasView) {
       this.isSaving = false;
       this.abrirModalRegistro(trigger);
-       this.pacienteExistenteCargado = false;
-       this.nuevoPaciente = {
-         id_cliente: fila.id_cliente,
-         nombre: fila.aseguradora,
-         status: true,
-       };
-      } else {
-        this.pacienteExistenteCargado = true;
-        this.abrirModalRegistro(trigger);
-        this.nuevoPaciente = {
-         id_paciente: fila.id_paciente,
-         cedula: fila.cedula,
-         primer_nombre: fila.nombre,
-         segundo_nombre: fila.segundo_nombre,
-         primer_apellido: fila.apellido,
-         segundo_apellido: fila.segundo_apellido,
-         telefono: fila.telefono,
-       };
+      this.pacienteExistenteCargado = false;
+      this.nuevoPaciente = {
+        id_cliente: fila.id_cliente,
+        nombre: fila.aseguradora,
+        status: true,
+      };
+    } else {
+      this.pacienteExistenteCargado = true;
+      this.abrirModalRegistro(trigger);
+      this.nuevoPaciente = {
+        id_paciente: fila.id_paciente,
+        cedula: fila.cedula,
+        primer_nombre: fila.nombre,
+        segundo_nombre: fila.segundo_nombre,
+        primer_apellido: fila.apellido,
+        segundo_apellido: fila.segundo_apellido,
+        telefono: fila.telefono,
+      };
 
-       // Cargar selección de servicio y responsable
-        this.seleccion = {
-          id_servicio: fila.id_servicio,
-          id_responsable: fila.id_responsable,
-          id_cliente: fila.id_cliente,
-          id_atencion: fila.id_atencion,
-          id_especialidad: fila.id_especialidad,
-           id_medico: fila.id_medico || null,
-           id_consultorio: fila.id_consultorio || null,
-           nombre_medico_label: fila.nombre_medico || '',
-           nombre_servicio_label: '',
-          nombre_especialidad_label: '',
-        };
+      // Cargar selección de servicio y responsable
+      this.seleccion = {
+        id_servicio: fila.id_servicio,
+        id_responsable: fila.id_responsable,
+        id_cliente: fila.id_cliente,
+        id_atencion: fila.id_atencion,
+        id_especialidad: fila.id_especialidad,
+        id_medico: fila.id_medico || null,
+        id_consultorio: fila.id_consultorio || null,
+        nombre_medico_label: fila.nombre_medico || '',
+        nombre_servicio_label: '',
+        nombre_especialidad_label: '',
+      };
 
-       this.categoriaServicio = this.getServicioCategoria(fila.nombre_servicio);
-       
-       // Intentar encontrar el nombre de la especialidad para el label
-       if (fila.id_especialidad) {
-         const esp = this.especialidades.find(e => (e.id_especialidad || e.id) === fila.id_especialidad);
-         if (esp) {
-           this.seleccion.nombre_especialidad_label = esp.nombre;
-         }
-       }
-     }
-   }
+      this.categoriaServicio = this.getServicioCategoria(fila.nombre_servicio);
+
+      // Intentar encontrar el nombre de la especialidad para el label
+      if (fila.id_especialidad) {
+        const esp = this.especialidades.find(
+          (e) => (e.id_especialidad || e.id) === fila.id_especialidad,
+        );
+        if (esp) {
+          this.seleccion.nombre_especialidad_label = esp.nombre;
+        }
+      }
+    }
+  }
 
   async eliminarFila(fila: any) {
     const msg = this.isAseguradorasView
@@ -1189,7 +1263,10 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   }
 
   async marcarAusente(fila: any) {
-    const result = await this.swal.confirm('¿Marcar como ausente?', 'Esta acción no se puede deshacer.');
+    const result = await this.swal.confirm(
+      '¿Marcar como ausente?',
+      'Esta acción no se puede deshacer.',
+    );
     if (!result.isConfirmed) return;
 
     this.api.put(`recepcion/atencion/${fila.id_atencion}/marcar_ausente`, {}).subscribe({

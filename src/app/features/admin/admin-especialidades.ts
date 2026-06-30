@@ -20,6 +20,7 @@ import {
   Check,
   MapPin,
   Upload,
+  Info,
 } from 'lucide-angular';
 import { PaginationComponent } from '../../shared/components/pagination/pagination';
 import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
@@ -46,6 +47,7 @@ export class AdminEspecialidades implements OnInit {
   readonly Check = Check;
   readonly MapPin = MapPin;
   readonly Upload = Upload;
+  readonly Info = Info;
 
   pageSize = 6;
   currentPage = 1;
@@ -86,6 +88,9 @@ export class AdminEspecialidades implements OnInit {
   showModalEspecialidad = false;
   showPreviewModal = false;
   previewData: any[] = [];
+
+  showExcelFormat = false;
+  isImporting = false;
   isEditing = false;
   editingId: number | null = null;
   isSaving = false;
@@ -323,6 +328,9 @@ export class AdminEspecialidades implements OnInit {
     const file = fileInput?.files?.[0];
     if (!file) return;
 
+    this.showExcelFormat = false;
+    this.isImporting = true;
+
     import('xlsx').then(XLSX => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -330,61 +338,127 @@ export class AdminEspecialidades implements OnInit {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
           const workbook = XLSX.read(data, { type: 'array' });
           const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          const rows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+          const rowsRaw: Record<string, unknown>[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
 
-          if (rows.length === 0) {
+          if (rowsRaw.length === 0) {
+            this.isImporting = false;
             this.swal.error('El archivo Excel está vacío');
             return;
           }
 
-          // Validación de estructura
-          const headers = Object.keys(rows[0]).map(h => h.toLowerCase().trim());
-          const required = ['nombre', 'prefijo', 'piso', 'sede'];
-          const missing = required.filter(col => !headers.some(h => h === col));
+          const headerMap: Record<string, string[]> = {
+            nombre: ['nombre de la especialidad', 'nombre especialidad', 'nombre', 'especialidad'],
+            prefijo: ['prefijo', 'prefix', 'codigo', 'código'],
+            piso: ['piso', 'floor'],
+            consultorio: ['consultorio', 'consultorios', 'consultorio(s)'],
+            sede: ['sede', 'sucursal', 'id_sede'],
+          };
+
+          const actualHeaders = Object.keys(rowsRaw[0]).map(h =>
+            h.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+          );
+
+          const missing = Object.keys(headerMap).filter(standardKey => {
+            const synonyms = headerMap[standardKey];
+            return !actualHeaders.some(h => synonyms.includes(h));
+          });
 
           if (missing.length > 0) {
-            this.swal.error('El archivo Excel no parece ser de Especialidades. Faltan columnas requeridas: ' + missing.join(', ') + '. El estado (activo/inactivo) se asigna automáticamente.');
+            this.isImporting = false;
+            this.swal.error('Al archivo Excel le faltan columnas requeridas');
             return;
           }
 
-          this.previewData = rows;
+          const normalizedRows: any[] = rowsRaw.map(row => {
+            const normalizedRow: any = {};
+            Object.entries(headerMap).forEach(([standardKey, synonyms]) => {
+              const foundHeader = Object.keys(row).find(h => {
+                const normalizedH = h.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                return synonyms.includes(normalizedH);
+              });
+              normalizedRow[standardKey] = foundHeader ? row[foundHeader] : '';
+            });
+            return normalizedRow;
+          });
+
+          this.previewData = normalizedRows;
+          this.isImporting = false;
           this.showPreviewModal = true;
         } catch (err) {
+          this.isImporting = false;
           this.swal.error('Error al leer el archivo Excel');
           console.error(err);
         }
       };
       reader.readAsArrayBuffer(file);
     }).catch(() => {
+      this.isImporting = false;
       this.swal.error('Error al cargar el lector de Excel');
     });
 
     fileInput.value = '';
   }
 
-  confirmarImportacion() {
-    // Apply sede mapping to preview data
-    const mappedData = this.previewData.map(row => {
-      const mappedRow = { ...row };
-      // Convertir nombre de sede a ID (acepta "Santa Mónica", "Plaza Sucre", etc.)
-      if (row.sede !== undefined && row.sede !== null && row.sede !== '') {
-        const sedeId = this.getSedeIdByName(row.sede);
-        if (sedeId) mappedRow.id_sede = sedeId;
+  private consultorioMap: Map<string, number> = new Map();
+
+  private buildConsultorioMap() {
+    this.consultorioMap.clear();
+    for (const c of this.consultorios) {
+      const nombreNorm = (c.nombre || '').toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      this.consultorioMap.set(nombreNorm, c.id);
+    }
+  }
+
+  private parseConsultorios(val: string): number[] {
+    if (!val || !val.toString().trim()) return [];
+    const parts = val.toString().split(',').map(s => s.trim()).filter(s => s);
+    const ids: number[] = [];
+    for (const part of parts) {
+      const nombreNorm = part.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const mappedId = this.consultorioMap.get(nombreNorm);
+      if (mappedId) {
+        ids.push(mappedId);
       }
-      // Default activo = true si no viene en el Excel
-      mappedRow.activo = true;
-      return mappedRow;
+    }
+    return ids;
+  }
+
+  confirmarImportacion() {
+    if (this.isSaving) return;
+    this.isSaving = true;
+    const inicio = Date.now();
+    this.buildConsultorioMap();
+
+    const mappedData = this.previewData.map(row => {
+      const consultoriosIds = this.parseConsultorios(row.consultorio);
+      const sedeId = row.sede ? this.getSedeIdByName(row.sede) : 1;
+      return {
+        nombre: row.nombre,
+        prefijo: row.prefijo || '',
+        piso: row.piso || '',
+        consultorios_ids: consultoriosIds,
+        id_sede: sedeId || 1,
+        activo: true,
+      };
     });
 
     this.apiService.importarEspecialidades({ rows: mappedData }).subscribe({
       next: (res: any) => {
-        this.cargarEspecialidades();
-        this.swal.success(res.mensaje || `Importación exitosa: ${res.importados || this.previewData.length} registros`);
-        this.showPreviewModal = false;
-        this.previewData = [];
+        const restante = Math.max(0, 800 - (Date.now() - inicio));
+        setTimeout(() => {
+          this.cargarEspecialidades();
+          this.swal.success(res.mensaje || `Importación exitosa: ${res.importados || this.previewData.length} registros`);
+          this.showPreviewModal = false;
+          this.previewData = [];
+          this.isSaving = false;
+        }, restante);
       },
       error: (err) => {
-        this.swal.error(err.error?.mensaje || 'Error al importar datos');
+        const restante = Math.max(0, 800 - (Date.now() - inicio));
+        setTimeout(() => {
+          this.swal.error(err.error?.mensaje || 'Error al importar datos');
+          this.isSaving = false;
+        }, restante);
       },
     });
   }
