@@ -224,9 +224,9 @@ export class AdminPersonal implements OnInit {
         telefono: user.telefono || '',
         email: user.email || '',
         activo: !!user.activo,
-        servicio_id: user.servicio_id || '',
+        servicio_id: user.id_servicio || '',
         especialidad_id: user.id_especialidad || '',
-        consultorio_id: user.consultorio_id || '',
+        consultorio_id: user.id_consultorio || '',
         id_sede: user.id_sede || '',
       };
     } else {

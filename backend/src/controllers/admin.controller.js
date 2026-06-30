@@ -302,7 +302,6 @@ const crearPersonal = async (req, res) => {
       email,
       password,
       rol,
-      piso,
       id_consultorio,
       id_servicio,
       id_especialidad,
@@ -335,7 +334,6 @@ const crearPersonal = async (req, res) => {
       email: emailFinal,
       password_hash,
       rol,
-      piso: piso || null,
       id_consultorio: id_consultorio || null,
       id_servicio: id_servicio || null,
       id_especialidad: id_especialidad || null,
@@ -369,7 +367,6 @@ const actualizarPersonal = async (req, res) => {
       email,
       password,
       rol,
-      piso,
       id_consultorio,
       id_servicio,
       id_especialidad,
@@ -416,10 +413,6 @@ const actualizarPersonal = async (req, res) => {
     if (rol !== undefined) {
       sets.push(`rol = $${idx++}`);
       values.push(rol);
-    }
-    if (piso !== undefined) {
-      sets.push(`piso = $${idx++}`);
-      values.push(piso);
     }
     if (id_consultorio !== undefined) {
       sets.push(`id_consultorio = $${idx++}`);
@@ -526,7 +519,6 @@ const importarPersonal = async (req, res) => {
       const cedula = String(row.cedula || row.Cedula || row.CÉDULA || row.documento || row.Documento || '').replace(/\D/g, '');
       const telefono = (row.telefono || row.Teléfono || row.TELEFONO || row.Telefono || row.telefono || '').toString().replace(/\D/g, '');
       const email = (row.email || row.Email || row.EMAIL || row.correo || row.Correo || '').toString().toLowerCase().trim() || null;
-      const piso = row.piso || row.Piso || row.PISO || null;
 
       let primerNombre, segundoNombre, primerApellido, segundoApellido;
 
@@ -575,7 +567,6 @@ const importarPersonal = async (req, res) => {
         email: email || null,
         password_hash,
         rol: rolFinal,
-        piso: piso ? String(piso) : null,
         id_consultorio: idConsultorio ? Number(idConsultorio) : null,
         id_servicio: idServicio ? Number(idServicio) : null,
         id_especialidad: idEspecialidad ? Number(idEspecialidad) : null,

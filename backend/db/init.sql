@@ -143,7 +143,6 @@ CREATE TABLE "Usuarios" (
   "segundo_apellido" varchar,
   "email" varchar,
   "telefono" varchar,
-  "piso" varchar,
   "id_consultorio" integer REFERENCES "Consultorios"("id_consultorio"),
   "id_servicio" integer REFERENCES "Servicio"("id_servicio"),
   "id_especialidad" integer REFERENCES "Especialidades"("id_especialidad"),
