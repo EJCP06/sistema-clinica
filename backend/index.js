@@ -116,20 +116,23 @@ const startServer = async () => {
         );
       `);
 
-      const sedesExistentes = await pool.query('SELECT id_sede FROM "Sedes"');
-      for (const sede of sedesExistentes.rows) {
-        await pool.query(`
-          INSERT INTO "Roles" ("nombre", "key", "id_sede", "activo") VALUES
-            ('ADMINISTRADOR', 'administrador', $1, true),
-            ('RECEPCIONISTA', 'recepcionista', $1, true),
-            ('MEDICO', 'medico', $1, true),
-            ('COORDINADOR', 'coordinador', $1, true),
-            ('ANALISTA', 'analista', $1, true),
-            ('LABORATORIO', 'laboratorio', $1, true),
-            ('IMAGENES', 'imagenes', $1, true),
-            ('ENFERMERO', 'enfermero', $1, true)
-          ON CONFLICT ("key", "id_sede") DO NOTHING
-        `, [sede.id_sede]);
+      const totalRoles = await pool.query('SELECT COUNT(*) as total FROM "Roles"');
+      if (Number(totalRoles.rows[0].total) === 0) {
+        const sedesExistentes = await pool.query('SELECT id_sede FROM "Sedes"');
+        for (const sede of sedesExistentes.rows) {
+          await pool.query(`
+            INSERT INTO "Roles" ("nombre", "key", "id_sede", "activo") VALUES
+              ('ADMINISTRADOR', 'administrador', $1, true),
+              ('RECEPCIONISTA', 'recepcionista', $1, true),
+              ('MEDICO', 'medico', $1, true),
+              ('COORDINADOR', 'coordinador', $1, true),
+              ('ANALISTA', 'analista', $1, true),
+              ('LABORATORIO', 'laboratorio', $1, true),
+              ('IMAGENES', 'imagenes', $1, true),
+              ('ENFERMERO', 'enfermero', $1, true)
+            ON CONFLICT ("key", "id_sede") DO NOTHING
+          `, [sede.id_sede]);
+        }
       }
 
       try {

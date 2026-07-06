@@ -71,6 +71,8 @@ export class AdminReports implements OnInit, OnDestroy {
   turnos: ReporteDiarioDTO['turnos'] = [];
   turnosOriginal: ReporteDiarioDTO['turnos'] = [];
   sedes: SedeDTO[] = [];
+  fechaDesde: string = new Date().toISOString().split('T')[0];
+  fechaHasta: string = new Date().toISOString().split('T')[0];
   totalHoy = 0;
   totalAtendidos = 0;
   totalAusentes = 0;
@@ -87,18 +89,43 @@ export class AdminReports implements OnInit, OnDestroy {
     this.cargarReporte();
     this.apiService.getSedes().subscribe(sedes => this.sedes = sedes);
     this.apiService.cambios$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
-      this.cargarReporte();
+      if (this.esRangoHoy()) {
+        this.cargarReporte();
+      }
     });
+  }
+
+  esRangoHoy(): boolean {
+    const hoy = new Date().toISOString().split('T')[0];
+    return this.fechaDesde === hoy && this.fechaHasta === hoy;
+  }
+
+  get tituloActividad(): string {
+    if (this.esRangoHoy()) return 'Actividad Reciente';
+    const fmt = (f: string) => new Date(f + 'T12:00:00').toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    return this.fechaDesde === this.fechaHasta
+      ? `Actividad del ${fmt(this.fechaDesde)}`
+      : `Actividad del ${fmt(this.fechaDesde)} al ${fmt(this.fechaHasta)}`;
+  }
+
+  restaurarHoy() {
+    const hoy = new Date().toISOString().split('T')[0];
+    this.fechaDesde = hoy;
+    this.fechaHasta = hoy;
+    this.cargarReporte();
   }
 
   ngOnDestroy() {}
 
   cargarReporte() {
-    this.apiService.getReporteDiario().subscribe({
+    this.apiService.getReporteDiario(this.fechaDesde, this.fechaHasta).subscribe({
       next: (rep: ReporteDiarioDTO) => {
         console.log('Reporte diario recibido:', rep);
         this.turnosOriginal = rep.turnos ?? [];
-        this.turnos = (rep.turnos ?? []).filter(t => t.estado?.toUpperCase() !== 'ATENDIDO');
+        this.turnos = this.esRangoHoy()
+          ? (rep.turnos ?? []).filter(t => t.estado?.toUpperCase() !== 'ATENDIDO')
+          : (rep.turnos ?? []);
+        this.currentPage = 1;
         this.totalHoy = rep.total ?? 0;
         this.totalAtendidos = rep.estadisticas?.atendidos ?? 0;
         this.totalAusentes = rep.estadisticas?.ausentes ?? 0;
@@ -123,15 +150,23 @@ export class AdminReports implements OnInit, OnDestroy {
   exportarPDF() {
     const doc = new jsPDF('portrait');
     const ahora = new Date();
-    const fecha = ahora.toLocaleDateString('es-AR', {
+    const fechaGeneracion = ahora.toLocaleDateString('es-AR', {
       year: 'numeric', month: 'long', day: 'numeric'
     });
     const hora = ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    const fmtFecha = (f: string) =>
+      new Date(f + 'T12:00:00').toLocaleDateString('es-AR', {
+        year: 'numeric', month: 'long', day: 'numeric'
+      });
+    const fechaTitulo = this.fechaDesde === this.fechaHasta
+      ? fmtFecha(this.fechaDesde)
+      : `${fmtFecha(this.fechaDesde)} al ${fmtFecha(this.fechaHasta)}`;
+
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 14;
     const tableWidth = pageWidth - margin * 2;
 
-    // --- HEADER (sin fondo azul) ---
     try {
       doc.addImage('logo-cnc.png', 'PNG', margin, 8, 32, 24);
     } catch (_) {}
@@ -147,7 +182,7 @@ export class AdminReports implements OnInit, OnDestroy {
       : 'Desconocido';
     const sede = this.sedes.find(s => s.id_sede === usuario?.id_sede);
     const nombreSede = sede ? sede.nombre : 'Sin Sede';
-    doc.text(`Generado: ${fecha} a las ${hora}  |  Por: ${nombreUsuario}  |  Sede: ${nombreSede}`, pageWidth / 2, 26, { align: 'center' });
+    doc.text(`Generado: ${fechaGeneracion} a las ${hora}  |  Por: ${nombreUsuario}  |  Sede: ${nombreSede}`, pageWidth / 2, 26, { align: 'center' });
 
     // --- SORT TURNOS: extract numeric part from numero and sort ascending ---
     const sortedTurnos = [...(this.turnosOriginal ?? [])].sort((a, b) => {
@@ -176,7 +211,7 @@ export class AdminReports implements OnInit, OnDestroy {
     doc.text('Reporte de Operaciones', pageWidth / 2, startY, { align: 'center' });
     startY += 8;
     doc.setFontSize(10);
-    doc.text('Actividad del Día', margin, startY);
+    doc.text(`Actividad del ${fechaTitulo}`, margin, startY);
     startY += 5;
 
     const turnosData = sortedTurnos.map(t => [
@@ -196,20 +231,23 @@ export class AdminReports implements OnInit, OnDestroy {
         head: [['Turno', 'Paciente', 'Cédula', 'Estado', 'Servicio', 'Hora de Llegada', 'Hora de Salida']],
         body: turnosData,
         columnStyles: {
-          0: { cellWidth: tableWidth * 0.10 },
-          1: { cellWidth: tableWidth * 0.22 },
-          2: { cellWidth: tableWidth * 0.12 },
-          3: { cellWidth: tableWidth * 0.10 },
-          4: { cellWidth: tableWidth * 0.13 },
-          5: { cellWidth: tableWidth * 0.165 },
-          6: { cellWidth: tableWidth * 0.165 },
+          0: { cellWidth: tableWidth / 7 },
+          1: { cellWidth: tableWidth / 7 },
+          2: { cellWidth: tableWidth / 7 },
+          3: { cellWidth: tableWidth / 7 },
+          4: { cellWidth: tableWidth / 7 },
+          5: { cellWidth: tableWidth / 7 },
+          6: { cellWidth: tableWidth / 7 },
         },
       });
     } else {
       doc.setFontSize(9);
       doc.setTextColor(150, 150, 150);
       doc.setFont('helvetica', 'italic');
-      doc.text('No se han registrado atenciones hoy.', margin, startY + 10);
+      const noDataMsg = this.fechaDesde === this.fechaHasta
+        ? `No se han registrado atenciones el ${fechaTitulo}.`
+        : `No se han registrado atenciones en el período seleccionado.`;
+      doc.text(noDataMsg, margin, startY + 10);
     }
 
     // --- DESGLOSE POR SERVICIO ---
@@ -248,7 +286,10 @@ export class AdminReports implements OnInit, OnDestroy {
       });
     }
 
-    doc.save(`reporte-diario-${new Date().toLocaleDateString('es-AR').replace(/\//g, '-')}.pdf`);
+    const nombreArchivo = this.fechaDesde === this.fechaHasta
+      ? `reporte-diario-${this.fechaDesde}.pdf`
+      : `reporte-diario-${this.fechaDesde}_al_${this.fechaHasta}.pdf`;
+    doc.save(nombreArchivo);
   }
 
   trackById = (index: number, item: any) => item?.id ?? item?.id_atencion ?? item?.id_consultorio ?? item?.id_especialidad ?? item?.id_sede ?? index;

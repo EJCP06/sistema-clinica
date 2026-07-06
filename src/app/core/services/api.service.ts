@@ -149,8 +149,12 @@ export class ApiService {
   // =========================
   // ADMIN & SERVICES
   // =========================
-  getReporteDiario(): Observable<ReporteDiarioDTO> {
-    return this.http.get<ReporteDiarioDTO>(`${this.base}/admin/reportes/diario`);
+  getReporteDiario(fecha_desde?: string, fecha_hasta?: string): Observable<ReporteDiarioDTO> {
+    const params = new URLSearchParams();
+    if (fecha_desde) params.set('fecha_desde', fecha_desde);
+    if (fecha_hasta) params.set('fecha_hasta', fecha_hasta);
+    const qs = params.toString();
+    return this.http.get<ReporteDiarioDTO>(`${this.base}/admin/reportes/diario${qs ? '?' + qs : ''}`);
   }
 
 

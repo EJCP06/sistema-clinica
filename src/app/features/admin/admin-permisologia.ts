@@ -320,19 +320,25 @@ export class AdminPermisologia implements OnInit, OnDestroy {
   }
 
   async eliminarPermisos(rolId: number, rolNombre: string) {
-    const result = await this.swal.confirmDelete(`¿Eliminar todos los permisos de "${this.toTitleCase(rolNombre)}"?`);
+    const result = await this.swal.confirmDelete(`¿Eliminar el rol "${this.toTitleCase(rolNombre)}"?`);
     if (!result.isConfirmed) return;
 
-    this.api.asignarPermisos(rolId, []).subscribe({
+    this.api.eliminarRol(rolId).subscribe({
       next: () => {
         this.auth.refrescarPermisos().subscribe({
           error: () => {},
         });
-        this.swal.success(`Permisos eliminados para ${this.toTitleCase(rolNombre)}`);
+        this.swal.success(`Rol "${this.toTitleCase(rolNombre)}" eliminado correctamente`);
         this.cargarRoles();
       },
       error: (err) => {
-        this.swal.error(err.error?.mensaje || 'Error al eliminar permisos');
+        if (err.status === 409) {
+          this.swal.error(
+            err.error?.mensaje || 'No se puede eliminar el rol porque está asignado a uno o más usuarios'
+          );
+        } else {
+          this.swal.error(err.error?.mensaje || 'Error al eliminar el rol');
+        }
       },
     });
   }
