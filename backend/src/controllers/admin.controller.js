@@ -35,7 +35,8 @@ const getReporteDiario = async (req, res) => {
   if (!sede) return;
 
   try {
-    const rows = await atencionRepo.getReporteDiario(sede);
+    const { fecha_desde, fecha_hasta } = req.query;
+    const rows = await atencionRepo.getReporteDiario(sede, fecha_desde || null, fecha_hasta || null);
 
     const turnos = rows.map((r) => ({
       id: r.id,
@@ -52,8 +53,8 @@ const getReporteDiario = async (req, res) => {
       hora_fin_atencion: r.hora_fin_atencion,
       id_sede: r.id_sede,
       paciente: {
-        nombre: r.paciente_nombre,
-        apellido: r.paciente_apellido,
+        nombre: [r.primer_nombre, r.segundo_nombre].filter(Boolean).join(' '),
+        apellido: [r.primer_apellido, r.segundo_apellido].filter(Boolean).join(' '),
         documento: r.paciente_documento,
         telefono: r.paciente_telefono,
       },

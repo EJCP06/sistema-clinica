@@ -257,16 +257,18 @@ const getTurnoConConsultorio = async (client, id) => {
   return result.rows[0] || null;
 };
 
-const getReporteDiario = async (sede) => {
-  const result = await pool.query(
-    `SELECT
+const getReporteDiario = async (sede, fecha_desde = null, fecha_hasta = null) => {
+  const queryBase = `
+    SELECT
       a.id_atencion as id,
       a.numero,
       e.nombre_estado as estado,
       a.hora_llegada,
       a.hora_salida as hora_fin,
-      p.primer_nombre as paciente_nombre,
-      p.primer_apellido as paciente_apellido,
+      p.primer_nombre,
+      p.segundo_nombre,
+      p.primer_apellido,
+      p.segundo_apellido,
       p.cedula as paciente_documento,
       p.telefono as paciente_telefono,
       s.nombre_servicio as servicio,
@@ -286,11 +288,24 @@ const getReporteDiario = async (sede) => {
     LEFT JOIN "Usuarios" u ON a.id_usuario_registro = u.id_usuario
     LEFT JOIN "Historial_Atencion" h_inicio ON h_inicio.id_atencion = a.id_atencion AND h_inicio.id_estado = 5
     LEFT JOIN "Historial_Atencion" h_fin ON h_fin.id_atencion = a.id_atencion AND h_fin.id_estado = 6
-    WHERE a.hora_llegada >= CURRENT_DATE
-    AND a.hora_llegada < (CURRENT_DATE + interval '1 day')
-    AND a.id_sede = $1
-    ORDER BY a.hora_llegada DESC`,
-    [sede],
+    WHERE a.id_sede = $1
+  `;
+  const params = [sede];
+  let fechaSql;
+
+  if (fecha_desde && fecha_hasta) {
+    params.push(fecha_desde, fecha_hasta);
+    fechaSql = `AND a.hora_llegada >= $2::date AND a.hora_llegada < ($3::date + interval '1 day')`;
+  } else if (fecha_desde) {
+    params.push(fecha_desde);
+    fechaSql = `AND a.hora_llegada >= $2::date AND a.hora_llegada < ($2::date + interval '1 day')`;
+  } else {
+    fechaSql = `AND a.hora_llegada >= CURRENT_DATE AND a.hora_llegada < (CURRENT_DATE + interval '1 day')`;
+  }
+
+  const result = await pool.query(
+    queryBase + fechaSql + ` ORDER BY a.hora_llegada DESC`,
+    params,
   );
   return result.rows;
 };
