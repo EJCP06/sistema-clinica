@@ -5,12 +5,10 @@ import { catchError, throwError } from 'rxjs';
 import Swal from 'sweetalert2';
 import { AuthService } from '../services/auth.service';
 
-let alertaMostrandose = false;
-let redirigiendo = false;
-
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
   const authService = inject(AuthService);
+  const alertKey = `swal_active_${Date.now()}`;
 
   return next(req).pipe(
     catchError((error) => {
@@ -23,41 +21,36 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       }
 
       if (error.status === 0) {
-        if (!alertaMostrandose) {
-          alertaMostrandose = true;
+        const alertaActiva = sessionStorage.getItem('swal_conexion');
+        if (!alertaActiva) {
+          sessionStorage.setItem('swal_conexion', 'true');
           Swal.fire({
             icon: 'error',
             title: 'Error',
             text: 'No se puede conectar con el servidor. Verifique su conexión.',
             confirmButtonColor: '#2563eb',
           }).then(() => {
-            alertaMostrandose = false;
+            sessionStorage.removeItem('swal_conexion');
           });
         }
       } else if (error.status === 401) {
-        if (!redirigiendo) {
-          redirigiendo = true;
-          authService.logout(true); // Limpia sesión sin llamar al backend
+        authService.logoutSilently();
 
-          const mensaje = 'Su sesión ha expirado';
+        const esVerify = req.url.includes('/auth/verify');
+        const enLogin = router.url.includes('/login');
 
-          // No mostramos alerta si ya estamos en login o si es el verifySession fallando al inicio
-          const esVerify = req.url.includes('/auth/verify');
-          const enLogin = router.url.includes('/login');
-
-          if (!alertaMostrandose && !enLogin && !esVerify) {
-            alertaMostrandose = true;
+        if (!enLogin && !esVerify) {
+          const alertaActiva = sessionStorage.getItem('swal_401');
+          if (!alertaActiva) {
+            sessionStorage.setItem('swal_401', 'true');
             Swal.fire({
               icon: 'error',
               title: 'Error',
-              text: mensaje,
+              text: 'Su sesión ha expirado',
               confirmButtonColor: '#2563eb',
             }).then(() => {
-              alertaMostrandose = false;
-              redirigiendo = false;
+              sessionStorage.removeItem('swal_401');
             });
-          } else {
-            redirigiendo = false;
           }
         }
       }

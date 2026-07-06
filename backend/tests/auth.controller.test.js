@@ -3,6 +3,11 @@ const jwt = require('jsonwebtoken');
 
 jest.mock('bcryptjs');
 jest.mock('jsonwebtoken');
+jest.mock('../src/repositories/refreshToken.repository', () => ({
+  createRefreshToken: jest.fn().mockResolvedValue('mock-refresh-token-12345'),
+  findValidToken: jest.fn(),
+  revokeToken: jest.fn(),
+}));
 
 const mockPool = {
   query: jest.fn(),
@@ -76,6 +81,8 @@ describe('authController.login', () => {
     expect(res.json).toHaveBeenCalledWith({
       mensaje: 'Login exitoso',
       token: 'token-falso',
+      expiresIn: 900,
+      refreshToken: expect.any(String),
       usuario: expect.objectContaining({
         id: 1, cedula: '00000000', rol: 'admin', nombre: 'Admin',
       }),

@@ -2,7 +2,6 @@ import { Component, inject, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ApiService } from '@core/services/api.service';
 import { AuthService } from '@core/services/auth.service';
-import { environment } from '@env/environment';
 
 @Component({
   selector: 'app-root',
@@ -11,8 +10,8 @@ import { environment } from '@env/environment';
   styleUrl: './app.css',
 })
 export class App implements OnInit {
-  private auth = inject(AuthService);
-  private api = inject(ApiService);
+  private readonly auth = inject(AuthService);
+  private readonly api = inject(ApiService);
 
   ngOnInit() {
     this.api.cambios$.subscribe(data => {

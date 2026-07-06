@@ -1,11 +1,11 @@
-import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { ThemeService } from '@core/services/theme.service';
 import { SwalService } from '../../core/services/swal.service';
-import { LucideAngularModule, Eye, EyeOff, LogIn, Activity, User, Lock, Sun, Moon, XCircle, KeyRound, ArrowLeft, MonitorSpeaker, Mail, Shield, Clock, CheckCircle2 } from 'lucide-angular';
+import { LucideAngularModule, Eye, EyeOff, LogIn, Activity, User, Lock, Sun, Moon, CircleX, KeyRound, ArrowLeft, MonitorSpeaker, Mail, Shield, Clock, CircleCheck } from 'lucide-angular';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -24,19 +24,19 @@ export class Login implements OnDestroy {
   readonly Lock = Lock;
   readonly Sun = Sun;
   readonly Moon = Moon;
-  readonly XCircle = XCircle;
+  readonly XCircle = CircleX;
   readonly KeyRound = KeyRound;
   readonly ArrowLeft = ArrowLeft;
   readonly MonitorSpeaker = MonitorSpeaker;
   readonly Mail = Mail;
   readonly Shield = Shield;
   readonly Clock = Clock;
-  readonly CheckCircle2 = CheckCircle2;
+  readonly CheckCircle2 = CircleCheck;
 
-  private auth = inject(AuthService);
-  private themeService = inject(ThemeService);
-  private router = inject(Router);
-  private swal = inject(SwalService);
+  private readonly auth = inject(AuthService);
+  private readonly themeService = inject(ThemeService);
+  private readonly router = inject(Router);
+  private readonly swal = inject(SwalService);
 
   cedula = '';
   password = '';
@@ -55,7 +55,7 @@ export class Login implements OnDestroy {
    cargandoReset = false;
    paso = 1;
    tiempoRestante = 0;
-   private intervaloTemporizador: any = null;
+  private intervaloTemporizador: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     setTimeout(() => this.initialTransitionDisabled = false, 100);
@@ -81,10 +81,10 @@ export class Login implements OnDestroy {
 
   toggleResetPassword() {
     this.mostrarResetPassword = !this.mostrarResetPassword;
-    if (!this.mostrarResetPassword) {
-      this.resetearRecuperacion();
-    } else {
+    if (this.mostrarResetPassword) {
       this.paso = 1;
+    } else {
+      this.resetearRecuperacion();
     }
   }
 
@@ -284,22 +284,12 @@ export class Login implements OnDestroy {
         this.swal.error('Error al cargar datos del usuario');
         return;
       }
-      // Administrador tiene acceso completo
-      if (usuario.rol === 'administrador') {
-        this.router.navigate(['/administrador']);
-        return;
-      }
-      const p = (permiso: string, accion?: string) => this.auth.tienePermiso(permiso, accion);
-      if (p('personal:ver') || p('roles:ver') || p('permisologia:ver') || p('especialidades:ver')) this.router.navigate(['/administrador']);
-      else if (p('admision:ver')) this.router.navigate(['/recepcion']);
-      else if (p('aps:ver')) this.router.navigate(['/aps']);
-      else if (p('atencion_medica:ver')) this.router.navigate(['/atencion']);
-      else if (p('laboratorio:ver')) this.router.navigate(['/laboratorio']);
-      else if (p('imagenes:ver')) this.router.navigate(['/imagenes']);
-      else if (p('aseguradoras:ver')) this.router.navigate(['/aseguradoras']);
-      else {
+      const rutaInicial = this.auth.obtenerRutaInicial();
+      if (rutaInicial === '/login') {
         this.swal.error('Su usuario no tiene permisos asignados para acceder al sistema');
         this.router.navigate(['/login']);
+        return;
       }
+      this.router.navigateByUrl(rutaInicial);
     }
   }

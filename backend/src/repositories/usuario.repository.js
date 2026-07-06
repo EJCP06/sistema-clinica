@@ -60,6 +60,29 @@ const actualizarSesionToken = async (id, token) => {
   await pool.query('UPDATE "Usuarios" SET sesion_token = $1 WHERE id_usuario = $2', [token, id]);
 };
 
+const findById = async (id) => {
+  const result = await pool.query(`
+    SELECT u.id_usuario as id, u.cedula, u.password_hash, r.key as rol, u.id_rol,
+           u.primer_nombre AS nombre, u.primer_apellido AS apellido,
+           u.id_servicio as servicio_id, u.id_consultorio as consultorio_id, u.id_sede,
+           u.id_especialidad, e.nombre as especialidad_nombre,
+           u.sesion_token, u.status,
+           COALESCE(
+             (SELECT json_agg(rec.key || ':' || acc.key)
+              FROM "Roles_Recursos_Acciones" rra
+              INNER JOIN "Recursos" rec ON rra.id_recurso = rec.id_recurso
+              INNER JOIN "Acciones" acc ON rra.id_accion = acc.id_accion
+              WHERE rra.id_rol = u.id_rol),
+             '[]'::json
+           ) as permisos
+    FROM "Usuarios" u
+    LEFT JOIN "Roles" r ON u.id_rol = r.id_rol
+    LEFT JOIN "Especialidades" e ON u.id_especialidad = e.id_especialidad
+    WHERE u.id_usuario = $1
+  `, [id]);
+  return result.rows[0] || null;
+};
+
 const findByCedulaSimple = async (cedula) => {
   const result = await pool.query('SELECT id_usuario FROM "Usuarios" WHERE cedula = $1', [cedula]);
   return result.rows[0] || null;
@@ -72,6 +95,10 @@ const findByCedulaSede = async (cedula, idSede) => {
 
 const updatePasswordByCedula = async (cedula, passwordHash) => {
   await pool.query('UPDATE "Usuarios" SET password_hash = $1 WHERE cedula = $2', [passwordHash, cedula]);
+};
+
+const updatePassword = async (id, passwordHash) => {
+  await pool.query('UPDATE "Usuarios" SET password_hash = $1 WHERE id_usuario = $2', [passwordHash, id]);
 };
 
 const findByCedulaAndEmail = async (email, cedula) => {
@@ -149,22 +176,29 @@ const crearPersonal = async (data) => {
   return result.rows[0];
 };
 
-const actualizarPersonal = async (id, sede, sets, values, idx) => {
-  // Si se está intentando actualizar el 'rol' (que ahora es id_rol)
-  const rolIdx = sets.findIndex((s) => s.startsWith('rol ='));
-  if (rolIdx !== -1) {
-    const rolKey = values[rolIdx];
-    const rolRes = await pool.query('SELECT id_rol FROM "Roles" WHERE key = $1 AND id_sede = $2', [rolKey, sede]);
-    const idRol = rolRes.rows[0]?.id_rol;
-    if (idRol) {
-      sets[rolIdx] = `id_rol = $${rolIdx + 1}`;
-      values[rolIdx] = idRol;
+const actualizarPersonal = async (id, sede, fields) => {
+  const keys = Object.keys(fields);
+  const sets = [];
+  const values = [];
+  let idx = 1;
+
+  for (const key of keys) {
+    if (key === 'rol') {
+      const rolRes = await pool.query('SELECT id_rol FROM "Roles" WHERE key = $1 AND id_sede = $2', [fields.rol, sede]);
+      const idRol = rolRes.rows[0]?.id_rol;
+      if (idRol) {
+        sets.push(`id_rol = $${idx++}`);
+        values.push(idRol);
+      }
+      continue;
     }
+    sets.push(`"${key}" = $${idx++}`);
+    values.push(fields[key]);
   }
 
   values.push(id, sede);
   await pool.query(
-    `UPDATE "Usuarios" SET ${sets.join(', ')} WHERE id_usuario = $${idx} AND id_sede = $${idx + 1}`,
+    `UPDATE "Usuarios" SET ${sets.join(', ')} WHERE id_usuario = $${idx++} AND id_sede = $${idx}`,
     values,
   );
 };
@@ -202,11 +236,13 @@ const eliminarPersonal = async (id, sede) => {
 module.exports = {
   findByCedulas,
   findByCedula,
+  findById,
   findManyByCedula,
   findByCedulaSimple,
   findByCedulaSede,
   actualizarSesionToken,
   updatePasswordByCedula,
+  updatePassword,
   findByCedulaAndEmail,
   deleteByCedula,
   insertAdmin,

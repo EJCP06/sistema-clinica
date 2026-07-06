@@ -33,17 +33,30 @@ router.use(perm(
 router.get('/pacientes/:termino', ctrl.buscarPaciente);
 router.post('/pacientes', [
   body('cedula').trim().notEmpty().withMessage('La cédula del paciente es obligatoria'),
+  body('primer_nombre').trim().notEmpty().withMessage('El primer nombre es obligatorio'),
+  body('primer_apellido').trim().notEmpty().withMessage('El primer apellido es obligatorio'),
   validar,
 ], ctrl.crearPaciente);
-router.put('/pacientes/:id', ctrl.actualizarPaciente);
+router.put('/pacientes/:id', [
+  body('cedula').optional().trim().notEmpty().withMessage('La cédula no puede estar vacía'),
+  validar,
+], ctrl.actualizarPaciente);
 router.delete('/pacientes/:id', ctrl.eliminarPaciente);
 router.post('/generar-turno', [
   body('id_paciente').isInt().withMessage('El paciente es obligatorio'),
   body('id_servicio').isInt().withMessage('El servicio es obligatorio'),
   validar,
 ], ctrl.generarTurno);
-router.put('/atencion/:id', ctrl.actualizarAtencion);
-router.put('/atencion/:id/estado', ctrl.actualizarEstadoAtencion);
+router.put('/atencion/:id', [
+  body('id_servicio').optional().isInt().withMessage('Servicio inválido'),
+  body('id_responsable').optional().isInt().withMessage('Responsable inválido'),
+  body('id_especialidad').optional({ values: 'null' }).isInt().withMessage('Especialidad inválida'),
+  validar,
+], ctrl.actualizarAtencion);
+router.put('/atencion/:id/estado', [
+  body('id_estado_nuevo').isInt({ min: 1, max: 9 }).withMessage('Estado inválido'),
+  validar,
+], ctrl.actualizarEstadoAtencion);
 router.delete('/atencion/:id', ctrl.eliminarAtencion);
 router.put('/atencion/:id/marcar_ausente', perm('COORDINADOR_AYUDA', 'LABORATORIO_TOTAL', 'IMAGENES_TOTAL'), ctrl.marcarAusente);
 

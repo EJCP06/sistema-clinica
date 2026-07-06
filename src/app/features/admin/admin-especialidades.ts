@@ -1,5 +1,4 @@
-import { Component, inject, Input, OnInit, HostListener, DestroyRef } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Component, inject, OnInit, HostListener, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '@core/services/api.service';
@@ -14,9 +13,9 @@ import {
   ChevronUp,
   Stethoscope,
   Search,
-  Edit2,
-  XCircle,
-  CheckCircle2,
+  SquarePen,
+  CircleX,
+  CircleCheck,
   Check,
   MapPin,
   Upload,
@@ -41,9 +40,9 @@ export class AdminEspecialidades implements OnInit {
   readonly ChevronUp = ChevronUp;
   readonly Stethoscope = Stethoscope;
   readonly Search = Search;
-  readonly Edit2 = Edit2;
-  readonly XCircle = XCircle;
-  readonly CheckCircle2 = CheckCircle2;
+  readonly Edit2 = SquarePen;
+  readonly XCircle = CircleX;
+  readonly CheckCircle2 = CircleCheck;
   readonly Check = Check;
   readonly MapPin = MapPin;
   readonly Upload = Upload;
@@ -52,10 +51,10 @@ export class AdminEspecialidades implements OnInit {
   pageSize = 6;
   currentPage = 1;
 
-  private auth = inject(AuthService);
-  private apiService = inject(ApiService);
-  private destroyRef = inject(DestroyRef);
-  private swal = inject(SwalService);
+  private readonly auth = inject(AuthService);
+  private readonly apiService = inject(ApiService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly swal = inject(SwalService);
 
   consultorios: ConsultorioDTO[] = [];
   especialidades: EspecialidadDTO[] = [];
@@ -68,12 +67,12 @@ export class AdminEspecialidades implements OnInit {
 
   // --- Sede Mapping ---
   getSedeNombre(id_sede: number | string | null | undefined, forDropdown = false): string {
-    if (id_sede === undefined || id_sede === null || id_sede === '') return forDropdown ? 'Seleccione...' : 'SIN ASIGNAR';
+    if (id_sede === undefined || id_sede === null || id_sede === '') return this.etiquetaSede(forDropdown);
     const finalId = Number(id_sede);
-    if (isNaN(finalId)) return forDropdown ? 'Seleccione...' : 'SIN ASIGNAR';
+    if (Number.isNaN(finalId)) return this.etiquetaSede(forDropdown);
     const sede = this.sedes.find((s) => Number(s.id_sede) === finalId || Number(s.id) === finalId);
-    if (!sede) return forDropdown ? 'Seleccione...' : 'SIN ASIGNAR';
-    return forDropdown ? this.toTitleCase(sede.nombre) : sede.nombre.toUpperCase();
+    if (!sede) return this.etiquetaSede(forDropdown);
+    return forDropdown ? this.formatearSedeNombreDropdown(sede.nombre) : this.formatearSedeNombreValor(sede.nombre);
   }
 
   getSedeIdByName(nombre: string): number | null {
@@ -131,13 +130,13 @@ export class AdminEspecialidades implements OnInit {
 
   cargarConsultorios() {
     this.apiService.getConsultorios().subscribe((cons) => {
-      this.consultorios = cons.sort((a, b) => a.nombre.localeCompare(b.nombre, undefined, { numeric: true }));
+      this.consultorios = [...cons].sort((a, b) => a.nombre.localeCompare(b.nombre, undefined, { numeric: true }));
     });
   }
 
   cargarSedes() {
     this.apiService.getSedes().subscribe({
-      next: (s) => { this.sedes = s.sort((a, b) => Number(a.id_sede) - Number(b.id_sede)); },
+      next: (s) => { this.sedes = [...s].sort((a, b) => Number(a.id_sede) - Number(b.id_sede)); },
       error: () => {},
     });
   }
@@ -283,12 +282,24 @@ export class AdminEspecialidades implements OnInit {
   }
 
   getSedeLabel(id: number | string | null | undefined, forDropdown = false): string {
-    if (id === undefined || id === null || id === '') return forDropdown ? 'Seleccione...' : 'SIN ASIGNAR';
+    if (id === undefined || id === null || id === '') return this.etiquetaSede(forDropdown);
     const finalId = Number(id);
-    if (isNaN(finalId)) return forDropdown ? 'Seleccione...' : 'SIN ASIGNAR';
+    if (Number.isNaN(finalId)) return this.etiquetaSede(forDropdown);
     const sede = this.sedes.find((s) => Number(s.id_sede) === finalId || Number(s.id) === finalId);
-    if (!sede) return forDropdown ? 'Seleccione...' : 'SIN ASIGNAR';
-    return forDropdown ? this.toTitleCase(sede.nombre) : sede.nombre.toUpperCase();
+    if (!sede) return this.etiquetaSede(forDropdown);
+    return forDropdown ? this.formatearSedeNombreDropdown(sede.nombre) : this.formatearSedeNombreValor(sede.nombre);
+  }
+
+  private etiquetaSede(forDropdown: boolean): string {
+    return forDropdown ? 'Seleccione...' : 'SIN ASIGNAR';
+  }
+
+  private formatearSedeNombreDropdown(nombre: string): string {
+    return this.toTitleCase(nombre);
+  }
+
+  private formatearSedeNombreValor(nombre: string): string {
+    return nombre.toUpperCase();
   }
 
   toTitleCase(str: string): string {
@@ -313,14 +324,12 @@ export class AdminEspecialidades implements OnInit {
 
   soloLetras(event: KeyboardEvent) {
     const pattern = /[a-zA-ZáéíóúÁÉÍÓÚñÑ ]/;
-    const inputChar = String.fromCharCode(event.charCode);
-    if (event.charCode !== 0 && !pattern.test(inputChar)) event.preventDefault();
+    if (event.key.length === 1 && !pattern.test(event.key)) event.preventDefault();
   }
 
   soloNumeros(event: KeyboardEvent) {
-    const pattern = /[0-9]/;
-    const inputChar = String.fromCharCode(event.charCode);
-    if (event.charCode !== 0 && !pattern.test(inputChar)) event.preventDefault();
+    const pattern = /\d/;
+    if (event.key.length === 1 && !pattern.test(event.key)) event.preventDefault();
   }
 
   // --- Excel Import ---
@@ -331,75 +340,83 @@ export class AdminEspecialidades implements OnInit {
     this.showExcelFormat = false;
     this.isImporting = true;
 
-    import('xlsx').then(XLSX => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          const rowsRaw: Record<string, unknown>[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-
-          if (rowsRaw.length === 0) {
-            this.isImporting = false;
-            this.swal.error('El archivo Excel está vacío');
-            return;
-          }
-
-          const headerMap: Record<string, string[]> = {
-            nombre: ['nombre de la especialidad', 'nombre especialidad', 'nombre', 'especialidad'],
-            prefijo: ['prefijo', 'prefix', 'codigo', 'código'],
-            piso: ['piso', 'floor'],
-            consultorio: ['consultorio', 'consultorios', 'consultorio(s)'],
-            sede: ['sede', 'sucursal', 'id_sede'],
-          };
-
-          const actualHeaders = Object.keys(rowsRaw[0]).map(h =>
-            h.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-          );
-
-          const missing = Object.keys(headerMap).filter(standardKey => {
-            const synonyms = headerMap[standardKey];
-            return !actualHeaders.some(h => synonyms.includes(h));
-          });
-
-          if (missing.length > 0) {
-            this.isImporting = false;
-            this.swal.error('Al archivo Excel le faltan columnas requeridas');
-            return;
-          }
-
-          const normalizedRows: any[] = rowsRaw.map(row => {
-            const normalizedRow: any = {};
-            Object.entries(headerMap).forEach(([standardKey, synonyms]) => {
-              const foundHeader = Object.keys(row).find(h => {
-                const normalizedH = h.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                return synonyms.includes(normalizedH);
-              });
-              normalizedRow[standardKey] = foundHeader ? row[foundHeader] : '';
-            });
-            return normalizedRow;
-          });
-
-          this.previewData = normalizedRows;
-          this.isImporting = false;
-          this.showPreviewModal = true;
-        } catch (err) {
-          this.isImporting = false;
-          this.swal.error('Error al leer el archivo Excel');
-          console.error(err);
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    }).catch(() => {
-      this.isImporting = false;
-      this.swal.error('Error al cargar el lector de Excel');
-    });
+    void this.procesarExcelEspecialidades(file);
 
     fileInput.value = '';
   }
 
-  private consultorioMap: Map<string, number> = new Map();
+  private readonly consultorioMap: Map<string, number> = new Map();
+
+  private async procesarExcelEspecialidades(file: File) {
+    try {
+      const XLSX = await import('xlsx');
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(new Uint8Array(data), { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rowsRaw: Record<string, unknown>[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+      if (rowsRaw.length === 0) {
+        this.isImporting = false;
+        this.swal.error('El archivo Excel está vacío');
+        return;
+      }
+
+      const headerMap: Record<string, string[]> = {
+        nombre: ['nombre de la especialidad', 'nombre especialidad', 'nombre', 'especialidad'],
+        prefijo: ['prefijo', 'prefix', 'codigo', 'código'],
+        piso: ['piso', 'floor'],
+        consultorio: ['consultorio', 'consultorios', 'consultorio(s)'],
+        sede: ['sede', 'sucursal', 'id_sede'],
+      };
+
+      const actualHeaders = Object.keys(rowsRaw[0]).map((header) => this.normalizarClave(header));
+      const missing: string[] = [];
+      for (const standardKey of Object.keys(headerMap)) {
+        const synonyms = headerMap[standardKey];
+        let found = false;
+        for (const header of actualHeaders) {
+          if (synonyms.includes(header)) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) missing.push(standardKey);
+      }
+
+      if (missing.length > 0) {
+        this.isImporting = false;
+        this.swal.error('Al archivo Excel le faltan columnas requeridas');
+        return;
+      }
+
+      this.previewData = rowsRaw.map((row) => this.normalizarFilaEspecialidad(row, headerMap));
+      this.isImporting = false;
+      this.showPreviewModal = true;
+    } catch (err) {
+      this.isImporting = false;
+      this.swal.error('Error al leer el archivo Excel');
+      console.error(err);
+    }
+  }
+
+  private normalizarFilaEspecialidad(row: Record<string, unknown>, headerMap: Record<string, string[]>): Record<string, unknown> {
+    const normalizedRow: Record<string, unknown> = {};
+    for (const [standardKey, synonyms] of Object.entries(headerMap)) {
+      let foundHeader: string | undefined;
+      for (const header of Object.keys(row)) {
+        if (synonyms.includes(this.normalizarClave(header))) {
+          foundHeader = header;
+          break;
+        }
+      }
+      normalizedRow[standardKey] = foundHeader ? row[foundHeader] : '';
+    }
+    return normalizedRow;
+  }
+
+  private normalizarClave(value: string): string {
+    return value.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
 
   private buildConsultorioMap() {
     this.consultorioMap.clear();
@@ -410,8 +427,8 @@ export class AdminEspecialidades implements OnInit {
   }
 
   private parseConsultorios(val: string): number[] {
-    if (!val || !val.toString().trim()) return [];
-    const parts = val.toString().split(',').map(s => s.trim()).filter(s => s);
+    if (!val?.toString().trim()) return [];
+    const parts = val.toString().split(',').map((s) => s.trim()).filter(Boolean);
     const ids: number[] = [];
     for (const part of parts) {
       const nombreNorm = part.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');

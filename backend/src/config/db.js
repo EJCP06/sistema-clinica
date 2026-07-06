@@ -26,15 +26,6 @@ pool.on('connect', () => {
 
 pool.on('error', (err) => {
   logger.error('Error inesperado en el pool de la base de datos', { error: err.message });
-  // No hacer process.exit aquí, dejar que el manejador global lo gestione
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled Rejection en promesa:', reason);
-});
-
-process.on('uncaughtException', (err) => {
-  logger.error('Uncaught Exception:', err);
 });
 
 module.exports = pool;

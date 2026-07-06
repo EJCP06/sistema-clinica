@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const { enviarCorreoOTP } = require('../config/email');
 const recuperacionRepo = require('../repositories/recuperacion.repository');
 const usuarioRepo = require('../repositories/usuario.repository');
+const MAX_VERIFY_ATTEMPTS = 5;
 
 const solicitar = async (req, res) => {
   const { email, cedula } = req.body;
@@ -54,7 +55,13 @@ const verificar = async (req, res) => {
       return res.status(400).json({ mensaje: 'El código ha expirado. Solicita uno nuevo.' });
     }
 
+    if (registro.intentos >= MAX_VERIFY_ATTEMPTS) {
+      await recuperacionRepo.marcarUsado(registro.id_recuperacion);
+      return res.status(400).json({ mensaje: 'Demasiados intentos. Solicita un nuevo código.' });
+    }
+
     if (registro.codigo !== codigo) {
+      await recuperacionRepo.incrementarIntentos(registro.id_recuperacion);
       return res.status(400).json({ mensaje: 'Código incorrecto' });
     }
 
