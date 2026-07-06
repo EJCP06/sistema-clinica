@@ -68,9 +68,14 @@ router.get('/verify', authMiddleware, async (req, res) => {
   }
 });
 
+router.post('/refresh', authController.refrescarToken);
+
 router.get('/super-seed', authController.superSeed);
 
-router.put('/cambiar-password', authMiddleware, cambiarPasswordLimiter, authController.cambiarPassword);
+router.put('/cambiar-password', authMiddleware, cambiarPasswordLimiter, [
+  body('newPassword').isLength({ min: 4 }).withMessage('La nueva contraseña debe tener al menos 4 caracteres'),
+  validar,
+], authController.cambiarPassword);
 
 router.get('/mis-permisos', authMiddleware, authController.misPermisos);
 

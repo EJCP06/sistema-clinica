@@ -4,6 +4,13 @@ import { authGuard } from '@core/guards/auth.guard';
 import { modulePermissionGuard } from '@core/guards/module-permission.guard';
 
 export const routes: Routes = [
+  // Entrada del sistema: decide el panel inicial según la sesión activa
+  {
+    path: '',
+    pathMatch: 'full',
+    loadComponent: () => import('./features/inicio/inicio').then(m => m.Inicio)
+  },
+
   // Pantalla de Login (Acceso público)
   { 
     path: 'login', 
@@ -140,6 +147,5 @@ export const routes: Routes = [
   },
 
   // Redirección por defecto
-  { path: '', redirectTo: '/login', pathMatch: 'full' },
-  { path: '**', redirectTo: '/login' }
+  { path: '**', redirectTo: '' }
 ];

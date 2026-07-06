@@ -14,10 +14,14 @@ RUN npm run build
 # Stage 2: Serve using Nginx
 FROM nginx:alpine
 
+RUN apk add --no-cache gettext
+
 COPY --from=build /usr/src/app/dist/sistema-clinica/browser /usr/share/nginx/html
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
-EXPOSE 80
+EXPOSE 80 443
 
-CMD ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["/docker-entrypoint.sh"]

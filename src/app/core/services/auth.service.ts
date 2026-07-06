@@ -1,22 +1,23 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Subscription, of } from 'rxjs';
+import { BehaviorSubject, Subscription, of, Observable, tap, map, catchError, throwError } from 'rxjs';
 import { Usuario, Rol } from '@core/models/usuario.model';
 
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap, map, catchError, throwError } from 'rxjs';
 import { environment } from '@env/environment';
 import { ApiService } from './api.service';
+import { VISTA_POR_PERMISO } from '@core/config/permisos.config';
 import Swal from 'sweetalert2';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService implements OnDestroy {
-  private STORAGE_KEY = 'clinica_usuario';
-  private TOKEN_KEY = 'clinica_token';
-  private usuarioSubject = new BehaviorSubject<Usuario | null>(this.cargarSesion());
-  private permisosSub: Subscription;
+  private readonly STORAGE_KEY = 'clinica_usuario';
+  private readonly TOKEN_KEY = 'clinica_token';
+  private readonly REFRESH_KEY = 'clinica_refresh';
+  private readonly usuarioSubject = new BehaviorSubject<Usuario | null>(this.cargarSesion());
+  private readonly permisosSub: Subscription;
 
-  private LEGACY_KEY_MAP: Record<string, string> = {
+  private readonly LEGACY_KEY_MAP: Record<string, string> = {
     ver_reportes: 'reportes:ver',
     admin_panel: 'admin:panel',
     admision_crear: 'admision:crear',
@@ -73,7 +74,7 @@ export class AuthService implements OnDestroy {
 
   usuario$ = this.usuarioSubject.asObservable();
 
-  constructor(private router: Router, private http: HttpClient, private api: ApiService) {
+  constructor(private readonly router: Router, private readonly http: HttpClient, private readonly api: ApiService) {
     this.permisosSub = this.api.cambios$.subscribe((data) => {
       const event = data as any;
 
@@ -124,7 +125,7 @@ export class AuthService implements OnDestroy {
   }
 
   login(username: string, password: string): Observable<any> {
-    return this.http.post<{mensaje: string, token: string, usuario: any}>(`${environment.apiUrl}/auth/login`, { username, password })
+    return this.http.post<{mensaje: string, token: string, refreshToken: string, usuario: any}>(`${environment.apiUrl}/auth/login`, { username, password })
       .pipe(
         tap(response => {
           const usuario: Usuario = {
@@ -132,12 +133,35 @@ export class AuthService implements OnDestroy {
             nombre: response.usuario.nombre || response.usuario.username
           };
           sessionStorage.setItem(this.TOKEN_KEY, response.token);
+          sessionStorage.setItem(this.REFRESH_KEY, response.refreshToken);
           sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(usuario));
           this.api.actualizarSocketToken(response.token);
           this.usuarioSubject.next(usuario);
         }),
         catchError(err => throwError(() => err))
       );
+  }
+
+  refreshSession(): Observable<{ token: string; refreshToken: string; usuario: any } | null> {
+    const refreshToken = sessionStorage.getItem(this.REFRESH_KEY);
+    if (!refreshToken) return of(null);
+
+    return this.http.post<{ token: string; refreshToken: string; usuario: any }>(
+      `${environment.apiUrl}/auth/refresh`, { refreshToken }
+    ).pipe(
+      tap(res => {
+        sessionStorage.setItem(this.TOKEN_KEY, res.token);
+        sessionStorage.setItem(this.REFRESH_KEY, res.refreshToken);
+        const usuario: Usuario = { ...res.usuario, nombre: res.usuario.nombre || res.usuario.username };
+        sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(usuario));
+        this.usuarioSubject.next(usuario);
+        this.api.actualizarSocketToken(res.token);
+      }),
+      catchError(() => {
+        this.logoutSilently();
+        return of(null);
+      }),
+    );
   }
 
   verifySession(): Observable<boolean> {
@@ -154,14 +178,14 @@ export class AuthService implements OnDestroy {
       }),
       map(() => true),
       catchError(() => {
-        this.logout(true);
+        this.logoutSilently();
         return of(false);
       }),
     );
   }
 
-  cambiarPassword(cedula: string, newPassword: string): Observable<any> {
-    return this.http.put(`${environment.apiUrl}/auth/cambiar-password`, { cedula, newPassword });
+  cambiarPassword(currentPassword: string, newPassword: string): Observable<any> {
+    return this.http.put(`${environment.apiUrl}/auth/cambiar-password`, { currentPassword, newPassword });
   }
 
   refrescarPermisos(): Observable<any> {
@@ -193,15 +217,20 @@ export class AuthService implements OnDestroy {
     return this.http.post(`${environment.apiUrl}/auth/logout`, {});
   }
 
-  logout(forced = false) {
-    if (!forced && this.getToken()) {
+  logout() {
+    if (this.getToken()) {
       this.cerrarSesion().subscribe({
         next: () => this.limpiarSesion(),
         error: () => this.limpiarSesion()
       });
-    } else {
-      this.limpiarSesion();
+      return;
     }
+
+    this.limpiarSesion();
+  }
+
+  logoutSilently() {
+    this.limpiarSesion();
   }
 
   emergencyLogout() {
@@ -222,6 +251,7 @@ export class AuthService implements OnDestroy {
   private limpiarSesion() {
     sessionStorage.removeItem(this.STORAGE_KEY);
     sessionStorage.removeItem(this.TOKEN_KEY);
+    sessionStorage.removeItem(this.REFRESH_KEY);
     this.api.actualizarSocketToken(null);
     this.usuarioSubject.next(null);
     if (this.router.url !== '/login') {
@@ -241,7 +271,7 @@ export class AuthService implements OnDestroy {
 
   tienePermiso(recurso: string, accion?: string): boolean {
     const usuario = this.usuarioSubject.value;
-    if (!usuario || !usuario.permisos) return false;
+    if (!usuario?.permisos) return false;
 
     let rec = recurso;
     let acc = accion;
@@ -277,6 +307,39 @@ export class AuthService implements OnDestroy {
 
   tienePermisos(permisos: string[]): boolean {
     return permisos.some(p => this.tienePermiso(p));
+  }
+
+  obtenerRutaInicial(): string {
+    const usuario = this.usuarioSubject.value;
+    if (!usuario) return '/login';
+
+    if (usuario.rol === 'administrador') {
+      return '/administrador?tab=reports';
+    }
+
+    const prioridadPermisos = [
+      'ver_reportes',
+      'admin_panel',
+      'personal:ver',
+      'roles:ver',
+      'permisologia:ver',
+      'especialidades:ver',
+      'admision:ver',
+      'aps:ver',
+      'atencion_medica:ver',
+      'laboratorio:ver',
+      'imagenes:ver',
+      'aseguradoras:ver',
+    ];
+
+    for (const permiso of prioridadPermisos) {
+      if (this.tienePermiso(permiso)) {
+        const ruta = VISTA_POR_PERMISO[permiso]?.ruta;
+        if (ruta) return ruta;
+      }
+    }
+
+    return '/login';
   }
 
   private cargarSesion(): Usuario | null {

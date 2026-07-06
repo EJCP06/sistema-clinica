@@ -10,6 +10,7 @@ const usuarioRepo = require('../repositories/usuario.repository');
 const rolRepo = require('../repositories/rol.repository');
 const permisoRepo = require('../repositories/permiso.repository');
 const { ACCIONES_ESPECIALES_POR_VISTA, ACCIONES_ESPECIALES_GLOBALES } = require('../config/acciones-especiales');
+const { auditar } = require('../middleware/audit');
 
 /* =========================================================
    UTILIDAD SEGURA (EVITA 500 POR req.usuario UNDEFINED)
@@ -17,7 +18,6 @@ const { ACCIONES_ESPECIALES_POR_VISTA, ACCIONES_ESPECIALES_GLOBALES } = require(
 const getSede = (req, res) => {
   const sede = req.usuario?.id_sede;
   const rol = req.usuario?.rol;
-  console.log(`DEBUG: Usuario ${req.usuario?.cedula} (Rol: ${rol}) accediendo a Sede: ${sede}`);
   
   if (sede === undefined || sede === null) {
     res.status(401).json({ mensaje: 'Token inválido o sin sede' });
@@ -358,89 +358,38 @@ const actualizarPersonal = async (req, res) => {
 
   try {
     const { id } = req.params;
-    const {
-      cedula,
-      primer_nombre,
-      segundo_nombre,
-      primer_apellido,
-      segundo_apellido,
-      telefono,
-      email,
-      password,
-      rol,
-      id_consultorio,
-      id_servicio,
-      id_especialidad,
-      status,
-      id_sede,
-    } = req.body;
+    const fields = { ...req.body };
+    delete fields.id;
 
-    const sets = [];
-    const values = [];
-    let idx = 1;
-
-    if (cedula !== undefined) {
-      sets.push(`cedula = $${idx++}`);
-      values.push(cedula);
+    if (fields.email) {
+      fields.email = fields.email.toLowerCase().trim();
     }
-    if (primer_nombre !== undefined) {
-      sets.push(`primer_nombre = $${idx++}`);
-      values.push(primer_nombre);
+    if (fields.password) {
+      fields.password_hash = await bcrypt.hash(fields.password, 10);
+      delete fields.password;
     }
-    if (segundo_nombre !== undefined) {
-      sets.push(`segundo_nombre = $${idx++}`);
-      values.push(segundo_nombre);
-    }
-    if (primer_apellido !== undefined) {
-      sets.push(`primer_apellido = $${idx++}`);
-      values.push(primer_apellido);
-    }
-    if (segundo_apellido !== undefined) {
-      sets.push(`segundo_apellido = $${idx++}`);
-      values.push(segundo_apellido);
-    }
-    if (telefono !== undefined) {
-      sets.push(`telefono = $${idx++}`);
-      values.push(telefono);
-    }
-    if (email !== undefined) {
-      sets.push(`email = $${idx++}`);
-      values.push(email ? email.toLowerCase().trim() : null);
-    }
-    if (password) {
-      sets.push(`password_hash = $${idx++}`);
-      values.push(await bcrypt.hash(password, 10));
-    }
-    if (rol !== undefined) {
-      sets.push(`rol = $${idx++}`);
-      values.push(rol);
-    }
-    if (id_consultorio !== undefined) {
-      sets.push(`id_consultorio = $${idx++}`);
-      values.push(id_consultorio);
-    }
-    if (id_servicio !== undefined) {
-      sets.push(`id_servicio = $${idx++}`);
-      values.push(id_servicio);
-    }
-    if (id_especialidad !== undefined) {
-      sets.push(`id_especialidad = $${idx++}`);
-      values.push(id_especialidad);
-    }
-    if (id_sede !== undefined) {
-      sets.push(`id_sede = $${idx++}`);
-      values.push(Number(id_sede));
-    }
-    if (status !== undefined) {
-      sets.push(`status = $${idx++}`);
-      values.push(status);
+    if (fields.id_sede !== undefined) {
+      fields.id_sede = Number(fields.id_sede);
     }
 
-    if (sets.length === 0) {
+    const allowed = [
+      'cedula', 'primer_nombre', 'segundo_nombre', 'primer_apellido',
+      'segundo_apellido', 'telefono', 'email', 'password_hash',
+      'rol', 'id_consultorio', 'id_servicio', 'id_especialidad',
+      'status', 'id_sede',
+    ];
+    const safeFields = {};
+    for (const key of Object.keys(fields)) {
+      if (allowed.includes(key) && fields[key] !== undefined) {
+        safeFields[key] = fields[key];
+      }
+    }
+
+    if (Object.keys(safeFields).length === 0) {
       return res.status(400).json({ mensaje: 'No hay campos para actualizar' });
     }
 
-    await usuarioRepo.actualizarPersonal(id, sede, sets, values, idx);
+    await usuarioRepo.actualizarPersonal(id, sede, safeFields);
 
     // Si el usuario fue desactivado, notificar en tiempo real a su sesión activa
     if (status === false && req.io) {
@@ -683,11 +632,9 @@ const actualizarRol = async (req, res) => {
 const eliminarRol = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log('Intentando eliminar rol ID:', id);
     await rolRepo.remove(id);
     res.json({ mensaje: 'Rol eliminado' });
   } catch (error) {
-    console.error('Error al eliminar rol, detalles:', error);
     logger.error('Error al eliminar rol:', error);
     if (error.code === '23503') {
       return res.status(409).json({ mensaje: 'No se puede eliminar el rol porque está asignado a uno o más usuarios' });

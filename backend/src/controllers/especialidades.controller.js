@@ -4,7 +4,6 @@ const espRepo = require('../repositories/especialidad.repository');
 
 const getSede = (req) => {
   const sede = req.usuario?.id_sede;
-  console.log(`DEBUG: Especialidades - Usuario ${req.usuario?.cedula} accediendo a Sede: ${sede}`);
   return sede !== undefined && sede !== null ? Number(sede) : null;
 };
 

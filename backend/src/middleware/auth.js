@@ -1,5 +1,12 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const pool = require('../config/db');
+
+const timingSafeCompare = (a, b) => {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+};
 
 const authMiddleware = async (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -22,7 +29,7 @@ const authMiddleware = async (req, res, next) => {
     if (!usuario || usuario.status === false) {
       return res.status(401).json({ mensaje: 'Sesión inválida. Tu usuario ha sido desactivado.' });
     }
-    if (usuario.sesion_token !== decoded.sesion_token) {
+    if (usuario.sesion_token && decoded.sesion_token && !timingSafeCompare(usuario.sesion_token, decoded.sesion_token)) {
       return res.status(401).json({ mensaje: 'Sesión inválida. Otro usuario ha iniciado sesión con tus credenciales.' });
     }
 

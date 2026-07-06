@@ -4,6 +4,7 @@
   "scripts": {
     "ng": "ng",
     "start": "concurrently -n \"WEB,API\" -c \"blue,green\" \"ng serve --proxy-config proxy.conf.js\" \"npm run start:backend\"",
+    "migrate": "node backend/migrate.js",
     "start:backend": "nodemon backend/index.js",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",

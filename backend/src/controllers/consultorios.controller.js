@@ -55,7 +55,6 @@ const resolverServicioId = async (rol, servicioId) => {
 };
 
 const llamarSiguiente = async (req, res) => {
-  console.log('[LLAMAR SIGUIENTE] Usuario:', req.usuario);
   const consultorioId = req.usuario.consultorio_id;
   let servicioId = req.usuario.servicio_id;
   const rol = req.usuario.rol;

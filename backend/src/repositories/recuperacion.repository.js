@@ -24,7 +24,7 @@ const insertarCodigo = async (idUsuario, codigo) => {
 
 const findCodigoValido = async (email, cedula) => {
   const result = await pool.query(
-    `SELECT rc.id_recuperacion, rc.codigo, rc.expiracion
+    `SELECT rc.id_recuperacion, rc.codigo, rc.expiracion, rc.intentos
      FROM "Recuperacion_Clave" rc
      JOIN "Usuarios" u ON rc.id_usuario = u.id_usuario
      WHERE LOWER(u.email) = LOWER($1) AND u.cedula = $2 AND rc.usado = false
@@ -32,6 +32,13 @@ const findCodigoValido = async (email, cedula) => {
     [email.trim(), cedula.trim()],
   );
   return result.rows[0] || null;
+};
+
+const incrementarIntentos = async (idRecuperacion) => {
+  await pool.query(
+    'UPDATE "Recuperacion_Clave" SET intentos = COALESCE(intentos, 0) + 1 WHERE id_recuperacion = $1',
+    [idRecuperacion],
+  );
 };
 
 const marcarUsado = async (idRecuperacion) => {
@@ -47,6 +54,7 @@ module.exports = {
   invalidarCodigosPendientes,
   insertarCodigo,
   findCodigoValido,
+  incrementarIntentos,
   marcarUsado,
   updatePassword,
 };
