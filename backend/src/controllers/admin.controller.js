@@ -15,6 +15,8 @@ const { auditar } = require('../middleware/audit');
 /* =========================================================
    UTILIDAD SEGURA (EVITA 500 POR req.usuario UNDEFINED)
 ========================================================= */
+const getUserId = (req) => req.usuario?.id;
+
 const getSede = (req, res) => {
   const sede = req.usuario?.id_sede;
   const rol = req.usuario?.rol;
@@ -342,6 +344,7 @@ const crearPersonal = async (req, res) => {
       status: status !== false,
     });
 
+    auditar({ userId: getUserId(req), accion: 'crear', recurso: 'personal', recursoId: result.id_usuario, ip: req.ip });
     res.status(201).json({ mensaje: 'Personal creado', id: result.id_usuario });
   } catch (error) {
     logger.error(error);
@@ -391,6 +394,8 @@ const actualizarPersonal = async (req, res) => {
 
     await usuarioRepo.actualizarPersonal(id, sede, safeFields);
 
+    auditar({ userId: getUserId(req), accion: 'editar', recurso: 'personal', recursoId: Number(id), detalle: { campos: Object.keys(safeFields) }, ip: req.ip });
+
     // Si el usuario fue desactivado, notificar en tiempo real a su sesión activa
     if (status === false && req.io) {
       for (const socket of req.io.sockets.sockets.values()) {
@@ -423,6 +428,7 @@ const eliminarPersonal = async (req, res) => {
       return res.status(404).json({ mensaje: 'Usuario no encontrado' });
     }
 
+    auditar({ userId: getUserId(req), accion: 'eliminar', recurso: 'personal', recursoId: Number(id), ip: req.ip });
     res.json({ mensaje: 'Personal eliminado' });
   } catch (error) {
     logger.error(error);

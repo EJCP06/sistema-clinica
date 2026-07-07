@@ -131,6 +131,35 @@ body:has(.fixed.inset-0.z-\[100\]) {
   input[type=number] {
     -moz-appearance: textfield;
   }
+
+  /* SweetAlert2 Dark Mode */
+  .dark .swal2-popup {
+    @apply bg-slate-800 text-slate-100;
+  }
+
+  .dark .swal2-title {
+    @apply text-white;
+  }
+
+  .dark .swal2-html-container {
+    @apply text-slate-300;
+  }
+
+  .dark .swal2-toast {
+    @apply bg-slate-800;
+  }
+
+  .dark .swal2-timer-progress-bar {
+    @apply bg-slate-600;
+  }
+
+  .dark .swal2-close {
+    @apply text-slate-400;
+  }
+
+  .dark .swal2-close:hover {
+    @apply text-white;
+  }
 }
 
 /* Ocultar scrollbars en elementos con la clase .hide-scrollbar */
