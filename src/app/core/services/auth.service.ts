@@ -233,6 +233,18 @@ export class AuthService implements OnDestroy {
     this.limpiarSesion();
   }
 
+  clearSession() {
+    this.limpiarSesionSinNavegar();
+  }
+
+  private limpiarSesionSinNavegar() {
+    sessionStorage.removeItem(this.STORAGE_KEY);
+    sessionStorage.removeItem(this.TOKEN_KEY);
+    sessionStorage.removeItem(this.REFRESH_KEY);
+    this.api.actualizarSocketToken(null);
+    this.usuarioSubject.next(null);
+  }
+
   emergencyLogout() {
     const token = this.getToken();
     if (token) {

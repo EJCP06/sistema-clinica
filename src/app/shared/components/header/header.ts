@@ -49,6 +49,7 @@ export class Header implements OnInit {
   private themeService = inject(ThemeService);
 
   initialTransitionDisabled = true;
+  cargando = false;
 
   get usuario() {
     return this.auth.usuarioActual;
@@ -73,6 +74,12 @@ export class Header implements OnInit {
   }
 
   logout() {
-    this.auth.logout();
+    this.cargando = true;
+    const MIN_CARGANDO = 800;
+
+    setTimeout(() => {
+      this.auth.logout();
+      this.cargando = false;
+    }, MIN_CARGANDO);
   }
 }
