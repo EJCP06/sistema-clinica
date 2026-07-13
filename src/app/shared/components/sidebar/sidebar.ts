@@ -155,7 +155,8 @@ export class Sidebar implements OnInit {
     const MIN_CARGANDO = 800;
 
     setTimeout(() => {
-      this.auth.logout();
+      this.auth.clearSession();
+      this.router.navigate(['/login']);
       this.cargando = false;
     }, MIN_CARGANDO);
   }
