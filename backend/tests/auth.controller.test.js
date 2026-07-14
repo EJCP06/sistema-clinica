@@ -24,6 +24,7 @@ describe('authController.login', () => {
     res = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn(),
+      cookie: jest.fn().mockReturnThis(),
     };
     jest.clearAllMocks();
   });
@@ -82,7 +83,6 @@ describe('authController.login', () => {
       mensaje: 'Login exitoso',
       token: 'token-falso',
       expiresIn: 900,
-      refreshToken: expect.any(String),
       usuario: expect.objectContaining({
         id: 1, cedula: '00000000', rol: 'admin', nombre: 'Admin',
       }),

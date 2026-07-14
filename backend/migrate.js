@@ -35,6 +35,7 @@ const runMigrations = async () => {
     );
   `);
   await pool.query(`ALTER TABLE "Recuperacion_Clave" ADD COLUMN IF NOT EXISTS intentos INTEGER DEFAULT 0`);
+  await pool.query(`ALTER TABLE "Recuperacion_Clave" ALTER COLUMN codigo TYPE VARCHAR(60)`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS "Roles" (

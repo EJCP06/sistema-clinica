@@ -6,12 +6,29 @@ const { Server } = require('socket.io');
 const dotenv = require('dotenv');
 const path = require('path');
 const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
 const pool = require('./src/config/db');
 const logger = require('./src/config/logger');
 const requestId = require('./src/middleware/requestId');
 const { apiLimiter } = require('./src/middleware/rateLimiter');
+const { shutdown: shutdownAudit } = require('./src/middleware/audit');
+const { metricsMiddleware, metricsHandler } = require('./src/middleware/metrics');
+const { logErrorSafe } = require('./src/utils/sanitize');
+
+let swaggerUi = null, swaggerSpec = null;
+try { swaggerUi = require('swagger-ui-express'); swaggerSpec = require('./src/config/swagger'); } catch { logger.warn('Swagger no disponible — instala con: npm install swagger-jsdoc swagger-ui-express'); }
+
+let cache = { get: () => null, set: () => {}, del: () => {}, close: () => {} };
+try { cache = require('./src/config/cache'); } catch { /* Redis opcional */ }
 
 dotenv.config({ path: path.join(__dirname, '.env') });
+
+const REQUIRED_ENV_VARS = ['JWT_SECRET', 'DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'];
+const missing = REQUIRED_ENV_VARS.filter(v => !process.env[v]);
+if (missing.length > 0) {
+  logger.error(`Faltan variables de entorno requeridas: ${missing.join(', ')}`);
+  process.exit(1);
+}
 
 const app = express();
 app.set('trust proxy', 1);
@@ -29,12 +46,14 @@ app.use(helmet({
       imgSrc: ["'self'", "data:", "https://ui-avatars.com"],
       fontSrc: ["'self'"],
       connectSrc: isProduction
-        ? ["'self'", `https://${apiHost}`, "wss://${apiHost}"]
+        ? ["'self'", `https://${apiHost}`, `wss://${apiHost}`]
         : ["'self'", "ws:", "http://localhost:*", "http://127.0.0.1:*"],
       frameAncestors: ["'none'"],
       baseUri: ["'self'"],
     },
   },
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+  crossOriginEmbedderPolicy: false,
   hsts: isProduction ? {
     maxAge: 63072000,
     includeSubDomains: true,
@@ -62,14 +81,25 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 }));
-app.use(express.json({ limit: '100kb' }));
+app.use(express.json({ limit: '1mb' }));
 
+app.use(cookieParser());
 app.use((req, res, next) => {
   req.io = io;
   next();
 });
 app.use(requestId);
+app.use(metricsMiddleware);
 app.use('/api', apiLimiter);
+
+if (isProduction) {
+  app.use((req, res, next) => {
+    if (req.headers['x-forwarded-proto'] !== 'https' && req.headers['x-forwarded-proto'] !== undefined) {
+      return res.status(403).json({ mensaje: 'Se requiere HTTPS' });
+    }
+    next();
+  });
+}
 
 const PORT = process.env.PORT || 3001;
 
@@ -98,6 +128,14 @@ if (require.main === module) {
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'API funcionando correctamente' });
 });
+app.get('/api/metrics', metricsHandler);
+if (swaggerUi && swaggerSpec) {
+  app.get('/api/docs.json', (req, res) => res.json(swaggerSpec));
+  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'Clínica API - Documentación',
+  }));
+}
 
 const authRoutes = require('./src/routes/auth.routes');
 const adminRoutes = require('./src/routes/admin.routes');
@@ -125,7 +163,7 @@ app.use('/api/turnero', turneroRoutes);
 // Error handler — DEBE ir DESPUÉS de todas rutas
 // ──────────────────────────────────────────────
 app.use((err, req, res, next) => {
-  logger.error('Error no controlado', { error: err.message, stack: err.stack, method: req.method, url: req.url });
+  logErrorSafe('Error no controlado', err, { method: req.method, url: req.url });
   res.status(err.status || 500).json({ mensaje: err.status ? err.message : 'Error interno del servidor' });
 });
 
@@ -152,8 +190,10 @@ io.on('connection', (socket) => {
   });
 });
 
-const gracefulShutdown = (signal) => {
+const gracefulShutdown = async (signal) => {
   logger.info(`${signal} recibido, cerrando servidor...`);
+  await shutdownAudit();
+  await cache.close();
   io.close();
   server.close(() => {
     pool.end(() => process.exit(0));

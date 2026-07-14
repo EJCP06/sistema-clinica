@@ -199,8 +199,8 @@ export class Login implements OnDestroy {
       this.swal.warning('Complete todos los campos');
       return;
     }
-    if (this.newPassword.length < 4) {
-      this.swal.warning('La contraseña debe tener al menos 4 caracteres');
+    if (this.newPassword.length < 8) {
+      this.swal.warning('La contraseña debe tener al menos 8 caracteres');
       return;
     }
     if (this.newPassword !== this.confirmPassword) {

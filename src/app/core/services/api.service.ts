@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, NgZone } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, Subject } from 'rxjs';
 import { environment } from '@env/environment';
@@ -30,39 +30,72 @@ import {
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private http = inject(HttpClient);
+  private zone = inject(NgZone);
   private base = environment.apiUrl;
-  private socket: Socket;
+  private socket!: Socket;
   public cambios$ = new Subject<{ tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; apellido?: string; id_sede?: number }>();
 
   constructor() {
     const token = sessionStorage.getItem('clinica_token');
-    this.socket = io(environment.socketUrl, {
-      auth: { token },
-      transports: ['polling', 'websocket'],
-      reconnectionAttempts: 10,
-      reconnectionDelay: 2000,
-    });
-    this.socket.on('estado-actualizado', (data: unknown) => {
-      this.cambios$.next(data as { tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; id_sede?: number });
-    });
-    this.socket.on('nuevo-llamado', (data: unknown) => {
-      this.cambios$.next(data as { tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; id_sede?: number });
-    });
-    this.socket.on('permisos-actualizados', (data: unknown) => {
-      this.cambios$.next({ tipo: 'permisos', ...(data as Record<string, any>) } as { tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; id_sede?: number });
-    });
-    this.socket.on('usuario-desactivado', () => {
-      this.cambios$.next({ tipo: 'usuario-desactivado' } as any);
-    });
-    this.socket.on('connect_error', () => {
-      setTimeout(() => { if (!this.socket.connected) this.socket.connect(); }, 3000);
+    if (token) {
+      this.conectarSocket(token);
+    }
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && token && !this.socket?.connected) {
+          this.socket?.connect();
+        }
+      });
+    }
+  }
+
+  private conectarSocket(token: string | null) {
+    this.zone.runOutsideAngular(() => {
+      this.socket = io(environment.socketUrl, {
+        auth: { token },
+        transports: ['polling', 'websocket'],
+        reconnectionAttempts: 10,
+        reconnectionDelay: 2000,
+        autoConnect: true,
+      });
+      this.socket.on('estado-actualizado', (data: unknown) => {
+        this.zone.run(() => {
+          this.cambios$.next(data as { tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; id_sede?: number });
+        });
+      });
+      this.socket.on('nuevo-llamado', (data: unknown) => {
+        this.zone.run(() => {
+          this.cambios$.next(data as { tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; id_sede?: number });
+        });
+      });
+      this.socket.on('permisos-actualizados', (data: unknown) => {
+        this.zone.run(() => {
+          this.cambios$.next({ tipo: 'permisos', ...(data as Record<string, any>) } as { tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; id_sede?: number });
+        });
+      });
+      this.socket.on('usuario-desactivado', () => {
+        this.zone.run(() => {
+          this.cambios$.next({ tipo: 'usuario-desactivado' } as any);
+        });
+      });
+      this.socket.on('connect_error', () => {
+        setTimeout(() => { if (!this.socket.connected) this.socket.connect(); }, 3000);
+      });
     });
   }
 
   actualizarSocketToken(token: string | null) {
-    if (this.socket) {
-      this.socket.auth = { token };
-      this.socket.disconnect().connect();
+    if (token) {
+      if (this.socket) {
+        this.socket.auth = { token };
+        this.socket.disconnect().connect();
+      } else {
+        this.conectarSocket(token);
+      }
+    } else {
+      if (this.socket) {
+        this.socket.disconnect();
+      }
     }
   }
 

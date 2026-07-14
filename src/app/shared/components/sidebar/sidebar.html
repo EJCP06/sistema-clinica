@@ -249,16 +249,18 @@
         [disabled]="cargando"
         class="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-rose-600 dark:text-rose-400 hover:bg-rose-500/5 dark:hover:bg-rose-500/10 disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 group text-left"
       >
-        <span *ngIf="!cargando" class="flex items-center gap-3">
-          <lucide-icon
-            [name]="LogOut"
-            class="w-4 h-4"
-          ></lucide-icon>
-          <span class="font-bold text-sm tracking-tight">Cerrar Sesión</span>
-        </span>
-        <div *ngIf="cargando" class="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-[800ms]">
-          <div class="w-5 h-5 border-2 border-rose-600/30 dark:border-rose-400/30 border-t-rose-600 dark:border-t-rose-400 rounded-full animate-spin"></div>
-          <span class="animate-pulse font-bold text-sm tracking-tight">Cargando...</span>
+        <div class="flex items-center gap-3 min-h-[20px]">
+          <span *ngIf="!cargando" class="flex items-center gap-3">
+            <lucide-icon
+              [name]="LogOut"
+              class="w-4 h-4"
+            ></lucide-icon>
+            <span class="font-bold text-sm tracking-tight">Cerrar Sesión</span>
+          </span>
+          <div *ngIf="cargando" class="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-[800ms]">
+            <div class="w-5 h-5 border-2 border-rose-600/30 dark:border-rose-400/30 border-t-rose-600 dark:border-t-rose-400 rounded-full animate-spin"></div>
+            <span class="animate-pulse font-bold text-sm tracking-tight">Cargando...</span>
+          </div>
         </div>
       </button>
   </div>

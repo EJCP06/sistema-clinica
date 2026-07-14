@@ -34,8 +34,6 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           });
         }
       } else if (error.status === 401) {
-        authService.logoutSilently();
-
         const esVerify = req.url.includes('/auth/verify');
         const enLogin = router.url.includes('/login');
 

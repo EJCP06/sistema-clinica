@@ -1,14 +1,18 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { LucideAngularModule, Building2, Monitor } from 'lucide-angular';
+import { LucideAngularModule, Building2, Monitor, ArrowLeft } from 'lucide-angular';
 
 @Component({
   selector: 'app-turnero-sede-selector',
   standalone: true,
   imports: [CommonModule, LucideAngularModule],
   template: `
-    <div class="h-[100dvh] bg-slate-900 text-white flex flex-col items-center justify-center gap-8 p-8">
+    <div class="h-[100dvh] bg-slate-900 text-white flex flex-col items-center justify-center gap-8 p-8 relative">
+      <button (click)="volver()"
+        class="absolute top-6 left-6 flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all duration-200">
+        <lucide-icon [img]="ArrowLeft" class="w-5 h-5"></lucide-icon>
+      </button>
       <img src="/logo-cnc.png" alt="Logo" class="w-20 h-20 rounded-xl bg-white/10 p-2 object-contain" />
       <h1 class="text-3xl md:text-5xl font-black tracking-tight text-center">SELECCIONE LA SEDE</h1>
       <p class="text-slate-400 text-lg">¿De qué sede desea ver el turnero?</p>
@@ -30,9 +34,15 @@ import { LucideAngularModule, Building2, Monitor } from 'lucide-angular';
 export class TurneroSedeSelector {
   readonly Building2 = Building2;
   readonly Monitor = Monitor;
+  readonly ArrowLeft = ArrowLeft;
   private router = inject(Router);
 
   ir(sede: number) {
+    sessionStorage.setItem('turnero_sede', String(sede));
     this.router.navigate(['/turnero', sede], { queryParams: { sala: 'aps' } });
+  }
+
+  volver() {
+    this.router.navigate(['/login']);
   }
 }

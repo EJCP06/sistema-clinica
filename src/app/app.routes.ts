@@ -8,7 +8,8 @@ export const routes: Routes = [
   {
     path: '',
     pathMatch: 'full',
-    loadComponent: () => import('./features/inicio/inicio').then(m => m.Inicio)
+    loadComponent: () => import('./features/inicio/inicio').then(m => m.Inicio),
+    canActivate: [authGuard]
   },
 
   // Pantalla de Login (Acceso público)
@@ -135,7 +136,7 @@ export const routes: Routes = [
     }
   },
 
-  // Pantalla Pública del Turnero (Acceso público para TVs)
+  // Turnero (público para TVs en sala de espera)
   {
     path: 'turnero',
     pathMatch: 'full',
