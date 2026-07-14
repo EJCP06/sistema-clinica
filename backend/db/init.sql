@@ -306,8 +306,9 @@ INSERT INTO "Roles" ("nombre", "key", "id_sede", "activo") VALUES
 -- USUARIO ADMIN POR DEFECTO (cambiar contraseña en producción)
 -- id_rol = 1 corresponde a ADMINISTRADOR sede 1 (Plaza Sucre)
 INSERT INTO "Usuarios" ("id_usuario", "cedula", "password_hash", "id_rol", "primer_nombre", "primer_apellido", "id_sede", "status") VALUES
-  (1, 'admin', '$2b$10$/soHoDldxC32p0P0VXdKCuXKNaarqsseZhkrrSUMOdguApLaXdjii', 1, 'ADMIN', 'SISTEMA', 1, true);
-SELECT pg_catalog.setval('public."Usuarios_id_usuario_seq"', 1, true);
+  (1, 'admin', '$2b$10$/soHoDldxC32p0P0VXdKCuXKNaarqsseZhkrrSUMOdguApLaXdjii', 1, 'ADMIN', 'SISTEMA', 1, true),
+  (2, '31693727', '$2b$10$/soHoDldxC32p0P0VXdKCuXKNaarqsseZhkrrSUMOdguApLaXdjii', 1, 'ADMIN', 'SISTEMA', 1, true);
+SELECT pg_catalog.setval('public."Usuarios_id_usuario_seq"', 2, true);
 
 -- ACCIONES (Todas las acciones del sistema)
 INSERT INTO "Acciones" ("key", "nombre", "descripcion") VALUES
