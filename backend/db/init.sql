@@ -3,6 +3,8 @@
 -- Generado desde la base de datos actual
 -- ======================================================
 
+CREATE DATABASE IF NOT EXISTS "clinica_colas";
+
 -- ELIMINAR TABLAS EXISTENTES (orden inverso de dependencias)
 DROP TABLE IF EXISTS "Historial_Atencion" CASCADE;
 DROP TABLE IF EXISTS "Especialidad_Consultorio" CASCADE;
@@ -239,24 +241,13 @@ CREATE TABLE "Recuperacion_Clave" (
 );
 
 -- ======================================================
--- DATOS INICIALES
-
--- USUARIO ADMIN POR DEFECTO (cambiar contraseña en producción)
-INSERT INTO "Usuarios" ("id_usuario", "cedula", "password_hash", "id_rol", "primer_nombre", "primer_apellido", "id_sede", "status") VALUES
-  (1, 'admin', '$2b$10$/soHoDldxC32p0P0VXdKCuXKNaarqsseZhkrrSUMOdguApLaXdjii', 1, 'ADMIN', 'SISTEMA', 1, true);
-SELECT pg_catalog.setval('public."Usuarios_id_usuario_seq"', 1, true);
+-- DATOS INICIALES (ORDEN RESPETANDO FKs)
 -- ======================================================
 
--- SEDES
+-- SEDES (primero, porque todo referencia a sedes)
 INSERT INTO "Sedes" ("id_sede", "nombre") VALUES
   (1, 'Plaza Sucre'),
   (2, 'Santa Mónica');
-
--- SERVICIOS
-INSERT INTO "Servicio" ("id_servicio", "nombre_servicio", "prefijo", "status", "id_sede") VALUES
-  (1, 'CONSULTA', 'CONS', true, 1),
-  (2, 'LABORATORIO', 'LAB', true, 1),
-  (3, 'IMAGENES', 'IMG', true, 1);
 
 -- TIPO CLIENTE
 INSERT INTO "tipo_cliente" ("id_tipo_cliente", "nombre") VALUES
@@ -285,69 +276,13 @@ INSERT INTO "Estado" ("id_estado", "nombre_estado") VALUES
   (8, 'Espera de clave'),
   (9, 'Retirado');
 
--- CONSULTORIOS (Plaza Sucre)
-INSERT INTO "Consultorios" ("id_consultorio", "nombre", "piso", "id_servicio", "id_sede", "estado_fisico") VALUES
-  (1, '01', '1', 1, 1, 'LIBRE'),
-  (2, '02', '1', 1, 1, 'LIBRE'),
-  (3, '05', '1', 1, 1, 'LIBRE'),
-  (4, '03', '5', 1, 1, 'LIBRE'),
-  (5, '10', NULL, 1, 1, 'LIBRE'),
-  (6, '06', NULL, 1, 1, 'LIBRE'),
-  (7, '20', NULL, 1, 1, 'LIBRE'),
-  (8, '16', NULL, 1, 1, 'LIBRE'),
-  (9, '11', NULL, 1, 1, 'LIBRE'),
-  (10, '08', NULL, 1, 1, 'LIBRE'),
-  (11, '17', NULL, 1, 1, 'LIBRE'),
-  (12, '12', NULL, 1, 1, 'LIBRE'),
-  (13, '15', NULL, 1, 1, 'LIBRE'),
-  (14, '14', NULL, 1, 1, 'LIBRE'),
-  (15, '13', NULL, 1, 1, 'LIBRE'),
-  (16, '19', NULL, 1, 1, 'LIBRE'),
-  (17, '07', NULL, 1, 1, 'LIBRE'),
-  (18, '18', NULL, 1, 1, 'LIBRE'),
-  (19, '04', NULL, 1, 1, 'LIBRE'),
-  (20, '09', NULL, 1, 1, 'LIBRE');
+-- SERVICIOS
+INSERT INTO "Servicio" ("id_servicio", "nombre_servicio", "prefijo", "status", "id_sede") VALUES
+  (1, 'CONSULTA', 'CONS', true, 1),
+  (2, 'LABORATORIO', 'LAB', true, 1),
+  (3, 'IMAGENES', 'IMG', true, 1);
 
--- CONSULTORIOS (Santa Mónica)
-INSERT INTO "Consultorios" ("nombre", "piso", "id_servicio", "id_sede", "estado_fisico") VALUES
-  ('01', '1', 1, 2, 'LIBRE'),
-  ('02', '1', 1, 2, 'LIBRE'),
-  ('05', '1', 1, 2, 'LIBRE'),
-  ('03', '5', 1, 2, 'LIBRE'),
-  ('10', NULL, 1, 2, 'LIBRE'),
-  ('06', NULL, 1, 2, 'LIBRE'),
-  ('20', NULL, 1, 2, 'LIBRE'),
-  ('16', NULL, 1, 2, 'LIBRE'),
-  ('11', NULL, 1, 2, 'LIBRE'),
-  ('08', NULL, 1, 2, 'LIBRE'),
-  ('17', NULL, 1, 2, 'LIBRE'),
-  ('12', NULL, 1, 2, 'LIBRE'),
-  ('15', NULL, 1, 2, 'LIBRE'),
-  ('14', NULL, 1, 2, 'LIBRE'),
-  ('13', NULL, 1, 2, 'LIBRE'),
-  ('19', NULL, 1, 2, 'LIBRE'),
-  ('07', NULL, 1, 2, 'LIBRE'),
-  ('18', NULL, 1, 2, 'LIBRE'),
-  ('04', NULL, 1, 2, 'LIBRE'),
-  ('09', NULL, 1, 2, 'LIBRE');
-
--- ESPECIALIDADES
-INSERT INTO "Especialidades" ("id_especialidad", "nombre", "prefijo", "id_servicio", "id_sede", "piso", "activo") VALUES
-  (4, 'CARDIOLOGIA', 'CARD', 1, 1, '1', true),
-  (5, 'PEDIATRIA', 'PED', 1, 1, '1', true),
-  (6, 'MEDICINA GENERAL', 'MEDG', 1, 1, '1', true),
-  (7, 'OFTALMOLOGIA', 'OFT', 1, 1, '2', true),
-  (8, 'GINECOLOGIA', 'GIN', 1, 1, '5', true);
-
--- JUNCTION: ESPECIALIDAD <-> CONSULTORIO
-INSERT INTO "Especialidad_Consultorio" ("id_especialidad", "id_consultorio") VALUES
-  (4, 2), (4, 3), (4, 4),
-  (5, 1),
-  (6, 4),
-  (7, 2),
-  (8, 3);
-
--- ROLES
+-- ROLES (DEBE IR ANTES DE USUARIOS)
 INSERT INTO "Roles" ("nombre", "key", "id_sede", "activo") VALUES
   -- Plaza Sucre (id_sede = 1)
   ('ADMINISTRADOR', 'administrador', 1, true),
@@ -367,6 +302,12 @@ INSERT INTO "Roles" ("nombre", "key", "id_sede", "activo") VALUES
   ('LABORATORIO', 'laboratorio', 2, true),
   ('IMAGENES', 'imagenes', 2, true),
   ('ENFERMERO', 'enfermero', 2, true);
+
+-- USUARIO ADMIN POR DEFECTO (cambiar contraseña en producción)
+-- id_rol = 1 corresponde a ADMINISTRADOR sede 1 (Plaza Sucre)
+INSERT INTO "Usuarios" ("id_usuario", "cedula", "password_hash", "id_rol", "primer_nombre", "primer_apellido", "id_sede", "status") VALUES
+  (1, 'admin', '$2b$10$/soHoDldxC32p0P0VXdKCuXKNaarqsseZhkrrSUMOdguApLaXdjii', 1, 'ADMIN', 'SISTEMA', 1, true);
+SELECT pg_catalog.setval('public."Usuarios_id_usuario_seq"', 1, true);
 
 -- ACCIONES (Todas las acciones del sistema)
 INSERT INTO "Acciones" ("key", "nombre", "descripcion") VALUES
@@ -489,10 +430,74 @@ END $$;
 
 DROP FUNCTION asignar_permiso_por_sede;
 
+-- CONSULTORIOS (Plaza Sucre)
+INSERT INTO "Consultorios" ("id_consultorio", "nombre", "piso", "id_servicio", "id_sede", "estado_fisico") VALUES
+  (1, '01', '1', 1, 1, 'LIBRE'),
+  (2, '02', '1', 1, 1, 'LIBRE'),
+  (3, '05', '1', 1, 1, 'LIBRE'),
+  (4, '03', '5', 1, 1, 'LIBRE'),
+  (5, '10', NULL, 1, 1, 'LIBRE'),
+  (6, '06', NULL, 1, 1, 'LIBRE'),
+  (7, '20', NULL, 1, 1, 'LIBRE'),
+  (8, '16', NULL, 1, 1, 'LIBRE'),
+  (9, '11', NULL, 1, 1, 'LIBRE'),
+  (10, '08', NULL, 1, 1, 'LIBRE'),
+  (11, '17', NULL, 1, 1, 'LIBRE'),
+  (12, '12', NULL, 1, 1, 'LIBRE'),
+  (13, '15', NULL, 1, 1, 'LIBRE'),
+  (14, '14', NULL, 1, 1, 'LIBRE'),
+  (15, '13', NULL, 1, 1, 'LIBRE'),
+  (16, '19', NULL, 1, 1, 'LIBRE'),
+  (17, '07', NULL, 1, 1, 'LIBRE'),
+  (18, '18', NULL, 1, 1, 'LIBRE'),
+  (19, '04', NULL, 1, 1, 'LIBRE'),
+  (20, '09', NULL, 1, 1, 'LIBRE');
+
+-- Actualizar secuencia después de INSERT con IDs explícitos
+SELECT pg_catalog.setval('public."Consultorios_id_consultorio_seq"', 20, true);
+
+-- CONSULTORIOS (Santa Mónica)
+INSERT INTO "Consultorios" ("nombre", "piso", "id_servicio", "id_sede", "estado_fisico") VALUES
+  ('01', '1', 1, 2, 'LIBRE'),
+  ('02', '1', 1, 2, 'LIBRE'),
+  ('05', '1', 1, 2, 'LIBRE'),
+  ('03', '5', 1, 2, 'LIBRE'),
+  ('10', NULL, 1, 2, 'LIBRE'),
+  ('06', NULL, 1, 2, 'LIBRE'),
+  ('20', NULL, 1, 2, 'LIBRE'),
+  ('16', NULL, 1, 2, 'LIBRE'),
+  ('11', NULL, 1, 2, 'LIBRE'),
+  ('08', NULL, 1, 2, 'LIBRE'),
+  ('17', NULL, 1, 2, 'LIBRE'),
+  ('12', NULL, 1, 2, 'LIBRE'),
+  ('15', NULL, 1, 2, 'LIBRE'),
+  ('14', NULL, 1, 2, 'LIBRE'),
+  ('13', NULL, 1, 2, 'LIBRE'),
+  ('19', NULL, 1, 2, 'LIBRE'),
+  ('07', NULL, 1, 2, 'LIBRE'),
+  ('18', NULL, 1, 2, 'LIBRE'),
+  ('04', NULL, 1, 2, 'LIBRE'),
+  ('09', NULL, 1, 2, 'LIBRE');
+
+-- ESPECIALIDADES
+INSERT INTO "Especialidades" ("id_especialidad", "nombre", "prefijo", "id_servicio", "id_sede", "piso", "activo") VALUES
+  (4, 'CARDIOLOGIA', 'CARD', 1, 1, '1', true),
+  (5, 'PEDIATRIA', 'PED', 1, 1, '1', true),
+  (6, 'MEDICINA GENERAL', 'MEDG', 1, 1, '1', true),
+  (7, 'OFTALMOLOGIA', 'OFT', 1, 1, '2', true),
+  (8, 'GINECOLOGIA', 'GIN', 1, 1, '5', true);
+
+-- JUNCTION: ESPECIALIDAD <-> CONSULTORIO
+INSERT INTO "Especialidad_Consultorio" ("id_especialidad", "id_consultorio") VALUES
+  (4, 2), (4, 3), (4, 4),
+  (5, 1),
+  (6, 4),
+  (7, 2),
+  (8, 3);
+
 -- ======================================================
 -- RESETEAR SECUENCIAS
 -- ======================================================
-SELECT pg_catalog.setval('public."Consultorios_id_consultorio_seq"', 40, true);
 SELECT pg_catalog.setval('public."Especialidades_id_especialidad_seq"', 8, true);
 SELECT pg_catalog.setval('public."Estado_id_estado_seq"', 8, true);
 SELECT pg_catalog.setval('public."Responsable_Pago_id_responsable_seq"', 4, true);
