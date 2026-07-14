@@ -397,7 +397,7 @@ const actualizarPersonal = async (req, res) => {
     auditar({ userId: getUserId(req), accion: 'editar', recurso: 'personal', recursoId: Number(id), detalle: { campos: Object.keys(safeFields) }, ip: req.ip });
 
     // Si el usuario fue desactivado, notificar en tiempo real a su sesión activa
-    if (status === false && req.io) {
+    if (safeFields.status === false && req.io) {
       for (const socket of req.io.sockets.sockets.values()) {
         if (socket.usuario && Number(socket.usuario.id) === Number(id)) {
           socket.emit('usuario-desactivado');
