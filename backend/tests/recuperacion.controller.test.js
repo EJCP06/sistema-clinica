@@ -43,12 +43,12 @@ describe('recuperacionController', () => {
       expect(res.status).toHaveBeenCalledWith(400);
     });
 
-    test('debe retornar 404 si email o cédula incorrectos', async () => {
+    test('debe retornar 200 con mensaje genérico si email o cédula incorrectos', async () => {
       req.body = { email: 'test@test.com', cedula: '123' };
       mockPool.query.mockResolvedValue({ rows: [] });
       await recuperacionController.solicitar(req, res);
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({ mensaje: 'Correo o cédula incorrectos' });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ mensaje: 'Si el correo y cédula están registrados, recibirás un código de verificación', expiracion: 180 });
     });
 
     test('debe enviar código exitosamente', async () => {
@@ -56,6 +56,7 @@ describe('recuperacionController', () => {
       const usuarioMock = { id_usuario: 1, email: 'test@test.com', cedula: '123' };
       mockPool.query.mockResolvedValue({ rows: [usuarioMock] });
       mockCrypto.randomInt.mockReturnValue(123456);
+      mockBcrypt.hash.mockResolvedValue('hashed-code-123');
       mockEnviarCorreoOTP.mockResolvedValue();
       
       await recuperacionController.solicitar(req, res);
@@ -66,7 +67,7 @@ describe('recuperacionController', () => {
       );
       expect(mockPool.query).toHaveBeenCalledWith(
         'INSERT INTO "Recuperacion_Clave" (id_usuario, codigo, expiracion) VALUES ($1, $2, NOW() + INTERVAL \'3 minutes\')',
-        [1, '123456']
+        [1, 'hashed-code-123']
       );
       expect(mockEnviarCorreoOTP).toHaveBeenCalledWith('test@test.com', '123456');
       expect(res.json).toHaveBeenCalledWith({ mensaje: 'Código enviado al correo registrado', expiracion: 180 });
@@ -77,6 +78,7 @@ describe('recuperacionController', () => {
       const usuarioMock = { id_usuario: 1, email: 'test@test.com', cedula: '123' };
       mockPool.query.mockResolvedValue({ rows: [usuarioMock] });
       mockCrypto.randomInt.mockReturnValue(123456);
+      mockBcrypt.hash.mockResolvedValue('hashed-code-123');
       mockEnviarCorreoOTP.mockRejectedValue(new Error('Email error'));
       
       await recuperacionController.solicitar(req, res);
@@ -130,13 +132,15 @@ describe('recuperacionController', () => {
       req.body = { email: 'test@test.com', cedula: '123', codigo: '123456' };
       const registroMock = { 
         id_recuperacion: 1, 
-        codigo: '654321', // Código diferente
+        codigo: '$2a$10$hashed654321', // Hash de código diferente
         expiracion: new Date(Date.now() + 100000) // Fecha futura
       };
       mockPool.query.mockResolvedValue({ rows: [registroMock] });
+      mockBcrypt.compare.mockResolvedValue(false);
       
       await recuperacionController.verificar(req, res);
       
+      expect(mockBcrypt.compare).toHaveBeenCalledWith('123456', '$2a$10$hashed654321');
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({ mensaje: 'Código incorrecto' });
     });
@@ -145,13 +149,15 @@ describe('recuperacionController', () => {
       req.body = { email: 'test@test.com', cedula: '123', codigo: '123456' };
       const registroMock = { 
         id_recuperacion: 1, 
-        codigo: '123456',
+        codigo: '$2a$10$hashed123456',
         expiracion: new Date(Date.now() + 100000) // Fecha futura
       };
       mockPool.query.mockResolvedValue({ rows: [registroMock] });
+      mockBcrypt.compare.mockResolvedValue(true);
       
       await recuperacionController.verificar(req, res);
       
+      expect(mockBcrypt.compare).toHaveBeenCalledWith('123456', '$2a$10$hashed123456');
       expect(res.json).toHaveBeenCalledWith({ mensaje: 'Código verificado correctamente' });
     });
 
@@ -177,7 +183,7 @@ describe('recuperacionController', () => {
       req.body = { email: 'test@test.com', cedula: '123', codigo: '123456', newPassword: '123' };
       await recuperacionController.restablecer(req, res);
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({ mensaje: 'La contraseña debe tener al menos 4 caracteres' });
+      expect(res.json).toHaveBeenCalledWith({ mensaje: 'La contraseña debe tener al menos 8 caracteres' });
     });
 
     test('debe retornar 400 si no hay código pendiente', async () => {
@@ -207,13 +213,15 @@ describe('recuperacionController', () => {
       req.body = { email: 'test@test.com', cedula: '123', codigo: '123456', newPassword: 'NuevaPass123' };
       const registroMock = { 
         id_recuperacion: 1, 
-        codigo: '654321', // Incorrecto
+        codigo: '$2a$10$hashed654321', // Hash de código diferente
         expiracion: new Date(Date.now() + 100000), // Válido
       };
       mockPool.query.mockResolvedValue({ rows: [registroMock] });
+      mockBcrypt.compare.mockResolvedValue(false);
       
       await recuperacionController.restablecer(req, res);
       
+      expect(mockBcrypt.compare).toHaveBeenCalledWith('123456', '$2a$10$hashed654321');
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({ mensaje: 'Código incorrecto' });
     });
@@ -222,14 +230,16 @@ describe('recuperacionController', () => {
       req.body = { email: 'test@test.com', cedula: '123', codigo: '123456', newPassword: 'NuevaPass123' };
       const registroMock = { 
         id_recuperacion: 1, 
-        codigo: '123456',
+        codigo: '$2a$10$hashed123456',
         expiracion: new Date(Date.now() + 100000), // Válido
       };
       mockPool.query.mockResolvedValue({ rows: [registroMock] });
       mockBcrypt.hash.mockResolvedValue('hashed_password_123');
+      mockBcrypt.compare.mockResolvedValue(true);
       
       await recuperacionController.restablecer(req, res);
       
+      expect(mockBcrypt.compare).toHaveBeenCalledWith('123456', '$2a$10$hashed123456');
       expect(mockBcrypt.hash).toHaveBeenCalledWith('NuevaPass123', 10);
       expect(mockPool.query).toHaveBeenCalledWith(
         'UPDATE "Usuarios" SET password_hash = $1 WHERE cedula = $2',

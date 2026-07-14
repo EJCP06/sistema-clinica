@@ -3,6 +3,10 @@
   <!-- BARRA SUPERIOR: INFO CLÍNICA -->
   <div class="p-4 md:p-8 bg-slate-950 border-b border-slate-800 flex flex-col md:flex-row justify-between items-center shadow-2xl gap-4">
     <div class="flex items-center gap-4 md:gap-6">
+      <button (click)="volverASedes()"
+        class="flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all duration-200">
+        <lucide-icon [img]="ArrowLeft" class="w-5 h-5"></lucide-icon>
+      </button>
       <img src="/logo-cnc.png" alt="Logo" class="w-12 h-12 md:w-16 md:h-16 rounded-xl bg-white/10 p-1.5 object-contain" />
       <div>
         <h1 class="text-lg md:text-4xl font-black tracking-tight text-center md:text-left">SALA DE ESPERA Y TURNOS</h1>

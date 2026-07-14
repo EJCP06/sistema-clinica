@@ -24,7 +24,6 @@ router.get('/pacientes', async (req, res) => {
       paciente: {
         nombre: r.nombre,
         apellido: r.apellido,
-        documento: r.cedula,
       }
     }));
 
@@ -52,7 +51,6 @@ router.get('/sala-espera', async (req, res) => {
       paciente: {
         nombre: r.nombre,
         apellido: r.apellido,
-        documento: r.cedula,
       }
     }));
 

@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, inject, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -44,6 +44,7 @@ export class Sidebar implements OnInit {
   private auth = inject(AuthService);
   private themeService = inject(ThemeService);
   private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
   
   // Loading state for logout
   cargando = false;
@@ -152,6 +153,7 @@ export class Sidebar implements OnInit {
 
   logout() {
     this.cargando = true;
+    this.cdr.detectChanges();
     const MIN_CARGANDO = 800;
 
     setTimeout(() => {

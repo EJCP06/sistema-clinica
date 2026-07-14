@@ -41,6 +41,7 @@ export class Admin implements OnInit {
 
   configExpanded = true;
   sidebarOpen = false;
+  cargando = false;
 
   ngOnInit() {
     const usuario = this.authService.usuarioActual;
@@ -73,6 +74,12 @@ export class Admin implements OnInit {
   }
 
   logout() {
-    this.authService.logout();
+    this.cargando = true;
+    const MIN_CARGANDO = 800;
+
+    setTimeout(() => {
+      this.authService.logout();
+      this.cargando = false;
+    }, MIN_CARGANDO);
   }
 }

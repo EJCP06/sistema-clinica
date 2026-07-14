@@ -3,7 +3,6 @@ const crypto = require('crypto');
 const { enviarCorreoOTP } = require('../config/email');
 const recuperacionRepo = require('../repositories/recuperacion.repository');
 const usuarioRepo = require('../repositories/usuario.repository');
-const MAX_VERIFY_ATTEMPTS = 5;
 
 const solicitar = async (req, res) => {
   const { email, cedula } = req.body;
@@ -16,13 +15,14 @@ const solicitar = async (req, res) => {
     const usuario = await recuperacionRepo.findUsuarioByEmailYCedula(email, cedula);
 
     if (!usuario) {
-      return res.status(404).json({ mensaje: 'Correo o cédula incorrectos' });
+      return res.status(200).json({ mensaje: 'Si el correo y cédula están registrados, recibirás un código de verificación', expiracion: 180 });
     }
 
     const codigo = crypto.randomInt(100000, 999999).toString();
+    const codigoHash = await bcrypt.hash(codigo, 10);
 
     await recuperacionRepo.invalidarCodigosPendientes(usuario.id_usuario);
-    await recuperacionRepo.insertarCodigo(usuario.id_usuario, codigo);
+    await recuperacionRepo.insertarCodigo(usuario.id_usuario, codigoHash);
 
     try {
       await enviarCorreoOTP(usuario.email, codigo);
@@ -55,12 +55,8 @@ const verificar = async (req, res) => {
       return res.status(400).json({ mensaje: 'El código ha expirado. Solicita uno nuevo.' });
     }
 
-    if (registro.intentos >= MAX_VERIFY_ATTEMPTS) {
-      await recuperacionRepo.marcarUsado(registro.id_recuperacion);
-      return res.status(400).json({ mensaje: 'Demasiados intentos. Solicita un nuevo código.' });
-    }
-
-    if (registro.codigo !== codigo) {
+    const codigoValido = await bcrypt.compare(codigo, registro.codigo);
+    if (!codigoValido) {
       await recuperacionRepo.incrementarIntentos(registro.id_recuperacion);
       return res.status(400).json({ mensaje: 'Código incorrecto' });
     }
@@ -78,8 +74,8 @@ const restablecer = async (req, res) => {
     return res.status(400).json({ mensaje: 'Todos los campos son requeridos' });
   }
 
-  if (newPassword.length < 4) {
-    return res.status(400).json({ mensaje: 'La contraseña debe tener al menos 4 caracteres' });
+  if (newPassword.length < 8) {
+    return res.status(400).json({ mensaje: 'La contraseña debe tener al menos 8 caracteres' });
   }
 
   try {
@@ -94,7 +90,8 @@ const restablecer = async (req, res) => {
       return res.status(400).json({ mensaje: 'El código ha expirado. Solicita uno nuevo.' });
     }
 
-    if (registro.codigo !== codigo) {
+    const codigoValido = await bcrypt.compare(codigo, registro.codigo);
+    if (!codigoValido) {
       return res.status(400).json({ mensaje: 'Código incorrecto' });
     }
 

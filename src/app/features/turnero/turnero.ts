@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { LucideAngularModule, Bell, Volume2, Clock, Users, Stethoscope, FlaskConical, ScanLine, ClipboardList, LucideIconData } from 'lucide-angular';
+import { LucideAngularModule, Bell, Volume2, Clock, Users, Stethoscope, FlaskConical, ScanLine, ClipboardList, ArrowLeft, LucideIconData } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
 import { TurnoDTO } from '../../core/models/dto.models';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -97,6 +97,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
   readonly Bell = Bell;
   readonly Volume2 = Volume2;
   readonly Clock = Clock;
+  readonly ArrowLeft = ArrowLeft;
 
   turnos: TurnoDTO[] = [];
   fechaActual: Date = new Date();
@@ -250,6 +251,22 @@ export class TurneroComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
+    const validarSede = (sedeUrl: string | undefined): boolean => {
+      const sedeEsperada = sessionStorage.getItem('turnero_sede');
+      if (!sedeEsperada || sedeUrl !== sedeEsperada) {
+        this.router.navigate(['/turnero'], { replaceUrl: true });
+        return false;
+      }
+      return true;
+    };
+
+    if (!validarSede(this.route.snapshot.params['sede'])) return;
+
+    this.route.params.subscribe(params => {
+      if (!validarSede(params['sede'])) return;
+      this.sede = params['sede'] ? Number(params['sede']) : null;
+    });
+
     // Cargar voces al inicio
     const cargarVoces = () => {
       if (window.speechSynthesis.getVoices().length > 0) {
@@ -264,8 +281,6 @@ export class TurneroComponent implements OnInit, OnDestroy {
       const sala = params['sala'] as SalaMode;
       this.sala = SALAS[sala] ? sala : 'aps';
       this.config = SALAS[this.sala];
-      const sedeParam = this.route.snapshot.params['sede'];
-      this.sede = sedeParam ? Number(sedeParam) : null;
       this.cargarDatosSala();
     });
 
@@ -364,6 +379,11 @@ export class TurneroComponent implements OnInit, OnDestroy {
 
   cambiarSala(sala: SalaMode) {
     this.router.navigate([], { queryParams: { sala }, replaceUrl: true });
+  }
+
+  volverASedes() {
+    sessionStorage.removeItem('turnero_sede');
+    this.router.navigate(['/turnero'], { replaceUrl: true });
   }
 
   private addSede(params: URLSearchParams) {

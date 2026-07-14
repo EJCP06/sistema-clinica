@@ -13,7 +13,6 @@ import Swal from 'sweetalert2';
 export class AuthService implements OnDestroy {
   private readonly STORAGE_KEY = 'clinica_usuario';
   private readonly TOKEN_KEY = 'clinica_token';
-  private readonly REFRESH_KEY = 'clinica_refresh';
   private readonly usuarioSubject = new BehaviorSubject<Usuario | null>(this.cargarSesion());
   private readonly permisosSub: Subscription;
 
@@ -125,7 +124,7 @@ export class AuthService implements OnDestroy {
   }
 
   login(username: string, password: string): Observable<any> {
-    return this.http.post<{mensaje: string, token: string, refreshToken: string, usuario: any}>(`${environment.apiUrl}/auth/login`, { username, password })
+    return this.http.post<{mensaje: string, token: string, usuario: any}>(`${environment.apiUrl}/auth/login`, { username, password }, { withCredentials: true })
       .pipe(
         tap(response => {
           const usuario: Usuario = {
@@ -133,7 +132,6 @@ export class AuthService implements OnDestroy {
             nombre: response.usuario.nombre || response.usuario.username
           };
           sessionStorage.setItem(this.TOKEN_KEY, response.token);
-          sessionStorage.setItem(this.REFRESH_KEY, response.refreshToken);
           sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(usuario));
           this.api.actualizarSocketToken(response.token);
           this.usuarioSubject.next(usuario);
@@ -142,16 +140,12 @@ export class AuthService implements OnDestroy {
       );
   }
 
-  refreshSession(): Observable<{ token: string; refreshToken: string; usuario: any } | null> {
-    const refreshToken = sessionStorage.getItem(this.REFRESH_KEY);
-    if (!refreshToken) return of(null);
-
-    return this.http.post<{ token: string; refreshToken: string; usuario: any }>(
-      `${environment.apiUrl}/auth/refresh`, { refreshToken }
+  refreshSession(): Observable<{ token: string; usuario: any } | null> {
+    return this.http.post<{ token: string; usuario: any }>(
+      `${environment.apiUrl}/auth/refresh`, {}, { withCredentials: true }
     ).pipe(
       tap(res => {
         sessionStorage.setItem(this.TOKEN_KEY, res.token);
-        sessionStorage.setItem(this.REFRESH_KEY, res.refreshToken);
         const usuario: Usuario = { ...res.usuario, nombre: res.usuario.nombre || res.usuario.username };
         sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(usuario));
         this.usuarioSubject.next(usuario);
@@ -184,37 +178,8 @@ export class AuthService implements OnDestroy {
     );
   }
 
-  cambiarPassword(currentPassword: string, newPassword: string): Observable<any> {
-    return this.http.put(`${environment.apiUrl}/auth/cambiar-password`, { currentPassword, newPassword });
-  }
-
-  refrescarPermisos(): Observable<any> {
-    return this.http.get<{permisos: string[]}>(`${environment.apiUrl}/auth/mis-permisos`).pipe(
-      tap(res => {
-        const usuario = this.usuarioSubject.value;
-        if (usuario) {
-          usuario.permisos = res.permisos;
-          sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(usuario));
-          this.usuarioSubject.next(usuario);
-        }
-      }),
-    );
-  }
-
-  solicitarRecuperacion(email: string, cedula: string): Observable<any> {
-    return this.http.post(`${environment.apiUrl}/auth/recuperacion/solicitar`, { email, cedula });
-  }
-
-  verificarOTP(email: string, cedula: string, codigo: string): Observable<any> {
-    return this.http.post(`${environment.apiUrl}/auth/recuperacion/verificar`, { email, cedula, codigo });
-  }
-
-  restablecerPassword(email: string, cedula: string, codigo: string, newPassword: string): Observable<any> {
-    return this.http.post(`${environment.apiUrl}/auth/recuperacion/restablecer`, { email, cedula, codigo, newPassword });
-  }
-
   cerrarSesion(): Observable<any> {
-    return this.http.post(`${environment.apiUrl}/auth/logout`, {});
+    return this.http.post(`${environment.apiUrl}/auth/logout`, {}, { withCredentials: true });
   }
 
   logout() {
@@ -240,7 +205,6 @@ export class AuthService implements OnDestroy {
   private limpiarSesionSinNavegar() {
     sessionStorage.removeItem(this.STORAGE_KEY);
     sessionStorage.removeItem(this.TOKEN_KEY);
-    sessionStorage.removeItem(this.REFRESH_KEY);
     this.api.actualizarSocketToken(null);
     this.usuarioSubject.next(null);
   }
@@ -254,7 +218,8 @@ export class AuthService implements OnDestroy {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        keepalive: true
+        keepalive: true,
+        credentials: 'include',
       });
     }
     this.limpiarSesion();
@@ -263,7 +228,6 @@ export class AuthService implements OnDestroy {
   private limpiarSesion() {
     sessionStorage.removeItem(this.STORAGE_KEY);
     sessionStorage.removeItem(this.TOKEN_KEY);
-    sessionStorage.removeItem(this.REFRESH_KEY);
     this.api.actualizarSocketToken(null);
     this.usuarioSubject.next(null);
     if (this.router.url !== '/login') {
@@ -352,6 +316,31 @@ export class AuthService implements OnDestroy {
     }
 
     return '/login';
+  }
+
+  refrescarPermisos(): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/auth/permisos`).pipe(
+      tap((res: any) => {
+        const usuario = this.usuarioActual;
+        if (usuario && res.permisos) {
+          usuario.permisos = res.permisos;
+          sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(usuario));
+          this.usuarioSubject.next(usuario);
+        }
+      }),
+    );
+  }
+
+  solicitarRecuperacion(email: string, cedula: string): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/recuperacion/solicitar`, { email, cedula });
+  }
+
+  verificarOTP(email: string, cedula: string, codigo: string): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/recuperacion/verificar`, { email, cedula, codigo });
+  }
+
+  restablecerPassword(email: string, cedula: string, codigo: string, newPassword: string): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/recuperacion/restablecer`, { email, cedula, codigo, newPassword });
   }
 
   private cargarSesion(): Usuario | null {

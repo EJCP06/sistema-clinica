@@ -4,9 +4,19 @@ const jwt = require('jsonwebtoken');
 const usuarioRepo = require('../repositories/usuario.repository');
 const refreshTokenRepo = require('../repositories/refreshToken.repository');
 const { auditar } = require('../middleware/audit');
+const { logErrorSafe } = require('../utils/sanitize');
 
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_EXPIRY_DAYS = 7;
+
+const isProduction = process.env.NODE_ENV === 'production';
+
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: 'lax',
+  path: '/api/auth',
+};
 
 const login = async (req, res) => {
   const { username, password } = req.body;
@@ -69,12 +79,13 @@ const login = async (req, res) => {
     const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
     const refreshToken = await refreshTokenRepo.createRefreshToken(usuario.id);
 
+    res.cookie('refresh_token', refreshToken, { ...COOKIE_OPTIONS, maxAge: REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000 });
+
     auditar({ userId: usuario.id, accion: 'login', recurso: 'auth', ip: req.ip });
 
     res.status(200).json({
       mensaje: 'Login exitoso',
       token: accessToken,
-      refreshToken,
       expiresIn: 900,
       usuario: payload
     });
@@ -95,8 +106,8 @@ const cambiarPassword = async (req, res) => {
     return res.status(400).json({ mensaje: 'Nueva contraseña requerida' });
   }
 
-  if (newPassword.length < 4) {
-    return res.status(400).json({ mensaje: 'La contraseña debe tener al menos 4 caracteres' });
+  if (newPassword.length < 8) {
+    return res.status(400).json({ mensaje: 'La contraseña debe tener al menos 8 caracteres' });
   }
 
   try {
@@ -140,6 +151,7 @@ const misPermisos = async (req, res) => {
 const cerrarSesion = async (req, res) => {
   try {
     await usuarioRepo.actualizarSesionToken(req.usuario.id, null);
+    res.clearCookie('refresh_token', { ...COOKIE_OPTIONS });
     auditar({ userId: req.usuario.id, accion: 'logout', recurso: 'auth', ip: req.ip });
     res.json({ mensaje: 'Sesión cerrada exitosamente' });
   } catch (error) {
@@ -148,15 +160,16 @@ const cerrarSesion = async (req, res) => {
 };
 
 const refrescarToken = async (req, res) => {
-  const { refreshToken } = req.body;
+  const refreshToken = req.cookies?.refresh_token || req.body?.refreshToken;
 
   if (!refreshToken) {
-    return res.status(400).json({ mensaje: 'Refresh token requerido' });
+    return res.status(401).json({ mensaje: 'Refresh token requerido' });
   }
 
   try {
     const record = await refreshTokenRepo.findValidToken(refreshToken);
     if (!record) {
+      res.clearCookie('refresh_token', { ...COOKIE_OPTIONS });
       return res.status(401).json({ mensaje: 'Refresh token inválido o expirado' });
     }
 
@@ -164,6 +177,7 @@ const refrescarToken = async (req, res) => {
 
     const usuario = await usuarioRepo.findById(record.id_usuario);
     if (!usuario || usuario.status === false) {
+      res.clearCookie('refresh_token', { ...COOKIE_OPTIONS });
       return res.status(401).json({ mensaje: 'Usuario desactivado' });
     }
 
@@ -189,9 +203,10 @@ const refrescarToken = async (req, res) => {
     const newAccessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
     const newRefreshToken = await refreshTokenRepo.createRefreshToken(usuario.id);
 
+    res.cookie('refresh_token', newRefreshToken, { ...COOKIE_OPTIONS, maxAge: REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000 });
+
     res.json({
       token: newAccessToken,
-      refreshToken: newRefreshToken,
       expiresIn: 900,
       usuario: payload,
     });

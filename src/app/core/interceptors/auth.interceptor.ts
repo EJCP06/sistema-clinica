@@ -19,9 +19,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const token = authService.getToken();
 
-  let requestToForward = req;
+  let requestToForward = req.clone({ withCredentials: true });
   if (token) {
-    requestToForward = req.clone({
+    requestToForward = requestToForward.clone({
       setHeaders: {
         Authorization: `Bearer ${token}`,
       },
@@ -43,8 +43,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
               if (result) {
                 const cloned = req.clone({
                   setHeaders: { Authorization: `Bearer ${result.token}` },
+                  withCredentials: true,
                 });
-                next(requestToForward);
                 return next(cloned);
               }
 
@@ -68,6 +68,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
             if (newToken) {
               const cloned = req.clone({
                 setHeaders: { Authorization: `Bearer ${newToken}` },
+                withCredentials: true,
               });
               return next(cloned);
             }
