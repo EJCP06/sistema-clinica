@@ -15,6 +15,12 @@ function isRecoveryUrl(url: string): boolean {
   return url.includes('/auth/recuperacion');
 }
 
+/**
+ * Interceptor que añade el token JWT a cada petición.
+ * En 401 intenta refrescar el token automáticamente;
+ * si hay múltiples peticiones concurrentes, las encola
+ * hasta que el refresh finalice.
+ */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const token = authService.getToken();

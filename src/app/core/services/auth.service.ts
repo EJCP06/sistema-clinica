@@ -9,6 +9,12 @@ import { ApiService } from './api.service';
 import { VISTA_POR_PERMISO } from '@core/config/permisos.config';
 import Swal from 'sweetalert2';
 
+/**
+ * Servicio central de autenticación.
+ * Gestiona sesión (login/logout/refresh), almacenamiento en sessionStorage,
+ * verificación de permisos, recuperación de contraseña y escucha
+ * eventos en tiempo real de desactivación/actualización de permisos.
+ */
 @Injectable({ providedIn: 'root' })
 export class AuthService implements OnDestroy {
   private readonly STORAGE_KEY = 'clinica_usuario';

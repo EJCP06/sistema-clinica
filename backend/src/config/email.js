@@ -1,16 +1,36 @@
 const nodemailer = require('nodemailer');
+const logger = require('./logger');
 
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.EMAIL_PORT || '587'),
-  secure: process.env.EMAIL_PORT === '465',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+let transporter;
+try {
+  transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.EMAIL_PORT || '587'),
+    secure: process.env.EMAIL_PORT === '465',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+} catch (err) {
+  logger.error('Error al crear transporter de email', { error: err.message });
+  transporter = null;
+}
 
+/**
+ * Envía un correo electrónico con un código OTP para recuperación de contraseña.
+ * El transporter se valida en tiempo de ejecución para evitar crashes si no
+ * está configurado.
+ *
+ * @param {string} destinatario - Dirección de correo del destinatario
+ * @param {string} codigo - Código OTP de 6 dígitos
+ * @returns {Promise<object|void>} Resultado de sendMail o undefined si no hay transporter
+ */
 const enviarCorreoOTP = async (destinatario, codigo) => {
+  if (!transporter) {
+    logger.warn('Email no configurado — no se puede enviar OTP');
+    return;
+  }
   const mailOptions = {
     from: `"Clínica Nueva Caracas" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
     to: destinatario,

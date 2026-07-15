@@ -1,5 +1,6 @@
 import { Pipe, PipeTransform } from '@angular/core';
 
+/** Pipe que devuelve los elementos de la página actual de un array paginado. */
 @Pipe({ name: 'paginate', standalone: true })
 export class PaginatePipe implements PipeTransform {
   transform<T>(items: T[] | null, page: number, pageSize: number): T[] {

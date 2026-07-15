@@ -4,6 +4,7 @@ import { AuthService } from '@core/services/auth.service';
 import { Rol } from '@core/models/usuario.model';
 import { VISTA_POR_PERMISO } from '@core/config/permisos.config';
 
+/** Guard que verifica si el usuario está autenticado. Redirige a /login si no. */
 export const authGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
@@ -15,6 +16,7 @@ export const authGuard: CanActivateFn = () => {
   return true;
 };
 
+/** Guard que restringe el acceso por rol. Redirige a la ruta por defecto del rol si no tiene acceso. */
 export const roleGuard = (roles: Rol[]): CanActivateFn => {
   return () => {
     const auth = inject(AuthService);
@@ -45,6 +47,7 @@ export const roleGuard = (roles: Rol[]): CanActivateFn => {
   };
 };
 
+/** Guard que verifica permisos específicos. Redirige según los permisos del usuario si no tiene acceso. */
 export const permissionGuard = (permisosRequeridos: string[]): CanActivateFn => {
   return () => {
     const auth = inject(AuthService);

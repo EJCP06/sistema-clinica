@@ -4,6 +4,11 @@ import { Directive, ElementRef, Input, AfterViewInit, OnDestroy, OnChanges, Simp
   selector: '[apsScroll]',
   standalone: true,
 })
+/**
+ * Directiva de scroll automático para el tablero APS.
+ * Desplaza verticalmente el contenido en bucle cuando
+ * excede el viewport, con velocidad configurable.
+ */
 export class ApsScrollDirective implements AfterViewInit, OnDestroy, OnChanges {
   @Input({ required: true }) apsScroll = 0;
   @Input() apsScrollViewportH = 0;

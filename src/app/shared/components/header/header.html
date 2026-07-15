@@ -1,6 +1,5 @@
 <header class="w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-5 flex items-center justify-between shrink-0 shadow-sm z-40 transition-colors duration-300">
   <div class="flex items-center gap-6 flex-1 min-w-0 overflow-hidden">
-    <!-- Hamburger Button -->
     <button
       *ngIf="showMenuButton"
       (click)="toggleSidebar.emit()"
@@ -25,18 +24,14 @@
       </div>
     </div>
 
-    <!-- Page Title (If no logo) -->
     <div *ngIf="!showLogo && title" class="flex flex-col min-w-0 overflow-hidden">
       <h1 class="text-base md:text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-tight truncate">{{ title }}</h1>
       <p *ngIf="subtitle" class="text-slate-500 dark:text-slate-400 text-xs md:text-xs font-medium mt-0.5 truncate">{{ subtitle }}</p>
     </div>
   </div>
 
-    <!-- Right Side: User, Toggle, Icon -->
     <div *ngIf="usuario" class="flex items-center gap-6">
-      <!-- User Profile -->
       <div class="hidden md:flex items-center gap-6">
-        <!-- Etiqueta de Sede -->
         <span class="px-3 py-1.5 bg-blue-600 text-white text-[9px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-blue-500/20">
           {{ sedeNombre }}
         </span>
@@ -57,11 +52,9 @@
           </span>
         </div>
         
-        <!-- Separator -->
         <div class="h-8 w-px bg-slate-200 dark:bg-slate-800"></div>
       </div>
  
-       <!-- Theme Toggle -->
       <div class="hidden md:flex items-center gap-3">
         <lucide-icon [name]="Sun" class="w-4 h-4 text-amber-500"></lucide-icon>
         <label class="relative inline-flex items-center cursor-pointer group">
@@ -71,7 +64,6 @@
         <lucide-icon [name]="Moon" class="w-4 h-4 text-slate-300 dark:text-blue-400"></lucide-icon>
       </div>
 
-      <!-- Role Icon Box -->
       <div 
         [ngClass]="{
           'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20 shadow-blue-500/5': usuario.rol === 'administrador',

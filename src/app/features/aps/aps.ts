@@ -23,6 +23,11 @@ import { FillersPipe } from '../../shared/pipes/fillers.pipe';
   imports: [CommonModule, FormsModule, LucideAngularModule, Sidebar, Header, PaginationComponent, PaginatePipe, FillersPipe],
   templateUrl: './aps.html'
 })
+/**
+ * Componente APS (Atención Primaria en Salud).
+ * Gestiona el flujo de pacientes: presupuesto, caja, clave de aseguradora,
+ * sala de espera, reincorporación y marcado como ausente.
+ */
 export class ApsComponent implements OnInit, OnDestroy {
   readonly Search = Search;
   readonly FileText = FileText;

@@ -1,6 +1,12 @@
 const pool = require('./src/config/db');
 const logger = require('./src/config/logger');
 
+/**
+ * Ejecuta las migraciones automáticas de la base de datos al iniciar
+ * el servidor. Crea tablas faltantes, agrega columnas, normaliza datos
+ * existentes y garantiza que el esquema esté actualizado sin intervención
+ * manual.
+ */
 const runMigrations = async () => {
   logger.info('Ejecutando migraciones...');
 

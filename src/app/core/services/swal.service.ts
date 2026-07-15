@@ -1,6 +1,11 @@
 import { Injectable } from '@angular/core';
 import Swal from 'sweetalert2';
 
+/**
+ * Servicio envoltorio para SweetAlert2.
+ * Centraliza notificaciones tipo toast (success/error/warning/info),
+ * confirmaciones y diálogo de carga.
+ */
 @Injectable({ providedIn: 'root' })
 export class SwalService {
 

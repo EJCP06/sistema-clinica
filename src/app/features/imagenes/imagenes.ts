@@ -22,6 +22,11 @@ import { FillersPipe } from '../../shared/pipes/fillers.pipe';
   imports: [CommonModule, FormsModule, LucideAngularModule, Sidebar, Header, PaginationComponent, PaginatePipe, FillersPipe],
   templateUrl: './imagenes.html'
 })
+/**
+ * Panel de imágenes/radiología.
+ * Gestiona pacientes de servicio de imágenes: presupuesto, caja,
+ * sala de espera, reincorporación y retiro de pacientes.
+ */
 export class ImagenesComponent implements OnInit, OnDestroy {
   readonly Search = Search;
   readonly FileText = FileText;

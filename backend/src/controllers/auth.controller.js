@@ -18,6 +18,15 @@ const COOKIE_OPTIONS = {
   path: '/api/auth',
 };
 
+/**
+ * Inicia sesión con cédula y contraseña. Verifica credenciales, estado
+ * del usuario, sesiones activas por Socket.IO y emite tokens JWT
+ * (access token en body, refresh token en cookie httpOnly).
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const login = async (req, res) => {
   const { username, password } = req.body;
   const cedula = username; 
@@ -42,15 +51,17 @@ const login = async (req, res) => {
       return res.status(403).json({ mensaje: 'Su usuario se encuentra inactivo. Contacte al administrador.' });
     }
 
-    // Verificar si ya existe una sesión activa (a través de WebSocket) para este usuario
     let sesionActiva = false;
-    if (req.io && req.io.sockets && req.io.sockets.sockets) {
-      for (const socket of req.io.sockets.sockets.values()) {
+    try {
+      const sockets = await req.io.fetchSockets();
+      for (const socket of sockets) {
         if (socket.usuario && Number(socket.usuario.id) === Number(usuario.id)) {
           sesionActiva = true;
           break;
         }
       }
+    } catch {
+      /* Fallar silenciosamente — si fetchSockets falla, se permite el login */
     }
 
     if (sesionActiva) {
@@ -95,10 +106,14 @@ const login = async (req, res) => {
   }
 };
 
-const superSeed = async (req, res) => {
-  return res.status(404).json({ mensaje: 'No disponible' });
-};
-
+/**
+ * Cambia la contraseña del usuario autenticado. Valida la contraseña
+ * actual si se proporciona y exige un mínimo de 8 caracteres.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const cambiarPassword = async (req, res) => {
   const { newPassword, currentPassword } = req.body;
 
@@ -136,6 +151,13 @@ const cambiarPassword = async (req, res) => {
   }
 };
 
+/**
+ * Obtiene los permisos del usuario autenticado.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const misPermisos = async (req, res) => {
   try {
     const usuario = await usuarioRepo.findByCedula(req.usuario.cedula);
@@ -148,6 +170,14 @@ const misPermisos = async (req, res) => {
   }
 };
 
+/**
+ * Cierra la sesión del usuario: invalida el token de sesión en BD y
+ * elimina la cookie refresh_token.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const cerrarSesion = async (req, res) => {
   try {
     await usuarioRepo.actualizarSesionToken(req.usuario.id, null);
@@ -159,6 +189,15 @@ const cerrarSesion = async (req, res) => {
   }
 };
 
+/**
+ * Refresca el access token usando un refresh token (vía cookie o body).
+ * Invalida el refresh token anterior mediante rotación y emite uno
+ * nuevo junto con un nuevo access token.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const refrescarToken = async (req, res) => {
   const refreshToken = req.cookies?.refresh_token || req.body?.refreshToken;
 
@@ -217,7 +256,6 @@ const refrescarToken = async (req, res) => {
 
 module.exports = {
   login,
-  superSeed,
   cambiarPassword,
   misPermisos,
   cerrarSesion,

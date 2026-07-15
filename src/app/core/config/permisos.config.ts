@@ -13,14 +13,20 @@ import {
   Settings,
 } from 'lucide-angular';
 
+/** Configuración de una vista asociada a un permiso: ruta, etiqueta, icono y sección. */
 export interface VistaConfig {
+  /** Ruta Angular de navegación. */
   ruta: string;
+  /** Etiqueta para mostrar en el menú. */
   label: string;
   icon: LucideIconData;
+  /** Sección del menú donde se agrupa. */
   seccion: 'panel' | 'operaciones' | 'admin';
+  /** Orden de aparición dentro de la sección. */
   orden: number;
 }
 
+/** Mapa de permiso → configuración de vista para redirección y menú lateral. */
 export const VISTA_POR_PERMISO: Record<string, VistaConfig> = {
   admin_panel: {
     ruta: '/administrador',

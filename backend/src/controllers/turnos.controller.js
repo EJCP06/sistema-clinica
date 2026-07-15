@@ -4,6 +4,13 @@ const atencionRepo = require('../repositories/atencion.repository');
 const consultorioRepo = require('../repositories/consultorio.repository');
 const historialRepo = require('../repositories/historial.repository');
 
+/**
+ * Obtiene todos los turnos del día para la sede del usuario autenticado.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const getTodosLosTurnos = async (req, res) => {
   if (!req.usuario || !req.usuario.id_sede) {
     return res.status(400).json({ mensaje: 'Datos de usuario insuficientes' });
@@ -37,6 +44,14 @@ const getTodosLosTurnos = async (req, res) => {
   }
 };
 
+/**
+ * Crea un nuevo turno de forma manual. Calcula el número de turno
+ * usando el prefijo del servicio y el conteo del día.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const crearTurno = async (req, res) => {
   const { id_paciente, id_servicio, id_especialidad, id_responsable } = req.body;
   
@@ -60,6 +75,13 @@ const crearTurno = async (req, res) => {
   }
 };
 
+/**
+ * Marca un turno como ausente y libera el consultorio si corresponde.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const marcarAusente = async (req, res) => {
   const { id } = req.params;
   const client = await pool.connect();
@@ -91,44 +113,14 @@ const marcarAusente = async (req, res) => {
   }
 };
 
-const transferirPaciente = async (req, res) => {
-  const { id } = req.params;
-  const { nuevo_servicio_id } = req.body;
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    
-    const original = await atencionRepo.finalizarAtencionTransferencia(client, id);
-    
-    if (!original) {
-      await client.query('ROLLBACK');
-      return res.status(404).json({ mensaje: 'Turno no encontrado' });
-    }
-    
-    if (original.id_consultorio) {
-      await consultorioRepo.setEstadoFisico(client, original.id_consultorio, 'LIBRE');
-    }
-    
-    const next = await atencionRepo.getConteoServicioHoy(nuevo_servicio_id);
-    const prefijo = await atencionRepo.getServicioPrefijo(nuevo_servicio_id);
-    const nuevoNumero = `${prefijo}-${String(next).padStart(2, '0')}`;
-    
-    const nuevoTurnoRes = await client.query(
-      'INSERT INTO "Atencion" (id_paciente, id_servicio, id_responsable, id_estado_actual, id_sede, numero) VALUES ($1, $2, $3, 2, $4, $5) RETURNING *',
-      [original.id_paciente, nuevo_servicio_id, original.id_responsable, original.id_sede, nuevoNumero]
-    );
-    
-    await client.query('COMMIT');
-    res.json({ mensaje: 'Paciente transferido con éxito', nuevo_turno: nuevoTurnoRes.rows[0] });
-  } catch (error) {
-    await client.query('ROLLBACK');
-    logger.error('Error en transferirPaciente:', error);
-    res.status(500).json({ mensaje: 'Error al transferir paciente' });
-  } finally {
-    client.release();
-  }
-};
-
+/**
+ * Reincorpora a un paciente previamente marcado como ausente,
+ * devolviéndolo a Sala de Espera.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const reincorporarPaciente = async (req, res) => {
   const { id } = req.params;
   const client = await pool.connect();
@@ -160,6 +152,5 @@ module.exports = {
   getTodosLosTurnos,
   crearTurno,
   marcarAusente,
-  transferirPaciente,
   reincorporarPaciente,
 };

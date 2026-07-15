@@ -22,6 +22,11 @@ import { FillersPipe } from '../../shared/pipes/fillers.pipe';
   imports: [CommonModule, FormsModule, LucideAngularModule, Sidebar, Header, PaginationComponent, PaginatePipe, FillersPipe],
   templateUrl: './laboratorio.html'
 })
+/**
+ * Panel de laboratorio.
+ * Gestiona pacientes de servicio de laboratorio: presupuesto, caja,
+ * sala de espera, reincorporación y retiro de pacientes.
+ */
 export class LaboratorioComponent implements OnInit, OnDestroy {
   readonly Search = Search;
   readonly FileText = FileText;

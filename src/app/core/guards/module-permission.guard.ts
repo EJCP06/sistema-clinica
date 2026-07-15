@@ -2,6 +2,12 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 
+/**
+ * Guard de ruta que verifica permisos del módulo.
+ * Evalúa si el usuario tiene al menos uno de los permisos
+ * definidos en `route.data.modules` (formato `{ module, allowedActions }`).
+ * Los administradores siempre tienen acceso.
+ */
 export const modulePermissionGuard: CanActivateFn = (route) => {
   const auth = inject(AuthService);
   const router = inject(Router);
@@ -11,7 +17,6 @@ export const modulePermissionGuard: CanActivateFn = (route) => {
     return false;
   }
 
-  // Support both single module config and multiple modules config
   let modulesConfig: { module: string; allowedActions?: string[] }[] = [];
   if (route.data?.['modules']) {
     modulesConfig = route.data['modules'] as { module: string; allowedActions?: string[] }[];
@@ -20,7 +25,6 @@ export const modulePermissionGuard: CanActivateFn = (route) => {
     const allowedActions = route.data['allowedActions'] as string[] | undefined;
     modulesConfig = [{ module, allowedActions }];
   } else {
-    // No module config defined, deny access
     router.navigate(['/login']);
     return false;
   }
@@ -31,15 +35,12 @@ export const modulePermissionGuard: CanActivateFn = (route) => {
     return false;
   }
 
-  // Administrador tiene acceso a todo
   if (usuario.rol === 'administrador') return true;
 
   const permisosUsuario: string[] = usuario.permisos;
 
-  // Helper to normalize a permission string to {module, action}
   const normalizePerm = (perm: string): { module: string; action: string } | null => {
     let normalized = perm;
-    // Convert legacy format (contains '_' and no ':') to 'module:action'
     if (perm.includes('_') && !perm.includes(':')) {
       const parts = perm.split('_');
       if (parts.length >= 2) {
@@ -47,7 +48,7 @@ export const modulePermissionGuard: CanActivateFn = (route) => {
       }
     }
     if (!normalized.includes(':')) {
-      return null; // not a valid permission format
+      return null;
     }
     const [module, action] = normalized.split(':');
     return { module, action };
@@ -59,13 +60,7 @@ export const modulePermissionGuard: CanActivateFn = (route) => {
     const { module: permModule, action: permAction } = norm;
 
     return modulesConfig.some(cfg => {
-      // Module matches: either cfg.module is wildcard '*' or permModule equals cfg.module
       const moduleMatch = cfg.module === '*' || permModule === cfg.module;
-      // Action matches: 
-      // - if cfg.allowedActions is undefined => any action allowed
-      // - if cfg.allowedActions includes '*' => any action allowed
-      // - if cfg.allowedActions includes the specific permAction => allowed
-      // - if permAction is '*' (permission grants any action) => allowed
       const actionMatch = !cfg.allowedActions ||
         cfg.allowedActions.includes('*') ||
         cfg.allowedActions.includes(permAction) ||
@@ -76,7 +71,6 @@ export const modulePermissionGuard: CanActivateFn = (route) => {
   });
 
   if (!tieneAcceso) {
-    // Optionally redirect to a forbidden page or login
     router.navigate(['/login']);
     return false;
   }

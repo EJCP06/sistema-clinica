@@ -7,6 +7,7 @@ import { AuthService } from '@core/services/auth.service';
   standalone: true,
   template: '',
 })
+/** Componente de inicio que redirige al usuario según su rol/permisos. */
 export class Inicio implements OnInit {
   private auth = inject(AuthService);
   private router = inject(Router);

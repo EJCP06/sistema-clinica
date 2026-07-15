@@ -3,8 +3,12 @@ import { authGuard } from '@core/guards/auth.guard';
 
 import { modulePermissionGuard } from '@core/guards/module-permission.guard';
 
+/**
+ * Configuración central de rutas de la aplicación.
+ * Cada ruta protegida usa authGuard + modulePermissionGuard
+ * con la metadata `modules` para verificar permisos del módulo.
+ */
 export const routes: Routes = [
-  // Entrada del sistema: decide el panel inicial según la sesión activa
   {
     path: '',
     pathMatch: 'full',
@@ -12,13 +16,11 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
 
-  // Pantalla de Login (Acceso público)
   { 
     path: 'login', 
     loadComponent: () => import('./features/login/login').then(m => m.Login) 
   },
 
-  // Panel de Administración (Solo Admin)
   {
     path: 'administrador',
     loadComponent: () => import('./features/admin/admin').then(m => m.Admin),
@@ -34,7 +36,6 @@ export const routes: Routes = [
     }
   },
 
-  // Módulo de Recepción y Admisión
   {
     path: 'recepcion',
     loadComponent: () => import('./features/recepcion/recepcion').then(m => m.RecepcionComponent),
@@ -46,7 +47,6 @@ export const routes: Routes = [
     }
   },
 
-  // Módulo de APS (Atención Primaria en Salud)
   {
     path: 'aps',
     loadComponent: () => import('./features/aps/aps').then(m => m.ApsComponent),
@@ -58,7 +58,6 @@ export const routes: Routes = [
     }
   },
 
-  // Pantalla de Aseguradoras
   {
     path: 'aseguradoras',
     loadComponent: () => import('./features/recepcion/recepcion').then(m => m.RecepcionComponent),
@@ -73,7 +72,6 @@ export const routes: Routes = [
     }
   },
 
-  // Panel de Atención Médica
   {
     path: 'atencion',
     loadComponent: () => import('./features/atencion/atencion').then(m => m.Atencion),
@@ -86,7 +84,6 @@ export const routes: Routes = [
     }
   },
 
-  // Panel de Atención Laboratorio
   {
     path: 'atencion-laboratorio',
     loadComponent: () => import('./features/atencion/atencion').then(m => m.Atencion),
@@ -99,7 +96,6 @@ export const routes: Routes = [
     }
   },
 
-  // Panel de Atención Imágenes
   {
     path: 'atencion-imagenes',
     loadComponent: () => import('./features/atencion/atencion').then(m => m.Atencion),
@@ -112,7 +108,6 @@ export const routes: Routes = [
     }
   },
 
-  // Panel de Gestión Laboratorio
   {
     path: 'laboratorio',
     loadComponent: () => import('./features/laboratorio/laboratorio').then(m => m.LaboratorioComponent),
@@ -124,7 +119,6 @@ export const routes: Routes = [
     }
   },
 
-  // Panel de Gestión Imágenes
   {
     path: 'imagenes',
     loadComponent: () => import('./features/imagenes/imagenes').then(m => m.ImagenesComponent),
@@ -136,7 +130,6 @@ export const routes: Routes = [
     }
   },
 
-  // Turnero (público para TVs en sala de espera)
   {
     path: 'turnero',
     pathMatch: 'full',
@@ -147,6 +140,5 @@ export const routes: Routes = [
     loadComponent: () => import('./features/turnero/turnero').then(m => m.TurneroComponent)
   },
 
-  // Redirección por defecto
   { path: '**', redirectTo: '' }
 ];

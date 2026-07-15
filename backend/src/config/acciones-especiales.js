@@ -13,23 +13,20 @@ const ACCIONES_ESPECIALES_POR_VISTA = {
 
 const ACCIONES_ESPECIALES_GLOBALES = ['marcar_ausente', 'reincorporar'];
 
-function getAccionesEspeciales(recursoKey) {
-  return ACCIONES_ESPECIALES_POR_VISTA[recursoKey] || [];
-}
-
+/**
+ * Obtiene la lista completa de acciones especiales disponibles para un recurso,
+ * combinando las acciones específicas de la vista con las acciones globales.
+ *
+ * @param {string} recursoKey - Identificador del recurso/vista (ej. 'admision', 'laboratorio')
+ * @returns {string[]} Lista deduplicada de acciones especiales aplicables
+ */
 function getTodasLasAccionesEspeciales(recursoKey) {
-  const especificas = getAccionesEspeciales(recursoKey);
+  const especificas = ACCIONES_ESPECIALES_POR_VISTA[recursoKey] || [];
   return [...new Set([...especificas, ...ACCIONES_ESPECIALES_GLOBALES])];
 }
-
-const VISTAS_CON_ACCIONES_ESPECIALES = Object.keys(ACCIONES_ESPECIALES_POR_VISTA).filter(
-  k => ACCIONES_ESPECIALES_POR_VISTA[k].length > 0
-);
 
 module.exports = {
   ACCIONES_ESPECIALES_POR_VISTA,
   ACCIONES_ESPECIALES_GLOBALES,
-  getAccionesEspeciales,
   getTodasLasAccionesEspeciales,
-  VISTAS_CON_ACCIONES_ESPECIALES,
 };

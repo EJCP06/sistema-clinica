@@ -24,6 +24,12 @@ import Swal from 'sweetalert2';
   templateUrl: './atencion.html',
   styles: []
 })
+/**
+ * Panel de atención médica/laboratorio/imágenes.
+ * Gestiona llamado de pacientes, inicio y fin de atención,
+ * temporizador de ausencia, historial de turnos atendidos
+ * y listado de pacientes en espera.
+ */
 export class Atencion implements OnInit, OnDestroy {
   readonly Play = Play;
   readonly Pause = Pause;
@@ -81,7 +87,6 @@ export class Atencion implements OnInit, OnDestroy {
 
   get isDarkMode() { return this.themeService.isDarkMode(); }
 
-  // Getter de compatibilidad con el template que usa consultorio?.estado
   tienePermiso(permiso: string): boolean { return this.authService.tienePermiso(permiso); }
 
   tienePermisoAtencion(accion: string): boolean {
@@ -114,7 +119,6 @@ export class Atencion implements OnInit, OnDestroy {
   mensajeInfo = '';
   cargando = false;
 
-  // Historial
   turnosAtendidos: TurnoDTO[] = [];
   turnosEnEsperaLista: TurnoDTO[] = [];
   searchQueryHistorial: string = '';
@@ -125,6 +129,7 @@ export class Atencion implements OnInit, OnDestroy {
 
   trackById = (index: number, item: TurnoDTO) => item.id ?? index;
 
+  /** Inicializa el componente: determina tipo (médico/lab/imágenes), carga estado y suscripciones. */
   ngOnInit() {
     this.diagnosticarVoces();
     this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
@@ -153,7 +158,6 @@ export class Atencion implements OnInit, OnDestroy {
       this.cargarHistorial();
     });
     
-    // Escuchar cambios en tiempo real
     this.apiService.cambios$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.cargarEstadoConsultorio();
       this.cargarHistorial();
@@ -176,11 +180,11 @@ export class Atencion implements OnInit, OnDestroy {
     };
   }
 
+  /** Consulta el estado actual del consultorio/turno activo del médico autenticado. */
   cargarEstadoConsultorio() {
     const usuario = this.authService.usuarioActual;
     if (!usuario || this.atendiendoLocalmente) return;
 
-    // Lab/Imagenes
     if (this.tipo === 'laboratorio' || this.tipo === 'imagenes') {
       this.consultorioNombre = this.tipo === 'laboratorio' ? 'Laboratorio' : 'Imágenes';
       this.servicioId = usuario.servicio_id || 0;
@@ -192,7 +196,6 @@ export class Atencion implements OnInit, OnDestroy {
 
           if (estado.turno_id && !this.atendiendoLocalmente) {
             let status = estado.turno_estado || '';
-            // Normalizar el estado: en la DB 'Atendido' (6) se usa para la atención en curso
             if (status === 'ATENDIDO') status = 'EN_ATENCION';
 
             if (status === 'LLAMADO' || status === 'EN_ATENCION') {
@@ -227,7 +230,6 @@ export class Atencion implements OnInit, OnDestroy {
     return;
   }
 
-  // Otros roles: requieren consultorio
   this.consultorioId = usuario.consultorio_id || 0;
 
     if (this.consultorioId === 0) {
@@ -246,7 +248,6 @@ export class Atencion implements OnInit, OnDestroy {
 
         if (estado.turno_id && !this.atendiendoLocalmente) {
           const status = estado.turno_estado || '';
-          // Solo considerar turno actual si está en un estado activo
           if (status === 'LLAMADO' || status === 'EN_ATENCION') {
             this.turnoActual = {
               id: estado.turno_id!,
@@ -280,6 +281,7 @@ export class Atencion implements OnInit, OnDestroy {
     });
   }
 
+  /** Llama al siguiente paciente en espera y activa el temporizador de ausencia (2 min). */
   llamarSiguiente() {
     if (this.cargando) return;
     this.cargando = true;
@@ -319,6 +321,7 @@ export class Atencion implements OnInit, OnDestroy {
     });
   }
 
+  /** Fuerza la liberación del consultorio (cuando queda colgado en estado OCUPADO sin paciente). */
   liberarConsultorio() {
     this.cargando = true;
     this.apiService.liberarConsultorio().subscribe({
@@ -334,6 +337,7 @@ export class Atencion implements OnInit, OnDestroy {
     });
   }
 
+  /** Confirma el inicio de la atención (cambia estado a EN_ATENCION). */
   iniciarAtencion() {
     window.speechSynthesis?.cancel();
     this.apiService.iniciarAtencion().subscribe({
@@ -348,6 +352,7 @@ export class Atencion implements OnInit, OnDestroy {
     });
   }
 
+  /** Finaliza la atención y libera el consultorio. */
   finalizarAtencion() {
     window.speechSynthesis?.cancel();
     this.apiService.finalizarAtencion().subscribe({
@@ -423,6 +428,7 @@ export class Atencion implements OnInit, OnDestroy {
 
 
 
+  /** Carga el historial de turnos atendidos y la lista de pacientes en espera. */
   cargarHistorial() {
     this.cargando = true;
     const usuario = this.authService.usuarioActual;
@@ -437,7 +443,6 @@ export class Atencion implements OnInit, OnDestroy {
           paciente: t.paciente || { nombre: '', apellido: '', documento: '' }
         }));
 
-        // 1. Filtrar HISTORIAL según el tipo
         const estadoValido = (estado: string) => {
           const e = (estado || '').toUpperCase();
           return e === 'ATENDIDO' || e === 'AUSENTE';
@@ -488,7 +493,6 @@ export class Atencion implements OnInit, OnDestroy {
           this.totalAtendidosHoy = this.turnosAtendidos.length;
         }
 
-        // 2. Calcular TURNOS EN ESPERA (conteo)
         const miServicioId = sid ? Number(sid) : null;
 
         if (miServicioId) {
@@ -516,7 +520,6 @@ export class Atencion implements OnInit, OnDestroy {
           }).length;
         }
 
-        // 3. Calcular LISTA DE PACIENTES EN ESPERA
         const esEstadoEspera = (estado: string) => {
           const e = (estado || '').toUpperCase();
           return e === 'SALA DE ESPERA' || e === 'LLAMADO' || e === 'EN_ATENCION';
@@ -554,8 +557,6 @@ export class Atencion implements OnInit, OnDestroy {
 
         this.tiempoPromedioConsulta = '12 min';
         this.cargando = false;
-        
-        // FORZAR ACTUALIZACIÓN DE LA UI
       },
       error: (err: any) => {
         console.error('Error cargando historial:', err);
@@ -601,7 +602,5 @@ export class Atencion implements OnInit, OnDestroy {
     const labels: Record<string, string> = { todo: 'Todo', nombre: 'Nombre', apellido: 'Apellido', cedula: 'Cédula' };
     return labels[filter] || 'Filtrar';
   }
-
-  // === MÉTODOS PARA TAB PACIENTES (lab/imagenes) ===
 
 }

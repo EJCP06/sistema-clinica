@@ -35,6 +35,11 @@ import {
   templateUrl: './sidebar.html',
   styleUrls: []
 })
+/**
+ * Barra lateral de navegación.
+ * Muestra el menú contextual según el rol del usuario,
+ * controla el tema oscuro/claro y gestiona el cierre de sesión.
+ */
 export class Sidebar implements OnInit {
   @Input() activeTab: string = '';
   @Input() sidebarOpen: boolean = true;
@@ -46,11 +51,9 @@ export class Sidebar implements OnInit {
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
   
-  // Loading state for logout
   cargando = false;
   initialTransitionDisabled = true;
 
-  // Icons
   readonly LayoutDashboard = LayoutDashboard;
   readonly BarChart3 = BarChart3;
   readonly UserCog = UserCog;
@@ -73,7 +76,6 @@ export class Sidebar implements OnInit {
   readonly Megaphone = Megaphone;
   readonly Key = Key;
 
-  // Collapsible states (persistidos en sessionStorage)
   get expandedPanel() { return sessionStorage.getItem('sb_panel') === '1'; }
   set expandedPanel(v: boolean) { sessionStorage.setItem('sb_panel', v ? '1' : '0'); }
 
@@ -130,7 +132,6 @@ export class Sidebar implements OnInit {
     } else {
       this.router.navigate([`/${route}`]);
     }
-    // Auto-close sidebar on mobile after navigation
     this.closeSidebar.emit();
   }
 
@@ -147,7 +148,6 @@ export class Sidebar implements OnInit {
   }
 
   ngOnInit() {
-    // Deshabilitar la transición inicial para evitar el efecto de "recarga" del toggle
     setTimeout(() => this.initialTransitionDisabled = false, 100);
   }
 

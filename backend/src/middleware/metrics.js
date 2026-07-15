@@ -18,14 +18,16 @@ const httpRequestsTotal = new client.Counter({
   registers: [register],
 });
 
-const dbQueryDuration = new client.Histogram({
-  name: 'db_query_duration_seconds',
-  help: 'Duración de consultas a BD en segundos',
-  labelNames: ['query'],
-  buckets: [0.001, 0.01, 0.05, 0.1, 0.5, 1],
-  registers: [register],
-});
-
+/**
+ * Middleware que captura métricas de duración y total de peticiones HTTP
+ * utilizando prom-client. Se ejecuta al finalizar cada respuesta para
+ * registrar método, ruta y código de estado.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @param {import('express').NextFunction} next - Siguiente middleware
+ * @returns {void}
+ */
 const metricsMiddleware = (req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
@@ -37,9 +39,17 @@ const metricsMiddleware = (req, res, next) => {
   next();
 };
 
+/**
+ * Handler para el endpoint /metrics que expone las métricas en el
+ * formato de texto de Prometheus.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const metricsHandler = async (req, res) => {
   res.set('Content-Type', register.contentType);
   res.end(await register.metrics());
 };
 
-module.exports = { metricsMiddleware, metricsHandler, dbQueryDuration, register };
+module.exports = { metricsMiddleware, metricsHandler, register };

@@ -2,6 +2,14 @@ const logger = require('../config/logger');
 const atencionRepo = require('../repositories/atencion.repository');
 const historialRepo = require('../repositories/historial.repository');
 
+/**
+ * Obtiene la lista de pacientes en espera para un servicio y
+ * especialidad determinados dentro de la sede del médico.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const getPacientesEnEspera = async (req, res) => {
   const { id_servicio, id_especialidad } = req.query;
 
@@ -14,6 +22,14 @@ const getPacientesEnEspera = async (req, res) => {
   }
 };
 
+/**
+ * Cambia el estado de una atención a "En Atencion" e inserta el
+ * registro en el historial.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const llamarPaciente = async (req, res) => {
   const { id_atencion } = req.body;
   const pool = require('../config/db');
@@ -49,6 +65,14 @@ const llamarPaciente = async (req, res) => {
   }
 };
 
+/**
+ * Finaliza la atención de un paciente cambiando su estado a "Atendido"
+ * y registrando la hora de salida.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const finalizarAtencion = async (req, res) => {
   const { id_atencion } = req.body;
   const pool = require('../config/db');
@@ -84,6 +108,14 @@ const finalizarAtencion = async (req, res) => {
   }
 };
 
+/**
+ * Obtiene los pacientes atendidos hoy para un servicio y especialidad
+ * determinados dentro de la sede del médico.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const getAtendidosHoy = async (req, res) => {
   const { id_servicio, id_especialidad } = req.query;
 

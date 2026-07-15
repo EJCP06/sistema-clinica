@@ -10,7 +10,13 @@ const getSede = (req) => {
   return sede !== undefined && sede !== null ? Number(sede) : null;
 };
 
-// GET /recepcion/responsables-pago
+/**
+ * Obtiene la lista de responsables de pago disponibles.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const getResponsablesPago = async (req, res) => {
   try {
     const rows = await sharedRepo.getResponsablesPago();
@@ -21,7 +27,14 @@ const getResponsablesPago = async (req, res) => {
   }
 };
 
-// POST /recepcion/atencion/:id/marcar_ausente
+/**
+ * Marca un paciente como ausente. Solo permite cambiar estados
+ * válidos (Registrado, Sala de Espera, Llamado, Reincorporado).
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const marcarAusente = async (req, res) => {
   const sede = getSede(req);
   if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
@@ -32,12 +45,6 @@ const marcarAusente = async (req, res) => {
     const atencion = await atencionRepo.getAtencionEstado(id, sede);
     if (!atencion) {
       return res.status(404).json({ mensaje: 'Atención no encontrada' });
-    }
-
-    const usuario = req.usuario;
-    
-    if (!usuario || (usuario.rol !== 'coordinador' && usuario.rol !== 'administrador' && usuario.rol !== 'laboratorio' && usuario.rol !== 'imagenes')) {
-      return res.status(403).json({ mensaje: 'No tienes permiso para marcar pacientes como ausentes' });
     }
 
     const idEstadoActual = atencion.id_estado_actual;
@@ -74,7 +81,13 @@ const marcarAusente = async (req, res) => {
   }
 };
 
-// GET /recepcion/ultimas-admisiones
+/**
+ * Obtiene las últimas admisiones (turnos) registradas en la sede.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const getUltimasAdmisiones = async (req, res) => {
   const sede = getSede(req);
   if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
@@ -88,7 +101,13 @@ const getUltimasAdmisiones = async (req, res) => {
   }
 };
 
-// GET /recepcion/pacientes/:cedula
+/**
+ * Busca pacientes por término y filtro dentro de la sede.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const buscarPaciente = async (req, res) => {
   const sede = getSede(req);
   if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
@@ -105,7 +124,13 @@ const buscarPaciente = async (req, res) => {
   }
 };
 
-// POST /recepcion/pacientes
+/**
+ * Crea un nuevo paciente validando unicidad de cédula por sede.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const crearPaciente = async (req, res) => {
   const sede = getSede(req);
   if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
@@ -119,7 +144,6 @@ const crearPaciente = async (req, res) => {
       return res.status(400).json({ mensaje: 'Cédula, primer nombre y primer apellido son requeridos' });
     }
 
-    // Check if patient exists
     const existing = await pacienteRepo.findByCedula(cedula, sede);
     if (existing) {
       return res.status(409).json({ mensaje: 'Ya existe un paciente con esa cédula en esta sede' });
@@ -146,7 +170,13 @@ const crearPaciente = async (req, res) => {
   }
 };
 
-// PUT /recepcion/pacientes/:id
+/**
+ * Actualiza los datos de un paciente existente.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const actualizarPaciente = async (req, res) => {
   const sede = getSede(req);
   if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
@@ -179,7 +209,13 @@ const actualizarPaciente = async (req, res) => {
   }
 };
 
-// DELETE /recepcion/pacientes/:id
+/**
+ * Elimina un paciente de la base de datos.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const eliminarPaciente = async (req, res) => {
   const sede = getSede(req);
   if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
@@ -199,7 +235,15 @@ const eliminarPaciente = async (req, res) => {
   }
 };
 
-// PUT /recepcion/atencion/:id
+/**
+ * Actualiza los datos de una atención existente. Solo permite cambiar
+ * servicio, especialidad, médico y responsable si la atención está en
+ * estado "Registrado"; de lo contrario solo permite cambios menores.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const actualizarAtencion = async (req, res) => {
   const sede = getSede(req);
   if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
@@ -252,7 +296,13 @@ const actualizarAtencion = async (req, res) => {
   }
 };
 
-// DELETE /recepcion/atencion/:id
+/**
+ * Elimina una atención y su historial asociado.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const eliminarAtencion = async (req, res) => {
   const sede = getSede(req);
   if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
@@ -274,7 +324,13 @@ const eliminarAtencion = async (req, res) => {
   }
 };
 
-// PUT /recepcion/atencion/:id/estado
+/**
+ * Actualiza el estado de una atención a un nuevo estado.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const actualizarEstadoAtencion = async (req, res) => {
   const sede = getSede(req);
   if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
@@ -300,7 +356,15 @@ const actualizarEstadoAtencion = async (req, res) => {
   }
 };
 
-// POST /recepcion/generar-turno
+/**
+ * Genera un nuevo turno (atención) para un paciente y servicio dados.
+ * Calcula el número de turno usando el prefijo del servicio y el
+ * conteo del día. Emite evento Socket.IO al crearlo.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const generarTurno = async (req, res) => {
   const sede = getSede(req);
   if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
