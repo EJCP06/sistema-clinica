@@ -7,6 +7,7 @@ import { CommonModule } from '@angular/common';
   imports: [CommonModule],
   templateUrl: './pagination.html'
 })
+/** Componente de paginación reutilizable con páginas numeradas y elipsis. */
 export class PaginationComponent {
   @Input() currentPage = 1;
   @Input() totalItems = 0;

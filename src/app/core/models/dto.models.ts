@@ -1,23 +1,24 @@
-// ==========================================
-// AUTH DTOs
-// ==========================================
+/** Credenciales de inicio de sesión. */
 export interface LoginRequest {
   username: string;
   password: string;
 }
 
+/** Respuesta del servidor tras autenticación exitosa. */
 export interface LoginResponse {
   mensaje: string;
   token: string;
   usuario: UsuarioDTO;
 }
 
+/** Datos del usuario autenticado (incluye rol, consultorio, especialidad, sede). */
 export interface UsuarioDTO {
   id: number;
   username?: string;
   cedula?: string;
   nombre: string;
   apellido?: string;
+  /** Identificador del rol (ej. administrador, medico, recepcionista). */
   rol: string;
   consultorio_id?: number;
   servicio_id?: number;
@@ -26,18 +27,14 @@ export interface UsuarioDTO {
   id_sede?: number;
 }
 
-// ==========================================
-// RESPONSABLE PAGO DTO
-// ==========================================
+/** Modalidad de pago (particular / seguro). */
 export interface ResponsablePagoDTO {
   id_responsable: number;
   nombre: string;
   status: boolean;
 }
 
-// ==========================================
-// PATIENT / ADMISSION DTOs
-// ==========================================
+/** Representa una admisión (atención) activa de un paciente. */
 export interface AdmisionDTO {
   id_atencion: number;
   numero: string;
@@ -61,6 +58,7 @@ export interface AdmisionDTO {
   hora_salida?: string;
 }
 
+/** Datos del paciente (incluye ambos nombres y apellidos). */
 export interface PacienteDTO {
   id_paciente: number;
   cedula: string;
@@ -76,6 +74,7 @@ export interface PacienteDTO {
   id_sede?: number;
 }
 
+/** Cuerpo para crear o actualizar un paciente. */
 export interface CrearPacienteRequest {
   id_paciente?: number | null;
   cedula: string;
@@ -88,6 +87,7 @@ export interface CrearPacienteRequest {
   status?: boolean;
 }
 
+/** Cuerpo para generar un nuevo turno. */
 export interface GenerarTurnoRequest {
   id_paciente: number;
   id_servicio: number;
@@ -96,19 +96,19 @@ export interface GenerarTurnoRequest {
   id_especialidad?: number;
 }
 
+/** Respuesta tras generar un turno exitosamente. */
 export interface GenerarTurnoResponse {
   id_atencion: number;
   numero: string;
   hora_llegada: string;
 }
 
-// ==========================================
-// TURN / QUEUE DTOs
-// ==========================================
+/** Representación de un turno en listas y tableros. */
 export interface TurnoDTO {
   id: number;
   id_atencion?: number;
   numero: string;
+  /** Estado actual del turno (SALA DE ESPERA, LLAMADO, EN_ATENCION, ATENDIDO, AUSENTE). */
   estado: string;
   hora_llegada: string;
   paciente: {
@@ -129,15 +129,16 @@ export interface TurnoDTO {
   updated_at?: string;
 }
 
+/** Respuesta al llamar al siguiente paciente. */
 export interface LlamarSiguienteResponseDTO {
   mensaje: string;
+  /** El turno llamado, o null si no hay pacientes en espera. */
   turno: TurnoDTO | null;
 }
 
-// ==========================================
-// CONSULTORIO DTOs
-// ==========================================
+/** Estado detallado del consultorio del médico autenticado. */
 export interface MiEstadoDTO {
+  /** Estado del consultorio (LIBRE, OCUPADO, EN_PAUSA, etc.). */
   estado: string;
   servicio_id: number;
   nombre: string;
@@ -152,10 +153,12 @@ export interface MiEstadoDTO {
   hora_llamado?: string;
 }
 
+/** Datos de un consultorio físico. */
 export interface ConsultorioDTO {
   id_consultorio?: number;
   id: number;
   nombre: string;
+  /** Estado físico (OPERATIVO, INOPERATIVO). */
   estado_fisico: string;
   id_servicio?: number;
   id_sede?: number;
@@ -163,6 +166,7 @@ export interface ConsultorioDTO {
   piso?: string;
 }
 
+/** Consultorio para administración (visión simplificada). */
 export interface AdminConsultorioDTO {
   id: number;
   nombre: string;
@@ -170,6 +174,7 @@ export interface AdminConsultorioDTO {
   servicio_id?: number;
 }
 
+/** Estado en tiempo real de un consultorio con su turno actual. */
 export interface ConsultorioEstadoDTO {
   id_consultorio: number;
   nombre: string;
@@ -179,9 +184,7 @@ export interface ConsultorioEstadoDTO {
   medico_nombre?: string;
 }
 
-// ==========================================
-// ADMIN DTOs
-// ==========================================
+/** Representación de un miembro del personal (médicos, recepcionistas, etc.). */
 export interface PersonalDTO {
   id_usuario: number;
   id?: number;
@@ -195,6 +198,7 @@ export interface PersonalDTO {
   segundo_apellido?: string;
   telefono?: string;
   email?: string;
+  /** Nombre del rol (administrador, medico, recepcionista, etc.). */
   rol: string;
   piso?: string;
   id_consultorio?: number;
@@ -211,6 +215,7 @@ export interface PersonalDTO {
   servicio_nombre?: string;
 }
 
+/** Cuerpo para crear un nuevo miembro del personal. */
 export interface CrearPersonalRequest {
   cedula: string;
   primer_nombre: string;
@@ -229,6 +234,7 @@ export interface CrearPersonalRequest {
   id_sede?: number;
 }
 
+/** Servicio médico ofrecido (consulta, laboratorio, imágenes). */
 export interface ServicioDTO {
   id: number;
   nombre: string;
@@ -236,6 +242,7 @@ export interface ServicioDTO {
   activo: boolean;
 }
 
+/** Cuerpo para crear un nuevo servicio. */
 export interface CrearServicioRequest {
   nombre: string;
   prefijo?: string;
@@ -243,6 +250,7 @@ export interface CrearServicioRequest {
   activo?: boolean;
 }
 
+/** Especialidad médica asociada a un servicio y opcionalmente a consultorios. */
 export interface EspecialidadDTO {
   id_especialidad: number;
   id?: number;
@@ -255,9 +263,11 @@ export interface EspecialidadDTO {
   servicio_id?: number;
   id_sede?: number;
   nombre_servicio?: string;
+  /** IDs de los consultorios donde se practica esta especialidad. */
   consultorios_ids?: number[];
 }
 
+/** Cuerpo para crear o actualizar una especialidad. */
 export interface CrearEspecialidadRequest {
   nombre: string;
   prefijo?: string;
@@ -268,6 +278,7 @@ export interface CrearEspecialidadRequest {
   activo?: boolean;
 }
 
+/** Sede o sucursal de la clínica. */
 export interface SedeDTO {
   id_sede: number;
   id?: number;
@@ -276,6 +287,7 @@ export interface SedeDTO {
   activo?: boolean;
 }
 
+/** Aseguradora registrada en el sistema. */
 export interface AseguradoraDTO {
   id_cliente: number;
   aseguradora?: string;
@@ -284,9 +296,7 @@ export interface AseguradoraDTO {
   id_sede?: number;
 }
 
-// ==========================================
-// REPORT DTOs
-// ==========================================
+/** Reporte diario de operaciones con estadísticas, KPIs y desglose por servicio. */
 export interface ReporteDiarioDTO {
   total: number;
   turnos: TurnoReporteDTO[];
@@ -306,6 +316,7 @@ export interface ReporteDiarioDTO {
   ausentes: AusenteReporteDTO[];
 }
 
+/** Turno individual dentro del reporte diario. */
 export interface TurnoReporteDTO {
   id: number;
   numero: string;
@@ -328,6 +339,7 @@ export interface TurnoReporteDTO {
   };
 }
 
+/** Estadísticas agregadas por servicio. */
 export interface ServicioReporteDTO {
   servicio: string;
   total: number;
@@ -338,6 +350,7 @@ export interface ServicioReporteDTO {
   registrados: number;
 }
 
+/** Paciente ausente registrado en el reporte. */
 export interface AusenteReporteDTO {
   numero: string;
   paciente_nombre: string;
@@ -348,9 +361,7 @@ export interface AusenteReporteDTO {
   hora_llegada: string;
 }
 
-// ==========================================
-// MEDICO DTOs
-// ==========================================
+/** Paciente en espera con datos básicos de admisión. */
 export interface PacienteEnEsperaDTO {
   id_atencion: number;
   hora_llegada: string;
@@ -365,31 +376,30 @@ export interface PacienteEnEsperaDTO {
   nombre_especialidad?: string;
 }
 
-// ==========================================
-// GENERIC DTOs
-// ==========================================
+/** Envoltorio de respuesta estándar del API. */
 export interface ApiResponse<T = unknown> {
   mensaje: string;
   data?: T;
 }
 
+/** Respuesta de error estándar. */
 export interface ErrorResponse {
   mensaje: string;
   error?: string;
 }
 
-// ==========================================
-// ROLES DTOs
-// ==========================================
+/** Rol de usuario configurable. */
 export interface RolDTO {
   id: number;
   nombre: string;
+  /** Identificador único del rol para permisos (ej. medico, recepcionista). */
   key: string;
   id_sede: number | null;
   activo: boolean;
   sede_nombre?: string;
 }
 
+/** Cuerpo para crear un nuevo rol. */
 export interface CrearRolRequest {
   nombre: string;
   key?: string;
@@ -397,30 +407,37 @@ export interface CrearRolRequest {
   activo?: boolean;
 }
 
+/** Permiso individual del sistema. */
 export interface PermisoDTO {
   id_permiso: number;
+  /** Clave del permiso (ej. admision:ver). */
   key: string;
   nombre: string;
   descripcion?: string;
 }
 
+/** Recurso con sus acciones disponibles para la matriz de permisos. */
 export interface RecursoMatrizDTO {
   key: string;
   nombre: string;
   descripcion?: string;
+  /** Lista de acciones permitidas (ver, crear, editar, eliminar). */
   acciones: string[];
 }
 
+/** Matriz completa de recursos y acciones básicas. */
 export interface MatrizPermisosDTO {
   recursos: RecursoMatrizDTO[];
   accionesBasicas: string[];
 }
 
+/** Respuesta del endpoint de salud del servidor. */
 export interface HealthResponse {
   status: string;
   message: string;
 }
 
+/** Respuesta con el nuevo ID de estado tras una actualización. */
 export interface EstadoActualizadoResponse {
   id_estado_actual: number;
 }

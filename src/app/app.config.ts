@@ -12,6 +12,7 @@ import { routes } from './app.routes';
 
 registerLocaleData(es);
 
+/** Configuración global de la aplicación: rutas, HTTP interceptors, locale español. */
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),

@@ -55,6 +55,7 @@ import { RolDTO, CrearRolRequest } from '@core/models/dto.models';
   templateUrl: './admin-roles.html',
   styles: [],
 })
+/** Panel de administración de roles de usuario. CRUD y filtro por sede. */
 export class AdminRoles implements OnInit {
   readonly Plus = Plus;
   readonly Trash2 = Trash2;

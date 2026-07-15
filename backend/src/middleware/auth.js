@@ -2,12 +2,31 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../config/db');
 
+/**
+ * Compara dos cadenas en tiempo constante para evitar ataques de
+ * temporización (timing attack) en la validación del token de sesión.
+ *
+ * @param {string} a - Primer valor a comparar
+ * @param {string} b - Segundo valor a comparar
+ * @returns {boolean} true si ambas cadenas son idénticas
+ */
 const timingSafeCompare = (a, b) => {
   if (typeof a !== 'string' || typeof b !== 'string') return false;
   if (a.length !== b.length) return false;
   return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
 };
 
+/**
+ * Middleware de autenticación JWT. Verifica el token del encabezado
+ * Authorization, valida que el usuario esté activo y que su token de
+ * sesión coincida con el almacenado en base de datos (invalida sesiones
+ * simultáneas al detectar un sesion_token diferente).
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @param {import('express').NextFunction} next - Siguiente middleware
+ * @returns {Promise<void>}
+ */
 const authMiddleware = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 

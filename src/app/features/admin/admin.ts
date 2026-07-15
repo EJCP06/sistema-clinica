@@ -21,6 +21,11 @@ import { AdminPermisologia } from './admin-permisologia';
   templateUrl: './admin.html',
   styles: [],
 })
+/**
+ * Panel de administración principal.
+ * Orquesta los subcomponentes de personal, especialidades, roles, permisología y reportes.
+ * Si el administrador no tiene permisos, siembra los predeterminados al iniciar.
+ */
 export class Admin implements OnInit {
    private apiService = inject(ApiService);
    private authService = inject(AuthService);

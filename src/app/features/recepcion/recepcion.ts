@@ -62,8 +62,13 @@ import { SedeDTO } from '@core/models/dto.models';
   ],
   templateUrl: './recepcion.html',
 })
+/**
+ * Componente de admisión y recepción de pacientes.
+ * Gestiona registro de pacientes, asignación de turnos,
+ * búsqueda, edición y eliminación de admisiones activas,
+ * así como la administración de aseguradoras.
+ */
 export class RecepcionComponent implements OnInit, OnDestroy {
-  // Iconos
   readonly Search = Search;
   readonly UserPlus = UserPlus;
   readonly Plus = Plus;
@@ -86,25 +91,21 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   pageSize: number = 6;
   currentPage: number = 1;
 
-  // Estados
   sidebarOpen: boolean = false;
   cedulaBusqueda: string = '';
   buscando: boolean = false;
   filaEnEdicion: any = null;
 
-  // Filtro de Búsqueda
   searchFilter: string = 'todo'; // 'todo', 'nombre', 'apellido', 'cedula'
   showSearchFilterDropdown: boolean = false;
   showPayerDropdown: boolean = false;
   showServiceDropdown: boolean = false;
 
-  // Live Search
   private searchSubject = new Subject<string>();
   private searchSubscription?: Subscription;
   private busquedaSubscription?: Subscription;
   mostrarResultadosBusqueda: boolean = false;
 
-  // Datos
   pacientesEncontrados: any[] = [];
   pacienteEncontrado: any = null;
   nuevoPaciente: any = {
@@ -183,7 +184,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     nombre_medico_label: '',
   };
 
-  // Lógica de Categorías
   categoriaServicio: string = ''; // 'Consulta', 'Laboratorio', 'Imágenes'
   showEspecialidadDropdown: boolean = false;
   showMedicoDropdown: boolean = false;
@@ -237,14 +237,16 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     }
   }
 
-  // --- Preview Modal ---
   showPreviewModal = false;
   previewData: any[] = [];
 
   showExcelFormat = false;
   isImporting = false;
 
-  // --- Sede Mapping ---
+  /**
+   * Retorna el nombre de la sede en mayúsculas o 'SIN ASIGNAR'.
+   * @param id_sede - ID de la sede (acepta number, string, null, undefined)
+   */
   getSedeNombre(id_sede: number | string | null | undefined): string {
     if (id_sede === undefined || id_sede === null || id_sede === '') return 'SIN ASIGNAR';
     const finalId = Number(id_sede);
@@ -311,7 +313,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       this.showAseguradoraDropdown = false;
       this.mostrarResultadosBusqueda = false; // Se oculta al hacer clic fuera
     } else {
-      // Si el click fue dentro, pero fuera de los contenedores específicos
       const target = event.target as HTMLElement;
       if (!target.closest('.search-filter-container')) this.showSearchFilterDropdown = false;
       if (!target.closest('.payer-dropdown-container')) this.showPayerDropdown = false;
@@ -325,6 +326,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
   private cambiosSub?: Subscription;
 
+  /** Inicializa el componente: carga datos maestros, admisiones/aseguradoras y suscripciones. */
   ngOnInit() {
     const data = this.route.snapshot.data;
     this.pageTitle = data['pageTitle'] || this.pageTitle;
@@ -338,7 +340,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       this.cargarUltimasAdmisiones();
     }
 
-    // Real-time updates via socket
     this.cambiosSub = this.api.cambios$.subscribe(() => {
       if (this.isAseguradorasView) {
         this.cargarAseguradoras();
@@ -347,7 +348,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Setup live search
     this.searchSubscription = this.searchSubject.pipe(debounceTime(80)).subscribe((value) => {
       if (!value || value.trim().length < 1) {
         this.resetSearchOnly();
@@ -372,7 +372,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     if (tab === 'panel-medico') this.router.navigate(['/panel-medico']);
   }
 
-  // --- FILTROS DE BÚSQUEDA ---
   toggleSearchFilterDropdown() {
     this.showSearchFilterDropdown = !this.showSearchFilterDropdown;
   }
@@ -380,7 +379,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   selectSearchFilter(filter: string) {
     this.searchFilter = filter;
     this.showSearchFilterDropdown = false;
-    // Si ya hay algo escrito, rebuscar
     if (this.cedulaBusqueda.trim().length > 0) {
       this.onSearchChange(this.cedulaBusqueda);
     }
@@ -396,8 +394,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     return labels[this.searchFilter] || 'TODO';
   }
 
-  // --- LOGICA DE NEGOCIO ---
-
+  /** Carga servicios, especialidades, aseguradoras, responsables, médicos y consultorios. */
   cargarDatosMaestros() {
     this.api.getServicios().subscribe({
       next: (data: any) => {
@@ -444,6 +441,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Obtiene las últimas admisiones activas (excluye estados finales como ATENDIDO, AUSENTE). */
   cargarUltimasAdmisiones() {
     this.api.get<any[]>('recepcion/ultimas-admisiones').subscribe({
       next: (data) => {
@@ -605,7 +603,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   }
 
   prepararNuevoPaciente() {
-    this.filaEnEdicion = null; // Reset edit state to avoid locked fields
+    this.filaEnEdicion = null;
     this.pacienteExistenteCargado = false;
     this.esRegistroDirecto = true;
     this.isEditMode = false;
@@ -630,7 +628,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     };
     this.categoriaServicio = '';
 
-    // Precargar datos del buscador si existen
     if (this.cedulaBusqueda && this.cedulaBusqueda.trim().length > 0) {
       const val = this.cedulaBusqueda.trim();
       if (this.searchFilter === 'cedula' || (!isNaN(Number(val)) && this.searchFilter === 'todo')) {
@@ -645,16 +642,14 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   }
 
   onCedulaFormChange(cedula: string) {
-    if (this.isEditMode) return; // No buscar si estamos editando
+    if (this.isEditMode) return;
     if (!cedula || cedula.trim().length < 2) {
       this.pacienteExistenteCargado = false;
       this.nuevoPaciente.id_paciente = null;
       return;
     }
-    // Buscamos si existe la cédula de forma exacta
     this.api.get<any[]>(`recepcion/pacientes/${cedula}`).subscribe({
       next: (data) => {
-        // Encontrar coincidencia exacta de cédula, ya que el backend usa ILIKE %cedula%
         const p = data ? data.find((paciente: any) => paciente.cedula === cedula) : null;
 
         if (p) {
@@ -750,7 +745,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     } else if (this.pacienteExistenteCargado && this.nuevoPaciente.id_paciente) {
       this.generarAtencionDirecta(this.nuevoPaciente.id_paciente);
     } else {
-      // Verificar existencia antes de crear
       this.api.get<any[]>(`recepcion/pacientes/${this.nuevoPaciente.cedula}`).subscribe({
         next: (data) => {
           const p = data
@@ -767,6 +761,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** Crea un nuevo paciente en el sistema y luego genera la atención. */
   private crearNuevoPaciente() {
     const datosPaciente = {
       cedula: (this.nuevoPaciente.cedula || '').toString().replace(/\D/g, ''),
@@ -876,6 +871,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** Genera un turno de atención para un paciente ya registrado. */
   generarAtencionDirecta(id_paciente: number) {
     const bodyTurno = {
       id_paciente: id_paciente,
@@ -952,7 +948,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     });
   }
 
-  // --- DROPDOWN RESPONSABLE ---
   togglePayerDropdown() {
     this.showPayerDropdown = !this.showPayerDropdown;
   }
@@ -967,7 +962,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     if (id !== 2) {
       this.seleccion.id_cliente = null;
     }
-    // Reset selections on payer change
     this.seleccion.id_servicio = null;
     this.seleccion.id_especialidad = null;
     this.seleccion.id_medico = null;
@@ -977,7 +971,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     this.categoriaServicio = '';
   }
 
-  // --- DROPDOWN ASEGURADORAS ---
   toggleAseguradoraDropdown() {
     this.showAseguradoraDropdown = !this.showAseguradoraDropdown;
   }
@@ -1031,7 +1024,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     return 'Consulta';
   }
 
-  // --- DROPDOWN SERVICIOS (CATEGORÍAS) ---
   toggleServiceDropdown() {
     this.showServiceDropdown = !this.showServiceDropdown;
   }
@@ -1051,7 +1043,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     this.categoriaServicio = categoria;
     this.showServiceDropdown = false;
 
-    // Reset dependent fields
     this.seleccion.id_servicio = null;
     this.seleccion.id_especialidad = null;
     this.seleccion.id_medico = null;
@@ -1077,32 +1068,27 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     }
   }
 
-  // --- DROPDOWN ESPECIALIDADES ---
   toggleEspecialidadDropdown() {
     this.showEspecialidadDropdown = !this.showEspecialidadDropdown;
   }
 
   selectEspecialidad(item: any) {
     if (this.categoriaServicio === 'Consulta') {
-      // item es una especialidad
-      this.seleccion.id_servicio = item.id_servicio; // El ID del servicio 'CONSULTA'
+      this.seleccion.id_servicio = item.id_servicio;
       this.seleccion.id_especialidad = item.id_especialidad || item.id;
       this.seleccion.nombre_servicio_label = item.nombre || '';
-      // Reset médico al cambiar especialidad
       this.seleccion.id_medico = null;
       this.seleccion.id_consultorio = null;
       this.seleccion.nombre_medico_label = '';
     } else {
-      // item es un servicio (Laboratorio/Imagen)
       this.seleccion.id_servicio = item.id || item.id_servicio;
       this.seleccion.id_especialidad = null;
       this.seleccion.nombre_servicio_label = item.nombre || item.nombre_servicio || '';
     }
-    this.showEspecialidadDropdown = false;
-  }
+      this.showEspecialidadDropdown = false;
+    }
 
   getEspecialidades() {
-    // Si no hay categoría seleccionada, mostrar todas las especialidades por defecto
     if (!this.categoriaServicio) {
       return this.especialidades;
     }
@@ -1166,7 +1152,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     return 'Seleccione...';
   }
 
-  // --- ACCIONES DE TABLA ---
   editarFila(fila: any, trigger?: EventTarget | null) {
     this.filaEnEdicion = fila;
     this.isEditMode = true;
@@ -1192,7 +1177,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
         telefono: fila.telefono,
       };
 
-      // Cargar selección de servicio y responsable
       this.seleccion = {
         id_servicio: fila.id_servicio,
         id_responsable: fila.id_responsable,
@@ -1208,7 +1192,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
       this.categoriaServicio = this.getServicioCategoria(fila.nombre_servicio);
 
-      // Intentar encontrar el nombre de la especialidad para el label
       if (fila.id_especialidad) {
         const esp = this.especialidades.find(
           (e) => (e.id_especialidad || e.id) === fila.id_especialidad,
@@ -1280,7 +1263,6 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     });
   }
 
-  // --- VALIDACIONES DE INPUT ---
   soloLetras(event: any) {
     const pattern = /[a-zA-ZáéíóúÁÉÍÓÚñÑ ]/;
     const inputChar = String.fromCharCode(event.charCode);

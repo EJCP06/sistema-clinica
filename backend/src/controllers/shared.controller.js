@@ -1,6 +1,13 @@
 const logger = require('../config/logger');
 const sharedRepo = require('../repositories/shared.repository');
 
+/**
+ * Obtiene todas las aseguradoras activas para la sede del usuario.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const getAseguradoras = async (req, res) => {
   const sede = req.usuario?.id_sede;
   if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
@@ -14,6 +21,13 @@ const getAseguradoras = async (req, res) => {
   }
 };
 
+/**
+ * Crea una nueva aseguradora en la sede del usuario.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const crearAseguradora = async (req, res) => {
   const sede = req.usuario?.id_sede;
   if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
@@ -30,6 +44,13 @@ const crearAseguradora = async (req, res) => {
   }
 };
 
+/**
+ * Elimina una aseguradora del sistema.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const eliminarAseguradora = async (req, res) => {
   const sede = req.usuario?.id_sede;
   if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
@@ -49,6 +70,14 @@ const eliminarAseguradora = async (req, res) => {
   }
 };
 
+/**
+ * Importa aseguradoras desde un arreglo de nombres (típicamente Excel).
+ * Deduplica por nombre y reporta importados/omitidos.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const importarAseguradoras = async (req, res) => {
   const sede = req.usuario?.id_sede;
   if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });

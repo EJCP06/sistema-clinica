@@ -1,5 +1,4 @@
 module.exports = {
-  // Conjuntos de permisos globales
   ADMISION_TOTAL: [
     'admision:crear', 'admision:editar', 'admision:eliminar', 'admision:asignar_turno',
     'admision:*', '*:marcar_ausente', '*:reincorporar'

@@ -7,6 +7,12 @@ const DEFAULT_TTL = parseInt(process.env.REDIS_DEFAULT_TTL || '300');
 let client = null;
 let enabled = false;
 
+/**
+ * Inicializa la conexión con Redis. Si el servicio no está disponible,
+ * desactiva la caché y registra una advertencia en lugar de fallar.
+ *
+ * @returns {object|null} Instancia de Redis client o null si no disponible
+ */
 const init = () => {
   if (client) return client;
   try {
@@ -25,6 +31,12 @@ const init = () => {
   return client;
 };
 
+/**
+ * Obtiene un valor de la caché por su clave.
+ *
+ * @param {string} key - Clave del valor en Redis
+ * @returns {Promise<*|null>} Valor deserializado o null si no existe o hay error
+ */
 const get = async (key) => {
   if (!enabled) return null;
   try {
@@ -35,20 +47,40 @@ const get = async (key) => {
   }
 };
 
+/**
+ * Almacena un valor en la caché con un TTL determinado.
+ *
+ * @param {string} key - Clave bajo la cual almacenar
+ * @param {*} value - Valor a serializar como JSON
+ * @param {number} [ttl=300] - Tiempo de vida en segundos
+ * @returns {Promise<void>}
+ */
 const set = async (key, value, ttl = DEFAULT_TTL) => {
   if (!enabled) return;
   try {
     await client.set(key, JSON.stringify(value), 'EX', ttl);
-  } catch { /* silent */ }
+  } catch { /* noop */ }
 };
 
+/**
+ * Elimina una entrada específica de la caché.
+ *
+ * @param {string} key - Clave a eliminar
+ * @returns {Promise<void>}
+ */
 const del = async (key) => {
   if (!enabled) return;
   try {
     await client.del(key);
-  } catch { /* silent */ }
+  } catch { /* noop */ }
 };
 
+/**
+ * Elimina todas las entradas que coincidan con un patrón glob.
+ *
+ * @param {string} pattern - Patrón glob (ej. 'turnos:*')
+ * @returns {Promise<void>}
+ */
 const delPattern = async (pattern) => {
   if (!enabled) return;
   try {
@@ -56,9 +88,14 @@ const delPattern = async (pattern) => {
     for await (const keys of stream) {
       if (keys.length > 0) await client.del(...keys);
     }
-  } catch { /* silent */ }
+  } catch { /* noop */ }
 };
 
+/**
+ * Cierra la conexión con Redis y desactiva la caché.
+ *
+ * @returns {Promise<void>}
+ */
 const close = async () => {
   if (client) {
     await client.quit();

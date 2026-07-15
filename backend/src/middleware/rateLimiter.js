@@ -15,7 +15,7 @@ const loginLimiter = rateLimit({
   message: { mensaje: 'Demasiados intentos de inicio de sesión. Intente de nuevo en 5 minutos.' },
   standardHeaders: true,
   legacyHeaders: false,
-  skipSuccessfulRequests: true,
+  requestWasSuccessful: (req, res) => res.statusCode < 400,
 });
 
 const otpLimiter = rateLimit({

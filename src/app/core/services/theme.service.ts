@@ -1,5 +1,6 @@
 import { Injectable, signal, effect } from '@angular/core';
 
+/** Servicio que gestiona el tema oscuro/claro de la aplicación con señal reactiva. */
 @Injectable({
   providedIn: 'root'
 })

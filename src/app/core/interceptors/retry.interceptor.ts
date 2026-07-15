@@ -2,6 +2,10 @@ import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { retry } from 'rxjs/operators';
 import { throwError, timer } from 'rxjs';
 
+/**
+ * Interceptor que reintenta peticiones GET hasta 3 veces
+ * con 2s de espera. No reintenta errores 401, 403 ni 500+.
+ */
 export const retryInterceptor: HttpInterceptorFn = (req, next) => {
   if (req.method !== 'GET') {
     return next(req);

@@ -40,6 +40,11 @@ import { FillersPipe } from '../../shared/pipes/fillers.pipe';
   templateUrl: './admin-reports.html',
   styles: [],
 })
+/**
+ * Panel de reportes operativos de la clínica.
+ * Genera reportes diarios con estadísticas, KPIs y desglose por servicio,
+ * con exportación a PDF.
+ */
 export class AdminReports implements OnInit, OnDestroy {
   readonly LayoutDashboard = LayoutDashboard;
   readonly Settings = Settings;
@@ -184,14 +189,12 @@ export class AdminReports implements OnInit, OnDestroy {
     const nombreSede = sede ? sede.nombre : 'Sin Sede';
     doc.text(`Generado: ${fechaGeneracion} a las ${hora}  |  Por: ${nombreUsuario}  |  Sede: ${nombreSede}`, pageWidth / 2, 26, { align: 'center' });
 
-    // --- SORT TURNOS: extract numeric part from numero and sort ascending ---
     const sortedTurnos = [...(this.turnosOriginal ?? [])].sort((a, b) => {
       const numA = parseInt((a.numero || String(a.id)).replace(/[^0-9]/g, ''), 10) || 0;
       const numB = parseInt((b.numero || String(b.id)).replace(/[^0-9]/g, ''), 10) || 0;
       return numA - numB;
     });
 
-    // --- TABLA DE TURNOS ---
     const fmtTime = (val: string | null | undefined) =>
       val ? new Date(val).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: true }) : '';
     const fmtSalida = (val: string | null | undefined) =>
@@ -250,7 +253,6 @@ export class AdminReports implements OnInit, OnDestroy {
       doc.text(noDataMsg, margin, startY + 10);
     }
 
-    // --- DESGLOSE POR SERVICIO ---
     const lastTableHeight = (doc as any).lastAutoTable?.finalY || startY + 10;
     let currentY = lastTableHeight + 12;
 

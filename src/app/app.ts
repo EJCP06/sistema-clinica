@@ -9,6 +9,7 @@ import { AuthService } from '@core/services/auth.service';
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
+/** Componente raíz de la aplicación. Verifica la sesión al iniciar y escucha cambios de permisos. */
 export class App implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly api = inject(ApiService);

@@ -7,6 +7,14 @@ const getSede = (req) => {
   return sede !== undefined && sede !== null ? Number(sede) : null;
 };
 
+/**
+ * Obtiene todas las especialidades de la sede del usuario autenticado,
+ * incluyendo los IDs de consultorios asociados a cada una.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const getEspecialidades = async (req, res) => {
   try {
     const sede = getSede(req);
@@ -35,6 +43,13 @@ const getEspecialidades = async (req, res) => {
   }
 };
 
+/**
+ * Crea una nueva especialidad junto con sus relaciones a consultorios.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const createEspecialidad = async (req, res) => {
   const { nombre, prefijo, id_servicio, id_sede, piso, consultorios_ids, activo } = req.body;
   const client = await db.connect();
@@ -60,6 +75,13 @@ const createEspecialidad = async (req, res) => {
   }
 };
 
+/**
+ * Actualiza los datos de una especialidad y sus relaciones con consultorios.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const updateEspecialidad = async (req, res) => {
   const { id } = req.params;
   const { nombre, prefijo, id_servicio, id_sede, piso, consultorios_ids, activo } = req.body;
@@ -105,6 +127,14 @@ const updateEspecialidad = async (req, res) => {
   }
 };
 
+/**
+ * Elimina una especialidad del sistema. Previene la eliminación si
+ * existen médicos o registros de atención asociados.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const deleteEspecialidad = async (req, res) => {
   const { id } = req.params;
   try {
@@ -119,6 +149,14 @@ const deleteEspecialidad = async (req, res) => {
   }
 };
 
+/**
+ * Importa especialidades desde un arreglo de filas (típicamente Excel).
+ * Normaliza nombres, sedes y evita duplicados.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const importarEspecialidades = async (req, res) => {
   const { rows } = req.body;
   if (!rows || !Array.isArray(rows) || rows.length === 0) {
@@ -129,7 +167,6 @@ const importarEspecialidades = async (req, res) => {
   let omitidos = 0;
   let errores = 0;
 
-  // Obtener mapeo de sedes: { "nombre": id } (Normalizado: minúsculas y sin acentos)
   const sedesResult = await db.query('SELECT id_sede, nombre FROM "Sedes"');
   const mapaSedes = {};
   sedesResult.rows.forEach(s => {
@@ -141,7 +178,6 @@ const importarEspecialidades = async (req, res) => {
     mapaSedes[nombreNormalizado] = s.id_sede;
   });
 
-  // Obtener nombres existentes para evitar duplicados
   const nombresExcel = rows.map(r =>
     (r.nombre || r.Nombre || r.NOMBRE || '').toString().toUpperCase().trim()
   ).filter(n => n);
@@ -157,7 +193,6 @@ const importarEspecialidades = async (req, res) => {
       const prefijo = (row.prefijo || row.Prefijo || row.PREFIJO || '').toString().toUpperCase().trim();
       const piso = (row.piso || row.Piso || row.PISO || '').toString().replace(/\D/g, '');
 
-      // Sede: accept both id_sede (number) and sede (name string)
       let idSede = 1;
       if (row.id_sede !== undefined && row.id_sede !== null && row.id_sede !== '') {
         idSede = Number(row.id_sede) || 1;
@@ -171,7 +206,6 @@ const importarEspecialidades = async (req, res) => {
         idSede = mapaSedes[nombreSedeNormalizado] || 1;
       }
 
-      // Activo
       const valorActivoRaw = (row.activo !== undefined ? row.activo : true).toString();
       const esActivo = valorActivoRaw === 'true' || valorActivoRaw === 'verdadero' || valorActivoRaw === '1';
 
@@ -185,7 +219,6 @@ const importarEspecialidades = async (req, res) => {
         continue;
       }
 
-      // Consultorios
       const consultoriosIds = row.consultorios_ids || row.consultoriosIds || [];
 
       const client = await db.connect();
@@ -197,7 +230,6 @@ const importarEspecialidades = async (req, res) => {
         );
         const idEspecialidad = result.rows[0].id_especialidad;
 
-        // Insert consultorio relations
         if (consultoriosIds.length > 0) {
           for (const idConsultorio of consultoriosIds) {
             const conId = Number(idConsultorio);

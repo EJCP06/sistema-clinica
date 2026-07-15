@@ -27,6 +27,11 @@ import { RolDTO, RecursoMatrizDTO, MatrizPermisosDTO } from '@core/models/dto.mo
   imports: [CommonModule, FormsModule, LucideAngularModule, PaginationComponent, PaginatePipe, FillersPipe],
   templateUrl: './admin-permisologia.html',
 })
+/**
+ * Panel de administración de roles y permisos.
+ * Permite gestionar roles, asignar permisos por recurso/acción,
+ * y visualizar la matriz completa de permisos del sistema.
+ */
 export class AdminPermisologia implements OnInit, OnDestroy {
   readonly Plus = Plus;
   readonly Trash2 = Trash2;
@@ -82,7 +87,6 @@ export class AdminPermisologia implements OnInit, OnDestroy {
       if (this.searchFilter === 'rol') {
         return (r.nombre || '').toLowerCase().includes(q);
       }
-      // 'todo' logic
       return (r.nombre || '').toLowerCase().includes(q) ||
              (r.sede_nombre || '').toLowerCase().includes(q) ||
              (r.key || '').toLowerCase().includes(q);
@@ -125,6 +129,7 @@ export class AdminPermisologia implements OnInit, OnDestroy {
     }
   }
 
+  /** Inicializa cargando roles, sedes y matriz de recursos. */
   ngOnInit() {
     this.cargarRoles();
     this.cargarSedes();

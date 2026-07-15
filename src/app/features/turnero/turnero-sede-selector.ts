@@ -31,6 +31,7 @@ import { LucideAngularModule, Building2, Monitor, ArrowLeft } from 'lucide-angul
     </div>
   `
 })
+/** Selector de sede para el tablero turnero público. */
 export class TurneroSedeSelector {
   readonly Building2 = Building2;
   readonly Monitor = Monitor;

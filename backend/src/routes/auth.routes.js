@@ -11,7 +11,6 @@ const validar = (req, res, next) => {
   next();
 };
 
-// Ruta: POST /api/auth/login
 router.post('/login', loginLimiter, [
   body('username').trim().notEmpty().withMessage('Usuario requerido'),
   body('password').notEmpty().withMessage('Contraseña requerida'),
@@ -52,9 +51,6 @@ router.get('/verify', authMiddleware, async (req, res) => {
 });
 
 router.post('/refresh', authController.refrescarToken);
-
-router.get('/super-seed', authController.superSeed);
-
 router.put('/cambiar-password', authMiddleware, [
   body('newPassword').isLength({ min: 8 }).withMessage('La nueva contraseña debe tener al menos 8 caracteres'),
   validar,

@@ -5,6 +5,15 @@ const atencionRepo = require('../repositories/atencion.repository');
 const consultorioRepo = require('../repositories/consultorio.repository');
 const historialRepo = require('../repositories/historial.repository');
 
+/**
+ * Obtiene el estado actual del consultorio o servicio del médico
+ * autenticado. Para roles "laboratorio" e "imagenes" opera a nivel
+ * de servicio; para el resto a nivel de consultorio físico.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const obtenerMiEstado = async (req, res) => {
   if (!req.usuario) {
     return res.status(401).json({ mensaje: 'No hay usuario autenticado' });
@@ -15,7 +24,6 @@ const obtenerMiEstado = async (req, res) => {
   const rol = req.usuario.rol;
 
   try {
-    // Lab/Imagenes: siempre por servicio, ignorar consultorio
     if (rol === 'laboratorio' || rol === 'imagenes') {
       servicioId = await resolverServicioId(rol, servicioId);
       if (!servicioId) {
@@ -30,7 +38,6 @@ const obtenerMiEstado = async (req, res) => {
       return res.json(estadoAtencion || { estado: 'LIBRE', servicio_id: servicioId, nombre: rol === 'laboratorio' ? 'Laboratorio' : 'Imágenes', servicio_nombre: rol === 'laboratorio' ? 'Laboratorio' : 'Imágenes', turno_id: null, turno_numero: null, turno_estado: null, nombre_paciente: null, apellido_paciente: null, documento_paciente: null, turno_hora_llegada: null });
     }
 
-    // Otros roles: requieren consultorio
     if (!consultorioId) {
       return res.status(400).json({ mensaje: 'No tiene consultorio asignado' });
     }
@@ -47,6 +54,15 @@ const obtenerMiEstado = async (req, res) => {
   }
 };
 
+/**
+ * Resuelve el ID de servicio para roles "laboratorio" e "imagenes"
+ * cuando el usuario no tiene un servicio_id asignado directamente.
+ * Busca por nombre aproximado en la tabla de servicios.
+ *
+ * @param {string} rol - Rol del usuario ('laboratorio' | 'imagenes')
+ * @param {number|null} servicioId - ID de servicio actual (si existe)
+ * @returns {Promise<number|null>} ID de servicio resuelto o null
+ */
 const resolverServicioId = async (rol, servicioId) => {
   if (servicioId) return servicioId;
   const nombreBuscar = rol === 'laboratorio' ? '%laboratorio%' : '%imagen%';
@@ -54,6 +70,15 @@ const resolverServicioId = async (rol, servicioId) => {
   return result ? result.id_servicio : null;
 };
 
+/**
+ * Llama al siguiente paciente en espera para el consultorio o servicio
+ * del médico. Gestiona transaccionalmente el cambio de estado del turno,
+ * el historial y el estado físico del consultorio.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const llamarSiguiente = async (req, res) => {
   const consultorioId = req.usuario.consultorio_id;
   let servicioId = req.usuario.servicio_id;
@@ -66,11 +91,9 @@ const llamarSiguiente = async (req, res) => {
     
     let servicioNombre = '';
 
-    // Lab/Imagenes: siempre por servicio, ignorar consultorio
     if (rol === 'laboratorio' || rol === 'imagenes') {
       const sid = await resolverServicioId(rol, servicioId);
       if (!sid) { 
-          // Log explicitly why it failed
           logger.error(`Servicio no encontrado para rol: ${rol}, servicioId: ${servicioId}`);
           await client.query('ROLLBACK'); return res.status(400).json({ mensaje: 'Servicio no encontrado' }); 
       }
@@ -78,7 +101,6 @@ const llamarSiguiente = async (req, res) => {
       const servicio = await servicioRepo.getNombre(sid);
       servicioNombre = servicio || (rol === 'laboratorio' ? 'Laboratorio' : 'Imágenes');
     } else {
-      // Otros roles: requieren consultorio
       if (!consultorioId) { await client.query('ROLLBACK'); return res.status(400).json({ mensaje: 'Usuario sin consultorio' }); }
       const consultorio = await consultorioRepo.getConsultorioById(client, consultorioId);
       if (!consultorio) throw new Error('Consultorio no encontrado');
@@ -148,6 +170,14 @@ const llamarSiguiente = async (req, res) => {
   }
 };
 
+/**
+ * Inicia la atención del paciente que fue llamado. Cambia el estado
+ * a "En Atencion" y registra el evento en el historial.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const iniciarAtencion = async (req, res) => {
   const consultorioId = req.usuario.consultorio_id;
   let servicioId = req.usuario.servicio_id;
@@ -194,6 +224,15 @@ const iniciarAtencion = async (req, res) => {
   }
 };
 
+/**
+ * Finaliza la atención del paciente actual. Cambia el estado a
+ * "Atendido", libera el consultorio y registra el evento en el
+ * historial.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const finalizarAtencion = async (req, res) => {
   const consultorioId = req.usuario.consultorio_id;
   let servicioId = req.usuario.servicio_id;
@@ -243,6 +282,14 @@ const finalizarAtencion = async (req, res) => {
   }
 };
 
+/**
+ * Libera el consultorio físico y la atención asociada, dejando ambos
+ * en estado LIBRE sin haber atendido al paciente.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const liberarConsultorio = async (req, res) => {
   const consultorioId = req.usuario.consultorio_id;
   const rol = req.usuario.rol;

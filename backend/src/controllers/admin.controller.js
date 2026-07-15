@@ -12,9 +12,6 @@ const permisoRepo = require('../repositories/permiso.repository');
 const { ACCIONES_ESPECIALES_POR_VISTA, ACCIONES_ESPECIALES_GLOBALES } = require('../config/acciones-especiales');
 const { auditar } = require('../middleware/audit');
 
-/* =========================================================
-   UTILIDAD SEGURA (EVITA 500 POR req.usuario UNDEFINED)
-========================================================= */
 const getUserId = (req) => req.usuario?.id;
 
 const getSede = (req, res) => {
@@ -28,10 +25,15 @@ const getSede = (req, res) => {
   return Number(sede);
 };
 
-/* =========================================================
-   REPORTES
-========================================================= */
-
+/**
+ * Genera el reporte diario de turnos: listado completo, estadísticas por
+ * estado, KPIs (tiempo promedio de espera/atención, % ausentismo) y
+ * desglose por servicio y lista de ausentes.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const getReporteDiario = async (req, res) => {
   const sede = getSede(req, res);
   if (!sede) return;
@@ -70,7 +72,6 @@ const getReporteDiario = async (req, res) => {
     const enAtencion = turnos.filter((t) => t.estado === 'En Atencion');
     const registrados = turnos.filter((t) => t.estado === 'Registrado');
 
-    // Calcular KPIs
     const turnosConEspera = turnos.filter(t => t.hora_inicio_atencion && t.hora_llegada);
     const tiempoPromedioEspera = turnosConEspera.length > 0
       ? Math.round(turnosConEspera.reduce((sum, t) => {
@@ -89,7 +90,6 @@ const getReporteDiario = async (req, res) => {
         }, 0) / turnosConAtencion.length)
       : 0;
 
-    // Agrupado por servicio
     const porServicio = {};
     turnos.forEach(t => {
       const key = t.servicio_nombre;
@@ -104,7 +104,6 @@ const getReporteDiario = async (req, res) => {
       else if (t.estado === 'Registrado') porServicio[key].registrados++;
     });
 
-    // Lista de ausentes con detalles
     const listaAusentes = ausentes.map(t => ({
       numero: t.numero,
       paciente_nombre: t.paciente.nombre,
@@ -139,10 +138,13 @@ const getReporteDiario = async (req, res) => {
   }
 };
 
-/* =========================================================
-   SERVICIOS
-========================================================= */
-
+/**
+ * Obtiene todos los servicios activos de la sede del usuario.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const getServicios = async (req, res) => {
   const sede = getSede(req, res);
   if (!sede) return;
@@ -156,6 +158,13 @@ const getServicios = async (req, res) => {
   }
 };
 
+/**
+ * Crea un nuevo servicio en el sistema.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const crearServicio = async (req, res) => {
   try {
     let { nombre, prefijo, piso, activo } = req.body;
@@ -168,6 +177,13 @@ const crearServicio = async (req, res) => {
   }
 };
 
+/**
+ * Actualiza los datos de un servicio existente.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const actualizarServicio = async (req, res) => {
   try {
     const { id } = req.params;
@@ -181,6 +197,13 @@ const actualizarServicio = async (req, res) => {
   }
 };
 
+/**
+ * Elimina un servicio del sistema.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const eliminarServicio = async (req, res) => {
   try {
     await servicioRepo.remove(req.params.id);
@@ -191,10 +214,13 @@ const eliminarServicio = async (req, res) => {
   }
 };
 
-/* =========================================================
-   CONSULTORIOS
-========================================================= */
-
+/**
+ * Obtiene los consultorios de la sede del usuario autenticado.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const getConsultorios = async (req, res) => {
   const sede = getSede(req, res);
   if (!sede) return;
@@ -208,6 +234,13 @@ const getConsultorios = async (req, res) => {
   }
 };
 
+/**
+ * Crea un nuevo consultorio en la sede del usuario.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const crearConsultorio = async (req, res) => {
   const sede = getSede(req, res);
   if (!sede) return;
@@ -222,6 +255,13 @@ const crearConsultorio = async (req, res) => {
   }
 };
 
+/**
+ * Actualiza el nombre de un consultorio existente.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const actualizarConsultorio = async (req, res) => {
   const sede = getSede(req, res);
   if (!sede) return;
@@ -238,6 +278,13 @@ const actualizarConsultorio = async (req, res) => {
   }
 };
 
+/**
+ * Elimina un consultorio de la sede del usuario.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const eliminarConsultorio = async (req, res) => {
   const sede = getSede(req, res);
   if (!sede) return;
@@ -251,14 +298,13 @@ const eliminarConsultorio = async (req, res) => {
   }
 };
 
-/* =========================================================
-   EXPORT
-========================================================= */
-
-/* =========================================================
-   SEDES
-========================================================= */
-
+/**
+ * Obtiene todas las sedes registradas en el sistema.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const getSedes = async (req, res) => {
   const sede = getSede(req, res);
   if (!sede) return;
@@ -272,10 +318,13 @@ const getSedes = async (req, res) => {
   }
 };
 
-/* =========================================================
-   PERSONAL
-========================================================= */
-
+/**
+ * Obtiene el listado de personal filtrado por rol y sede.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const getPersonal = async (req, res) => {
   const sede = getSede(req, res);
   if (!sede) return;
@@ -290,6 +339,14 @@ const getPersonal = async (req, res) => {
   }
 };
 
+/**
+ * Crea un nuevo usuario del sistema (personal). Si no se especifica
+ * contraseña, se genera una aleatoria. Valida unicidad de cédula por sede.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const crearPersonal = async (req, res) => {
   const sedeToken = getSede(req, res);
   if (!sedeToken) return;
@@ -355,6 +412,16 @@ const crearPersonal = async (req, res) => {
   }
 };
 
+/**
+ * Actualiza los datos de un usuario existente. Solo permite modificar
+ * campos definidos en la lista blanca. Si se incluye password, se
+ * hashea automáticamente. Al desactivar un usuario, notifica por
+ * Socket.IO si tiene una sesión activa.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const actualizarPersonal = async (req, res) => {
   const sede = getSede(req, res);
   if (!sede) return;
@@ -396,9 +463,9 @@ const actualizarPersonal = async (req, res) => {
 
     auditar({ userId: getUserId(req), accion: 'editar', recurso: 'personal', recursoId: Number(id), detalle: { campos: Object.keys(safeFields) }, ip: req.ip });
 
-    // Si el usuario fue desactivado, notificar en tiempo real a su sesión activa
     if (safeFields.status === false && req.io) {
-      for (const socket of req.io.sockets.sockets.values()) {
+      const sockets = await req.io.fetchSockets();
+      for (const socket of sockets) {
         if (socket.usuario && Number(socket.usuario.id) === Number(id)) {
           socket.emit('usuario-desactivado');
           break;
@@ -416,6 +483,14 @@ const actualizarPersonal = async (req, res) => {
   }
 };
 
+/**
+ * Elimina un usuario del sistema (borrado lógico o físico según la
+ * implementación del repositorio).
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const eliminarPersonal = async (req, res) => {
   const sede = getSede(req, res);
   if (!sede) return;
@@ -436,10 +511,15 @@ const eliminarPersonal = async (req, res) => {
   }
 };
 
-/* =========================================================
-   IMPORTAR PERSONAL (Excel)
-========================================================= */
-
+/**
+ * Importa personal desde un arreglo de filas (típicamente desde Excel).
+ * Deduplica por cédula, normaliza nombres/roles y reporta
+ * importados, omitidos y errores.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const importarPersonal = async (req, res) => {
   const sedeToken = getSede(req, res);
   if (!sedeToken) return;
@@ -453,14 +533,12 @@ const importarPersonal = async (req, res) => {
   let omitidos = 0;
   let errores = 0;
 
-  // Obtener cédulas existentes para evitar duplicados
   const cedulasExcel = rows.map(r =>
     String(r.cedula || r.Cedula || r.CÉDULA || r.documento || r.Documento || '').replace(/\D/g, '')
   ).filter(c => c);
   const existentes = await usuarioRepo.findByCedulas(cedulasExcel);
   const cedulasExistentes = new Set(existentes.map((u) => u.cedula));
 
-  // Auxiliar para normalizar roles (ej: "Médico" -> "medico")
   const normalizarRol = (r) => {
     if (!r) return null;
     return String(r).toLowerCase()
@@ -537,17 +615,22 @@ const importarPersonal = async (req, res) => {
   }
 
   res.json({
-    mensaje: `Importación completada: ${importados},\n${omitidos} ya existían, ${errores} errores`,
+    mensaje: `Importación completada: ${importados},
+    ${omitidos} ya existían, ${errores} errores`,
     importados,
     omitidos,
     errores,
   });
 };
 
-/* =========================================================
-   ROLES
-========================================================= */
-
+/**
+ * Obtiene la lista de roles del sistema, filtrados por sede si se
+ * especifica.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const getRoles = async (req, res) => {
   try {
     const sede = req.query.sede_id ? Number(req.query.sede_id) : req.usuario?.id_sede;
@@ -561,6 +644,14 @@ const getRoles = async (req, res) => {
   }
 };
 
+/**
+ * Crea un nuevo rol. Normaliza el nombre para generar una clave única
+ * (key) y verifica que no exista duplicados por sede.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const crearRol = async (req, res) => {
   try {
     let { nombre, id_sede, activo } = req.body;
@@ -568,15 +659,13 @@ const crearRol = async (req, res) => {
       return res.status(400).json({ mensaje: 'El nombre del rol es requerido' });
     }
 
-    // Nombre: MAYÚSCULAS, sin acentos, sin espacios
     const nombreLimpio = nombre
       .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "") // remover acentos
-      .replace(/\s+/g, "")             // remover espacios
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, "")
       .toUpperCase()
       .trim();
     
-    // Generar Key automáticamente: minúsculas, sin acentos, con guiones bajos para legibilidad en código
     const key = nombre.toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
@@ -584,7 +673,6 @@ const crearRol = async (req, res) => {
       .replace(/_+/g, "_")
       .replace(/^_+|_+$/g, "");
 
-    // Verificar si ya existe un rol con esta clave PARA ESTA SEDE
     if (await rolRepo.existsKeyForSede(key, id_sede || null)) {
       return res.status(409).json({ mensaje: 'Ya existe un rol con esta clave para esta sede' });
     }
@@ -600,6 +688,13 @@ const crearRol = async (req, res) => {
   }
 };
 
+/**
+ * Actualiza los datos de un rol existente (nombre, sede, activo).
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const actualizarRol = async (req, res) => {
   try {
     const { id } = req.params;
@@ -635,6 +730,14 @@ const actualizarRol = async (req, res) => {
   }
 };
 
+/**
+ * Elimina un rol del sistema. Previene la eliminación si hay usuarios
+ * asignados al rol (foreign key).
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const eliminarRol = async (req, res) => {
   try {
     const { id } = req.params;
@@ -674,9 +777,13 @@ module.exports = {
   actualizarRol,
   eliminarRol,
 
-  // =============================================
-  // PERMISOS
-  // =============================================
+  /**
+   * Obtiene todos los permisos disponibles en el sistema.
+   *
+   * @param {import('express').Request} req
+   * @param {import('express').Response} res
+   * @returns {Promise<void>}
+   */
   getPermisos: async (req, res) => {
     try {
       const permisos = await permisoRepo.getAll();
@@ -687,6 +794,13 @@ module.exports = {
     }
   },
 
+  /**
+   * Obtiene los permisos asignados a un rol específico.
+   *
+   * @param {import('express').Request} req
+   * @param {import('express').Response} res
+   * @returns {Promise<void>}
+   */
   getPermisosByRol: async (req, res) => {
     try {
       const { id } = req.params;
@@ -698,15 +812,22 @@ module.exports = {
     }
   },
 
+  /**
+   * Asigna permisos a un rol. Emite un evento Socket.IO para que los
+   * usuarios del rol renueven su matriz de permisos en tiempo real.
+   *
+   * @param {import('express').Request} req
+   * @param {import('express').Response} res
+   * @returns {Promise<void>}
+   */
   asignarPermisos: async (req, res) => {
     try {
       const { id } = req.params;
       const { permisos } = req.body;
       await permisoRepo.asignarPermisos(id, permisos || []);
-      
-      // Emitir evento de socket para avisar a los clientes
+
       req.io.emit('permisos-actualizados', { id_rol: Number(id) });
-      
+
       res.json({ mensaje: 'Matriz de permisos actualizada correctamente' });
     } catch (error) {
       logger.error(error);
@@ -714,16 +835,25 @@ module.exports = {
     }
   },
 
+  /**
+   * Obtiene la matriz completa de permisos agrupada por recurso,
+   * utilizada para renderizar la interfaz de administración de
+   * permisología.
+   *
+   * @param {import('express').Request} req
+   * @param {import('express').Response} res
+   * @returns {Promise<void>}
+   */
   getMatrizPermisos: async (req, res) => {
     try {
       const allPermisos = await permisoRepo.getAll();
-      
+
       const recursosMap = new Map();
       const accionesBasicas = ['ver', 'crear', 'editar', 'eliminar'];
 
       allPermisos.forEach(p => {
         if (!p.key.includes(':')) return;
-        
+
         const [recKey, accKey] = p.key.split(':');
         if (!recursosMap.has(recKey)) {
           recursosMap.set(recKey, {
@@ -746,6 +876,13 @@ module.exports = {
     }
   },
 
+  /**
+   * Recarga la caché de permisos del sistema.
+   *
+   * @param {import('express').Request} req
+   * @param {import('express').Response} res
+   * @returns {Promise<void>}
+   */
   recargarCachePermisos: async (req, res) => {
     try {
       res.json({ mensaje: 'Caché de permisos recargada' });
@@ -755,6 +892,15 @@ module.exports = {
     }
   },
 
+  /**
+   * Asigna permisos completos (todos los recursos con "*") al rol
+   * administrador de la sede del usuario autenticado. Útil para
+   * inicializar o reparar la configuración de permisos del admin.
+   *
+   * @param {import('express').Request} req
+   * @param {import('express').Response} res
+   * @returns {Promise<void>}
+   */
   seedPermisosAdmin: async (req, res) => {
     try {
       const sede = req.usuario?.id_sede || 1;
@@ -773,4 +919,3 @@ module.exports = {
     }
   },
 };
-

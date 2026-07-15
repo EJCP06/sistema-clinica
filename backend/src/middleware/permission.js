@@ -3,7 +3,6 @@ const pool = require('../config/db');
 const permissionSets = require('../config/permission-sets');
 
 const LEGACY_KEY_MAP = {
-  // ... (mantener LEGACY_KEY_MAP existente)
   admin_panel: 'admin:panel',
   ver_reportes: 'reportes:ver',
   admision_crear: 'admision:crear',
@@ -59,6 +58,16 @@ const LEGACY_KEY_MAP = {
   reincorporar: '*:reincorporar'
 };
 
+/**
+ * Middleware de autorización basado en permisos. Soporta dos formatos:
+ * - Moderno: "modulo:accion" (ej. "admision:crear")
+ * - Heredado: claves planas mapeadas mediante LEGACY_KEY_MAP
+ * También expande conjuntos de permisos definidos en permission-sets.
+ * El rol "administrador" y el permiso "*:*" tienen acceso total.
+ *
+ * @param {...string} permisosRequeridos - Permisos requeridos (pueden incluir nombres de permission-sets)
+ * @returns {import('express').RequestHandler} Middleware de Express
+ */
 const permissionMiddleware = (...permisosRequeridos) => {
   return (req, res, next) => {
     if (!req.usuario) {
@@ -67,27 +76,20 @@ const permissionMiddleware = (...permisosRequeridos) => {
     
     const permisosUsuario = req.usuario.permisos || [];
     
-    // Administrador tiene acceso completo
     if (req.usuario.rol === 'administrador') return next();
-    
-    // Si el usuario tiene el permiso maestro, permitir todo
     if (permisosUsuario.includes('*:*')) return next();
 
-    // Expandir conjuntos de permisos si existen en permissionSets
     const permisosExpandidos = permisosRequeridos.flatMap(p => 
       permissionSets[p] ? permissionSets[p] : p
     );
 
     const tienePermiso = permisosExpandidos.some(p => {
-      // 1. Mapear clave legada si existe
       const mapped = LEGACY_KEY_MAP[p] || p;
       
-      // 2. Si el permiso tiene formato recurso:accion
       if (mapped.includes(':')) {
         const [recReq, accReq] = mapped.split(':');
         
         return permisosUsuario.some(pUser => {
-          // Si el permiso del usuario es modular (ej. 'laboratorio:reincorporar')
           if (pUser.includes(':')) {
             const [recUser, accUser] = pUser.split(':');
             
@@ -97,7 +99,6 @@ const permissionMiddleware = (...permisosRequeridos) => {
             return recMatch && accMatch;
           }
           
-          // Si el permiso del usuario es legado, intentar mapearlo para comparar
           const pUserMapped = LEGACY_KEY_MAP[pUser] || pUser;
 
           if (pUserMapped.includes(':')) {
@@ -111,7 +112,6 @@ const permissionMiddleware = (...permisosRequeridos) => {
         });
       }
       
-      // 3. Verificación directa para claves que no siguen el formato modular
       return permisosUsuario.includes(p) || permisosUsuario.includes(mapped);
     });
 

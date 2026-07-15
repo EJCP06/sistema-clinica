@@ -26,6 +26,11 @@ import {
   templateUrl: './header.html',
   styles: [],
 })
+/**
+ * Barra superior de la aplicación.
+ * Muestra título, subtítulo, datos del usuario, botón de menú,
+ * toggle de tema oscuro/claro y cierre de sesión.
+ */
 export class Header implements OnInit {
   readonly Activity = Activity;
   readonly LogOut = LogOut;
@@ -69,7 +74,6 @@ export class Header implements OnInit {
   }
 
   ngOnInit() {
-    // Deshabilitar la transición inicial para evitar el efecto de "recarga" del toggle
     setTimeout(() => this.initialTransitionDisabled = false, 100);
   }
 

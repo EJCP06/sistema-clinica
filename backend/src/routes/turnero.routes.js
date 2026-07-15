@@ -62,4 +62,3 @@ router.get('/sala-espera', async (req, res) => {
 });
 
 module.exports = router;
-

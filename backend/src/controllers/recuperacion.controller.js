@@ -4,6 +4,16 @@ const { enviarCorreoOTP } = require('../config/email');
 const recuperacionRepo = require('../repositories/recuperacion.repository');
 const usuarioRepo = require('../repositories/usuario.repository');
 
+/**
+ * Inicia el proceso de recuperación de contraseña. Siempre responde
+ * con el mismo mensaje genérico independientemente de si el usuario
+ * existe, para evitar enumeración de cuentas. Si el usuario existe,
+ * genera y envía un código OTP por correo.
+ *
+ * @param {import('express').Request} req - Petición HTTP (body: email, cedula)
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const solicitar = async (req, res) => {
   const { email, cedula } = req.body;
 
@@ -36,6 +46,14 @@ const solicitar = async (req, res) => {
   }
 };
 
+/**
+ * Verifica que el código OTP ingresado por el usuario sea válido
+ * y no haya expirado.
+ *
+ * @param {import('express').Request} req - Petición HTTP (body: email, cedula, codigo)
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const verificar = async (req, res) => {
   const { email, cedula, codigo } = req.body;
 
@@ -67,6 +85,14 @@ const verificar = async (req, res) => {
   }
 };
 
+/**
+ * Restablece la contraseña del usuario tras validar el código OTP.
+ * La nueva contraseña debe tener al menos 8 caracteres.
+ *
+ * @param {import('express').Request} req - Petición HTTP (body: email, cedula, codigo, newPassword)
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
 const restablecer = async (req, res) => {
   const { email, cedula, codigo, newPassword } = req.body;
 

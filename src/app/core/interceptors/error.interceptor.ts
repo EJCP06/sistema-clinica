@@ -5,6 +5,11 @@ import { catchError, throwError } from 'rxjs';
 import Swal from 'sweetalert2';
 import { AuthService } from '../services/auth.service';
 
+/**
+ * Interceptor global de errores HTTP.
+ * Muestra alertas SweetAlert2 para errores de conexión (status 0)
+ * y sesión expirada (401) evitando duplicados con sessionStorage.
+ */
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
   const authService = inject(AuthService);

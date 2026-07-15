@@ -66,6 +66,10 @@ const corsOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',').map(s => s.trim())
   : ['http://localhost:4200', 'http://localhost:4201', 'http://localhost'];
 
+/**
+ * Configuración del servidor Socket.IO para comunicación en tiempo real
+ * con los clientes (turnero, recepción, módulo médico).
+ */
 const io = new Server(server, {
   cors: {
     origin: corsOrigins,
@@ -92,6 +96,10 @@ app.use(requestId);
 app.use(metricsMiddleware);
 app.use('/api', apiLimiter);
 
+/**
+ * Middleware de seguridad que fuerza HTTPS en producción cuando se
+ * detecta el encabezado x-forwarded-proto (proxy inverso).
+ */
 if (isProduction) {
   app.use((req, res, next) => {
     if (req.headers['x-forwarded-proto'] !== 'https' && req.headers['x-forwarded-proto'] !== undefined) {
@@ -103,6 +111,10 @@ if (isProduction) {
 
 const PORT = process.env.PORT || 3001;
 
+/**
+ * Inicia el servidor: verifica la conexión a la base de datos, ejecuta
+ * migraciones automáticas y pone a escuchar el puerto configurado.
+ */
 const startServer = async () => {
   try {
     await pool.query('SELECT NOW()');
@@ -159,14 +171,20 @@ app.use('/api/medico', medicoRoutes);
 app.use('/api/especialidades', especialidadesRoutes);
 app.use('/api/turnero', turneroRoutes);
 
-// ──────────────────────────────────────────────
-// Error handler — DEBE ir DESPUÉS de todas rutas
-// ──────────────────────────────────────────────
+/**
+ * Manejador global de errores. Sanitiza los datos sensibles antes de
+ * registrar y devuelve una respuesta genérica al cliente.
+ */
 app.use((err, req, res, next) => {
   logErrorSafe('Error no controlado', err, { method: req.method, url: req.url });
   res.status(err.status || 500).json({ mensaje: err.status ? err.message : 'Error interno del servidor' });
 });
 
+/**
+ * Middleware de autenticación para Socket.IO. Si el cliente envía un
+ * token JWT válido, se asigna a socket.usuario; si no, se permite
+ * la conexión como anónimo (turnero público).
+ */
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token || socket.handshake.query?.token;
   if (!token) {
@@ -190,6 +208,12 @@ io.on('connection', (socket) => {
   });
 });
 
+/**
+ * Apagado graceful: cierra conexiones de auditoría, caché, Socket.IO,
+ * servidor HTTP y pool de base de datos.
+ *
+ * @param {string} signal - Señal de terminación recibida
+ */
 const gracefulShutdown = async (signal) => {
   logger.info(`${signal} recibido, cerrando servidor...`);
   await shutdownAudit();

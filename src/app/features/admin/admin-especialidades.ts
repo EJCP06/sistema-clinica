@@ -33,6 +33,11 @@ import { FillersPipe } from '../../shared/pipes/fillers.pipe';
   templateUrl: './admin-especialidades.html',
   styles: [],
 })
+/**
+ * Panel de administración de especialidades médicas.
+ * Gestiona el catálogo de especialidades, su relación con consultorios
+ * y la importación masiva desde archivo Excel.
+ */
 export class AdminEspecialidades implements OnInit {
   readonly Plus = Plus;
   readonly Trash2 = Trash2;
@@ -65,7 +70,6 @@ export class AdminEspecialidades implements OnInit {
   showSearchFilterDropdown = false;
   showSedeDropdown = false;
 
-  // --- Sede Mapping ---
   getSedeNombre(id_sede: number | string | null | undefined, forDropdown = false): string {
     if (id_sede === undefined || id_sede === null || id_sede === '') return this.etiquetaSede(forDropdown);
     const finalId = Number(id_sede);
@@ -118,6 +122,7 @@ export class AdminEspecialidades implements OnInit {
     id_servicio: 1,
   };
 
+  /** Inicializa cargando especialidades, consultorios y sedes. */
   ngOnInit() {
     this.cargarEspecialidades();
     this.cargarConsultorios();
@@ -332,7 +337,6 @@ export class AdminEspecialidades implements OnInit {
     if (event.key.length === 1 && !pattern.test(event.key)) event.preventDefault();
   }
 
-  // --- Excel Import ---
   importExcel(fileInput: HTMLInputElement) {
     const file = fileInput?.files?.[0];
     if (!file) return;

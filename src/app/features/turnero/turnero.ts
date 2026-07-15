@@ -93,6 +93,11 @@ const SALAS: Record<SalaMode, SalaConfig> = {
   imports: [CommonModule, LucideAngularModule, ApsScrollDirective],
   templateUrl: './turnero.html'
 })
+/**
+ * Componente del tablero turnero (pantalla pública).
+ * Muestra pacientes agrupados por sala (APS, laboratorio, imágenes, consulta),
+ * reproduce anuncios de voz al llamar pacientes y refresca automáticamente.
+ */
 export class TurneroComponent implements OnInit, OnDestroy {
   readonly Bell = Bell;
   readonly Volume2 = Volume2;
@@ -250,6 +255,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
     readonly router: Router,
   ) {}
 
+  /** Inicializa: valida sede, carga voz femenina, suscribe a cambios y polling, inicia reloj. */
   ngOnInit() {
     const validarSede = (sedeUrl: string | undefined): boolean => {
       const sedeEsperada = sessionStorage.getItem('turnero_sede');
@@ -267,7 +273,6 @@ export class TurneroComponent implements OnInit, OnDestroy {
       this.sede = params['sede'] ? Number(params['sede']) : null;
     });
 
-    // Cargar voces al inicio
     const cargarVoces = () => {
       if (window.speechSynthesis.getVoices().length > 0) {
         this.cargarVozFemenina();
@@ -594,7 +599,6 @@ export class TurneroComponent implements OnInit, OnDestroy {
         'gloria', 'marta', 'ana', 'rebeca', 'victoria', 'julia', 'claudia'
       ];
 
-      // 1. Buscar voz femenina en Español México (es-MX)
       let voz = voces.find(v => {
         const langLower = v.lang.toLowerCase();
         const isMX = langLower === 'es-mx' || langLower === 'es_mx';
@@ -603,7 +607,6 @@ export class TurneroComponent implements OnInit, OnDestroy {
         return femaleKeywords.some(keyword => nameLower.includes(keyword));
       });
 
-      // 2. Si no hay femenina en es-MX, buscar cualquier voz en es-MX
       if (!voz) {
         voz = voces.find(v => {
           const langLower = v.lang.toLowerCase();
@@ -611,7 +614,6 @@ export class TurneroComponent implements OnInit, OnDestroy {
         });
       }
 
-      // 3. Si no hay es-MX, buscar cualquier voz femenina en Español (es)
       if (!voz) {
         voz = voces.find(v => {
           const langLower = v.lang.toLowerCase();
@@ -622,12 +624,10 @@ export class TurneroComponent implements OnInit, OnDestroy {
         });
       }
 
-      // 4. Si no hay femenina en es, buscar cualquier voz en Español (es)
       if (!voz) {
         voz = voces.find(v => v.lang.toLowerCase().startsWith('es'));
       }
 
-      // 5. Fallback a cualquier voz si no hay español
       if (!voz) {
         voz = voces[0] || null;
       }
@@ -646,7 +646,6 @@ export class TurneroComponent implements OnInit, OnDestroy {
       return;
     }
     
-    // Forzamos la recarga si no hay voz cargada o si la que hay no es del español de México
     const esVozMX = this.vozFemenina && (this.vozFemenina.lang.toLowerCase() === 'es-mx' || this.vozFemenina.lang.toLowerCase() === 'es_mx');
     if (!this.vozFemenina || !esVozMX) {
       this.cargarVozFemenina();
@@ -654,13 +653,10 @@ export class TurneroComponent implements OnInit, OnDestroy {
     
     const nombreCompleto = `${nombre} ${apellido}`.trim();
 
-    // Eliminar ceros iniciales de los números en el nombre del consultorio
-    // Ej: "Consultorio 05" → "Consultorio 5", "C-05" → "C-5"
     const consultorioLimpio = consultorio.replace(/\b0+(\d+)\b/g, '$1');
 
     let texto = `Paciente ${nombreCompleto}, diríjase al consultorio ${consultorioLimpio}`;
     
-    // Mantenemos la lógica de laboratorio/imágenes
     const c = consultorio.toLowerCase();
     if (c.includes('laboratorio')) {
       texto = `Paciente ${nombreCompleto}, diríjase a laboratorio`;
@@ -671,7 +667,6 @@ export class TurneroComponent implements OnInit, OnDestroy {
     const esMovil = this.detectarMovil();
     const textoFinal = esMovil ? texto.toLowerCase() : texto.toUpperCase();
 
-    // Cancelar cualquier anuncio previo antes de hablar
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(textoFinal);
@@ -683,7 +678,6 @@ export class TurneroComponent implements OnInit, OnDestroy {
     }
     utterance.rate = 0.9;
     
-    // Agregamos setTimeout para evitar que el cancel() asíncrono aborte este speak()
     setTimeout(() => {
       window.speechSynthesis.speak(utterance);
     }, 100);

@@ -53,6 +53,10 @@ import { FillersPipe } from '../../shared/pipes/fillers.pipe';
   templateUrl: './admin-personal.html',
   styles: [],
 })
+/**
+ * Panel de administración del personal de la clínica.
+ * Permite CRUD de usuarios, filtrado por rol/sede, e importación masiva desde Excel.
+ */
 export class AdminPersonal implements OnInit {
   readonly Plus = Plus;
   readonly Trash2 = Trash2;
@@ -123,7 +127,6 @@ export class AdminPersonal implements OnInit {
   private readonly MIN_GUARDADO = 800;
   showPassword = false;
 
-  // --- Preview Modal ---
   showPreviewModal = false;
   previewData: any[] = [];
 
@@ -164,6 +167,7 @@ export class AdminPersonal implements OnInit {
     id_sede: '',
   };
 
+  /** Inicializa cargando sedes, servicios, especialidades, consultorios y personal. */
   ngOnInit() {
     this.cargarSedes();
     this.cargarServicios();
@@ -206,7 +210,6 @@ export class AdminPersonal implements OnInit {
     });
   }
 
-  // --- Modal Logic ---
   openModalPersonal(user?: PersonalDTO | null, trigger?: EventTarget | null) {
     this.showPassword = false;
     this.isEditing = !!user;
@@ -272,7 +275,6 @@ export class AdminPersonal implements OnInit {
     }, restante);
   }
 
-  // --- CRUD PERSONAL ---
   guardarPersonal() {
     if (this.isSaving) return;
     this.isSaving = true;
@@ -334,7 +336,6 @@ export class AdminPersonal implements OnInit {
     });
   }
 
-  // --- Filtered Getters ---
   private normalize(str: string): string {
     return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   }
@@ -355,7 +356,6 @@ export class AdminPersonal implements OnInit {
     });
   }
 
-  // --- Dropdown Helpers ---
   toggleMedicoEspDropdown() {
     this.showMedicoEspDropdown = !this.showMedicoEspDropdown;
     this.showMedicoConDropdown = false;
@@ -421,7 +421,6 @@ export class AdminPersonal implements OnInit {
     return map[val] || 'Filtrar';
   }
 
-  // --- Label Helpers ---
   getNombreEsp(id: string | number | undefined, forDropdown = false): string {
     const esp = this.especialidades.find((e) => e.id === id || e.id_especialidad == id);
     return esp ? esp.nombre : forDropdown ? 'Seleccione...' : 'SIN ASIGNAR';
@@ -502,7 +501,6 @@ export class AdminPersonal implements OnInit {
     return classes[rol] || 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20';
   }
 
-  // --- Click Outside Handler ---
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
@@ -513,7 +511,6 @@ export class AdminPersonal implements OnInit {
     if (!target.closest('.sede-dropdown-container')) this.showSedeDropdown = false;
   }
 
-  // --- Input Validation ---
   soloLetras(event: KeyboardEvent) {
     const pattern = /[a-zA-ZáéíóúÁÉÍÓÚñÑ ]/;
     const inputChar = String.fromCharCode(event.charCode);
@@ -530,7 +527,6 @@ export class AdminPersonal implements OnInit {
     if (event.charCode === 32) event.preventDefault();
   }
 
-  // --- Excel Import ---
   importExcel(fileInput: HTMLInputElement) {
     const file = fileInput?.files?.[0];
     if (!file) return;
@@ -552,7 +548,6 @@ export class AdminPersonal implements OnInit {
             return;
           }
 
-          // Mapa de sinónimos para normalizar cabeceras
           const headerMap: Record<string, string[]> = {
             primer_nombre: ['primer nombre', 'primer_nombre', 'primernombre'],
             segundo_nombre: ['segundo nombre', 'segundo_nombre', 'segundonombre'],
@@ -580,7 +575,6 @@ export class AdminPersonal implements OnInit {
             return normalizedRow;
           });
 
-          // Verificar si faltan columnas esenciales basándonos en el mapeo
           const missing = Object.keys(headerMap).filter(standardKey => {
             const synonyms = headerMap[standardKey];
             return !actualHeaders.some(h => synonyms.includes(h));
@@ -614,7 +608,6 @@ export class AdminPersonal implements OnInit {
     this.isSaving = true;
     this.inicioGuardado = Date.now();
 
-    // Apply sede mapping to preview data
     const mappedData = this.previewData.map(row => {
       const mappedRow = { ...row };
       if (row.sede !== undefined && row.sede !== null && row.sede !== '') {

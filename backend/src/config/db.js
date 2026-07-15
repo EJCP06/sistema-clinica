@@ -1,10 +1,8 @@
-
 const { Pool } = require('pg');
 const path = require('path');
 const dotenv = require('dotenv');
 const logger = require('./logger');
 
-// Cargar variables de entorno desde .env en raíz del proyecto
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const pool = new Pool({
@@ -13,9 +11,9 @@ const pool = new Pool({
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  max: 20, // Incrementado para manejar más conexiones concurrentes
-  idleTimeoutMillis: 30000, // 30 segundos
-  connectionTimeoutMillis: 5000 // 5 segundos
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000
 });
 
 pool.on('connect', () => {

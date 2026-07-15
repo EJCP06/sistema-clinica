@@ -15,6 +15,10 @@ import Swal from 'sweetalert2';
   templateUrl: './login.html',
   styles: []
 })
+/**
+ * Pantalla de inicio de sesión y recuperación de contraseña.
+ * Implementa flujo de 3 pasos: solicitar código OTP → verificar → restablecer.
+ */
 export class Login implements OnDestroy {
   readonly Eye = Eye;
   readonly EyeOff = EyeOff;
