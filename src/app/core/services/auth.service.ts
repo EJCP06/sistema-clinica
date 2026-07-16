@@ -201,7 +201,7 @@ export class AuthService implements OnDestroy {
   }
 
   logoutSilently() {
-    this.limpiarSesion();
+    this.limpiarSesionSinNavegar();
   }
 
   clearSession() {

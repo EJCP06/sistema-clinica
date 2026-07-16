@@ -53,6 +53,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
               confirmButtonColor: '#2563eb',
             }).then(() => {
               sessionStorage.removeItem('swal_401');
+              if (router.url !== '/login') {
+                router.navigate(['/login']);
+              }
             });
           }
         }
