@@ -646,8 +646,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       return;
     }
     
-    const esVozMX = this.vozFemenina && (this.vozFemenina.lang.toLowerCase() === 'es-mx' || this.vozFemenina.lang.toLowerCase() === 'es_mx');
-    if (!this.vozFemenina || !esVozMX) {
+    if (!this.vozFemenina) {
       this.cargarVozFemenina();
     }
     
@@ -664,30 +663,18 @@ export class TurneroComponent implements OnInit, OnDestroy {
       texto = `Paciente ${nombreCompleto}, diríjase a imágenes`;
     }
 
-    const esMovil = this.detectarMovil();
-    const textoFinal = esMovil ? texto.toLowerCase() : texto.toUpperCase();
-
     window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(textoFinal);
+    const utterance = new SpeechSynthesisUtterance(texto.toLowerCase());
     if (this.vozFemenina) {
-        utterance.voice = this.vozFemenina;
-        utterance.lang = this.vozFemenina.lang;
-    } else {
-        utterance.lang = 'es-MX';
+      utterance.voice = this.vozFemenina;
+      utterance.lang = this.vozFemenina.lang;
     }
     utterance.rate = 0.9;
     
     setTimeout(() => {
       window.speechSynthesis.speak(utterance);
     }, 100);
-  }
-
-  private detectarMovil(): boolean {
-    const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
-    const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
-    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-    return isMobileUA || isTouch;
   }
 
 }

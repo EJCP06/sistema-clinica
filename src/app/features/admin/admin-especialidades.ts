@@ -13,7 +13,7 @@ import {
   ChevronUp,
   Stethoscope,
   Search,
-  SquarePen,
+  Edit2,
   CircleX,
   CircleCheck,
   Check,
@@ -45,7 +45,7 @@ export class AdminEspecialidades implements OnInit {
   readonly ChevronUp = ChevronUp;
   readonly Stethoscope = Stethoscope;
   readonly Search = Search;
-  readonly Edit2 = SquarePen;
+  readonly Edit2 = Edit2;
   readonly XCircle = CircleX;
   readonly CheckCircle2 = CircleCheck;
   readonly Check = Check;
