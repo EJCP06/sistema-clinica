@@ -68,6 +68,12 @@ const login = async (req, res) => {
       return res.status(409).json({ mensaje: 'Ya hay un usuario con estas credenciales' });
     }
 
+    /* Invalida cualquier sesión previa para evitar conflictos con sockets
+       en proceso de desconexión o sesiones huérfanas */
+    if (usuario.sesion_token) {
+      await usuarioRepo.actualizarSesionToken(usuario.id, null);
+    }
+
     const sesionToken = crypto.randomUUID();
     await usuarioRepo.actualizarSesionToken(usuario.id, sesionToken);
 
