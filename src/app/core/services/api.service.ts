@@ -51,7 +51,7 @@ export class ApiService {
     this.zone.runOutsideAngular(() => {
       this.socket = io(environment.socketUrl, {
         auth: { token },
-        transports: ['polling', 'websocket'],
+        transports: [...environment.socketTransports],
         reconnectionAttempts: 10,
         reconnectionDelay: 2000,
         autoConnect: true,
