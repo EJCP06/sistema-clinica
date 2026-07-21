@@ -47,6 +47,7 @@ export class ImagenesComponent implements OnInit, OnDestroy {
   showSearchFilterDropdown = false;
 
   ultimasAdmisiones: AdmisionDTO[] = [];
+  cargando: boolean = true;
 
   get admisionesFiltradas(): AdmisionDTO[] {
     return this.ultimasAdmisiones.filter(a => {
@@ -118,6 +119,7 @@ export class ImagenesComponent implements OnInit, OnDestroy {
   }
 
   cargarUltimasAdmisiones() {
+    this.cargando = true;
     this.api.get<AdmisionDTO[]>('recepcion/ultimas-admisiones').subscribe({
       next: (data) => {
         const items = data || [];
@@ -134,8 +136,9 @@ export class ImagenesComponent implements OnInit, OnDestroy {
           if (esImagenes) return esParticular || esSeguro;
           return false;
         });
+        this.cargando = false;
       },
-      error: () => console.error('Error cargando ultimas admisiones')
+      error: () => { this.cargando = false; console.error('Error cargando ultimas admisiones'); }
     });
   }
 

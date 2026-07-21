@@ -55,7 +55,11 @@
   <!-- Tabla Unificada de Personal -->
   <div class="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
     <div class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-      <div class="flex flex-col justify-between">
+      <div *ngIf="cargando" class="flex flex-col items-center justify-center py-16 bg-white dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800/80 rounded-[32px]">
+        <div class="w-8 h-8 border-[3px] border-blue-600/30 border-t-blue-600 rounded-full animate-spin"></div>
+        <span class="text-sm text-slate-500 dark:text-slate-400 mt-4 font-semibold animate-pulse">Cargando personal...</span>
+      </div>
+      <div *ngIf="!cargando" class="flex flex-col justify-between">
         <div class="overflow-x-auto">
           <table class="w-full min-w-[800px] text-left text-sm">
             <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
@@ -122,42 +126,38 @@
 <!-- Modal de Previsualización Importación Personal -->
 <div *ngIf="showPreviewModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
   <div class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" (click)="showPreviewModal = false"></div>
-  <div class="bg-white rounded-[32px] shadow-2xl w-full max-w-4xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 flex flex-col max-h-[90vh]">
-    <div class="bg-emerald-600 p-6 text-white flex items-center justify-between border-b border-emerald-500/50">
-      <h2 class="text-xl font-black tracking-tight text-white">Vista Previa de Importación</h2>
-      <button (click)="showPreviewModal = false" class="p-2 hover:bg-white/10 rounded-lg transition-colors"><lucide-icon [name]="XCircle" class="w-5 h-5 text-white"></lucide-icon></button>
+  <div class="bg-white rounded-[32px] shadow-2xl w-full max-w-4xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 flex flex-col max-h-[90vh] md:max-h-none">
+    <div class="bg-emerald-600 p-4 md:p-6 text-white flex items-center justify-between border-b border-emerald-500/50 shrink-0">
+      <h2 class="text-lg md:text-xl font-black tracking-tight text-white truncate">Vista Previa de Importación</h2>
+      <button (click)="showPreviewModal = false" class="p-2 hover:bg-white/10 rounded-lg transition-colors shrink-0"><lucide-icon [name]="XCircle" class="w-5 h-5 text-white"></lucide-icon></button>
     </div>
-    <div class="p-4 md:p-8 flex-1 overflow-y-auto">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm">
+    <div class="p-4 md:p-8 flex-1 overflow-y-auto min-h-0">
+      <div class="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+        <table class="w-full text-left text-sm min-w-[600px] md:min-w-0">
           <thead>
             <tr class="bg-slate-50 text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
-              <th class="px-4 py-3">Primer Nombre</th>
-              <th class="px-4 py-3">Segundo Nombre</th>
-              <th class="px-4 py-3">Primer Apellido</th>
-              <th class="px-4 py-3">Segundo Apellido</th>
-              <th class="px-4 py-3">Cédula</th>
-              <th class="px-4 py-3">Rol</th>
-              <th class="px-4 py-3">Teléfono</th>
-              <th class="px-4 py-3">Sede</th>
+              <th class="px-3 md:px-4 py-2 md:py-3">Nombre</th>
+              <th class="px-3 md:px-4 py-2 md:py-3">Apellido</th>
+              <th class="px-3 md:px-4 py-2 md:py-3">Cédula</th>
+              <th class="px-3 md:px-4 py-2 md:py-3">Rol</th>
+              <th class="px-3 md:px-4 py-2 md:py-3">Teléfono</th>
+              <th class="px-3 md:px-4 py-2 md:py-3">Sede</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
             <tr *ngFor="let row of previewData" class="hover:bg-slate-50">
-              <td class="px-4 py-3 text-slate-700">{{ row.primer_nombre || '' }}</td>
-              <td class="px-4 py-3 text-slate-700">{{ row.segundo_nombre || '' }}</td>
-              <td class="px-4 py-3 text-slate-700">{{ row.primer_apellido || '' }}</td>
-              <td class="px-4 py-3 text-slate-700">{{ row.segundo_apellido || '' }}</td>
-              <td class="px-4 py-3 text-slate-700">{{ row.cedula || '' }}</td>
-              <td class="px-4 py-3 text-slate-700">{{ row.rol || '' }}</td>
-              <td class="px-4 py-3 text-slate-700">{{ row.telefono || '' }}</td>
-              <td class="px-4 py-3 text-slate-700">{{ row.sede || '' }}</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-700">{{ (row.primer_nombre || '') + (row.segundo_nombre ? ' ' + row.segundo_nombre : '') }}</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-700">{{ (row.primer_apellido || '') + (row.segundo_apellido ? ' ' + row.segundo_apellido : '') }}</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-700">{{ row.cedula || '' }}</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-700">{{ row.rol || '' }}</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-700">{{ row.telefono || '' }}</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-700">{{ row.sede || '' }}</td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
-    <div class="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+    <div class="p-4 md:p-6 bg-slate-50 border-t border-slate-100 flex flex-row justify-end gap-3 shrink-0">
       <button (click)="showPreviewModal = false" class="px-6 py-3 bg-slate-200 hover:bg-slate-300 rounded-xl font-bold text-sm">Cancelar</button>
       <button [disabled]="isSaving" (click)="confirmarImportacion()" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl font-bold text-sm">
         <span *ngIf="!isSaving" class="flex items-center gap-2">Confirmar Importación</span>
@@ -173,80 +173,80 @@
 <!-- Modal Formato Excel -->
 <div *ngIf="showExcelFormat" class="fixed inset-0 z-50 flex items-center justify-center p-4">
   <div class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" (click)="showExcelFormat = false"></div>
-  <div class="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200">
-    <div class="bg-blue-600 p-6 text-white flex items-center justify-between border-b border-blue-500/50">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center"><lucide-icon [name]="Info" class="w-5 h-5 text-white"></lucide-icon></div>
-        <div>
-          <h2 class="text-xl font-black tracking-tight text-white">Importar Personal (Excel)</h2>
+  <div class="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 flex flex-col max-h-[90vh] md:max-h-none">
+    <div class="bg-blue-600 p-4 md:p-6 text-white flex items-center justify-between border-b border-blue-500/50 shrink-0">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0"><lucide-icon [name]="Info" class="w-6 h-6 text-white"></lucide-icon></div>
+        <div class="min-w-0">
+          <h2 class="text-lg md:text-xl font-black tracking-tight text-white truncate">Importar Personal</h2>
           <p class="text-blue-100 text-[10px] uppercase font-bold tracking-widest mt-0.5">Columnas del archivo</p>
         </div>
       </div>
-      <button (click)="showExcelFormat = false" class="p-2 hover:bg-white/10 rounded-lg transition-colors"><lucide-icon [name]="XCircle" class="w-5 h-5 text-white"></lucide-icon></button>
+      <button (click)="showExcelFormat = false" class="p-2 hover:bg-white/10 rounded-lg transition-colors shrink-0"><lucide-icon [name]="XCircle" class="w-5 h-5 text-white"></lucide-icon></button>
     </div>
-    <div class="p-6 md:p-8">
-      <p class="text-slate-600 text-sm mb-6">El archivo Excel debe tener las siguientes columnas en este orden:</p>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm">
+    <div class="p-4 md:p-8 flex-1 overflow-y-auto min-h-0">
+      <p class="text-slate-600 text-sm mb-4 md:mb-6">El archivo Excel debe tener las siguientes columnas en este orden:</p>
+      <div class="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+        <table class="w-full text-left text-sm min-w-[480px] md:min-w-0">
           <thead>
             <tr class="bg-slate-50 text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
-              <th class="px-4 py-3">Columna</th>
-              <th class="px-4 py-3">Descripción</th>
-              <th class="px-4 py-3">Requerido</th>
+              <th class="px-3 md:px-4 py-2 md:py-3">Columna</th>
+              <th class="px-3 md:px-4 py-2 md:py-3">Descripción</th>
+              <th class="px-3 md:px-4 py-2 md:py-3">Requerido</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
             <tr class="hover:bg-slate-50">
-              <td class="px-4 py-3 font-bold text-slate-800">Primer Nombre</td>
-              <td class="px-4 py-3 text-slate-600">Primer nombre del personal</td>
-              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600">Requerido</span></td>
+              <td class="px-3 md:px-4 py-2 md:py-3 font-bold text-slate-800">Primer Nombre</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-600">Primer nombre del personal</td>
+              <td class="px-3 md:px-4 py-2 md:py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600">Requerido</span></td>
             </tr>
             <tr class="hover:bg-slate-50">
-              <td class="px-4 py-3 font-bold text-slate-800">Segundo Nombre</td>
-              <td class="px-4 py-3 text-slate-600">Segundo nombre</td>
-              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-500">Opcional</span></td>
+              <td class="px-3 md:px-4 py-2 md:py-3 font-bold text-slate-800">Segundo Nombre</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-600">Segundo nombre</td>
+              <td class="px-3 md:px-4 py-2 md:py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-500">Opcional</span></td>
             </tr>
             <tr class="hover:bg-slate-50">
-              <td class="px-4 py-3 font-bold text-slate-800">Primer Apellido</td>
-              <td class="px-4 py-3 text-slate-600">Primer apellido del personal</td>
-              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600">Requerido</span></td>
+              <td class="px-3 md:px-4 py-2 md:py-3 font-bold text-slate-800">Primer Apellido</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-600">Primer apellido del personal</td>
+              <td class="px-3 md:px-4 py-2 md:py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600">Requerido</span></td>
             </tr>
             <tr class="hover:bg-slate-50">
-              <td class="px-4 py-3 font-bold text-slate-800">Segundo Apellido</td>
-              <td class="px-4 py-3 text-slate-600">Segundo apellido</td>
-              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-500">Opcional</span></td>
+              <td class="px-3 md:px-4 py-2 md:py-3 font-bold text-slate-800">Segundo Apellido</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-600">Segundo apellido</td>
+              <td class="px-3 md:px-4 py-2 md:py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-500">Opcional</span></td>
             </tr>
             <tr class="hover:bg-slate-50">
-              <td class="px-4 py-3 font-bold text-slate-800">Cédula</td>
-              <td class="px-4 py-3 text-slate-600">Número de documento</td>
-              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600">Requerido</span></td>
+              <td class="px-3 md:px-4 py-2 md:py-3 font-bold text-slate-800">Cédula</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-600">Número de documento</td>
+              <td class="px-3 md:px-4 py-2 md:py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600">Requerido</span></td>
             </tr>
             <tr class="hover:bg-slate-50">
-              <td class="px-4 py-3 font-bold text-slate-800">Rol</td>
-              <td class="px-4 py-3 text-slate-600">Médico, Recepcionista, Coordinador, etc.</td>
-              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600">Requerido</span></td>
+              <td class="px-3 md:px-4 py-2 md:py-3 font-bold text-slate-800">Rol</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-600">Médico, Recepcionista, Coordinador, etc.</td>
+              <td class="px-3 md:px-4 py-2 md:py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600">Requerido</span></td>
             </tr>
             <tr class="hover:bg-slate-50">
-              <td class="px-4 py-3 font-bold text-slate-800">Teléfono</td>
-              <td class="px-4 py-3 text-slate-600">Número de contacto</td>
-              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-500">Opcional</span></td>
+              <td class="px-3 md:px-4 py-2 md:py-3 font-bold text-slate-800">Teléfono</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-600">Número de contacto</td>
+              <td class="px-3 md:px-4 py-2 md:py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-500">Opcional</span></td>
             </tr>
             <tr class="hover:bg-slate-50">
-              <td class="px-4 py-3 font-bold text-slate-800">Sede</td>
-              <td class="px-4 py-3 text-slate-600">Plaza Sucre o Santa Mónica</td>
-              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600">Requerido</span></td>
+              <td class="px-3 md:px-4 py-2 md:py-3 font-bold text-slate-800">Sede</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-600">Plaza Sucre o Santa Mónica</td>
+              <td class="px-3 md:px-4 py-2 md:py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600">Requerido</span></td>
             </tr>
           </tbody>
         </table>
       </div>
-      <div class="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+      <div class="mt-4 md:mt-6 p-3 md:p-4 bg-amber-50 border border-amber-200 rounded-xl">
         <p class="text-amber-800 text-xs font-bold uppercase tracking-wider">Ejemplo de fila:</p>
-        <p class="text-amber-700 text-sm mt-1 font-mono">Juan, Alberto, Pérez, López, 12345678, Médico, 04121234567, Plaza Sucre</p>
+        <p class="text-amber-700 text-sm mt-1 font-mono break-all">Juan, Alberto, Pérez, López, 12345678, Médico, 04121234567, Plaza Sucre</p>
       </div>
     </div>
-    <div class="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+    <div class="p-4 md:p-6 bg-slate-50 border-t border-slate-100 flex flex-row justify-end gap-3 shrink-0">
       <button (click)="showExcelFormat = false" class="px-6 py-3 bg-slate-200 hover:bg-slate-300 rounded-xl font-bold text-sm">Cancelar</button>
-      <button [disabled]="isImporting" (click)="excelInput.click()" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl font-bold text-sm flex items-center gap-2">
+      <button [disabled]="isImporting" (click)="excelInput.value = ''; excelInput.click()" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2">
         <span *ngIf="!isImporting" class="flex items-center gap-2">
           <lucide-icon [name]="Upload" class="w-4 h-4"></lucide-icon>
           Subir Excel

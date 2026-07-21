@@ -94,6 +94,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   sidebarOpen: boolean = false;
   cedulaBusqueda: string = '';
   buscando: boolean = false;
+  cargando: boolean = true;
   filaEnEdicion: any = null;
 
   searchFilter: string = 'todo'; // 'todo', 'nombre', 'apellido', 'cedula'
@@ -443,6 +444,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
   /** Obtiene las últimas admisiones activas (excluye estados finales como ATENDIDO, AUSENTE). */
   cargarUltimasAdmisiones() {
+    this.cargando = true;
     this.api.get<any[]>('recepcion/ultimas-admisiones').subscribe({
       next: (data) => {
         const ahora = new Date();
@@ -454,20 +456,29 @@ export class RecepcionComponent implements OnInit, OnDestroy {
             estadoActual !== 5 && estadoActual !== 6 && estadoActual !== 7 && estadoActual !== 9
           );
         });
+        this.cargando = false;
 
         this.appRef.tick();
       },
-      error: (err: any) => console.error('Error cargando ultimas admisiones:', err),
+      error: (err: any) => {
+        this.cargando = false;
+        console.error('Error cargando ultimas admisiones:', err);
+      },
     });
   }
 
   cargarAseguradoras() {
+    this.cargando = true;
     this.api.getAseguradoras().subscribe({
       next: (data: any[]) => {
         this.aseguradoras = data;
+        this.cargando = false;
         this.cdr.detectChanges();
       },
-      error: (err: any) => console.error('Error cargando aseguradoras:', err),
+      error: (err: any) => {
+        this.cargando = false;
+        console.error('Error cargando aseguradoras:', err);
+      },
     });
   }
 
@@ -660,7 +671,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
           this.nuevoPaciente.segundo_nombre = p.segundo_nombre || '';
           this.nuevoPaciente.primer_apellido = p.primer_apellido || p.apellido || '';
           this.nuevoPaciente.segundo_apellido = p.segundo_apellido || '';
-          this.nuevoPaciente.fecha_nacimiento = p.fecha_nacimiento || '';
+          this.nuevoPaciente.fecha_nacimiento = this.fechaADisplay(p.fecha_nacimiento);
           this.nuevoPaciente.telefono = p.telefono;
         } else {
           if (this.nuevoPaciente.id_paciente) {
@@ -695,7 +706,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       segundo_nombre: paciente.segundo_nombre || '',
       primer_apellido: paciente.primer_apellido || paciente.apellido || '',
       segundo_apellido: paciente.segundo_apellido || '',
-      fecha_nacimiento: paciente.fecha_nacimiento || '',
+      fecha_nacimiento: this.fechaADisplay(paciente.fecha_nacimiento),
       telefono: paciente.telefono,
       status: true,
     };
@@ -769,7 +780,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       segundo_nombre: (this.nuevoPaciente.segundo_nombre || '').toUpperCase().trim(),
       primer_apellido: (this.nuevoPaciente.primer_apellido || '').toUpperCase().trim(),
       segundo_apellido: (this.nuevoPaciente.segundo_apellido || '').toUpperCase().trim(),
-      fecha_nacimiento: this.nuevoPaciente.fecha_nacimiento || null,
+      fecha_nacimiento: this.fechaABackend(this.nuevoPaciente.fecha_nacimiento),
       telefono: (this.nuevoPaciente.telefono || '').toString().replace(/\D/g, ''),
       status: true,
     };
@@ -798,7 +809,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       segundo_nombre: (this.nuevoPaciente.segundo_nombre || '').toString().toUpperCase().trim(),
       primer_apellido: (this.nuevoPaciente.primer_apellido || '').toString().toUpperCase().trim(),
       segundo_apellido: (this.nuevoPaciente.segundo_apellido || '').toString().toUpperCase().trim(),
-      fecha_nacimiento: this.nuevoPaciente.fecha_nacimiento || null,
+      fecha_nacimiento: this.fechaABackend(this.nuevoPaciente.fecha_nacimiento),
       telefono: (this.nuevoPaciente.telefono || '').toString().replace(/\D/g, '').trim(),
     };
 
@@ -1174,6 +1185,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
         segundo_nombre: fila.segundo_nombre,
         primer_apellido: fila.apellido,
         segundo_apellido: fila.segundo_apellido,
+        fecha_nacimiento: this.fechaADisplay(fila.fecha_nacimiento),
         telefono: fila.telefono,
       };
 
@@ -1277,5 +1289,32 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     if (event.charCode !== 0 && !pattern.test(inputChar)) {
       event.preventDefault();
     }
+  }
+
+  onFechaNacimientoInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    let value = input.value.replace(/\D/g, '');
+    if (value.length > 8) value = value.substring(0, 8);
+    if (value.length > 2) {
+      value = value.substring(0, 2) + '-' + value.substring(2);
+    }
+    if (value.length > 5) {
+      value = value.substring(0, 5) + '-' + value.substring(5);
+    }
+    this.nuevoPaciente.fecha_nacimiento = value;
+  }
+
+  private fechaADisplay(fecha: string): string {
+    if (!fecha || fecha.length < 10) return fecha || '';
+    const partes = fecha.substring(0, 10).split('-');
+    if (partes.length !== 3) return fecha;
+    return `${partes[2]}-${partes[1]}-${partes[0]}`;
+  }
+
+  private fechaABackend(fecha: string): string | null {
+    if (!fecha || fecha.length < 10) return null;
+    const partes = fecha.substring(0, 10).split('-');
+    if (partes.length !== 3) return null;
+    return `${partes[2]}-${partes[1]}-${partes[0]}`;
   }
 }

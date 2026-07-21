@@ -101,6 +101,7 @@ export class AdminRoles implements OnInit {
 
   roles: RolDTO[] = [];
   sedes: any[] = [];
+  cargando: boolean = true;
 
   currentPageRoles = 1;
   pageSize = 6;
@@ -131,11 +132,14 @@ export class AdminRoles implements OnInit {
   }
 
   cargarRoles(): void {
+    this.cargando = true;
     this.apiService.getRoles().subscribe({
       next: (roles) => {
         this.roles = roles;
+        this.cargando = false;
       },
       error: (err) => {
+        this.cargando = false;
         console.error('Error al cargar roles:', err);
         this.swal.error('Error al cargar los roles');
       },
