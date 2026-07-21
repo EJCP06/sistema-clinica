@@ -473,6 +473,16 @@ const actualizarPersonal = async (req, res) => {
       }
     }
 
+    if (safeFields.id_sede !== undefined && req.io) {
+      const sockets = await req.io.fetchSockets();
+      for (const socket of sockets) {
+        if (socket.usuario && Number(socket.usuario.id) === Number(id)) {
+          socket.emit('sede-cambiada');
+          break;
+        }
+      }
+    }
+
     res.json({ mensaje: 'Personal actualizado' });
   } catch (error) {
     logger.error(error);

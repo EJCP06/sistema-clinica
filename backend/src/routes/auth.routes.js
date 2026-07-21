@@ -3,7 +3,6 @@ const { body, validationResult } = require('express-validator');
 const router = express.Router();
 const authController = require('../controllers/auth.controller');
 const authMiddleware = require('../middleware/auth');
-const { loginLimiter } = require('../middleware/rateLimiter');
 
 const validar = (req, res, next) => {
   const errors = validationResult(req);
@@ -11,7 +10,7 @@ const validar = (req, res, next) => {
   next();
 };
 
-router.post('/login', loginLimiter, [
+router.post('/login', [
   body('username').trim().notEmpty().withMessage('Usuario requerido'),
   body('password').notEmpty().withMessage('Contraseña requerida'),
   validar,

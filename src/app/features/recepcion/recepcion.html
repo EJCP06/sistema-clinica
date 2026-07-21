@@ -348,8 +348,12 @@
                       >Fecha de Nacimiento</label
                     >
                     <input
-                      type="date"
+                      type="text"
+                      inputmode="numeric"
                       [(ngModel)]="nuevoPaciente.fecha_nacimiento"
+                      (input)="onFechaNacimientoInput($event)"
+                      maxlength="10"
+                      placeholder="DD-MM-YYYY"
                       class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
                     />
                   </div>
@@ -828,7 +832,7 @@
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center"><lucide-icon [name]="Info" class="w-5 h-5 text-white"></lucide-icon></div>
               <div>
-                <h2 class="text-xl font-black tracking-tight text-white">Importar Aseguradoras (Excel)</h2>
+                <h2 class="text-xl font-black tracking-tight text-white">Importar Aseguradoras</h2>
                 <p class="text-blue-100 text-[10px] uppercase font-bold tracking-widest mt-0.5">Columnas del archivo</p>
               </div>
             </div>
@@ -885,7 +889,11 @@
         <div
           class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden"
         >
-          <div class="flex flex-col justify-between">
+          <div *ngIf="cargando" class="flex flex-col items-center justify-center py-16 bg-white dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800/80 rounded-[32px]">
+            <div class="w-8 h-8 border-[3px] border-blue-600/30 border-t-blue-600 rounded-full animate-spin"></div>
+            <span class="text-sm text-slate-500 dark:text-slate-400 mt-4 font-semibold animate-pulse">Cargando admisiones...</span>
+          </div>
+          <div *ngIf="!cargando" class="flex flex-col justify-between">
             <div class="overflow-x-auto">
               <table class="w-full min-w-[800px] text-left text-sm">
                 <thead

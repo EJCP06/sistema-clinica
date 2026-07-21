@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, HostListener, DestroyRef, ElementRef, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, OnInit, HostListener, DestroyRef, ElementRef, ChangeDetectorRef, NgZone } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -97,9 +97,11 @@ export class AdminPersonal implements OnInit {
   private destroyRef = inject(DestroyRef);
   private swal = inject(SwalService);
   private cdr = inject(ChangeDetectorRef);
+  private zone = inject(NgZone);
 
   pageSize = 6;
   currentPage = 1;
+  cargando: boolean = true;
 
   servicios: ServicioDTO[] = [];
   especialidades: EspecialidadDTO[] = [];
@@ -198,6 +200,7 @@ export class AdminPersonal implements OnInit {
   }
 
   cargarPersonal() {
+    this.cargando = true;
     this.apiService.getRoles().subscribe((roles) => {
       this.rolesLista = roles.filter(r => r.activo);
     });
@@ -207,6 +210,7 @@ export class AdminPersonal implements OnInit {
         id: p.id || p.id_usuario,
         activo: p.activo !== undefined ? p.activo : p.status,
       }));
+      this.cargando = false;
     });
   }
 
@@ -543,8 +547,10 @@ export class AdminPersonal implements OnInit {
           const rowsRaw: Record<string, unknown>[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
 
           if (rowsRaw.length === 0) {
-            this.isImporting = false;
-            this.swal.error('El archivo Excel está vacío');
+            this.zone.run(() => {
+              this.isImporting = false;
+              this.swal.error('El archivo Excel está vacío');
+            });
             return;
           }
 
@@ -581,23 +587,31 @@ export class AdminPersonal implements OnInit {
           });
 
           if (missing.length > 0) {
-            this.isImporting = false;
-            this.swal.error('Al archivo Excel le faltan columnas requeridas');
+            this.zone.run(() => {
+              this.isImporting = false;
+              this.swal.error('Al archivo Excel le faltan columnas requeridas');
+            });
             return;
           }
 
-          this.previewData = normalizedRows;
-          this.isImporting = false;
-          this.showPreviewModal = true;
+          this.zone.run(() => {
+            this.previewData = normalizedRows;
+            this.isImporting = false;
+            this.showPreviewModal = true;
+          });
         } catch (err) {
-          this.isImporting = false;
-          this.swal.error('Error al leer el archivo Excel');
+          this.zone.run(() => {
+            this.isImporting = false;
+            this.swal.error('Error al leer el archivo Excel');
+          });
           console.error(err);
         }
       };
       reader.readAsArrayBuffer(file);
     }).catch(() => {
-      this.swal.error('Error al cargar el lector de Excel');
+      this.zone.run(() => {
+        this.swal.error('Error al cargar el lector de Excel');
+      });
     });
 
     fileInput.value = '';
