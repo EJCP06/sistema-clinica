@@ -495,6 +495,42 @@ const getSalaEspera = async () => {
   return result.rows;
 };
 
+const limpiarEstadosPendientes = async () => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const result = await client.query(
+      `UPDATE "Atencion" SET id_estado_actual = 7
+       WHERE hora_llegada::date = CURRENT_DATE - INTERVAL '1 day'
+         AND id_estado_actual IN (1, 2, 3, 4, 5, 8)
+       RETURNING id_atencion, numero, id_estado_actual`,
+    );
+
+    for (const row of result.rows) {
+      await client.query(
+        'INSERT INTO "Historial_Atencion" (id_atencion, id_estado) VALUES ($1, 7)',
+        [row.id_atencion],
+      );
+    }
+
+    await client.query(
+      `UPDATE "Consultorios" SET estado_fisico = 'LIBRE' WHERE estado_fisico = 'OCUPADO'`,
+    );
+
+    await client.query('COMMIT');
+
+    if (result.rowCount > 0) {
+      console.log(`[Limpieza diaria] ${result.rowCount} paciente(s) marcado(s) como ausente(s) del día anterior.`);
+    }
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('[Limpieza diaria] Error al limpiar estados pendientes:', error.message);
+  } finally {
+    client.release();
+  }
+};
+
 module.exports = {
   getUltimasAdmisiones,
   getAtencionEstado,
@@ -528,4 +564,5 @@ module.exports = {
   getAtendidosHoy,
   getTurneroPacientes,
   getSalaEspera,
+  limpiarEstadosPendientes,
 };

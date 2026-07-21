@@ -51,21 +51,16 @@ const login = async (req, res) => {
       return res.status(403).json({ mensaje: 'Su usuario se encuentra inactivo. Contacte al administrador.' });
     }
 
-    let sesionActiva = false;
+    // Desconectar sockets previos del mismo usuario (fantasmas de sesiones antiguas)
     try {
       const sockets = await req.io.fetchSockets();
       for (const socket of sockets) {
         if (socket.usuario && Number(socket.usuario.id) === Number(usuario.id)) {
-          sesionActiva = true;
-          break;
+          socket.disconnect(true);
         }
       }
     } catch {
       /* Fallar silenciosamente — si fetchSockets falla, se permite el login */
-    }
-
-    if (sesionActiva) {
-      return res.status(409).json({ mensaje: 'Ya hay un usuario con estas credenciales' });
     }
 
     /* Invalida cualquier sesión previa para evitar conflictos con sockets
@@ -187,7 +182,20 @@ const misPermisos = async (req, res) => {
 const cerrarSesion = async (req, res) => {
   try {
     await usuarioRepo.actualizarSesionToken(req.usuario.id, null);
+    await refreshTokenRepo.revokeAllUserTokens(req.usuario.id);
     res.clearCookie('refresh_token', { ...COOKIE_OPTIONS });
+
+    if (req.io) {
+      try {
+        const sockets = await req.io.fetchSockets();
+        for (const socket of sockets) {
+          if (socket.usuario && Number(socket.usuario.id) === Number(req.usuario.id)) {
+            socket.disconnect(true);
+          }
+        }
+      } catch { /* Ignorar errores de socket */ }
+    }
+
     auditar({ userId: req.usuario.id, accion: 'logout', recurso: 'auth', ip: req.ip });
     res.json({ mensaje: 'Sesión cerrada exitosamente' });
   } catch (error) {

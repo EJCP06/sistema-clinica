@@ -78,6 +78,8 @@ export class AdminReports implements OnInit, OnDestroy {
   sedes: SedeDTO[] = [];
   fechaDesde: string = new Date().toISOString().split('T')[0];
   fechaHasta: string = new Date().toISOString().split('T')[0];
+  fechaDesdeDisplay: string = '';
+  fechaHastaDisplay: string = '';
   totalHoy = 0;
   totalAtendidos = 0;
   totalAusentes = 0;
@@ -89,8 +91,11 @@ export class AdminReports implements OnInit, OnDestroy {
   ausentismoPorcentaje = 0;
   porServicio: ReporteDiarioDTO['por_servicio'] = [];
   ausentesList: ReporteDiarioDTO['ausentes'] = [];
+  cargando: boolean = true;
 
   ngOnInit() {
+    this.fechaDesdeDisplay = this.fechaADisplay(this.fechaDesde);
+    this.fechaHastaDisplay = this.fechaADisplay(this.fechaHasta);
     this.cargarReporte();
     this.apiService.getSedes().subscribe(sedes => this.sedes = sedes);
     this.apiService.cambios$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
@@ -117,12 +122,49 @@ export class AdminReports implements OnInit, OnDestroy {
     const hoy = new Date().toISOString().split('T')[0];
     this.fechaDesde = hoy;
     this.fechaHasta = hoy;
+    this.fechaDesdeDisplay = this.fechaADisplay(hoy);
+    this.fechaHastaDisplay = this.fechaADisplay(hoy);
     this.cargarReporte();
   }
 
   ngOnDestroy() {}
 
+  onFechaDesdeInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    let value = input.value.replace(/\D/g, '');
+    if (value.length > 8) value = value.substring(0, 8);
+    if (value.length > 2) value = value.substring(0, 2) + '-' + value.substring(2);
+    if (value.length > 5) value = value.substring(0, 5) + '-' + value.substring(5);
+    this.fechaDesdeDisplay = value;
+    this.fechaDesde = this.fechaABackend(value) || new Date().toISOString().split('T')[0];
+  }
+
+  onFechaHastaInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    let value = input.value.replace(/\D/g, '');
+    if (value.length > 8) value = value.substring(0, 8);
+    if (value.length > 2) value = value.substring(0, 2) + '-' + value.substring(2);
+    if (value.length > 5) value = value.substring(0, 5) + '-' + value.substring(5);
+    this.fechaHastaDisplay = value;
+    this.fechaHasta = this.fechaABackend(value) || new Date().toISOString().split('T')[0];
+  }
+
+  private fechaADisplay(fecha: string): string {
+    if (!fecha || fecha.length < 10) return fecha || '';
+    const p = fecha.substring(0, 10).split('-');
+    if (p.length !== 3) return fecha;
+    return `${p[2]}-${p[1]}-${p[0]}`;
+  }
+
+  private fechaABackend(fecha: string): string | null {
+    if (!fecha || fecha.length < 10) return null;
+    const p = fecha.substring(0, 10).split('-');
+    if (p.length !== 3) return null;
+    return `${p[2]}-${p[1]}-${p[0]}`;
+  }
+
   cargarReporte() {
+    this.cargando = true;
     this.apiService.getReporteDiario(this.fechaDesde, this.fechaHasta).subscribe({
       next: (rep: ReporteDiarioDTO) => {
         console.log('Reporte diario recibido:', rep);
@@ -142,8 +184,10 @@ export class AdminReports implements OnInit, OnDestroy {
         this.ausentismoPorcentaje = rep.kpis?.ausentismo_porcentaje ?? 0;
         this.porServicio = rep.por_servicio ?? [];
         this.ausentesList = rep.ausentes ?? [];
+        this.cargando = false;
       },
       error: (err) => {
+        this.cargando = false;
         console.error('Error al cargar reporte:', err);
       },
     });
