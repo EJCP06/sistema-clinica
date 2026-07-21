@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
   apiUrl: '/api',
-  socketUrl: '/',
-  socketTransports: ['polling'] as const,
+  socketUrl: 'https://api-cola-cat.clinicanuevacaracas.net',
+  socketTransports: ['polling', 'websocket'] as const,
 };

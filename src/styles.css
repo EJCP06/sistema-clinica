@@ -288,6 +288,15 @@ aside nav::-webkit-scrollbar {
   display: none !important; /* Chrome, Safari, Edge */
 }
 
+/* Ocultar scrollbar en contenedores internos con custom-scrollbar */
+.custom-scrollbar {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+
 /* Animación suave para transiciones de focus */
 @keyframes focus-ring {
   0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }

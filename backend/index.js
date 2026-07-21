@@ -123,6 +123,9 @@ const startServer = async () => {
     const { runMigrations } = require('./migrate');
     await runMigrations();
 
+    const { limpiarEstadosPendientes } = require('./src/repositories/atencion.repository');
+    await limpiarEstadosPendientes();
+
     server.listen(PORT, () => {
       logger.info(`Servidor backend corriendo en http://localhost:${PORT}`);
     });

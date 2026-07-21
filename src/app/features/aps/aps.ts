@@ -43,6 +43,7 @@ export class ApsComponent implements OnInit, OnDestroy {
 
   sidebarOpen = false;
   cedulaBusqueda = '';
+  cargando: boolean = true;
 
   searchFilter: string = 'todo';
   showSearchFilterDropdown = false;
@@ -118,6 +119,7 @@ export class ApsComponent implements OnInit, OnDestroy {
   }
 
   cargarUltimasAdmisiones() {
+    this.cargando = true;
     this.api.get<AdmisionDTO[]>('recepcion/ultimas-admisiones').subscribe({
       next: (data) => {
         const items = data || [];
@@ -137,8 +139,12 @@ export class ApsComponent implements OnInit, OnDestroy {
           if (esConsulta) return esSeguro || esParticular;
           return false;
         });
+        this.cargando = false;
       },
-      error: () => console.error('Error cargando ultimas admisiones')
+      error: () => {
+        this.cargando = false;
+        console.error('Error cargando ultimas admisiones');
+      }
     });
   }
 

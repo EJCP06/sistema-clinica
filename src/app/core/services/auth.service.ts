@@ -114,6 +114,21 @@ export class AuthService implements OnDestroy {
           },
         });
       }
+
+      if (event.tipo === 'sede-cambiada' && this.usuarioActual) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Sede cambiada',
+          text: 'Tu sede ha sido modificada por un administrador. Debes iniciar sesión nuevamente.',
+          timer: 8000,
+          timerProgressBar: true,
+          confirmButtonColor: '#2563eb',
+          allowOutsideClick: false,
+          willClose: () => {
+            this.emergencyLogout();
+          },
+        });
+      }
     });
   }
 
@@ -167,8 +182,24 @@ export class AuthService implements OnDestroy {
   verifySession(): Observable<boolean> {
     const token = this.getToken();
     if (!token) return of(false);
+    const usuarioActual = this.usuarioActual;
     return this.http.get<{ valido: boolean; usuario: any }>(`${environment.apiUrl}/auth/verify`).pipe(
       tap((res) => {
+        if (usuarioActual?.id_sede && res.usuario.id_sede && usuarioActual.id_sede !== res.usuario.id_sede) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Sede cambiada',
+            text: 'Tu sede ha sido modificada. Debes iniciar sesión nuevamente.',
+            timer: 8000,
+            timerProgressBar: true,
+            confirmButtonColor: '#2563eb',
+            allowOutsideClick: false,
+            willClose: () => {
+              this.emergencyLogout();
+            },
+          });
+          return;
+        }
         const usuario: Usuario = {
           ...res.usuario,
           nombre: res.usuario.nombre || res.usuario.username,
@@ -338,15 +369,15 @@ export class AuthService implements OnDestroy {
   }
 
   solicitarRecuperacion(email: string, cedula: string): Observable<any> {
-    return this.http.post(`${environment.apiUrl}/recuperacion/solicitar`, { email, cedula });
+    return this.http.post(`${environment.apiUrl}/auth/recuperacion/solicitar`, { email, cedula });
   }
 
   verificarOTP(email: string, cedula: string, codigo: string): Observable<any> {
-    return this.http.post(`${environment.apiUrl}/recuperacion/verificar`, { email, cedula, codigo });
+    return this.http.post(`${environment.apiUrl}/auth/recuperacion/verificar`, { email, cedula, codigo });
   }
 
   restablecerPassword(email: string, cedula: string, codigo: string, newPassword: string): Observable<any> {
-    return this.http.post(`${environment.apiUrl}/recuperacion/restablecer`, { email, cedula, codigo, newPassword });
+    return this.http.post(`${environment.apiUrl}/auth/recuperacion/restablecer`, { email, cedula, codigo, newPassword });
   }
 
   private cargarSesion(): Usuario | null {

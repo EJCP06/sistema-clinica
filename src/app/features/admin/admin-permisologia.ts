@@ -52,6 +52,7 @@ export class AdminPermisologia implements OnInit, OnDestroy {
   sedes: any[] = [];
   recursos: RecursoMatrizDTO[] = [];
   permisosTemp: string[] = [];
+  cargando: boolean = true;
 
   private recursosPermitidos = ['admision', 'aps', 'laboratorio', 'imagenes', 'atencion_medica', 'aseguradoras', 'personal', 'roles', 'especialidades', 'permisologia'];
   private recursosSoloVer = new Set(['aps', 'laboratorio', 'imagenes', 'atencion_medica']);
@@ -139,9 +140,10 @@ export class AdminPermisologia implements OnInit, OnDestroy {
   ngOnDestroy() {}
 
   cargarRoles() {
+    this.cargando = true;
     this.api.getRoles().subscribe({
-      next: (r) => this.roles = r,
-      error: () => this.swal.error('Error al cargar roles'),
+      next: (r) => { this.roles = r; this.cargando = false; },
+      error: () => { this.cargando = false; this.swal.error('Error al cargar roles'); },
     });
   }
 
