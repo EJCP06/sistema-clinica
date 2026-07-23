@@ -97,14 +97,11 @@ app.use(metricsMiddleware);
 app.use('/api', apiLimiter);
 
 /**
- * Middleware de seguridad que fuerza HTTPS en producción cuando se
- * detecta el encabezado x-forwarded-proto (proxy inverso).
+ * HTTPS is enforced at the Nginx reverse proxy level (SSL termination).
+ * Internal traffic between Nginx and this server uses HTTP.
  */
 if (isProduction) {
   app.use((req, res, next) => {
-    if (req.headers['x-forwarded-proto'] !== 'https' && req.headers['x-forwarded-proto'] !== undefined) {
-      return res.status(403).json({ mensaje: 'Se requiere HTTPS' });
-    }
     next();
   });
 }
