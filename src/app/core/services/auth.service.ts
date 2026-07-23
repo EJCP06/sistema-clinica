@@ -105,8 +105,6 @@ export class AuthService implements OnDestroy {
           icon: 'warning',
           title: 'Usuario desactivado',
           text: 'Tu cuenta ha sido desactivada por un administrador. Serás redirigido al inicio de sesión.',
-          timer: 8000,
-          timerProgressBar: true,
           confirmButtonColor: '#2563eb',
           allowOutsideClick: false,
           willClose: () => {
@@ -120,8 +118,6 @@ export class AuthService implements OnDestroy {
           icon: 'warning',
           title: 'Sede cambiada',
           text: 'Tu sede ha sido modificada por un administrador. Debes iniciar sesión nuevamente.',
-          timer: 8000,
-          timerProgressBar: true,
           confirmButtonColor: '#2563eb',
           allowOutsideClick: false,
           willClose: () => {
@@ -190,8 +186,6 @@ export class AuthService implements OnDestroy {
             icon: 'warning',
             title: 'Sede cambiada',
             text: 'Tu sede ha sido modificada. Debes iniciar sesión nuevamente.',
-            timer: 8000,
-            timerProgressBar: true,
             confirmButtonColor: '#2563eb',
             allowOutsideClick: false,
             willClose: () => {

@@ -86,9 +86,20 @@ export class Sidebar implements OnInit {
   set expandedAdmin(v: boolean) { sessionStorage.setItem('sb_admin', v ? '1' : '0'); }
 
   toggleSection(section: string) {
-    if (section === 'panel') this.expandedPanel = !this.expandedPanel;
-    if (section === 'operaciones') this.expandedOperaciones = !this.expandedOperaciones;
-    if (section === 'admin') this.expandedAdmin = !this.expandedAdmin;
+    const isAlreadyOpen =
+      (section === 'panel' && this.expandedPanel) ||
+      (section === 'operaciones' && this.expandedOperaciones) ||
+      (section === 'admin' && this.expandedAdmin);
+
+    this.expandedPanel = false;
+    this.expandedOperaciones = false;
+    this.expandedAdmin = false;
+
+    if (!isAlreadyOpen) {
+      if (section === 'panel') this.expandedPanel = true;
+      if (section === 'operaciones') this.expandedOperaciones = true;
+      if (section === 'admin') this.expandedAdmin = true;
+    }
   }
 
   get usuario() {

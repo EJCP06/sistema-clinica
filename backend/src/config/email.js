@@ -12,6 +12,7 @@ try {
       pass: process.env.EMAIL_PASS,
     },
   });
+  logger.info('Transporter de email creado correctamente', { host: process.env.EMAIL_HOST, port: process.env.EMAIL_PORT, user: process.env.EMAIL_USER });
 } catch (err) {
   logger.error('Error al crear transporter de email', { error: err.message });
   transporter = null;
@@ -19,18 +20,18 @@ try {
 
 /**
  * Envía un correo electrónico con un código OTP para recuperación de contraseña.
- * El transporter se valida en tiempo de ejecución para evitar crashes si no
- * está configurado.
  *
  * @param {string} destinatario - Dirección de correo del destinatario
  * @param {string} codigo - Código OTP de 6 dígitos
- * @returns {Promise<object|void>} Resultado de sendMail o undefined si no hay transporter
+ * @returns {Promise<object>} Resultado de sendMail con messageId y response
+ * @throws {Error} Si el transporter no está configurado o el envío falla
  */
 const enviarCorreoOTP = async (destinatario, codigo) => {
   if (!transporter) {
-    logger.warn('Email no configurado — no se puede enviar OTP');
-    return;
+    logger.error('Transporter de email no configurado — no se puede enviar OTP. Verifica las variables EMAIL_HOST, EMAIL_PORT, EMAIL_USER y EMAIL_PASS en .env');
+    throw new Error('Servicio de correo no configurado. Contacta al administrador.');
   }
+
   const mailOptions = {
     from: `"Clínica Nueva Caracas" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
     to: destinatario,
@@ -52,7 +53,14 @@ const enviarCorreoOTP = async (destinatario, codigo) => {
     `,
   };
 
-  return transporter.sendMail(mailOptions);
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    logger.info('Correo OTP enviado exitosamente', { to: destinatario, messageId: info.messageId, response: info.response });
+    return info;
+  } catch (err) {
+    logger.error('Error al enviar correo OTP', { to: destinatario, error: err.message, code: err.code, command: err.command });
+    throw new Error(`Error al enviar correo: ${err.message}`);
+  }
 };
 
 module.exports = { enviarCorreoOTP };

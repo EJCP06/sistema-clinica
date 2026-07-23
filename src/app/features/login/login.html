@@ -216,12 +216,7 @@
                 {{ tiempoAgotado ? 'Código expirado' : tiempoFormateado }}
               </span>
             </div>
-            <div *ngIf="tiempoAgotado" class="text-center">
-              <button (click)="solicitarCodigo()" [disabled]="cargandoReset" class="text-[10px] font-bold text-blue-600 hover:text-blue-700 uppercase tracking-[2px] transition-colors">
-                {{ cargandoReset ? 'Enviando...' : 'Reenviar código' }}
-              </button>
-            </div>
-            <button (click)="verificarCodigo()" [disabled]="cargandoReset || tiempoAgotado" class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-0.5 active:translate-y-0 transition-transform flex items-center justify-center gap-3 text-sm uppercase tracking-widest">
+            <button *ngIf="!tiempoAgotado" (click)="verificarCodigo()" [disabled]="cargandoReset" class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-0.5 active:translate-y-0 transition-transform flex items-center justify-center gap-3 text-sm uppercase tracking-widest">
               <span *ngIf="!cargandoReset" class="flex items-center gap-2">
                 Verificar Código
                 <lucide-icon [name]="CheckCircle2" class="w-5 h-5"></lucide-icon>
@@ -229,6 +224,16 @@
               <div *ngIf="cargandoReset" class="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-[800ms]">
                 <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 <span class="animate-pulse">Verificando...</span>
+              </div>
+            </button>
+            <button *ngIf="tiempoAgotado" (click)="solicitarCodigo()" [disabled]="cargandoReset" class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-0.5 active:translate-y-0 transition-transform flex items-center justify-center gap-3 text-sm uppercase tracking-widest">
+              <span *ngIf="!cargandoReset" class="flex items-center gap-2">
+                Reenviar Código
+                <lucide-icon [name]="Mail" class="w-5 h-5"></lucide-icon>
+              </span>
+              <div *ngIf="cargandoReset" class="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-[800ms]">
+                <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <span class="animate-pulse">Enviando...</span>
               </div>
             </button>
           </div>

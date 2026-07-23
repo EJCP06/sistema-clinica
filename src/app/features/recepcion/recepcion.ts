@@ -1293,15 +1293,35 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
   onFechaNacimientoInput(event: Event) {
     const input = event.target as HTMLInputElement;
-    let value = input.value.replace(/\D/g, '');
-    if (value.length > 8) value = value.substring(0, 8);
-    if (value.length > 2) {
-      value = value.substring(0, 2) + '-' + value.substring(2);
+    const newValue = input.value;
+    const newDigits = newValue.replace(/\D/g, '');
+    const oldDigits = this.nuevoPaciente.fecha_nacimiento.replace(/\D/g, '');
+
+    if (newDigits.length < oldDigits.length) {
+      const cursorPos = input.selectionStart || 0;
+      const digitsBeforeCursor = newValue.substring(0, cursorPos).replace(/\D/g, '').length;
+      const removedIndex = Math.min(digitsBeforeCursor, oldDigits.length - 1);
+      const resultDigits = oldDigits.substring(0, removedIndex) + oldDigits.substring(removedIndex + 1);
+      let value = resultDigits;
+      if (value.length > 2) value = value.substring(0, 2) + '-' + value.substring(2);
+      if (value.length > 5) value = value.substring(0, 5) + '-' + value.substring(5);
+      this.nuevoPaciente.fecha_nacimiento = value;
+      let newPos = 0;
+      let digitCount = 0;
+      for (let i = 0; i < value.length; i++) {
+        if (digitCount >= removedIndex) break;
+        if (/\d/.test(value[i])) digitCount++;
+        newPos = i + 1;
+      }
+      setTimeout(() => { input.setSelectionRange(newPos, newPos); });
+    } else {
+      let value = newDigits;
+      if (value.length > 8) value = value.substring(0, 8);
+      if (value.length > 2) value = value.substring(0, 2) + '-' + value.substring(2);
+      if (value.length > 5) value = value.substring(0, 5) + '-' + value.substring(5);
+      this.nuevoPaciente.fecha_nacimiento = value;
+      setTimeout(() => { input.setSelectionRange(value.length, value.length); });
     }
-    if (value.length > 5) {
-      value = value.substring(0, 5) + '-' + value.substring(5);
-    }
-    this.nuevoPaciente.fecha_nacimiento = value;
   }
 
   private fechaADisplay(fecha: string): string {
