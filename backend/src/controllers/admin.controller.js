@@ -459,11 +459,13 @@ const actualizarPersonal = async (req, res) => {
       return res.status(400).json({ mensaje: 'No hay campos para actualizar' });
     }
 
+    const usuarioAntes = await usuarioRepo.findById(id);
+
     await usuarioRepo.actualizarPersonal(id, sede, safeFields);
 
     auditar({ userId: getUserId(req), accion: 'editar', recurso: 'personal', recursoId: Number(id), detalle: { campos: Object.keys(safeFields) }, ip: req.ip });
 
-    if (safeFields.status === false && req.io) {
+    if (safeFields.status === false && usuarioAntes && usuarioAntes.status !== false && req.io) {
       const sockets = await req.io.fetchSockets();
       for (const socket of sockets) {
         if (socket.usuario && Number(socket.usuario.id) === Number(id)) {
@@ -473,7 +475,7 @@ const actualizarPersonal = async (req, res) => {
       }
     }
 
-    if (safeFields.id_sede !== undefined && req.io) {
+    if (safeFields.id_sede !== undefined && usuarioAntes && Number(usuarioAntes.id_sede) !== Number(safeFields.id_sede) && req.io) {
       const sockets = await req.io.fetchSockets();
       for (const socket of sockets) {
         if (socket.usuario && Number(socket.usuario.id) === Number(id)) {

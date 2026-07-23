@@ -286,6 +286,15 @@ export class AdminPersonal implements OnInit {
     const rol = this.formPersonal.rol;
     const cedulaFinal = (this.formPersonal.cedula || this.formPersonal.username || '')
       .toString().replace(/\D/g, '');
+
+    const usuarioOriginal = this.isEditing && this.editingId !== null
+      ? this.todoPersonal.find(p => (p.id || p.id_usuario) === this.editingId)
+      : null;
+    const sedeOriginal = usuarioOriginal?.id_sede;
+    const activoOriginal = usuarioOriginal?.activo;
+    const sedeNueva = this.formPersonal.id_sede ? Number(this.formPersonal.id_sede) : 1;
+    const activoNuevo = !!this.formPersonal.activo;
+
     const body: Record<string, unknown> = {
       ...this.formPersonal,
       primer_nombre: (this.formPersonal.primer_nombre || '').toUpperCase().trim(),
@@ -311,10 +320,14 @@ export class AdminPersonal implements OnInit {
       : this.apiService.crearPersonal(body as Partial<PersonalDTO>);
     call.subscribe({
       next: () => {
+        const sedeCambio = this.isEditing && sedeOriginal !== undefined && Number(sedeOriginal) !== sedeNueva;
+        const statusCambio = this.isEditing && activoOriginal !== undefined && activoOriginal && !activoNuevo;
         this.finalizarGuardado(() => {
           this.showModalPersonal = false;
           this.cargarPersonal();
-          this.swal.success('Personal guardado correctamente');
+          if (!sedeCambio && !statusCambio) {
+            this.swal.success('Personal guardado correctamente');
+          }
         });
       },
       error: (err) => {

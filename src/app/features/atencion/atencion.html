@@ -83,7 +83,7 @@
                   <div class="w-20 h-20 bg-red-50 dark:bg-red-500/10 text-red-500 dark:text-red-400 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-red-100 dark:border-red-500/20">
                     <lucide-icon [name]="X" class="w-10 h-10"></lucide-icon>
                   </div>
-                  <p class="text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-none">{{ mensajeInfo }}</p>
+                  <p class="text-3xl text-slate-900 dark:text-white tracking-tight leading-none">{{ mensajeInfo }}</p>
                 </ng-template>
               </div>
 
@@ -135,7 +135,7 @@
                 </div>
 
                 <!-- ACCIONES (EN_ATENCION) -->
-                <div *ngIf="turnoActual.estado === 'EN_ATENCION'" class="mt-16 flex flex-col gap-4">
+                <div *ngIf="turnoActual.estado === 'EN_ATENCION'" class="flex-1 flex flex-col items-center justify-center gap-4">
                   <button *ngIf="tienePermiso('atencion_medica_finalizar') || tienePermisoAtencion('finalizar')" (click)="finalizarAtencion()" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-black py-4 rounded-[24px] shadow-xl shadow-teal-500/30 hover:shadow-teal-500/50 transition-all duration-300 text-lg flex items-center justify-center gap-3 group active:scale-95">
                     <lucide-icon [name]="CheckCircle2" class="w-6 h-6 group-hover:scale-110 transition-transform"></lucide-icon> Finalizar Atención
                   </button>
@@ -159,27 +159,27 @@
               </div>
 
               <div class="flex-1 flex flex-col min-h-0">
-                <div class="overflow-hidden">
-                  <table class="w-full min-w-[500px] text-left text-sm">
+                <div class="overflow-x-auto">
+                  <table class="w-full text-center text-[11px] sm:text-sm">
                     <thead class="bg-white dark:bg-slate-900">
-                      <tr class="h-[36px] border-b border-slate-100 dark:border-slate-800 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        <th class="px-2 md:px-4 py-1 text-center">Turno</th>
-                        <th class="px-2 md:px-4 py-1 text-center">Paciente</th>
-                        <th class="px-2 md:px-4 py-1 text-center">Estado</th>
-                        <th class="px-2 md:px-4 py-1 text-center">Hora</th>
+                      <tr class="h-[36px] border-b border-slate-100 dark:border-slate-800 text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        <th class="px-1 sm:px-2 md:px-4 py-1 text-center">Turno</th>
+                        <th class="px-1 sm:px-2 md:px-4 py-1 text-center">Paciente</th>
+                        <th class="px-1 sm:px-2 md:px-4 py-1 text-center">Estado</th>
+                        <th class="px-1 sm:px-2 md:px-4 py-1 text-center">Hora</th>
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
                       <ng-container *ngFor="let t of esperaFiltrado | paginate: currentEsperaPage : esperaPageSize; trackBy: trackById">
                         <tr class="h-[48px] hover:bg-slate-50 dark:hover:bg-slate-800">
-                          <td class="px-2 md:px-4 py-1 font-bold text-slate-900 dark:text-white text-center">{{ t?.numero || '---' }}</td>
-                          <td class="px-2 md:px-4 py-1 text-center">
+                          <td class="px-1 sm:px-2 md:px-4 py-1 font-bold text-slate-900 dark:text-white text-center whitespace-nowrap">{{ t?.numero || '---' }}</td>
+                          <td class="px-1 sm:px-2 md:px-4 py-1 text-center whitespace-nowrap">
                             <span class="font-bold text-slate-900 dark:text-white">{{ (t?.paciente?.nombre || 'Sin asignar') }} {{ t?.paciente?.apellido || '' }}</span>
                           </td>
-                          <td class="px-2 md:px-4 py-1 font-bold text-slate-800 dark:text-white uppercase text-center">
+                          <td class="px-1 sm:px-2 md:px-4 py-1 font-bold text-slate-800 dark:text-white uppercase text-center whitespace-nowrap">
                             {{ (t?.estado || 'Sin asignar').replace(/_/g, ' ') }}
                           </td>
-                          <td class="px-2 md:px-4 py-1 text-slate-500 dark:text-slate-400 font-medium text-center">{{ (t?.hora_llegada) | date:'h:mm a' }}</td>
+                          <td class="px-1 sm:px-2 md:px-4 py-1 text-slate-500 dark:text-slate-400 font-medium text-center whitespace-nowrap">{{ (t?.hora_llegada) | date:'h:mm a' }}</td>
                         </tr>
                       </ng-container>
                       <ng-container *ngIf="esperaFiltrado.length > 0">
@@ -222,27 +222,27 @@
               </div>
 
               <div class="flex-1 flex flex-col min-h-0">
-                <div class="overflow-hidden">
-                  <table class="w-full min-w-[500px] text-left text-sm">
+                <div class="overflow-x-auto">
+                  <table class="w-full text-center text-[11px] sm:text-sm">
                     <thead class="bg-white dark:bg-slate-900">
-                      <tr class="h-[36px] border-b border-slate-100 dark:border-slate-800 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        <th class="px-2 md:px-4 py-1 text-center">Turno</th>
-                        <th class="px-2 md:px-4 py-1 text-center">Paciente</th>
-                        <th class="px-2 md:px-4 py-1 text-center">Estado</th>
-                        <th class="px-2 md:px-4 py-1 text-center">Hora</th>
+                      <tr class="h-[36px] border-b border-slate-100 dark:border-slate-800 text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        <th class="px-1 sm:px-2 md:px-4 py-1 text-center">Turno</th>
+                        <th class="px-1 sm:px-2 md:px-4 py-1 text-center">Paciente</th>
+                        <th class="px-1 sm:px-2 md:px-4 py-1 text-center">Estado</th>
+                        <th class="px-1 sm:px-2 md:px-4 py-1 text-center">Hora</th>
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
                       <ng-container *ngFor="let t of historialFiltrado | paginate: currentHistorialPage : historialPageSize; trackBy: trackById">
                         <tr class="h-[48px] hover:bg-slate-50 dark:hover:bg-slate-800">
-                          <td class="px-2 md:px-4 py-1 font-bold text-slate-900 dark:text-white text-center">{{ t?.numero || '---' }}</td>
-                          <td class="px-2 md:px-4 py-1 text-center">
+                          <td class="px-1 sm:px-2 md:px-4 py-1 font-bold text-slate-900 dark:text-white text-center whitespace-nowrap">{{ t?.numero || '---' }}</td>
+                          <td class="px-1 sm:px-2 md:px-4 py-1 text-center whitespace-nowrap">
                             <span class="font-bold text-slate-900 dark:text-white">{{ (t?.paciente?.nombre || 'Sin asignar') }} {{ t?.paciente?.apellido || '' }}</span>
                           </td>
-                          <td class="px-2 md:px-4 py-1 font-bold text-slate-800 dark:text-white uppercase text-center">
+                          <td class="px-1 sm:px-2 md:px-4 py-1 font-bold text-slate-800 dark:text-white uppercase text-center whitespace-nowrap">
                             {{ (t?.estado || 'Sin asignar').replace(/_/g, ' ') }}
                           </td>
-                          <td class="px-2 md:px-4 py-1 text-slate-500 dark:text-slate-400 font-medium text-center">{{ (t?.hora_llegada) | date:'h:mm a' }}</td>
+                          <td class="px-1 sm:px-2 md:px-4 py-1 text-slate-500 dark:text-slate-400 font-medium text-center whitespace-nowrap">{{ (t?.hora_llegada) | date:'h:mm a' }}</td>
                         </tr>
                       </ng-container>
                       <ng-container *ngIf="historialFiltrado.length > 0">

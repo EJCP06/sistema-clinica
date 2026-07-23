@@ -77,24 +77,24 @@
         <style>
           .overflow-x-auto::-webkit-scrollbar { display: none; }
         </style>
-<table class="w-full min-w-[800px] text-left text-sm ">
+<table class="w-full min-w-[800px] text-left text-[11px] sm:text-sm ">
         <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
-          <tr class="h-[52px] md:h-[64px] text-slate-500 dark:text-slate-400 font-black text-[10px] uppercase tracking-[2px]">
-            <th class="px-3 md:px-6 py-3 md:py-4 text-center">Turno</th>
-            <th class="px-3 md:px-6 py-3 md:py-4 text-center">Paciente</th>
-            <th class="px-3 md:px-6 py-3 md:py-4 text-center">Cédula</th>
-            <th class="px-3 md:px-6 py-3 md:py-4 text-center">Estado Actual</th>
-            <th class="px-3 md:px-6 py-3 md:py-4 text-center">Servicio</th>
-            <th class="px-3 md:px-6 py-3 md:py-4 text-center">Llegada</th>
+          <tr class="h-[52px] md:h-[64px] text-slate-500 dark:text-slate-400 font-black text-[9px] sm:text-[10px] uppercase tracking-[2px]">
+            <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Turno</th>
+            <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Paciente</th>
+            <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Cédula</th>
+            <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Estado Actual</th>
+            <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Servicio</th>
+            <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Llegada</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
           <ng-container *ngFor="let t of turnos | paginate: currentPage : pageSize; trackBy: trackById">
             <tr class="h-[52px] md:h-[64px] hover:bg-slate-50 dark:hover:bg-slate-800">
-              <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ t.numero || t.id }}</td>
-              <td class="px-3 md:px-6 py-3 md:py-4 font-bold text-slate-800 uppercase text-center">{{ t.paciente.nombre || 'Sin asignar' }} {{ t.paciente.apellido || '' }}</td>
-              <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold tracking-tight text-center">{{ t.paciente.documento || 'Sin asignar' }}</td>
-              <td class="px-3 md:px-6 py-3 md:py-4 text-center">
+              <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 font-bold tracking-tight text-center">{{ t.numero || t.id }}</td>
+              <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 uppercase text-center">{{ t.paciente.nombre || 'Sin asignar' }} {{ t.paciente.apellido || '' }}</td>
+              <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 font-bold tracking-tight text-center">{{ t.paciente.documento || 'Sin asignar' }}</td>
+              <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">
                 <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [ngClass]="{
                   'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20': t.estado === 'Registrado',
                   'bg-teal-50 text-teal-600 border-teal-200 dark:bg-teal-500/10 dark:text-teal-400 dark:border-teal-500/20': t.estado === 'En Caja',
@@ -106,8 +106,8 @@
                   'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20': t.estado === 'Retirado'
                 }">{{ t.estado }}</span>
               </td>
-              <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 font-bold uppercase text-center">{{ t.servicio_nombre || 'Sin asignar' }}</td>
-              <td class="px-3 md:px-6 py-3 md:py-4 text-slate-600 dark:text-slate-400 font-bold text-center">{{ t.hora_llegada | date:'h:mm a' }}</td>
+              <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 font-bold uppercase text-center">{{ t.servicio_nombre || 'Sin asignar' }}</td>
+              <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 dark:text-slate-400 font-bold text-center">{{ t.hora_llegada | date:'h:mm a' }}</td>
             </tr>
           </ng-container>
           <ng-container *ngIf="turnos.length > 0">

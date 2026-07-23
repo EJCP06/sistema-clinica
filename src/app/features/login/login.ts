@@ -282,14 +282,15 @@ export class Login implements OnDestroy {
       if (elapsed < 800) {
         await new Promise(r => setTimeout(r, 800 - elapsed));
       }
-      this.cargando = false;
       const usuario = this.auth.usuarioActual;
       if (!usuario) {
+        this.cargando = false;
         this.swal.error('Error al cargar datos del usuario');
         return;
       }
       const rutaInicial = this.auth.obtenerRutaInicial();
       if (rutaInicial === '/login') {
+        this.cargando = false;
         this.swal.error('Su usuario no tiene permisos asignados para acceder al sistema');
         this.router.navigate(['/login']);
         return;
