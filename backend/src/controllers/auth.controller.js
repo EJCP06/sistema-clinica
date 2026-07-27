@@ -52,7 +52,6 @@ const login = async (req, res) => {
     }
 
     // Desconectar sockets previos del mismo usuario — el último login siempre gana
-    const sesionTokenViejo = usuario.sesion_token;
     let socketsPrevios = [];
     try {
       const sockets = await Promise.race([
@@ -103,12 +102,7 @@ const login = async (req, res) => {
 
     // Notificar y desconectar sockets viejos DESPUÉS de que el nuevo login ya respondió
     for (const socket of socketsPrevios) {
-      if (sesionTokenViejo && socket.usuario.sesion_token === sesionTokenViejo) {
-        socket.emit('sesion-cerrada');
-        setTimeout(() => socket.disconnect(true), 500);
-      } else {
-        socket.disconnect(true);
-      }
+      socket.disconnect(true);
     }
 
   } catch (error) {

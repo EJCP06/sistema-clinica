@@ -83,11 +83,6 @@ export class ApiService {
           this.cambios$.next({ tipo: 'sede-cambiada' } as any);
         });
       });
-      this.socket.on('sesion-cerrada', () => {
-        this.zone.run(() => {
-          this.cambios$.next({ tipo: 'sesion-cerrada' } as any);
-        });
-      });
       this.socket.on('connect_error', () => {
         setTimeout(() => { if (!this.socket.connected) this.socket.connect(); }, 3000);
       });

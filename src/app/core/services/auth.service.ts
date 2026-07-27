@@ -125,18 +125,6 @@ export class AuthService implements OnDestroy {
           },
         });
       }
-
-      if (event.tipo === 'sesion-cerrada') {
-        Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'Su sesión ha expirado',
-          confirmButtonColor: '#2563eb',
-          allowOutsideClick: false,
-        }).then(() => {
-          this.emergencyLogout();
-        });
-      }
     });
   }
 
