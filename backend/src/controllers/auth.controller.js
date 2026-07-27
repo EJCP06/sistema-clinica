@@ -60,7 +60,10 @@ const login = async (req, res) => {
       ]);
       for (const socket of sockets) {
         if (socket.usuario && Number(socket.usuario.id) === Number(usuario.id)) {
-          if (!force) {
+          const tokenSock = socket.usuario.sesion_token;
+          const tokenDb = usuario.sesion_token;
+          const esMismoToken = tokenSock && tokenDb && tokenSock === tokenDb;
+          if (esMismoToken && !force) {
             haySesionActiva = true;
           } else {
             socket.disconnect(true);
