@@ -140,8 +140,8 @@ export class AuthService implements OnDestroy {
     return sessionStorage.getItem(this.TOKEN_KEY);
   }
 
-  login(username: string, password: string, force = false): Observable<any> {
-    return this.http.post<{mensaje: string, token: string, usuario: any}>(`${environment.apiUrl}/auth/login`, { username, password, force }, { withCredentials: true })
+  login(username: string, password: string): Observable<any> {
+    return this.http.post<{mensaje: string, token: string, usuario: any}>(`${environment.apiUrl}/auth/login`, { username, password }, { withCredentials: true })
       .pipe(
         tap(response => {
           const usuario: Usuario = {
