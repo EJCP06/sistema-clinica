@@ -200,6 +200,7 @@ export class AuthService implements OnDestroy {
         };
         sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(usuario));
         this.usuarioSubject.next(usuario);
+        this.api.actualizarSocketToken(this.getToken());
       }),
       map(() => true),
       catchError(() => {
