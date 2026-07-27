@@ -388,8 +388,8 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   getSearchFilterLabel(): string {
     const labels: Record<string, string> = {
       todo: 'TODO',
-      nombre: '1ER NOMBRE',
-      apellido: '1ER APELLIDO',
+      nombre: 'NOMBRES',
+      apellido: 'APELLIDOS',
       cedula: 'CÉDULA',
     };
     return labels[this.searchFilter] || 'TODO';
@@ -1280,7 +1280,18 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     const inputChar = String.fromCharCode(event.charCode);
     if (event.charCode !== 0 && !pattern.test(inputChar)) {
       event.preventDefault();
+      return;
     }
+    const input = event.target as HTMLInputElement;
+    if (inputChar === ' ' && input.value.length === 0) {
+      event.preventDefault();
+    }
+  }
+
+  trimCampo(event: Event) {
+    const input = event.target as HTMLInputElement;
+    input.value = input.value.trim();
+    input.dispatchEvent(new Event('input'));
   }
 
   soloNumeros(event: any) {

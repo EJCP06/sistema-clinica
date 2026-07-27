@@ -28,7 +28,7 @@ const COOKIE_OPTIONS = {
  * @returns {Promise<void>}
  */
 const login = async (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, force } = req.body;
   const cedula = username; 
 
   if (!cedula || !password) {
@@ -52,19 +52,28 @@ const login = async (req, res) => {
     }
 
     // Desconectar sockets previos del mismo usuario (fantasmas de sesiones antiguas)
+    let haySesionActiva = false;
     try {
       const sockets = await req.io.fetchSockets();
       for (const socket of sockets) {
         if (socket.usuario && Number(socket.usuario.id) === Number(usuario.id)) {
-          socket.disconnect(true);
+          if (!force) {
+            haySesionActiva = true;
+          } else {
+            socket.disconnect(true);
+          }
         }
       }
     } catch {
       /* Fallar silenciosamente — si fetchSockets falla, se permite el login */
     }
 
-    /* Invalida cualquier sesión previa para evitar conflictos con sockets
-       en proceso de desconexión o sesiones huérfanas */
+    /* Si hay sockets activos del usuario y no se fuerza, retornar 409 */
+    if (haySesionActiva) {
+      return res.status(409).json({ mensaje: 'Ya hay una sesión activa con este usuario.' });
+    }
+
+    /* Limpiar sesion_token huérfano (sin sockets activos) */
     if (usuario.sesion_token) {
       await usuarioRepo.actualizarSesionToken(usuario.id, null);
     }

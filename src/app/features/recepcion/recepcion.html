@@ -104,7 +104,7 @@
                   [class.bg-blue-50]="searchFilter === 'nombre'"
                   [class.text-blue-600]="searchFilter === 'nombre'"
                 >
-                  <span>1er Nombre</span>
+                  <span>Nombres</span>
                   <lucide-icon
                     *ngIf="searchFilter === 'nombre'"
                     [name]="CheckCircle2"
@@ -118,7 +118,7 @@
                   [class.bg-blue-50]="searchFilter === 'apellido'"
                   [class.text-blue-600]="searchFilter === 'apellido'"
                 >
-                  <span>1er Apellido</span>
+                  <span>Apellidos</span>
                   <lucide-icon
                     *ngIf="searchFilter === 'apellido'"
                     [name]="CheckCircle2"
@@ -262,6 +262,7 @@
                       type="text"
                       [(ngModel)]="nuevoPaciente.primer_nombre"
                       (keypress)="soloLetras($event)"
+                      (blur)="trimCampo($event)"
                       placeholder="Ej: Juan"
                       class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
                     />
@@ -275,6 +276,7 @@
                       type="text"
                       [(ngModel)]="nuevoPaciente.segundo_nombre"
                       (keypress)="soloLetras($event)"
+                      (blur)="trimCampo($event)"
                       placeholder="Ej: Jose"
                       class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
                     />
@@ -306,6 +308,7 @@
                       type="text"
                       [(ngModel)]="nuevoPaciente.primer_apellido"
                       (keypress)="soloLetras($event)"
+                      (blur)="trimCampo($event)"
                       placeholder="Ej: Perez"
                       class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
                     />
@@ -319,6 +322,7 @@
                       type="text"
                       [(ngModel)]="nuevoPaciente.segundo_apellido"
                       (keypress)="soloLetras($event)"
+                      (blur)="trimCampo($event)"
                       placeholder="Ej: Rodriguez"
                       class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
                     />
@@ -709,7 +713,7 @@
 
             <!-- FOOTER (Basado en imagen) -->
             <div
-              class="p-4 md:p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 shrink-0"
+              class="p-4 md:p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 shrink-0 sticky bottom-0 z-10"
             >
               <button
                 type="button"

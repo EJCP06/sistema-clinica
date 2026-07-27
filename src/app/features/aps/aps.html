@@ -60,7 +60,7 @@
                     [class.bg-blue-50]="searchFilter === 'nombre'"
                     [class.text-blue-600]="searchFilter === 'nombre'"
                   >
-                    <span>Nombre</span>
+                    <span>Nombres</span>
                     <lucide-icon
                       *ngIf="searchFilter === 'nombre'"
                       [name]="CheckCircle2"
@@ -73,7 +73,7 @@
                     [class.bg-blue-50]="searchFilter === 'apellido'"
                     [class.text-blue-600]="searchFilter === 'apellido'"
                   >
-                    <span>Apellido</span>
+                    <span>Apellidos</span>
                     <lucide-icon
                       *ngIf="searchFilter === 'apellido'"
                       [name]="CheckCircle2"
@@ -132,10 +132,11 @@
                 class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800"
               >
                 <tr class="h-[52px] md:h-[64px] text-slate-500 font-black text-[9px] sm:text-[10px] uppercase tracking-[2px]">
-                  <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Nombre</th>
-                  <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Apellido</th>
+                  <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Nombres</th>
+                  <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Apellidos</th>
                   <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Cédula</th>
                   <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Responsable</th>
+                  <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">N° Servicio</th>
                   <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Estado Actual</th>
                   <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Hora</th>
                   <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Acciones</th>
@@ -148,6 +149,7 @@
                     <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-700 dark:text-slate-300 uppercase text-center">{{ (a.apellido || '') + (a.segundo_apellido ? ' ' + a.segundo_apellido : '') || '' }}</td>
                     <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 font-bold tracking-tight text-center">{{ a.cedula || 'Sin asignar' }}</td>
                     <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-white uppercase text-center">{{ getResponsableLabel(a.modalidad_pago) }}</td>
+                    <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-blue-600 dark:text-blue-400 uppercase text-center">{{ a.numero }}</td>
                     <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">
                       <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border"
                         [ngClass]="{
@@ -201,8 +203,8 @@
                   </ng-container>
                 </ng-container>
                 <tr *ngIf="admisionesFiltradas.length === 0">
-                  <td colspan="7" class="px-8 py-20 text-center align-middle">
-                    <div class="flex flex-col items-center justify-center w-full">
+                  <td colspan="7" class="px-8 py-20" style="text-align: center; vertical-align: middle;">
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
                       <div
                         class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 mx-auto"
                       >

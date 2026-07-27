@@ -23,7 +23,7 @@
                 <lucide-icon *ngIf="searchFilter === 'todo'" [name]="CheckCircle2" class="w-3 h-3"></lucide-icon>
               </div>
               <div (click)="setSearchFilter('rol')" class="px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 cursor-pointer transition-colors rounded-lg flex items-center justify-between" [class.bg-blue-50]="searchFilter === 'rol'" [class.text-blue-600]="searchFilter === 'rol'">
-                <span>Rol</span>
+                <span>Roles</span>
                 <lucide-icon *ngIf="searchFilter === 'rol'" [name]="CheckCircle2" class="w-3 h-3"></lucide-icon>
               </div>
             </div>
@@ -244,7 +244,7 @@
     </div>
 
     <!-- Footer del modal -->
-    <div class="p-4 md:p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 shrink-0">
+    <div class="p-4 md:p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 shrink-0 sticky bottom-0 z-10">
       <button type="button" [disabled]="isSaving" (click)="cerrarModal()" class="px-6 md:px-8 py-3.5 md:py-4 bg-slate-500 hover:bg-slate-600 text-white font-black text-[11px] uppercase tracking-[2px] rounded-xl md:rounded-[20px] transition-all disabled:opacity-50 shadow-lg shadow-slate-500/20 dark:shadow-slate-950/50">
         CANCELAR
       </button>
