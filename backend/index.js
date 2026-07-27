@@ -123,6 +123,8 @@ const startServer = async () => {
     const { limpiarEstadosPendientes } = require('./src/repositories/atencion.repository');
     await limpiarEstadosPendientes();
 
+    await pool.query('UPDATE "Usuarios" SET sesion_token = NULL');
+
     server.listen(PORT, () => {
       logger.info(`Servidor backend corriendo en http://localhost:${PORT}`);
     });
