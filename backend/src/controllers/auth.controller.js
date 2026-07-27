@@ -51,8 +51,7 @@ const login = async (req, res) => {
       return res.status(403).json({ mensaje: 'Su usuario se encuentra inactivo. Contacte al administrador.' });
     }
 
-    // Desconectar sockets previos del mismo usuario (fantasmas de sesiones antiguas)
-    let haySesionActiva = false;
+    // Desconectar sockets previos del mismo usuario — el último login siempre gana
     try {
       const sockets = await Promise.race([
         req.io.fetchSockets(),
@@ -60,28 +59,12 @@ const login = async (req, res) => {
       ]);
       for (const socket of sockets) {
         if (socket.usuario && Number(socket.usuario.id) === Number(usuario.id)) {
-          const tokenSock = socket.usuario.sesion_token;
-          const tokenDb = usuario.sesion_token;
-          const esMismoToken = tokenSock && tokenDb && tokenSock === tokenDb;
-          if (esMismoToken && !force) {
-            haySesionActiva = true;
-          } else {
-            socket.disconnect(true);
-          }
+          socket.emit('sesion-cerrada');
+          socket.disconnect(true);
         }
       }
     } catch {
-      /* Si fetchSockets falla o tarda más de 3s, permitir login */
-    }
-
-    /* Si hay sockets activos del usuario y no se fuerza, retornar 409 */
-    if (haySesionActiva) {
-      return res.status(409).json({ mensaje: 'Ya hay una sesión activa con este usuario.' });
-    }
-
-    /* Limpiar sesion_token huérfano (sin sockets activos) */
-    if (usuario.sesion_token) {
-      await usuarioRepo.actualizarSesionToken(usuario.id, null);
+      /* Si fetchSockets falla o tarda más de 3s, continuar igual */
     }
 
     const sesionToken = crypto.randomUUID();

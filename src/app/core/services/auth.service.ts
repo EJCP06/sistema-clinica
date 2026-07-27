@@ -125,6 +125,19 @@ export class AuthService implements OnDestroy {
           },
         });
       }
+
+      if (event.tipo === 'sesion-cerrada') {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Sesión cerrada',
+          text: 'Tu sesión ha sido cerrada desde otro dispositivo. Debes iniciar sesión nuevamente.',
+          confirmButtonColor: '#2563eb',
+          allowOutsideClick: false,
+          willClose: () => {
+            this.emergencyLogout();
+          },
+        });
+      }
     });
   }
 
@@ -200,7 +213,6 @@ export class AuthService implements OnDestroy {
         };
         sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(usuario));
         this.usuarioSubject.next(usuario);
-        this.api.actualizarSocketToken(this.getToken());
       }),
       map(() => true),
       catchError(() => {
