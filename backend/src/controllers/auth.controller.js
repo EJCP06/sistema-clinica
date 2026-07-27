@@ -54,7 +54,10 @@ const login = async (req, res) => {
     // Desconectar sockets previos del mismo usuario (fantasmas de sesiones antiguas)
     let haySesionActiva = false;
     try {
-      const sockets = await req.io.fetchSockets();
+      const sockets = await Promise.race([
+        req.io.fetchSockets(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+      ]);
       for (const socket of sockets) {
         if (socket.usuario && Number(socket.usuario.id) === Number(usuario.id)) {
           if (!force) {
@@ -65,7 +68,7 @@ const login = async (req, res) => {
         }
       }
     } catch {
-      /* Fallar silenciosamente — si fetchSockets falla, se permite el login */
+      /* Si fetchSockets falla o tarda más de 3s, permitir login */
     }
 
     /* Si hay sockets activos del usuario y no se fuerza, retornar 409 */
