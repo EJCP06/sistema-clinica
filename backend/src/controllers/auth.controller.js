@@ -52,6 +52,8 @@ const login = async (req, res) => {
     }
 
     // Desconectar sockets previos del mismo usuario — el último login siempre gana
+    const sesionTokenViejo = usuario.sesion_token;
+    let socketsPrevios = [];
     try {
       const sockets = await Promise.race([
         req.io.fetchSockets(),
@@ -59,8 +61,7 @@ const login = async (req, res) => {
       ]);
       for (const socket of sockets) {
         if (socket.usuario && Number(socket.usuario.id) === Number(usuario.id)) {
-          socket.emit('sesion-cerrada');
-          socket.disconnect(true);
+          socketsPrevios.push(socket);
         }
       }
     } catch {
@@ -99,6 +100,16 @@ const login = async (req, res) => {
       expiresIn: 900,
       usuario: payload
     });
+
+    // Notificar y desconectar sockets viejos DESPUÉS de que el nuevo login ya respondió
+    for (const socket of socketsPrevios) {
+      if (sesionTokenViejo && socket.usuario.sesion_token === sesionTokenViejo) {
+        socket.emit('sesion-cerrada');
+        setTimeout(() => socket.disconnect(true), 500);
+      } else {
+        socket.disconnect(true);
+      }
+    }
 
   } catch (error) {
       res.status(500).json({ mensaje: 'Error interno' });
@@ -188,7 +199,8 @@ const cerrarSesion = async (req, res) => {
         const sockets = await req.io.fetchSockets();
         for (const socket of sockets) {
           if (socket.usuario && Number(socket.usuario.id) === Number(req.usuario.id)) {
-            socket.disconnect(true);
+          socket.emit('sesion-cerrada');
+          socket.disconnect(true);
           }
         }
       } catch { /* Ignorar errores de socket */ }
