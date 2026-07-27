@@ -43,6 +43,9 @@ export class ApiService {
           this.socket?.connect();
         }
       });
+      window.addEventListener('beforeunload', () => {
+        this.socket?.disconnect();
+      });
     }
   }
 
@@ -78,6 +81,11 @@ export class ApiService {
       this.socket.on('sede-cambiada', () => {
         this.zone.run(() => {
           this.cambios$.next({ tipo: 'sede-cambiada' } as any);
+        });
+      });
+      this.socket.on('sesion-cerrada', () => {
+        this.zone.run(() => {
+          this.cambios$.next({ tipo: 'sesion-cerrada' } as any);
         });
       });
       this.socket.on('connect_error', () => {

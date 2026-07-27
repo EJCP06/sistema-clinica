@@ -253,14 +253,7 @@ export class Login implements OnDestroy {
           const restante = Math.max(0, MIN_CARGANDO - elapsed);
           const mostrarError = () => {
             this.cargando = false;
-            if (err.status === 409) {
-              Swal.fire({
-                icon: 'warning',
-                title: 'Sesión activa',
-                text: err.error?.mensaje || 'Ya hay una sesión activa con este usuario.',
-                confirmButtonColor: '#2563eb',
-              });
-            } else if (err.status === 403) {
+            if (err.status === 403) {
               Swal.fire({
                 icon: 'error',
                 title: 'Usuario inactivo',
