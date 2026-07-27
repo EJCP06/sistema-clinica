@@ -61,7 +61,7 @@
                     [class.bg-blue-50]="searchFilter === 'nombre'"
                     [class.text-blue-600]="searchFilter === 'nombre'"
                   >
-                    <span>Nombre</span>
+                    <span>Nombres</span>
                     <lucide-icon
                       *ngIf="searchFilter === 'nombre'"
                       [name]="CheckCircle2"
@@ -74,7 +74,7 @@
                     [class.bg-blue-50]="searchFilter === 'apellido'"
                     [class.text-blue-600]="searchFilter === 'apellido'"
                   >
-                    <span>Apellido</span>
+                    <span>Apellidos</span>
                     <lucide-icon
                       *ngIf="searchFilter === 'apellido'"
                       [name]="CheckCircle2"
@@ -137,9 +137,8 @@
                     <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Apellidos</th>
                     <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Cédula</th>
                     <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Responsable</th>
-                    <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Estado Actual</th>
-                    <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Servicio</th>
                     <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">N° Servicio</th>
+                    <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Estado Actual</th>
                     <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Hora</th>
                     <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Acciones</th>
                   </tr>
@@ -180,6 +179,11 @@
                       >
                         {{ getResponsableLabel(a.modalidad_pago) }}
                       </td>
+                      <td
+                        class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-blue-600 dark:text-blue-400 uppercase text-center"
+                      >
+                        {{ a.numero }}
+                      </td>
                       <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">
                         <span
                           class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border"
@@ -204,16 +208,6 @@
                         >
                           {{ a.nombre_estado || 'Sin asignar' }}
                         </span>
-                      </td>
-                      <td
-                        class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-white uppercase text-center"
-                      >
-                        {{ getServicioCategoria(a.nombre_servicio) }}
-                      </td>
-                      <td
-                        class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-blue-600 dark:text-blue-400 uppercase text-center"
-                      >
-                        {{ a.numero }}
                       </td>
                       <td
                         class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-white uppercase text-center"
@@ -268,12 +262,12 @@
                       *ngFor="let _ of admisionesFiltradas | fillers: currentPage : pageSize"
                     >
                       <tr>
-                        <td colspan="9" class="h-[52px] md:h-[64px]"></td>
+                        <td colspan="8" class="h-[52px] md:h-[64px]"></td>
                       </tr>
                     </ng-container>
                   </ng-container>
                   <tr *ngIf="admisionesFiltradas.length === 0">
-                    <td colspan="9" class="px-8 py-20 text-center align-middle">
+                    <td colspan="8" class="px-8 py-20 text-center align-middle">
                       <div class="flex flex-col items-center justify-center w-full">
                         <div
                           class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 mx-auto"

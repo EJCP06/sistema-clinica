@@ -258,7 +258,15 @@ export class Login implements OnDestroy {
                 icon: 'warning',
                 title: 'Sesión activa',
                 text: err.error?.mensaje || 'Ya hay una sesión activa con este usuario.',
+                showCancelButton: true,
+                confirmButtonText: 'Forzar acceso',
+                cancelButtonText: 'Cancelar',
                 confirmButtonColor: '#2563eb',
+                cancelButtonColor: '#64748b',
+              }).then((result) => {
+                if (result.isConfirmed) {
+                  this.loginForzado();
+                }
               });
             } else if (err.status === 403) {
               Swal.fire({
@@ -270,6 +278,26 @@ export class Login implements OnDestroy {
             } else {
               this.swal.error(err.error?.mensaje || err.message || 'Error de autenticación');
             }
+          };
+          if (restante > 0) setTimeout(mostrarError, restante);
+          else mostrarError();
+        }
+      });
+    }
+
+    private loginForzado() {
+      this.cargando = true;
+      const inicio = Date.now();
+      const MIN_CARGANDO = 800;
+
+      this.auth.login(this.cedula, this.password, true).subscribe({
+        next: () => this.procesarLogin(inicio),
+        error: (err: any) => {
+          const elapsed = Date.now() - inicio;
+          const restante = Math.max(0, MIN_CARGANDO - elapsed);
+          const mostrarError = () => {
+            this.cargando = false;
+            this.swal.error(err.error?.mensaje || err.message || 'Error de autenticación');
           };
           if (restante > 0) setTimeout(mostrarError, restante);
           else mostrarError();

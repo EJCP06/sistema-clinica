@@ -95,7 +95,7 @@ export class AdminPermisologia implements OnInit, OnDestroy {
   }
 
   get searchFilterLabel(): string {
-    const labels: Record<string, string> = { todo: 'Todo', rol: 'Rol' };
+    const labels: Record<string, string> = { todo: 'Todo', rol: 'Roles' };
     return labels[this.searchFilter] || 'Todo';
   }
 

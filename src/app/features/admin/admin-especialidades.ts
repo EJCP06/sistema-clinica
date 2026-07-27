@@ -285,7 +285,7 @@ export class AdminEspecialidades implements OnInit {
   }
 
   getSearchFilterLabel(val: string): string {
-    const map: Record<string, string> = { todo: 'Todo', nombre: 'Nombre', apellido: 'Apellido', cedula: 'Cédula', especialidad: 'Especialidad', prefijo: 'Prefijo' };
+    const map: Record<string, string> = { todo: 'Todo', nombre: 'Nombres', prefijo: 'Prefijo' };
     return map[val] || 'Filtrar';
   }
 
@@ -332,7 +332,20 @@ export class AdminEspecialidades implements OnInit {
 
   soloLetras(event: KeyboardEvent) {
     const pattern = /[a-zA-ZáéíóúÁÉÍÓÚñÑ ]/;
-    if (event.key.length === 1 && !pattern.test(event.key)) event.preventDefault();
+    if (event.key.length === 1 && !pattern.test(event.key)) {
+      event.preventDefault();
+      return;
+    }
+    const input = event.target as HTMLInputElement;
+    if (event.key === ' ' && input.value.length === 0) {
+      event.preventDefault();
+    }
+  }
+
+  trimCampo(event: Event) {
+    const input = event.target as HTMLInputElement;
+    input.value = input.value.trim();
+    input.dispatchEvent(new Event('input'));
   }
 
   soloNumeros(event: KeyboardEvent) {

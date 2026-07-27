@@ -434,7 +434,7 @@ export class AdminPersonal implements OnInit {
   }
 
   getSearchFilterLabel(val: string): string {
-    const map: Record<string, string> = { todo: 'Todo', nombre: 'Nombre', apellido: 'Apellido', cedula: 'Cédula', rol: 'Rol' };
+    const map: Record<string, string> = { todo: 'Todo', nombre: 'Nombres', apellido: 'Apellidos', cedula: 'Cédula', rol: 'Rol' };
     return map[val] || 'Filtrar';
   }
 
@@ -531,7 +531,14 @@ export class AdminPersonal implements OnInit {
   soloLetras(event: KeyboardEvent) {
     const pattern = /[a-zA-ZáéíóúÁÉÍÓÚñÑ ]/;
     const inputChar = String.fromCharCode(event.charCode);
-    if (event.charCode !== 0 && !pattern.test(inputChar)) event.preventDefault();
+    if (event.charCode !== 0 && !pattern.test(inputChar)) {
+      event.preventDefault();
+      return;
+    }
+    const input = event.target as HTMLInputElement;
+    if (inputChar === ' ' && input.value.length === 0) {
+      event.preventDefault();
+    }
   }
 
   soloNumeros(event: KeyboardEvent) {
@@ -540,8 +547,10 @@ export class AdminPersonal implements OnInit {
     if (event.charCode !== 0 && !pattern.test(inputChar)) event.preventDefault();
   }
 
-  sinEspacios(event: KeyboardEvent) {
-    if (event.charCode === 32) event.preventDefault();
+  trimCampo(event: Event) {
+    const input = event.target as HTMLInputElement;
+    input.value = input.value.trim();
+    input.dispatchEvent(new Event('input'));
   }
 
   importExcel(fileInput: HTMLInputElement) {

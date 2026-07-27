@@ -111,8 +111,8 @@ export class LaboratorioComponent implements OnInit, OnDestroy {
   getSearchFilterLabel(): string {
     const labels: Record<string, string> = {
       'todo': 'TODO',
-      'nombre': 'NOMBRE',
-      'apellido': 'APELLIDO',
+      'nombre': 'NOMBRES',
+      'apellido': 'APELLIDOS',
       'cedula': 'CÉDULA'
     };
     return labels[this.searchFilter] || 'TODO';

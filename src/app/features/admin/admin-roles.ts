@@ -179,8 +179,26 @@ export class AdminRoles implements OnInit {
   }
 
   getSearchFilterLabel(val: string): string {
-    const labels: { [key: string]: string } = { todo: 'Todo', nombre: 'Nombre' };
+    const labels: { [key: string]: string } = { todo: 'Todo', nombre: 'Nombres' };
     return labels[val] || 'Todo';
+  }
+
+  soloLetras(event: KeyboardEvent) {
+    const pattern = /[a-zA-ZáéíóúÁÉÍÓÚñÑ ]/;
+    if (event.key.length === 1 && !pattern.test(event.key)) {
+      event.preventDefault();
+      return;
+    }
+    const input = event.target as HTMLInputElement;
+    if (event.key === ' ' && input.value.length === 0) {
+      event.preventDefault();
+    }
+  }
+
+  trimCampo(event: Event) {
+    const input = event.target as HTMLInputElement;
+    input.value = input.value.trim();
+    input.dispatchEvent(new Event('input'));
   }
 
   openModalRol(rol?: RolDTO | null, trigger?: HTMLElement | null): void {
