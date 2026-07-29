@@ -102,7 +102,11 @@ const marcarAusente = async (req, res) => {
     await historialRepo.insert(client, id, 7);
     
     await client.query('COMMIT');
-    if (req.io) req.io.emit('estado-actualizado', { tipo: 'liberacion', id_atencion: Number(id) });
+    if (req.io) {
+      const sede = req.usuario?.id_sede || 1;
+      const admision = await atencionRepo.getAdmisionById(id, sede);
+      req.io.emit('estado-actualizado', { tipo: 'retirado', admision });
+    }
     res.json({ mensaje: 'Turno marcado como ausente' });
   } catch (error) {
     await client.query('ROLLBACK');
