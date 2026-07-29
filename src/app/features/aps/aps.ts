@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, HostListener, ElementRef, inject, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize } from 'rxjs';
+import { finalize, interval } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronDown, Undo2, KeyRound, DollarSign, Trash2 } from 'lucide-angular';
@@ -88,8 +88,33 @@ export class ApsComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.cargarUltimasAdmisiones();
 
-    this.api.cambios$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+    this.api.cambios$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((event: any) => {
       if (this.marcandoAusente) return;
+      if (event?.admision) {
+        const a = event.admision;
+        const servicioLower = (a.nombre_servicio || '').toLowerCase();
+        const esLaboratorio = servicioLower.includes('laboratorio');
+        const esImagenes = servicioLower.includes('imágenes') || servicioLower.includes('imagenes');
+        const esConsulta = !esLaboratorio && !esImagenes && a.nombre_servicio !== 'SIN ASIGNAR';
+        const modalidadPagoLower = (a.modalidad_pago || '').toLowerCase();
+        const esSeguro = modalidadPagoLower === 'seguro';
+        const esParticular = modalidadPagoLower === 'particular';
+        const pasaFiltro = (esLaboratorio || esImagenes) ? esSeguro : esConsulta ? (esSeguro || esParticular) : false;
+        if (pasaFiltro && ![6, 9].includes(Number(a.id_estado_actual))) {
+          this.ultimasAdmisiones = [a, ...this.ultimasAdmisiones].slice(0, 50);
+        }
+      } else if (event?.tipo === 'retirado' || event?.tipo === 'liberacion') {
+        this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== event.id_atencion);
+      } else if (event?.tipo === 'estado-cambiado') {
+        if ([6, 9].includes(Number(event.id_estado_nuevo))) {
+          this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== event.id_atencion);
+        }
+      } else {
+        this.cargarUltimasAdmisiones();
+      }
+    });
+
+    interval(30000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.cargarUltimasAdmisiones();
     });
   }

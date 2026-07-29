@@ -61,7 +61,7 @@ const marcarAusente = async (req, res) => {
       
       await client.query('COMMIT');
       
-      if (req.io) req.io.emit('estado-actualizado', { id_atencion: id });
+      if (req.io) req.io.emit('estado-actualizado', { tipo: 'retirado', id_atencion: id });
       
       await historialRepo.insertSinTransaccion(id, 9);
       
@@ -345,7 +345,7 @@ const actualizarEstadoAtencion = async (req, res) => {
       return res.status(404).json({ mensaje: 'Atención no encontrada' });
     }
 
-    if (req.io) req.io.emit('estado-actualizado', { id_atencion: id });
+    if (req.io) req.io.emit('estado-actualizado', { tipo: 'estado-cambiado', id_atencion: id, id_estado_nuevo });
 
     await historialRepo.insertSinTransaccion(id, id_estado_nuevo);
 
@@ -382,7 +382,10 @@ const generarTurno = async (req, res) => {
 
     const turno = await atencionRepo.insertarAtencion({ id_paciente, id_servicio, id_responsable, sede, usuarioId, numero, id_cliente, id_especialidad, id_medico, id_consultorio });
 
-    if (req.io) req.io.emit('estado-actualizado', { tipo: 'nuevo-turno', id_atencion: turno.id_atencion });
+    if (req.io) {
+      const admision = await atencionRepo.getAdmisionById(turno.id_atencion, sede);
+      req.io.emit('estado-actualizado', { tipo: 'nuevo-turno', admision });
+    }
 
     res.status(201).json(turno);
   } catch (error) {

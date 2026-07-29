@@ -40,7 +40,16 @@ const authMiddleware = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     const result = await pool.query(
-      'SELECT sesion_token, status FROM "Usuarios" WHERE id_usuario = $1',
+      `SELECT u.sesion_token, u.status, u.id_rol,
+              COALESCE(
+                (SELECT json_agg(rec.key || ':' || acc.key)
+                 FROM "Roles_Recursos_Acciones" rra
+                 INNER JOIN "Recursos" rec ON rra.id_recurso = rec.id_recurso
+                 INNER JOIN "Acciones" acc ON rra.id_accion = acc.id_accion
+                 WHERE rra.id_rol = u.id_rol), '[]'
+              ) AS permisos
+       FROM "Usuarios" u
+       WHERE u.id_usuario = $1`,
       [decoded.id],
     );
 
@@ -52,7 +61,7 @@ const authMiddleware = async (req, res, next) => {
       return res.status(401).json({ mensaje: 'Sesión inválida. Otro usuario ha iniciado sesión con tus credenciales.' });
     }
 
-    req.usuario = decoded;
+    req.usuario = { ...decoded, permisos: result.rows[0].permisos };
     next();
   } catch (err) {
     return res.status(401).json({ mensaje: 'Token inválido' });

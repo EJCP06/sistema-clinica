@@ -830,6 +830,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
                 this.mostrarRegistro = false;
                 this.swal.success('Cambios guardados con éxito');
                 this.cargarUltimasAdmisiones();
+                this.api.cambios$.next({ tipo: 'atencion-actualizada', id_atencion: this.seleccion.id_atencion });
               });
             },
             error: () =>
@@ -903,6 +904,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
           this.cdr.detectChanges();
           this.swal.success('Generado con éxito: ' + (res.numero || 'Listo'));
           this.cargarUltimasAdmisiones();
+          this.api.cambios$.next({ tipo: 'nuevo-turno', id_atencion: res.id_atencion });
         });
       },
       error: (err: any) => {
@@ -947,6 +949,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
           this.cdr.detectChanges();
           this.swal.success('Turno / Servicio asignado con éxito: ' + (res.numero || 'Listo'));
           this.cargarUltimasAdmisiones();
+          this.api.cambios$.next({ tipo: 'nuevo-turno', id_atencion: res.id_atencion });
         });
       },
       error: (err: any) => {
