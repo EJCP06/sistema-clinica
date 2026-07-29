@@ -30,6 +30,34 @@ const getUltimasAdmisiones = async (sede) => {
   return result.rows;
 };
 
+const getAdmisionById = async (id, sede) => {
+  const result = await pool.query(
+    `SELECT
+      a.id_atencion, a.numero,
+      a.hora_llegada as fecha_creacion,
+      a.hora_salida,
+      a.id_estado_actual, a.id_servicio, a.id_paciente, a.id_especialidad, a.id_cliente,
+      a.id_medico, a.id_consultorio,
+      p.id_paciente, p.cedula, p.primer_nombre as nombre, p.segundo_nombre, p.primer_apellido as apellido, p.segundo_apellido, p.fecha_nacimiento, p.telefono,
+      s.nombre_servicio, s.prefijo,
+      e.nombre_estado,
+      rp.nombre as modalidad_pago,
+      a.id_responsable,
+      esp.nombre as nombre_especialidad,
+      u.primer_nombre || ' ' || u.primer_apellido as nombre_medico
+    FROM "Atencion" a
+    JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
+    JOIN "Servicio" s ON a.id_servicio = s.id_servicio
+    JOIN "Estado" e ON a.id_estado_actual = e.id_estado
+    LEFT JOIN "Responsable_Pago" rp ON a.id_responsable = rp.id_responsable
+    LEFT JOIN "Especialidades" esp ON a.id_especialidad = esp.id_especialidad
+    LEFT JOIN "Usuarios" u ON a.id_medico = u.id_usuario
+    WHERE a.id_atencion = $1 AND a.id_sede = $2`,
+    [id, sede],
+  );
+  return result.rows[0] || null;
+};
+
 const getAtencionEstado = async (id, sede) => {
   const result = await pool.query(
     `SELECT id_estado_actual, id_responsable, id_servicio, id_especialidad, id_medico FROM "Atencion" WHERE id_atencion = $1 AND id_sede = $2`,
@@ -533,6 +561,7 @@ const limpiarEstadosPendientes = async () => {
 
 module.exports = {
   getUltimasAdmisiones,
+  getAdmisionById,
   getAtencionEstado,
   actualizarAtencionConServicio,
   actualizarAtencionSimple,

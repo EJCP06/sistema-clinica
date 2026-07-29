@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, HostListener, ElementRef, inject, DestroyRef } from '@angular/core';
+import { interval } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -91,7 +92,29 @@ export class ImagenesComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.cargarUltimasAdmisiones();
 
-    this.api.cambios$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+    this.api.cambios$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((event: any) => {
+      if (event?.admision) {
+        const a = event.admision;
+        const servicioLower = (a.nombre_servicio || '').toLowerCase();
+        const esImagenes = servicioLower.includes('imágenes') || servicioLower.includes('imagenes');
+        const modalidadPagoLower = (a.modalidad_pago || '').toLowerCase();
+        const esSeguro = modalidadPagoLower === 'seguro' || modalidadPagoLower.includes('asegur');
+        const esParticular = modalidadPagoLower === 'particular';
+        if (esImagenes && (esParticular || esSeguro) && ![6, 9].includes(Number(a.id_estado_actual))) {
+          this.ultimasAdmisiones = [a, ...this.ultimasAdmisiones].slice(0, 50);
+        }
+      } else if (event?.tipo === 'retirado' || event?.tipo === 'liberacion') {
+        this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== event.id_atencion);
+      } else if (event?.tipo === 'estado-cambiado') {
+        if ([6, 9].includes(Number(event.id_estado_nuevo))) {
+          this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== event.id_atencion);
+        }
+      } else {
+        this.cargarUltimasAdmisiones();
+      }
+    });
+
+    interval(30000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.cargarUltimasAdmisiones();
     });
   }

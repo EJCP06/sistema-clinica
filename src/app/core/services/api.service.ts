@@ -37,6 +37,7 @@ export class ApiService {
   public cambios$ = new Subject<{ tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; apellido?: string; id_sede?: number }>();
 
   constructor() {
+    this.conectarSocket(sessionStorage.getItem('clinica_token'));
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible' && !this.socket?.connected) {
