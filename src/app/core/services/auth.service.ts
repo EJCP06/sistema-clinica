@@ -19,6 +19,7 @@ import Swal from 'sweetalert2';
 export class AuthService implements OnDestroy {
   private readonly STORAGE_KEY = 'clinica_usuario';
   private readonly TOKEN_KEY = 'clinica_token';
+  private readonly FECHA_KEY = 'clinica_fecha';
   private readonly usuarioSubject = new BehaviorSubject<Usuario | null>(this.cargarSesion());
   private readonly permisosSub: Subscription;
 
@@ -169,10 +170,22 @@ export class AuthService implements OnDestroy {
         this.api.actualizarSocketToken(res.token);
       }),
       catchError(() => {
-        this.logoutSilently();
         return of(null);
       }),
     );
+  }
+
+  refreshTokenSiEsNuevoDia(): void {
+    const token = this.getToken();
+    if (!token) return;
+
+    const hoy = new Date().toISOString().slice(0, 10);
+    const fechaGuardada = sessionStorage.getItem(this.FECHA_KEY);
+
+    if (fechaGuardada !== hoy) {
+      sessionStorage.setItem(this.FECHA_KEY, hoy);
+      this.refreshSession().subscribe();
+    }
   }
 
   verifySession(): Observable<boolean> {
