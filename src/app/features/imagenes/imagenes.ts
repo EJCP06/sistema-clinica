@@ -100,15 +100,22 @@ export class ImagenesComponent implements OnInit, OnDestroy {
         const modalidadPagoLower = (a.modalidad_pago || '').toLowerCase();
         const esSeguro = modalidadPagoLower === 'seguro' || modalidadPagoLower.includes('asegur');
         const esParticular = modalidadPagoLower === 'particular';
-        if (esImagenes && (esParticular || esSeguro) && ![6, 9].includes(Number(a.id_estado_actual))) {
-          this.ultimasAdmisiones = [a, ...this.ultimasAdmisiones].slice(0, 50);
+        
+        if (event.tipo === 'nuevo-turno') {
+          if (esImagenes && (esParticular || esSeguro) && ![6, 9].includes(Number(a.id_estado_actual))) {
+            this.ultimasAdmisiones = [a, ...this.ultimasAdmisiones].slice(0, 50);
+          }
+        } else if (event.tipo === 'retirado') {
+          this.ultimasAdmisiones = this.ultimasAdmisiones.filter(x => x.id_atencion !== a.id_atencion);
         }
       } else if (event?.tipo === 'retirado' || event?.tipo === 'liberacion') {
         this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== event.id_atencion);
+        this.cargarUltimasAdmisiones();
       } else if (event?.tipo === 'estado-cambiado') {
         if ([6, 9].includes(Number(event.id_estado_nuevo))) {
           this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== event.id_atencion);
         }
+        this.cargarUltimasAdmisiones();
       } else {
         this.cargarUltimasAdmisiones();
       }

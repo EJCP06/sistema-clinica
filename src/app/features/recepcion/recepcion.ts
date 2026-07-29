@@ -341,9 +341,17 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       this.cargarUltimasAdmisiones();
     }
 
-    this.cambiosSub = this.api.cambios$.subscribe(() => {
+    this.cambiosSub = this.api.cambios$.subscribe((event: any) => {
       if (this.isAseguradorasView) {
         this.cargarAseguradoras();
+      } else if (event?.tipo === 'retirado' && event?.admision) {
+        this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== event.admision.id_atencion);
+        this.cargarUltimasAdmisiones();
+      } else if (event?.tipo === 'liberacion' || event?.tipo === 'estado-cambiado') {
+        if (event.id_atencion) {
+          this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== event.id_atencion);
+        }
+        this.cargarUltimasAdmisiones();
       } else {
         this.cargarUltimasAdmisiones();
       }
