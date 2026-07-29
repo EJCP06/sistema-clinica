@@ -6,8 +6,7 @@ const refreshTokenRepo = require('../repositories/refreshToken.repository');
 const { auditar } = require('../middleware/audit');
 const { logErrorSafe } = require('../utils/sanitize');
 
-const ACCESS_TOKEN_EXPIRY = '15m';
-const REFRESH_TOKEN_EXPIRY_DAYS = 7;
+const ACCESS_TOKEN_EXPIRY = '24h';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -89,14 +88,14 @@ const login = async (req, res) => {
     const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
     const refreshToken = await refreshTokenRepo.createRefreshToken(usuario.id);
 
-    res.cookie('refresh_token', refreshToken, { ...COOKIE_OPTIONS, maxAge: REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000 });
+    res.cookie('refresh_token', refreshToken, COOKIE_OPTIONS);
 
     auditar({ userId: usuario.id, accion: 'login', recurso: 'auth', ip: req.ip });
 
     res.status(200).json({
       mensaje: 'Login exitoso',
       token: accessToken,
-      expiresIn: 900,
+      expiresIn: 86400,
       usuario: payload
     });
 
@@ -260,11 +259,11 @@ const refrescarToken = async (req, res) => {
     const newAccessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
     const newRefreshToken = await refreshTokenRepo.createRefreshToken(usuario.id);
 
-    res.cookie('refresh_token', newRefreshToken, { ...COOKIE_OPTIONS, maxAge: REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000 });
+    res.cookie('refresh_token', newRefreshToken, COOKIE_OPTIONS);
 
     res.json({
       token: newAccessToken,
-      expiresIn: 900,
+      expiresIn: 86400,
       usuario: payload,
     });
   } catch (error) {

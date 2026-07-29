@@ -54,13 +54,11 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
                 return next(cloned);
               }
 
-              authService.logoutSilently();
               return throwError(() => error);
             }),
             catchError((refreshError) => {
               isRefreshing = false;
               pending$.next(false);
-              authService.logoutSilently();
               return throwError(() => refreshError);
             }),
           );
