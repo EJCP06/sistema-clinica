@@ -321,6 +321,7 @@ export interface TurnoReporteDTO {
   id: number;
   numero: string;
   estado: string;
+  id_estado_actual: number;
   hora_llegada: string;
   hora_fin?: string;
   servicio_nombre: string;
@@ -330,6 +331,8 @@ export interface TurnoReporteDTO {
   medico_apellido?: string;
   hora_inicio_atencion?: string;
   hora_fin_atencion?: string;
+  hora_marcado_ausente?: string;
+  hora_retirado?: string;
   id_sede: number;
   paciente: {
     nombre: string;

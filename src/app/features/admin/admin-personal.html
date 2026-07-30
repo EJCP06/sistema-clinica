@@ -375,7 +375,7 @@
                 <lucide-icon [name]="ChevronDown" class="w-4 h-4 text-slate-400" [class.rotate-180]="showMedicoConDropdown"></lucide-icon>
               </button>
               <div *ngIf="showMedicoConDropdown" class="absolute z-[100] w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600">
-                <div class="max-h-48 overflow-y-auto custom-scrollbar p-1">
+                <div class="max-h-[5.5rem] overflow-y-auto custom-scrollbar p-1">
                   <div *ngFor="let c of consultoriosDelServicio" (click)="selectMedicoCon(c)" class="px-4 py-2 text-sm hover:bg-slate-50 cursor-pointer transition-colors rounded-lg flex items-center justify-between" [class.bg-blue-50]="formPersonal.consultorio_id === c.id">
                     <span class="lowercase first-letter:uppercase font-bold">{{ c.nombre }}</span>
                     <lucide-icon *ngIf="formPersonal.consultorio_id === c.id" [name]="CheckCircle2" class="w-3.5 h-3.5 text-blue-600"></lucide-icon>

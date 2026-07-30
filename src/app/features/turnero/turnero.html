@@ -133,7 +133,7 @@
                       <span class="text-[8px] md:text-[10px] font-bold text-white uppercase tracking-wider">ESPECIALIDAD</span>
                       <p class="text-[10px] md:text-sm font-black text-sky-400 uppercase">{{ t.especialidad_nombre }}</p>
                     </div>
-                    <div class="flex flex-col items-center gap-0">
+<div class="flex flex-col items-center gap-0">
                       <span class="text-[8px] md:text-[10px] font-bold text-white uppercase tracking-wider">ESTADO</span>
                       <span class="text-[10px] md:text-xs font-black uppercase tracking-widest"
                         [class.text-blue-400]="t.id_estado_actual === 1"
@@ -146,12 +146,16 @@
                         [class.text-orange-400]="t.id_estado_actual === 8"
                       >{{ t.estado || '' }}</span>
                     </div>
+                    <div *ngIf="t.id_estado_actual === 4" class="flex flex-col items-center gap-0 me-2 md:me-4">
+                      <span class="text-[8px] md:text-[10px] font-bold text-white uppercase tracking-wider">CONSULTORIO</span>
+                      <span class="text-sm md:text-xl font-black text-white uppercase tracking-widest">{{ t.consultorio_nombre || '' }}</span>
+                    </div>
                   </div>
-             </div>
-           </div>
-         </div>
-       </div>
-     </ng-container>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
 
     <!-- LAYOUT: LAB -->
     <div *ngIf="config.layout === 'lab'" class="flex-1 flex flex-col items-center overflow-visible md:overflow-hidden">

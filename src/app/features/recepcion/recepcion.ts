@@ -88,7 +88,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   readonly Upload = Upload;
   readonly Info = Info;
 
-  pageSize: number = 6;
+  pageSize: number = 7;
   currentPage: number = 1;
 
   sidebarOpen: boolean = false;
@@ -109,7 +109,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
   pacientesEncontrados: any[] = [];
   pacienteEncontrado: any = null;
-  nuevoPaciente: any = {
+nuevoPaciente: any = {
     cedula: '',
     nombre: '',
     apellido: '',
@@ -344,14 +344,32 @@ export class RecepcionComponent implements OnInit, OnDestroy {
     this.cambiosSub = this.api.cambios$.subscribe((event: any) => {
       if (this.isAseguradorasView) {
         this.cargarAseguradoras();
-      } else if (event?.tipo === 'retirado' && event?.admision) {
-        this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== event.admision.id_atencion);
-        this.cargarUltimasAdmisiones();
-      } else if (event?.tipo === 'liberacion' || event?.tipo === 'estado-cambiado') {
-        if (event.id_atencion) {
-          this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== event.id_atencion);
+      } else if (event?.admision) {
+        if (event.tipo === 'retirado') {
+          this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== event.admision.id_atencion);
+        } else if (event.tipo === 'estado-cambiado') {
+          if ([6, 9].includes(Number(event.id_estado_nuevo))) {
+            this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== event.admision.id_atencion);
+          } else if (Number(event.id_estado_nuevo) === 3) {
+            this.ultimasAdmisiones = [event.admision, ...this.ultimasAdmisiones].slice(0, 50);
+          }
         }
-        this.cargarUltimasAdmisiones();
+      } else if (event.tipo === 'retirado' || event.tipo === 'liberacion') {
+        const id = Number(event.id_atencion);
+        if (!isNaN(id)) {
+          this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== id);
+        } else {
+          this.cargarUltimasAdmisiones();
+        }
+      } else if (event.tipo === 'estado-cambiado') {
+        if ([6, 9].includes(Number(event.id_estado_nuevo))) {
+          const id = Number(event.id_atencion);
+          if (!isNaN(id)) {
+            this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== id);
+          } else {
+            this.cargarUltimasAdmisiones();
+          }
+        }
       } else {
         this.cargarUltimasAdmisiones();
       }
@@ -632,6 +650,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
       nombre: '',
       apellido: '',
       telefono: '',
+      fecha_nacimiento: '',
       status: true,
     };
     this.seleccion = {

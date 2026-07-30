@@ -174,6 +174,9 @@
                         <button *ngIf="a.id_estado_actual === 2 && tienePermiso('laboratorio_pasar_sala_espera')" (click)="enviarACaja(a.id_atencion)" aria-label="Enviar a sala de espera" title="Enviar a Sala de Espera" class="p-2 text-teal-500 hover:bg-teal-50 rounded-xl transition-all">
                           <lucide-icon [name]="CheckCircle2" class="w-4 h-4"></lucide-icon>
                         </button>
+                        <button *ngIf="a.id_estado_actual === 7 && (tienePermiso('laboratorio_reincorporar') || tienePermiso('reincorporar'))" (click)="reincorporar(a.id_atencion)" aria-label="Reincorporar a sala de espera" title="Reincorporar a Sala de Espera" class="p-2 text-orange-500 hover:bg-orange-50 rounded-xl transition-all">
+                          <lucide-icon [name]="Undo2" class="w-4 h-4"></lucide-icon>
+                        </button>
                         <button
                           *ngIf="(a.id_estado_actual === 2 || a.id_estado_actual === 3 || a.id_estado_actual === 8 || a.id_estado_actual === 7)"
                           (click)="marcarAusente(a)"

@@ -24,7 +24,8 @@ router.get('/mi-estado', permMiddleware(
 ), consultoriosController.obtenerMiEstado);
 
 router.post('/llamar-siguiente', permMiddleware(
-  'atencion_medica:llamar_siguiente', 'llamado:laboratorio', 'llamado:imagenes'
+  'atencion_medica:llamar_siguiente', 'llamado:laboratorio', 'llamado:imagenes',
+  'laboratorio:*', 'imagenes:*'
 ), consultoriosController.llamarSiguiente);
 
 router.post('/iniciar-atencion', permMiddleware(

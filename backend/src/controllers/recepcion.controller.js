@@ -61,7 +61,10 @@ const marcarAusente = async (req, res) => {
       
       await client.query('COMMIT');
       
-      if (req.io) req.io.emit('estado-actualizado', { tipo: 'retirado', id_atencion: id });
+      if (req.io) {
+        const admision = await atencionRepo.getAdmisionById(id, sede);
+        req.io.emit('estado-actualizado', { tipo: 'retirado', id_atencion: Number(id), admision });
+      }
       
       await historialRepo.insertSinTransaccion(id, 9);
       

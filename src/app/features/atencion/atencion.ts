@@ -93,7 +93,8 @@ export class Atencion implements OnInit, OnDestroy {
     const p = this.tipo === 'medico' ? 'atencion_medica' : this.tipo;
     return this.authService.tienePermiso(`${p}:${accion}`) || 
            this.authService.tienePermiso(`${p}:*`) || 
-           this.authService.tienePermiso(`${p}_${accion}`);
+           this.authService.tienePermiso(`${p}_${accion}`) ||
+           this.authService.tienePermiso(`llamado:${p}`);
   }
 
   get consultorio() {

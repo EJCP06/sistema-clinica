@@ -127,6 +127,26 @@ export class AdminReports implements OnInit, OnDestroy {
     this.cargarReporte();
   }
 
+  /** Devuelve la hora de salida formateada según el estado del turno. */
+  getHoraSalida(t: any): string {
+    const e = t.id_estado_actual;
+    const fmt = (iso?: string) => iso ? new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: true }) : '—';
+
+    if (e === 6) { // Atendido
+      return fmt(t.hora_fin_atencion);
+    }
+    if (e === 7) { // Ausente
+      // Si fue reincorporado y atendido, gana la hora de atención
+      if (t.hora_fin_atencion) return fmt(t.hora_fin_atencion);
+      return fmt(t.hora_marcado_ausente);
+    }
+    if (e === 9) { // Retirado
+      return fmt(t.hora_retirado);
+    }
+    // Estados 1-5, 8: en proceso
+    return 'EN PROCESO';
+  }
+
   ngOnDestroy() {}
 
   onFechaDesdeInput(event: Event) {
@@ -219,9 +239,7 @@ export class AdminReports implements OnInit, OnDestroy {
       next: (rep: ReporteDiarioDTO) => {
         console.log('Reporte diario recibido:', rep);
         this.turnosOriginal = rep.turnos ?? [];
-        this.turnos = this.esRangoHoy()
-          ? (rep.turnos ?? []).filter(t => t.estado?.toUpperCase() !== 'ATENDIDO')
-          : (rep.turnos ?? []);
+        this.turnos = rep.turnos ?? [];
         this.currentPage = 1;
         this.totalHoy = rep.total ?? 0;
         this.totalAtendidos = rep.estadisticas?.atendidos ?? 0;
