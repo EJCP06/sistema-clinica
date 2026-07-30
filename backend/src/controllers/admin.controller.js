@@ -46,6 +46,7 @@ const getReporteDiario = async (req, res) => {
       id: r.id,
       numero: r.numero,
       estado: r.estado,
+      id_estado_actual: r.id_estado_actual,
       hora_llegada: r.hora_llegada,
       hora_fin: r.hora_fin,
       servicio_nombre: r.servicio,
@@ -55,6 +56,8 @@ const getReporteDiario = async (req, res) => {
       medico_apellido: r.medico_apellido,
       hora_inicio_atencion: r.hora_inicio_atencion,
       hora_fin_atencion: r.hora_fin_atencion,
+      hora_marcado_ausente: r.hora_marcado_ausente,
+      hora_retirado: r.hora_retirado,
       id_sede: r.id_sede,
       paciente: {
         nombre: [r.primer_nombre, r.segundo_nombre].filter(Boolean).join(' '),

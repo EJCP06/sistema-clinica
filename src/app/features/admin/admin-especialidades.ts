@@ -53,7 +53,7 @@ export class AdminEspecialidades implements OnInit {
   readonly Upload = Upload;
   readonly Info = Info;
 
-  pageSize = 6;
+  pageSize = 7;
   currentPage = 1;
 
   private readonly auth = inject(AuthService);

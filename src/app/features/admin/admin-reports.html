@@ -46,10 +46,10 @@
           <div class="flex items-center gap-2">
             <span class="text-[10px] md:text-xs font-bold text-slate-500">Desde</span>
             <input type="text" inputmode="numeric" [(ngModel)]="fechaDesdeDisplay" (input)="onFechaDesdeInput($event)" maxlength="10" placeholder="DD-MM-YYYY"
-                   class="flex-1 min-w-0 w-[110px] md:w-[140px] px-2 py-1.5 text-[10px] md:text-xs font-bold border border-slate-200 dark:border-slate-700 rounded-lg md:rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                   class="flex-1 min-w-0 w-[110px] md:w-[140px] px-2 py-1.5 text-[10px] md:text-xs font-bold border border-slate-200 dark:border-slate-700 rounded-lg md:rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-mono">
             <span class="text-[10px] md:text-xs font-bold text-slate-400">al</span>
             <input type="text" inputmode="numeric" [(ngModel)]="fechaHastaDisplay" (input)="onFechaHastaInput($event)" maxlength="10" placeholder="DD-MM-YYYY"
-                   class="flex-1 min-w-0 w-[110px] md:w-[140px] px-2 py-1.5 text-[10px] md:text-xs font-bold border border-slate-200 dark:border-slate-700 rounded-lg md:rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                   class="flex-1 min-w-0 w-[110px] md:w-[140px] px-2 py-1.5 text-[10px] md:text-xs font-bold border border-slate-200 dark:border-slate-700 rounded-lg md:rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-mono">
           </div>
           <div class="flex gap-1 md:gap-2 justify-center md:justify-start">
             <button (click)="cargarReporte()" class="flex items-center gap-1 md:gap-2 px-2 md:px-4 py-1.5 md:py-2 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20 rounded-lg md:rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all">
@@ -86,6 +86,7 @@
             <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Estado Actual</th>
             <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Servicio</th>
             <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Llegada</th>
+            <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Hora Salida</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
@@ -96,23 +97,25 @@
               <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 font-bold tracking-tight text-center">{{ t.paciente.documento || 'Sin asignar' }}</td>
               <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">
                 <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [ngClass]="{
-                  'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20': t.estado === 'Registrado',
-                  'bg-teal-50 text-teal-600 border-teal-200 dark:bg-teal-500/10 dark:text-teal-400 dark:border-teal-500/20': t.estado === 'En Caja',
-                  'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20': t.estado === 'Sala de Espera',
-                  'bg-sky-50 text-sky-600 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20': t.estado === 'Llamado' || t.estado === 'En Atención',
-                  'bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20': t.estado === 'Atendido',
-                  'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20': t.estado === 'Ausente',
-                  'bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20': t.estado === 'Espera de clave',
-                  'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20': t.estado === 'Retirado'
+                  'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20': t.id_estado_actual === 1,
+                  'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20': t.id_estado_actual === 2,
+                  'bg-teal-50 text-teal-600 border-teal-200 dark:bg-teal-500/10 dark:text-teal-400 dark:border-teal-500/20': t.id_estado_actual === 3,
+                  'bg-[#faf6f0] text-[#8d6e63] border-[#d7ccc8] dark:bg-[#8d6e63]/10 dark:text-[#d7ccc8] dark:border-0': t.id_estado_actual === 4,
+                  'bg-sky-50 text-sky-600 border-sky-200 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20': t.id_estado_actual === 5,
+                  'bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20': t.id_estado_actual === 6,
+                  'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20': t.id_estado_actual === 7,
+                  'bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20': t.id_estado_actual === 8,
+                  'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20': t.id_estado_actual === 9
                 }">{{ t.estado }}</span>
               </td>
               <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 font-bold uppercase text-center">{{ t.servicio_nombre || 'Sin asignar' }}</td>
               <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 dark:text-slate-400 font-bold text-center">{{ t.hora_llegada | date:'h:mm a' }}</td>
+              <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center text-slate-600 dark:text-slate-400 font-bold">{{ getHoraSalida(t) }}</td>
             </tr>
           </ng-container>
           <ng-container *ngIf="turnos.length > 0">
             <ng-container *ngFor="let _ of turnos | fillers: currentPage : pageSize">
-              <tr><td colspan="6" class="h-[52px] md:h-[64px]"></td></tr>
+              <tr><td colspan="7" class="h-[52px] md:h-[64px]"></td></tr>
             </ng-container>
           </ng-container>
           <tr *ngIf="turnos.length === 0">

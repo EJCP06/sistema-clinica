@@ -291,6 +291,7 @@ const getReporteDiario = async (sede, fecha_desde = null, fecha_hasta = null) =>
       a.id_atencion as id,
       a.numero,
       e.nombre_estado as estado,
+      a.id_estado_actual,
       a.hora_llegada,
       a.hora_salida as hora_fin,
       p.primer_nombre,
@@ -306,6 +307,8 @@ const getReporteDiario = async (sede, fecha_desde = null, fecha_hasta = null) =>
       u.primer_apellido as medico_apellido,
       h_inicio.fecha_hora as hora_inicio_atencion,
       h_fin.fecha_hora as hora_fin_atencion,
+      h_ausente.fecha_hora as hora_marcado_ausente,
+      h_retirado.fecha_hora as hora_retirado,
       a.id_sede
     FROM "Atencion" a
     JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
@@ -316,6 +319,8 @@ const getReporteDiario = async (sede, fecha_desde = null, fecha_hasta = null) =>
     LEFT JOIN "Usuarios" u ON a.id_usuario_registro = u.id_usuario
     LEFT JOIN "Historial_Atencion" h_inicio ON h_inicio.id_atencion = a.id_atencion AND h_inicio.id_estado = 5
     LEFT JOIN "Historial_Atencion" h_fin ON h_fin.id_atencion = a.id_atencion AND h_fin.id_estado = 6
+    LEFT JOIN "Historial_Atencion" h_ausente ON h_ausente.id_atencion = a.id_atencion AND h_ausente.id_estado = 7
+    LEFT JOIN "Historial_Atencion" h_retirado ON h_retirado.id_atencion = a.id_atencion AND h_retirado.id_estado = 9
     WHERE a.id_sede = $1
   `;
   const params = [sede];

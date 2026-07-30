@@ -38,7 +38,7 @@ export class ImagenesComponent implements OnInit, OnDestroy {
   readonly XCircle = XCircle;
   readonly Trash2 = Trash2;
 
-  pageSize = 6;
+  pageSize = 7;
   currentPage = 1;
 
   sidebarOpen = false;
@@ -106,19 +106,33 @@ export class ImagenesComponent implements OnInit, OnDestroy {
             this.ultimasAdmisiones = [a, ...this.ultimasAdmisiones].slice(0, 50);
           }
         } else if (event.tipo === 'retirado') {
-          this.ultimasAdmisiones = this.ultimasAdmisiones.filter(x => x.id_atencion !== a.id_atencion);
+          const idx = this.ultimasAdmisiones.findIndex(x => x.id_atencion === a.id_atencion);
+          if (idx !== -1) {
+            this.ultimasAdmisiones[idx] = a;
+            this.ultimasAdmisiones = [...this.ultimasAdmisiones];
+          }
+        } else if (event.tipo === 'estado-cambiado') {
+          if ([6, 9].includes(Number(event.id_estado_nuevo))) {
+            this.ultimasAdmisiones = this.ultimasAdmisiones.filter(x => x.id_atencion !== a.id_atencion);
+          } else if (Number(event.id_estado_nuevo) === 3 && esImagenes && esParticular) {
+            this.ultimasAdmisiones = [a, ...this.ultimasAdmisiones].slice(0, 50);
+          }
         }
-      } else if (event?.tipo === 'retirado' || event?.tipo === 'liberacion') {
-        this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== event.id_atencion);
+      } else if (event.tipo === 'liberacion' || event.tipo === 'retirado') {
         this.cargarUltimasAdmisiones();
-      } else if (event?.tipo === 'estado-cambiado') {
+      } else if (event.tipo === 'estado-cambiado') {
         if ([6, 9].includes(Number(event.id_estado_nuevo))) {
-          this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== event.id_atencion);
+          const id = Number(event.id_atencion);
+          if (!isNaN(id)) {
+            this.ultimasAdmisiones = this.ultimasAdmisiones.filter(x => x.id_atencion !== id);
+          } else {
+            this.cargarUltimasAdmisiones();
+          }
         }
-        this.cargarUltimasAdmisiones();
       } else {
         this.cargarUltimasAdmisiones();
       }
+
     });
 
     interval(30000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
@@ -163,7 +177,7 @@ export class ImagenesComponent implements OnInit, OnDestroy {
           const esSeguro = modalidadPagoLower === 'seguro' || modalidadPagoLower.includes('asegur');
           const esParticular = modalidadPagoLower === 'particular';
 
-          if (esImagenes) return esParticular || esSeguro;
+          if (esImagenes) return esParticular;
           return false;
         });
         this.cargando = false;

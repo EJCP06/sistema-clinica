@@ -270,7 +270,7 @@ const finalizarAtencion = async (req, res) => {
 
     await client.query('COMMIT');
 
-    if (req.io) req.io.emit('estado-actualizado', { id_atencion: atencionId });
+    if (req.io) req.io.emit('estado-actualizado', { tipo: 'estado-cambiado', id_atencion: atencionId, id_estado_nuevo: 6 });
 
     res.json({ mensaje: 'Atención finalizada' });
   } catch (error) {
