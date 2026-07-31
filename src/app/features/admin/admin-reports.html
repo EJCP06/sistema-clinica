@@ -45,10 +45,10 @@
         <div class="flex flex-col md:flex-row md:items-center gap-2">
           <div class="flex items-center gap-2">
             <span class="text-[10px] md:text-xs font-bold text-slate-500">Desde</span>
-            <input type="text" inputmode="numeric" [(ngModel)]="fechaDesdeDisplay" (input)="onFechaDesdeInput($event)" maxlength="10" placeholder="DD-MM-YYYY"
+            <input type="text" inputmode="numeric" [value]="fechaDesdeDisplay" (input)="onFechaDesdeInput($event)" placeholder="DD/MM/YYYY"
                    class="flex-1 min-w-0 w-[110px] md:w-[140px] px-2 py-1.5 text-[10px] md:text-xs font-bold border border-slate-200 dark:border-slate-700 rounded-lg md:rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-mono">
             <span class="text-[10px] md:text-xs font-bold text-slate-400">al</span>
-            <input type="text" inputmode="numeric" [(ngModel)]="fechaHastaDisplay" (input)="onFechaHastaInput($event)" maxlength="10" placeholder="DD-MM-YYYY"
+            <input type="text" inputmode="numeric" [value]="fechaHastaDisplay" (input)="onFechaHastaInput($event)" placeholder="DD/MM/YYYY"
                    class="flex-1 min-w-0 w-[110px] md:w-[140px] px-2 py-1.5 text-[10px] md:text-xs font-bold border border-slate-200 dark:border-slate-700 rounded-lg md:rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-mono">
           </div>
           <div class="flex gap-1 md:gap-2 justify-center md:justify-start">
@@ -73,11 +73,11 @@
       <span class="text-sm text-slate-500 dark:text-slate-400 mt-4 font-semibold animate-pulse">Cargando reporte...</span>
     </div>
     <div *ngIf="!cargando" class="flex flex-col justify-between">
-      <div class="overflow-x-auto min-h-[364px] md:min-h-[448px]" style="scrollbar-width: none; -ms-overflow-style: none;">
+      <div class="overflow-x-auto" style="scrollbar-width: none; -ms-overflow-style: none;">
         <style>
           .overflow-x-auto::-webkit-scrollbar { display: none; }
         </style>
-<table class="w-full min-w-[800px] text-left text-[11px] sm:text-sm ">
+<table class="w-full min-w-[800px] text-left text-[11px] sm:text-sm h-full">
         <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
           <tr class="h-[52px] md:h-[64px] text-slate-500 dark:text-slate-400 font-black text-[9px] sm:text-[10px] uppercase tracking-[2px]">
             <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Turno</th>
@@ -89,7 +89,7 @@
             <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Hora Salida</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
+        <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10 h-full">
           <ng-container *ngFor="let t of turnos | paginate: currentPage : pageSize; trackBy: trackById">
             <tr class="h-[52px] md:h-[64px] hover:bg-slate-50 dark:hover:bg-slate-800">
               <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 font-bold tracking-tight text-center">{{ t.numero || t.id }}</td>
@@ -118,23 +118,25 @@
               <tr><td colspan="7" class="h-[52px] md:h-[64px]"></td></tr>
             </ng-container>
           </ng-container>
-          <tr *ngIf="turnos.length === 0">
-            <td colspan="6" class="px-8 py-20 text-center align-middle">
-              <div class="flex flex-col items-center justify-center w-full">
-                <div class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 mx-auto">
-                  <lucide-icon [name]="Search" class="w-8 h-8 text-slate-500 opacity-60"></lucide-icon>
+          <ng-container *ngIf="turnos.length === 0">
+            <tr *ngFor="let _ of fillersVacios; let i = index">
+              <td colspan="7" class="h-[52px] md:h-[64px] relative">
+                <div *ngIf="i === 3" class="absolute inset-0 flex flex-col items-center justify-center">
+                  <div class="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-2">
+                    <lucide-icon [name]="Search" class="w-5 h-5 text-slate-500 opacity-60"></lucide-icon>
+                  </div>
+                  <p class="text-slate-400 italic font-medium text-xs">
+                    <ng-container *ngIf="fechaDesde === fechaHasta; else rangoVacio">
+                      No se han registrado atenciones el {{ fechaDesde | date:'fullDate' }}.
+                    </ng-container>
+                    <ng-template #rangoVacio>
+                      No se han registrado atenciones en el período seleccionado.
+                    </ng-template>
+                  </p>
                 </div>
-                <p class="text-slate-400 italic font-medium text-center w-full">
-                  <ng-container *ngIf="fechaDesde === fechaHasta; else rangoVacio">
-                    No se han registrado atenciones el {{ fechaDesde | date:'fullDate' }}.
-                  </ng-container>
-                  <ng-template #rangoVacio>
-                    No se han registrado atenciones en el período seleccionado.
-                  </ng-template>
-                </p>
-              </div>
-            </td>
-          </tr>
+              </td>
+            </tr>
+          </ng-container>
         </tbody>
       </table>
 </div>

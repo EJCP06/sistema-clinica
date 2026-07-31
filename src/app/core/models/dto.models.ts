@@ -111,6 +111,7 @@ export interface TurnoDTO {
   /** Estado actual del turno (SALA DE ESPERA, LLAMADO, EN_ATENCION, ATENDIDO, AUSENTE). */
   estado: string;
   hora_llegada: string;
+  hora_salida?: string;
   paciente: {
     nombre: string;
     apellido?: string;

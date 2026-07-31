@@ -242,7 +242,7 @@
                           <td class="px-1 sm:px-2 md:px-4 py-1 font-bold text-slate-800 dark:text-white uppercase text-center whitespace-nowrap">
                             {{ (t?.estado || 'Sin asignar').replace(/_/g, ' ') }}
                           </td>
-                          <td class="px-1 sm:px-2 md:px-4 py-1 text-slate-500 dark:text-slate-400 font-medium text-center whitespace-nowrap">{{ (t?.hora_llegada) | date:'h:mm a' }}</td>
+                          <td class="px-1 sm:px-2 md:px-4 py-1 text-slate-500 dark:text-slate-400 font-medium text-center whitespace-nowrap">{{ (t?.hora_salida || t?.hora_llegada) | date:'h:mm a' }}</td>
                         </tr>
                       </ng-container>
                       <ng-container *ngIf="historialFiltrado.length > 0">

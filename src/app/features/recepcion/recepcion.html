@@ -356,10 +356,9 @@
                     <input
                       type="text"
                       inputmode="numeric"
-                      [(ngModel)]="nuevoPaciente.fecha_nacimiento"
+                      [value]="nuevoPaciente.fecha_nacimiento"
                       (input)="onFechaNacimientoInput($event)"
-                      maxlength="10"
-                      placeholder="DD-MM-YYYY"
+                      placeholder="DD/MM/YYYY"
                       class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white font-mono"
                     />
                   </div>
@@ -1022,30 +1021,20 @@
                       </tr>
                     </ng-container>
                   </ng-container>
-                  <tr *ngIf="admisionesFiltradas.length === 0">
-                    <td
-                      [attr.colspan]="isAseguradorasView ? 3 : 9"
-                      class="px-8 py-20 text-center align-middle"
-                    >
-                      <div class="flex flex-col items-center justify-center w-full text-center">
-                        <div
-                          class="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-4 mx-auto"
-                        >
-                          <lucide-icon
-                            [name]="Search"
-                            class="w-8 h-8 text-slate-500 opacity-60"
-                          ></lucide-icon>
+                <ng-container *ngIf="admisionesFiltradas.length === 0">
+                  <tr *ngFor="let _ of fillersVacios; let i = index">
+                    <td [attr.colspan]="isAseguradorasView ? 3 : 9" class="h-[52px] md:h-[64px] relative">
+                      <div *ngIf="i === 3" class="absolute inset-0 flex flex-col items-center justify-center">
+                        <div class="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-2">
+                          <lucide-icon [name]="Search" class="w-5 h-5 text-slate-500 opacity-60"></lucide-icon>
                         </div>
-                        <p class="text-slate-400 italic font-medium text-center w-full">
-                          {{
-                            isAseguradorasView
-                              ? 'No hay aseguradoras registradas.'
-                              : 'No hay admisiones recientes registradas.'
-                          }}
+                        <p class="text-slate-400 italic font-medium text-xs">
+                          {{ isAseguradorasView ? 'No hay aseguradoras registradas.' : 'No hay admisiones recientes.' }}
                         </p>
                       </div>
                     </td>
                   </tr>
+                </ng-container>
                 </tbody>
               </table>
             </div>

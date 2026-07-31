@@ -373,6 +373,10 @@ export class AdminPersonal implements OnInit {
     });
   }
 
+  get fillersVacios(): number[] {
+    return Array(this.pageSize).fill(0);
+  }
+
   toggleMedicoEspDropdown() {
     this.showMedicoEspDropdown = !this.showMedicoEspDropdown;
     this.showMedicoConDropdown = false;
