@@ -70,11 +70,16 @@ export class AdminReports implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private destroyRef = inject(DestroyRef);
 
-  pageSize = 6;
+  pageSize = 7;
   currentPage = 1;
 
   turnos: ReporteDiarioDTO['turnos'] = [];
   turnosOriginal: ReporteDiarioDTO['turnos'] = [];
+
+  get fillersVacios(): number[] {
+    return Array(this.pageSize).fill(0);
+  }
+
   sedes: SedeDTO[] = [];
   fechaDesde: string = new Date().toISOString().split('T')[0];
   fechaHasta: string = new Date().toISOString().split('T')[0];
@@ -151,85 +156,97 @@ export class AdminReports implements OnInit, OnDestroy {
 
   onFechaDesdeInput(event: Event) {
     const input = event.target as HTMLInputElement;
-    const newValue = input.value;
-    const newDigits = newValue.replace(/\D/g, '');
-    const oldDigits = (this.fechaDesdeDisplay || '').replace(/\D/g, '');
-
-    if (newDigits.length < oldDigits.length) {
-      const cursorPos = input.selectionStart || 0;
-      const digitsBeforeCursor = newValue.substring(0, cursorPos).replace(/\D/g, '').length;
-      const removedIndex = Math.min(digitsBeforeCursor, oldDigits.length - 1);
-      const resultDigits = oldDigits.substring(0, removedIndex) + oldDigits.substring(removedIndex + 1);
-      let value = resultDigits;
-      if (value.length > 2) value = value.substring(0, 2) + '-' + value.substring(2);
-      if (value.length > 5) value = value.substring(0, 5) + '-' + value.substring(5);
-      this.fechaDesdeDisplay = value;
-      this.fechaDesde = this.fechaABackend(value) || new Date().toISOString().split('T')[0];
-      let newPos = 0;
-      let digitCount = 0;
-      for (let i = 0; i < value.length; i++) {
-        if (digitCount >= removedIndex) break;
-        if (/\d/.test(value[i])) digitCount++;
-        newPos = i + 1;
-      }
-      setTimeout(() => { input.setSelectionRange(newPos, newPos); });
-    } else {
-      let value = newDigits;
-      if (value.length > 8) value = value.substring(0, 8);
-      if (value.length > 2) value = value.substring(0, 2) + '-' + value.substring(2);
-      if (value.length > 5) value = value.substring(0, 5) + '-' + value.substring(5);
-      this.fechaDesdeDisplay = value;
-      this.fechaDesde = this.fechaABackend(value) || new Date().toISOString().split('T')[0];
-      setTimeout(() => { input.setSelectionRange(value.length, value.length); });
-    }
+    const cursorPos = input.selectionStart || 0;
+    const resultado = this.aplicarCambioFecha(this.fechaDesdeDisplay || '', input.value, cursorPos);
+    this.fechaDesdeDisplay = resultado.valor;
+    const backend = this.fechaABackend(resultado.valor);
+    if (backend) this.fechaDesde = backend;
+    input.value = resultado.valor;
+    input.setSelectionRange(resultado.cursor, resultado.cursor);
   }
 
   onFechaHastaInput(event: Event) {
     const input = event.target as HTMLInputElement;
-    const newValue = input.value;
-    const newDigits = newValue.replace(/\D/g, '');
-    const oldDigits = (this.fechaHastaDisplay || '').replace(/\D/g, '');
-
-    if (newDigits.length < oldDigits.length) {
-      const cursorPos = input.selectionStart || 0;
-      const digitsBeforeCursor = newValue.substring(0, cursorPos).replace(/\D/g, '').length;
-      const removedIndex = Math.min(digitsBeforeCursor, oldDigits.length - 1);
-      const resultDigits = oldDigits.substring(0, removedIndex) + oldDigits.substring(removedIndex + 1);
-      let value = resultDigits;
-      if (value.length > 2) value = value.substring(0, 2) + '-' + value.substring(2);
-      if (value.length > 5) value = value.substring(0, 5) + '-' + value.substring(5);
-      this.fechaHastaDisplay = value;
-      this.fechaHasta = this.fechaABackend(value) || new Date().toISOString().split('T')[0];
-      let newPos = 0;
-      let digitCount = 0;
-      for (let i = 0; i < value.length; i++) {
-        if (digitCount >= removedIndex) break;
-        if (/\d/.test(value[i])) digitCount++;
-        newPos = i + 1;
-      }
-      setTimeout(() => { input.setSelectionRange(newPos, newPos); });
-    } else {
-      let value = newDigits;
-      if (value.length > 8) value = value.substring(0, 8);
-      if (value.length > 2) value = value.substring(0, 2) + '-' + value.substring(2);
-      if (value.length > 5) value = value.substring(0, 5) + '-' + value.substring(5);
-      this.fechaHastaDisplay = value;
-      this.fechaHasta = this.fechaABackend(value) || new Date().toISOString().split('T')[0];
-      setTimeout(() => { input.setSelectionRange(value.length, value.length); });
-    }
+    const cursorPos = input.selectionStart || 0;
+    const resultado = this.aplicarCambioFecha(this.fechaHastaDisplay || '', input.value, cursorPos);
+    this.fechaHastaDisplay = resultado.valor;
+    const backend = this.fechaABackend(resultado.valor);
+    if (backend) this.fechaHasta = backend;
+    input.value = resultado.valor;
+    input.setSelectionRange(resultado.cursor, resultado.cursor);
   }
 
   private fechaADisplay(fecha: string): string {
     if (!fecha || fecha.length < 10) return fecha || '';
     const p = fecha.substring(0, 10).split('-');
     if (p.length !== 3) return fecha;
-    return `${p[2]}-${p[1]}-${p[0]}`;
+    return `${p[2]}/${p[1]}/${p[0]}`;
+  }
+
+  private aplicarCambioFecha(displayAnterior: string, nuevoValor: string, cursorPos: number): { valor: string; cursor: number } {
+    const viejo = this.obtenerSlots(displayAnterior);
+    const nuevoDigitos = nuevoValor.replace(/\D/g, '').substring(0, 8);
+    const viejoDigitos = viejo.filter(ch => /\d/.test(ch)).join('');
+
+    if (nuevoDigitos.length === 0) {
+      return { valor: '', cursor: 0 };
+    }
+
+    if (nuevoDigitos.length < viejoDigitos.length) {
+      const cuantos = viejoDigitos.length - nuevoDigitos.length;
+      const cursorDigitos = nuevoValor.substring(0, cursorPos).replace(/\D/g, '').length;
+      const slots = viejo.slice();
+      for (let i = cursorDigitos; i < cursorDigitos + cuantos && i < 8; i++) slots[i] = ' ';
+      return { valor: this.reconstruir(slots), cursor: this.posicionDeSlot(cursorDigitos) };
+    }
+
+    if (nuevoDigitos.length === viejoDigitos.length) {
+      const slots = viejo.map((ch, i) => /\d/.test(ch) ? nuevoDigitos[this.runIndex(i, viejo)] : ch);
+      return { valor: this.reconstruir(slots), cursor: Math.min(cursorPos, 10) };
+    }
+
+    const added = nuevoDigitos.length - viejoDigitos.length;
+    const cursorDigitos = nuevoValor.substring(0, cursorPos).replace(/\D/g, '').length;
+    const insertSlot = Math.max(0, cursorDigitos - added);
+    const slots = viejo.slice();
+    let pos = insertSlot;
+    let ultimoRellenado = -1;
+    for (let k = insertSlot; k < insertSlot + added && k < 8; k++) {
+      while (pos < 8 && /\d/.test(slots[pos])) pos++;
+      if (pos >= 8) break;
+      slots[pos] = nuevoDigitos[k];
+      ultimoRellenado = pos;
+      pos++;
+    }
+    const cursor = ultimoRellenado >= 0 ? this.posicionDeSlot(ultimoRellenado) + 1 : this.posicionDeSlot(insertSlot);
+    return { valor: this.reconstruir(slots), cursor };
+  }
+
+  private obtenerSlots(display: string): string[] {
+    if (!display) return Array(8).fill(' ');
+    return [0, 1, 3, 4, 6, 7, 8, 9].map(i => display[i] ?? ' ');
+  }
+
+  private reconstruir(slots: string[]): string {
+    return slots[0] + slots[1] + '/' + slots[2] + slots[3] + '/' + slots[4] + slots[5] + slots[6] + slots[7];
+  }
+
+  private posicionDeSlot(slotIndex: number): number {
+    const posiciones = [0, 1, 3, 4, 6, 7, 8, 9];
+    return posiciones[slotIndex] ?? 10;
+  }
+
+  private runIndex(slotIndex: number, viejo: string[]): number {
+    let count = 0;
+    for (let i = 0; i < slotIndex; i++) {
+      if (/\d/.test(viejo[i])) count++;
+    }
+    return count;
   }
 
   private fechaABackend(fecha: string): string | null {
-    if (!fecha || fecha.length < 10) return null;
-    const p = fecha.substring(0, 10).split('-');
-    if (p.length !== 3) return null;
+    if (!fecha || !/^\d{2}\/\d{2}\/\d{4}$/.test(fecha)) return null;
+    const p = fecha.split('/');
     return `${p[2]}-${p[1]}-${p[0]}`;
   }
 

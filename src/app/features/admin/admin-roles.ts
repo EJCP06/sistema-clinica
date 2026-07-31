@@ -169,6 +169,10 @@ export class AdminRoles implements OnInit {
     });
   }
 
+  get fillersVacios(): number[] {
+    return Array(this.pageSize).fill(0);
+  }
+
   toggleSearchFilterDropdown(): void {
     this.showSearchFilterDropdown = !this.showSearchFilterDropdown;
   }

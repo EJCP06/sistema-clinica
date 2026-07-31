@@ -66,6 +66,10 @@ export class ImagenesComponent implements OnInit, OnDestroy {
     });
   }
 
+  get fillersVacios(): number[] {
+    return Array(this.pageSize).fill(0);
+  }
+
   trackById = (index: number, item: AdmisionDTO) => item?.id_atencion ?? index;
 
   private el = inject(ElementRef);

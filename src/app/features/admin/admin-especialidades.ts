@@ -161,6 +161,10 @@ export class AdminEspecialidades implements OnInit {
     });
   }
 
+  get fillersVacios(): number[] {
+    return Array(this.pageSize).fill(0);
+  }
+
   openModalEsp(esp?: EspecialidadDTO | null) {
     if (esp) {
       this.isEditing = true;

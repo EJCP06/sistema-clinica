@@ -94,6 +94,10 @@ export class AdminPermisologia implements OnInit, OnDestroy {
     });
   }
 
+  get fillersVacios(): number[] {
+    return Array(this.pageSize).fill(0);
+  }
+
   get searchFilterLabel(): string {
     const labels: Record<string, string> = { todo: 'Todo', rol: 'Roles' };
     return labels[this.searchFilter] || 'Todo';

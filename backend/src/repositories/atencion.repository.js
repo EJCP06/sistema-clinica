@@ -146,7 +146,8 @@ const getTodosLosTurnos = async (sede) => {
       a.id_servicio,
       a.id_sede,
       a.id_estado_actual,
-      a.hora_llegada
+      a.hora_llegada,
+      a.hora_salida
     FROM "Atencion" a
     JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
     JOIN "Servicio" s ON a.id_servicio = s.id_servicio
