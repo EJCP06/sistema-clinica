@@ -31,7 +31,7 @@
         </div>
         <div class="relative flex-1">
           <lucide-icon [name]="Search" class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"></lucide-icon>
-          <input type="text" [(ngModel)]="searchQuery" placeholder="Buscar rol..." class="w-full pl-14 pr-10 py-4 text-sm focus:outline-none font-medium bg-transparent rounded-r-2xl text-slate-900 dark:text-white" />
+          <input type="text" autocomplete="off" [(ngModel)]="searchQuery" placeholder="Buscar rol..." class="w-full pl-14 pr-10 py-4 text-sm focus:outline-none font-medium bg-transparent rounded-r-2xl text-slate-900 dark:text-white" />
         </div>
       </div>
     </div>

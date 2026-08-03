@@ -6,12 +6,9 @@
     <button
       (click)="goToPage(currentPage - 1, $event)"
       [disabled]="currentPage <= 1"
-      class="flex items-center justify-center w-7 h-7 text-xs font-bold rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-      [class.hover:bg-slate-100]="currentPage > 1"
-      [class.text-slate-500]="currentPage > 1"
-      [class.text-slate-300]="currentPage <= 1"
+      class="flex items-center justify-center w-7 h-7 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
     >
-      &lsaquo;
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
     </button>
 
     <span class="text-xs font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap">
@@ -21,12 +18,9 @@
     <button
       (click)="goToPage(currentPage + 1, $event)"
       [disabled]="currentPage >= totalPages"
-      class="flex items-center justify-center w-7 h-7 text-xs font-bold rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-      [class.hover:bg-slate-100]="currentPage < totalPages"
-      [class.text-slate-500]="currentPage < totalPages"
-      [class.text-slate-300]="currentPage >= totalPages"
+      class="flex items-center justify-center w-7 h-7 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
     >
-      &rsaquo;
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
     </button>
   </div>
 </div>

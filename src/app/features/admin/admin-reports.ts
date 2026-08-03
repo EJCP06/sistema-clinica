@@ -316,7 +316,7 @@ export class AdminReports implements OnInit, OnDestroy {
       : 'Desconocido';
     const sede = this.sedes.find(s => s.id_sede === usuario?.id_sede);
     const nombreSede = sede ? sede.nombre : 'Sin Sede';
-    doc.text(`Generado: ${fechaGeneracion} a las ${hora}  |  Por: ${nombreUsuario}  |  Sede: ${nombreSede}`, pageWidth / 2, 26, { align: 'center' });
+    doc.text(`Generado: ${fechaGeneracion} a las ${hora}  |  Por: ${nombreUsuario}  |  Sede: ${nombreSede}`, pageWidth / 2, 34, { align: 'center' });
 
     const sortedTurnos = [...(this.turnosOriginal ?? [])].sort((a, b) => {
       const numA = parseInt((a.numero || String(a.id)).replace(/[^0-9]/g, ''), 10) || 0;
@@ -336,7 +336,7 @@ export class AdminReports implements OnInit, OnDestroy {
       margin: { left: margin, right: margin } as const,
     };
 
-    let startY = 42;
+    let startY = 46;
     doc.setFontSize(13);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(30, 30, 30);
