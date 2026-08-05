@@ -173,6 +173,60 @@ app.use('/api/medico', medicoRoutes);
 app.use('/api/especialidades', especialidadesRoutes);
 app.use('/api/turnero', turneroRoutes);
 
+// Endpoint de desarrollo: generar token JWT para un usuario por ID
+if (!isProduction) {
+  app.post('/api/dev/token/:id', async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const result = await pool.query(
+        `SELECT u.id_usuario as id, u.cedula, r.key as rol, u.id_rol,
+                u.primer_nombre AS nombre, u.primer_apellido AS apellido,
+                u.id_servicio as servicio_id, u.id_consultorio as consultorio_id, u.id_sede,
+                u.id_especialidad, e.nombre as especialidad_nombre, u.sesion_token, u.status,
+                COALESCE(
+                  (SELECT json_agg(rec.key || ':' || acc.key)
+                   FROM "Roles_Recursos_Acciones" rra
+                   INNER JOIN "Recursos" rec ON rra.id_recurso = rec.id_recurso
+                   INNER JOIN "Acciones" acc ON rra.id_accion = acc.id_accion
+                   WHERE rra.id_rol = u.id_rol), '[]'::json
+                ) as permisos
+         FROM "Usuarios" u
+         LEFT JOIN "Roles" r ON u.id_rol = r.id_rol
+         LEFT JOIN "Especialidades" e ON u.id_especialidad = e.id_especialidad
+         WHERE u.id_usuario = $1`, [id]
+      );
+
+      const usuario = result.rows[0];
+      if (!usuario) return res.status(404).json({ mensaje: 'Usuario no encontrado' });
+      if (usuario.status === false) return res.status(403).json({ mensaje: 'Usuario inactivo' });
+
+      const permisos = Array.isArray(usuario.permisos) ? usuario.permisos : (usuario.permisos ? JSON.parse(usuario.permisos) : []);
+
+      const payload = {
+        id: usuario.id,
+        id_rol: usuario.id_rol,
+        cedula: usuario.cedula,
+        nombre: usuario.nombre,
+        apellido: usuario.apellido,
+        rol: usuario.rol,
+        permisos,
+        servicio_id: usuario.servicio_id,
+        consultorio_id: usuario.consultorio_id,
+        id_sede: usuario.id_sede,
+        id_especialidad: usuario.id_especialidad,
+        especialidad_nombre: usuario.especialidad_nombre,
+        sesion_token: usuario.sesion_token || null,
+      };
+
+      const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
+      return res.json({ token, usuario: payload });
+    } catch (err) {
+      logger.error('Error generando token dev', { error: err.message });
+      return res.status(500).json({ mensaje: 'Error interno' });
+    }
+  });
+}
+
 /**
  * Manejador global de errores. Sanitiza los datos sensibles antes de
  * registrar y devuelve una respuesta genérica al cliente.

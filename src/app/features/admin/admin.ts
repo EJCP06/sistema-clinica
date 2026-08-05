@@ -44,17 +44,28 @@ export class Admin implements OnInit {
       | 'roles'
       | 'permisologia' = 'personal';
 
-  configExpanded = true;
+   configExpanded = true;
   sidebarOpen = false;
   cargando = false;
+  permisosListos = false;
 
   ngOnInit() {
     const usuario = this.authService.usuarioActual;
-    if (usuario?.rol === 'administrador' && (!usuario.permisos || usuario.permisos.length === 0)) {
+    const esAdmin = usuario?.rol === 'administrador';
+    const sinPermisos = !usuario?.permisos || usuario.permisos.length === 0;
+
+    if (esAdmin && sinPermisos) {
       this.apiService.seedPermisosAdmin().subscribe({
-        next: () => this.authService.refrescarPermisos().subscribe({ error: () => {} }),
-        error: () => {},
+        next: () => {
+          this.authService.refrescarPermisos().subscribe({
+            next: () => { this.permisosListos = true; },
+            error: () => { this.permisosListos = true; },
+          });
+        },
+        error: () => { this.permisosListos = true; },
       });
+    } else {
+      this.permisosListos = true;
     }
     const savedTab = sessionStorage.getItem('admin_activeTab');
     if (savedTab) {

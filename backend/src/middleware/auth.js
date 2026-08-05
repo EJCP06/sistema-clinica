@@ -37,7 +37,23 @@ const authMiddleware = async (req, res, next) => {
   const token = authHeader.split(' ')[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (verifyErr) {
+      // En entornos no productivos permitimos un fallback para decodificar
+      // el token sin verificar la firma. Esto facilita el desarrollo cuando
+      // el servidor se reinicia y las sesiones en clientes quedan con tokens
+      // firmados por la instancia anterior.
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(401).json({ mensaje: 'Token inválido' });
+      }
+      decoded = jwt.decode(token);
+      if (!decoded || !decoded.id) {
+        return res.status(401).json({ mensaje: 'Token inválido' });
+      }
+      // Continuar con el decoded (sin verificación de firma) en desarrollo.
+    }
 
     const result = await pool.query(
       `SELECT u.sesion_token, u.status, u.id_rol,

@@ -54,8 +54,8 @@ export class AdminPermisologia implements OnInit, OnDestroy {
   permisosTemp: string[] = [];
   cargando: boolean = true;
 
-  private recursosPermitidos = ['admision', 'aps', 'laboratorio', 'imagenes', 'atencion_medica', 'aseguradoras', 'personal', 'roles', 'especialidades', 'permisologia'];
-  private recursosSoloVer = new Set(['aps', 'laboratorio', 'imagenes', 'atencion_medica']);
+  private recursosPermitidos = ['admision', 'aps', 'laboratorio', 'imagenes', 'atencion_medica', 'aseguradoras', 'personal', 'roles', 'especialidades', 'permisologia', 'llamado', 'sedes', 'servicios'];
+  private recursosSoloVer = new Set(['laboratorio', 'imagenes', 'atencion_medica']);
 
   getAccionesRecurso(key: string): string[] {
     if (this.recursosSoloVer.has(key)) return ['ver'];
@@ -174,7 +174,7 @@ export class AdminPermisologia implements OnInit, OnDestroy {
 
   toTitleCase(text: string): string {
     if (!text) return '';
-    return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+    return text.replace(/_/g, ' ').charAt(0).toUpperCase() + text.replace(/_/g, ' ').slice(1).toLowerCase();
   }
 
   getSedeLabel(id: number | null | undefined): string {
@@ -186,6 +186,12 @@ export class AdminPermisologia implements OnInit, OnDestroy {
   getRolNombre(id: number): string {
     const rol = this.roles.find(r => r.id === id);
     return rol?.nombre || '';
+  }
+
+  esRolAdministrador(): boolean {
+    if (!this.selectedRoleId) return false;
+    const rol = this.roles.find(r => r.id === this.selectedRoleId);
+    return rol?.key === 'administrador';
   }
 
   selectRol(id: number) {
@@ -314,7 +320,12 @@ export class AdminPermisologia implements OnInit, OnDestroy {
     }
     this.isSaving = true;
 
-    this.api.asignarPermisos(rolId, this.permisosTemp).subscribe({
+    const permisosAGuardar = [...this.permisosTemp];
+    if (this.esRolAdministrador() && !permisosAGuardar.includes('permisologia:gestionar_permisos')) {
+      permisosAGuardar.push('permisologia:gestionar_permisos');
+    }
+
+    this.api.asignarPermisos(rolId, permisosAGuardar).subscribe({
       next: () => {
         this.isSaving = false;
         this.cerrarModal();

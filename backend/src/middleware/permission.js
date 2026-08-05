@@ -75,8 +75,10 @@ const permissionMiddleware = (...permisosRequeridos) => {
     }
     
     const permisosUsuario = req.usuario.permisos || [];
-    
+
+    // Rol administrador tiene acceso total
     if (req.usuario.rol === 'administrador') return next();
+
     if (permisosUsuario.includes('*:*')) return next();
 
     const permisosExpandidos = permisosRequeridos.flatMap(p => 

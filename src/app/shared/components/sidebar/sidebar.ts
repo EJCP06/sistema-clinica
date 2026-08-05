@@ -1,6 +1,7 @@
-import { Component, Input, Output, EventEmitter, inject, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import {
@@ -40,7 +41,7 @@ import {
  * Muestra el menú contextual según el rol del usuario,
  * controla el tema oscuro/claro y gestiona el cierre de sesión.
  */
-export class Sidebar implements OnInit {
+export class Sidebar implements OnInit, OnDestroy {
   @Input() activeTab: string = '';
   @Input() sidebarOpen: boolean = true;
   @Output() tabChange = new EventEmitter<string>();
@@ -50,6 +51,7 @@ export class Sidebar implements OnInit {
   private themeService = inject(ThemeService);
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
+  private usuarioSub?: Subscription;
   
   cargando = false;
   initialTransitionDisabled = true;
@@ -160,6 +162,13 @@ export class Sidebar implements OnInit {
 
   ngOnInit() {
     setTimeout(() => this.initialTransitionDisabled = false, 100);
+    this.usuarioSub = this.auth.usuario$.subscribe(() => {
+      this.cdr.detectChanges();
+    });
+  }
+
+  ngOnDestroy() {
+    this.usuarioSub?.unsubscribe();
   }
 
   logout() {

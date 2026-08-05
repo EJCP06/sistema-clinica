@@ -924,7 +924,7 @@ module.exports = {
         return res.status(404).json({ mensaje: 'No se encontró el rol administrador para esta sede' });
       }
       const idRol = rolRes.rows[0].id_rol;
-      const recursos = ['admision', 'aps', 'laboratorio', 'imagenes', 'atencion_medica', 'aseguradoras', 'personal', 'roles', 'especialidades', 'permisologia'];
+      const recursos = ['admision', 'aps', 'laboratorio', 'imagenes', 'atencion_medica', 'aseguradoras', 'personal', 'roles', 'especialidades', 'permisologia', 'llamado', 'reportes', 'sedes', 'servicios'];
       const permisos = recursos.map(r => `${r}:*`);
       await permisoRepo.asignarPermisos(idRol, permisos);
       res.json({ mensaje: 'Permisos de administrador sembrados correctamente. Vuelve a iniciar sesión.' });

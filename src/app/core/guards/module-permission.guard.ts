@@ -35,8 +35,6 @@ export const modulePermissionGuard: CanActivateFn = (route) => {
     return false;
   }
 
-  if (usuario.rol === 'administrador') return true;
-
   const permisosUsuario: string[] = usuario.permisos;
 
   const normalizePerm = (perm: string): { module: string; action: string } | null => {
