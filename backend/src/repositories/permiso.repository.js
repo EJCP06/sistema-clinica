@@ -1,5 +1,5 @@
 const pool = require('../config/db');
-const { getTodasLasAccionesEspeciales, ACCIONES_ESPECIALES_POR_VISTA } = require('../config/acciones-especiales');
+const { getTodasLasAccionesEspeciales, ACCIONES_ESPECIALES_POR_VISTA, CROSS_INJECTION } = require('../config/acciones-especiales');
 
 const getAll = async () => {
   const result = await pool.query(
@@ -148,6 +148,13 @@ const asignarPermisos = async (idRol, permisosKeys) => {
         const especiales = getTodasLasAccionesEspeciales(vista);
         for (const acc of especiales) {
           keysExpandidos.push(`${vista}:${acc}`);
+        }
+      }
+
+      // Inyectar permisos cruzados de "llamado" (laboratorio e imagenes)
+      for (const vista of Object.keys(CROSS_INJECTION)) {
+        if (vistastConAcceso.has(vista)) {
+          keysExpandidos.push(...CROSS_INJECTION[vista]);
         }
       }
 

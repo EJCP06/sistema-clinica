@@ -137,8 +137,11 @@ export class AdminEspecialidades implements OnInit {
   }
 
   cargarConsultorios() {
-    this.apiService.getConsultorios().subscribe((cons) => {
-      this.consultorios = [...cons].sort((a, b) => a.nombre.localeCompare(b.nombre, undefined, { numeric: true }));
+    this.apiService.getConsultorios().subscribe({
+      next: (cons) => {
+        this.consultorios = [...cons].sort((a, b) => a.nombre.localeCompare(b.nombre, undefined, { numeric: true }));
+      },
+      error: () => {},
     });
   }
 

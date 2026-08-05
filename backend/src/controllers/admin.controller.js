@@ -9,6 +9,7 @@ const sharedRepo = require('../repositories/shared.repository');
 const usuarioRepo = require('../repositories/usuario.repository');
 const rolRepo = require('../repositories/rol.repository');
 const permisoRepo = require('../repositories/permiso.repository');
+const permissionSets = require('../config/permission-sets');
 const { ACCIONES_ESPECIALES_POR_VISTA, ACCIONES_ESPECIALES_GLOBALES } = require('../config/acciones-especiales');
 const { auditar } = require('../middleware/audit');
 
@@ -839,7 +840,17 @@ module.exports = {
     try {
       const { id } = req.params;
       const { permisos } = req.body;
-      await permisoRepo.asignarPermisos(id, permisos || []);
+
+      const rolRes = await pool.query('SELECT key FROM "Roles" WHERE id_rol = $1', [id]);
+      const esAdmin = rolRes.rows.length > 0 && rolRes.rows[0].key === 'administrador';
+
+      // Invariante: el rol administrador nunca pierde sus permisos, sin importar
+      // lo que se envíe desde la interfaz.
+      const permisosFinales = esAdmin
+        ? permissionSets.RECURSOS_ADMIN.map(r => `${r}:*`)
+        : (permisos || []);
+
+      await permisoRepo.asignarPermisos(id, permisosFinales);
 
       req.io.emit('permisos-actualizados', { id_rol: Number(id) });
 
@@ -863,6 +874,13 @@ module.exports = {
     try {
       const allPermisos = await permisoRepo.getAll();
 
+      // Solo se muestran los módulos operativos asignables por rol.
+      // Personal, roles, permisología, reportes son del administrador
+      // (invariante) y sedes/servicios son infraestructura.
+      const recursosVisibles = new Set([
+        'admision', 'aps', 'laboratorio', 'imagenes', 'atencion_medica', 'aseguradoras', 'especialidades'
+      ]);
+
       const recursosMap = new Map();
       const accionesBasicas = ['ver', 'crear', 'editar', 'eliminar'];
 
@@ -870,6 +888,8 @@ module.exports = {
         if (!p.key.includes(':')) return;
 
         const [recKey, accKey] = p.key.split(':');
+        if (!recursosVisibles.has(recKey)) return;
+
         if (!recursosMap.has(recKey)) {
           recursosMap.set(recKey, {
             key: recKey,
@@ -924,7 +944,7 @@ module.exports = {
         return res.status(404).json({ mensaje: 'No se encontró el rol administrador para esta sede' });
       }
       const idRol = rolRes.rows[0].id_rol;
-      const recursos = ['admision', 'aps', 'laboratorio', 'imagenes', 'atencion_medica', 'aseguradoras', 'personal', 'roles', 'especialidades', 'permisologia', 'llamado', 'reportes', 'sedes', 'servicios'];
+      const recursos = permissionSets.RECURSOS_ADMIN;
       const permisos = recursos.map(r => `${r}:*`);
       await permisoRepo.asignarPermisos(idRol, permisos);
       res.json({ mensaje: 'Permisos de administrador sembrados correctamente. Vuelve a iniciar sesión.' });

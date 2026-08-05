@@ -60,7 +60,7 @@ router.put('/atencion/:id/estado', [
 router.delete('/atencion/:id', ctrl.eliminarAtencion);
 router.put('/atencion/:id/marcar_ausente', (req, res, next) => {
   if (req.usuario && req.usuario.rol === 'coordinador') return next();
-  perm('COORDINADOR_AYUDA', 'LABORATORIO_TOTAL', 'IMAGENES_TOTAL')(req, res, next);
+  perm('*:marcar_ausente', 'laboratorio:*', 'imagenes:*')(req, res, next);
 }, ctrl.marcarAusente);
 
 module.exports = router;

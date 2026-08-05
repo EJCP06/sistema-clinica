@@ -5,13 +5,19 @@ const ACCIONES_ESPECIALES_POR_VISTA = {
   imagenes: ['registrar_caja', 'pasar_sala_espera', 'marcar_ausente', 'reincorporar'],
   atencion_medica: ['llamar_siguiente', 'liberar_consultorio', 'iniciar', 'marcar_ausente', 'finalizar'],
   aseguradoras: ['importar_excel'],
-  personal: [],
-  roles: [],
-  especialidades: [],
-  permisologia: [],
 };
 
 const ACCIONES_ESPECIALES_GLOBALES = ['marcar_ausente', 'reincorporar'];
+
+/**
+ * Permisos inyectados automáticamente al asignar una vista operativa.
+ * "Llamado" pertenece a laboratorio e imágenes: conceder la vista de
+ * laboratorio otorga llamado:laboratorio, y la de imágenes llamado:imagenes.
+ */
+const CROSS_INJECTION = {
+  laboratorio: ['llamado:laboratorio'],
+  imagenes: ['llamado:imagenes'],
+};
 
 /**
  * Obtiene la lista completa de acciones especiales disponibles para un recurso,
@@ -28,5 +34,6 @@ function getTodasLasAccionesEspeciales(recursoKey) {
 module.exports = {
   ACCIONES_ESPECIALES_POR_VISTA,
   ACCIONES_ESPECIALES_GLOBALES,
+  CROSS_INJECTION,
   getTodasLasAccionesEspeciales,
 };

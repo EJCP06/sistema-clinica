@@ -20,5 +20,9 @@ module.exports = {
   ],
   COORDINADOR_AYUDA: [
     'admision:marcar_ausente'
+  ],
+  RECURSOS_ADMIN: [
+    'admision', 'aps', 'laboratorio', 'imagenes', 'atencion_medica', 'aseguradoras',
+    'personal', 'roles', 'especialidades', 'permisologia', 'llamado', 'reportes'
   ]
 };
