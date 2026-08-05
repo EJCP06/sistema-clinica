@@ -415,6 +415,7 @@ BEGIN
     PERFORM asignar_permiso_por_sede('analista', sede.id_sede, 'aps', 'enviar_sala_espera');
     PERFORM asignar_permiso_por_sede('analista', sede.id_sede, 'aps', 'aprobar_clave');
     PERFORM asignar_permiso_por_sede('analista', sede.id_sede, 'aps', 'reincorporar');
+    PERFORM asignar_permiso_por_sede('analista', sede.id_sede, 'aseguradoras', 'ver');
 
     -- Laboratorio
     PERFORM asignar_permiso_por_sede('laboratorio', sede.id_sede, 'laboratorio', '*');

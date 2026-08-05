@@ -35,6 +35,11 @@ export const modulePermissionGuard: CanActivateFn = (route) => {
     return false;
   }
 
+  // El administrador siempre tiene acceso (sus permisos los garantiza el invariante).
+  if (usuario.rol === 'administrador') {
+    return true;
+  }
+
   const permisosUsuario: string[] = usuario.permisos;
 
   const normalizePerm = (perm: string): { module: string; action: string } | null => {

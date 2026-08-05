@@ -5,6 +5,7 @@ const adminController = require('../controllers/admin.controller');
 const sharedController = require('../controllers/shared.controller');
 const authMiddleware = require('../middleware/auth');
 const permissionMiddleware = require('../middleware/permission').permissionMiddleware;
+const soloAdministrador = require('../middleware/permission').soloAdministrador;
 
 const validar = (req, res, next) => {
   const errors = validationResult(req);
@@ -14,27 +15,27 @@ const validar = (req, res, next) => {
 
 router.use(authMiddleware);
 
-router.get('/sedes', permissionMiddleware('sedes:gestionar', 'admision:crear', 'aps:ver', 'aseguradoras:ver', 'laboratorio:registrar_caja', 'imagenes:registrar_caja', 'atencion_medica:llamar_siguiente', 'especialidades:ver'), adminController.getSedes);
+router.get('/sedes', permissionMiddleware('admision:crear', 'aps:ver', 'aseguradoras:ver', 'laboratorio:registrar_caja', 'imagenes:registrar_caja', 'atencion_medica:llamar_siguiente', 'especialidades:ver'), adminController.getSedes);
 
 const recepcionController = require('../controllers/recepcion.controller');
 router.get('/responsables', permissionMiddleware('admision:crear'), recepcionController.getResponsablesPago);
 
-router.get('/servicios', permissionMiddleware('servicios:gestionar', 'admision:crear', 'aps:ver', 'laboratorio:registrar_caja', 'imagenes:registrar_caja', 'atencion_medica:llamar_siguiente'), adminController.getServicios);
-router.post('/servicios', permissionMiddleware('servicios:gestionar'), [
+router.get('/servicios', permissionMiddleware('admision:crear', 'aps:ver', 'laboratorio:registrar_caja', 'imagenes:registrar_caja', 'atencion_medica:llamar_siguiente'), adminController.getServicios);
+router.post('/servicios', soloAdministrador, [
   body('nombre_servicio').trim().notEmpty().withMessage('El nombre del servicio es obligatorio'),
   validar,
 ], adminController.crearServicio);
-router.put('/servicios/:id', permissionMiddleware('servicios:gestionar'), adminController.actualizarServicio);
-router.delete('/servicios/:id', permissionMiddleware('servicios:gestionar'), adminController.eliminarServicio);
+router.put('/servicios/:id', soloAdministrador, adminController.actualizarServicio);
+router.delete('/servicios/:id', soloAdministrador, adminController.eliminarServicio);
 
-router.get('/consultorios', permissionMiddleware('servicios:gestionar', 'admision:crear', 'aps:ver', 'laboratorio:registrar_caja', 'imagenes:registrar_caja', 'atencion_medica:llamar_siguiente'), adminController.getConsultorios);
-router.post('/consultorios', permissionMiddleware('servicios:gestionar'), [
+router.get('/consultorios', permissionMiddleware('admision:crear', 'aps:ver', 'laboratorio:registrar_caja', 'imagenes:registrar_caja', 'atencion_medica:llamar_siguiente', 'especialidades:ver'), adminController.getConsultorios);
+router.post('/consultorios', soloAdministrador, [
   body('nombre').trim().notEmpty().withMessage('El nombre del consultorio es obligatorio'),
   body('id_servicio').isInt().withMessage('El servicio es obligatorio'),
   validar,
 ], adminController.crearConsultorio);
-router.put('/consultorios/:id', permissionMiddleware('servicios:gestionar'), adminController.actualizarConsultorio);
-router.delete('/consultorios/:id', permissionMiddleware('servicios:gestionar'), adminController.eliminarConsultorio);
+router.put('/consultorios/:id', soloAdministrador, adminController.actualizarConsultorio);
+router.delete('/consultorios/:id', soloAdministrador, adminController.eliminarConsultorio);
 
 router.get('/personal', permissionMiddleware('personal:ver', 'personal:crear', 'personal:editar', 'personal:eliminar', 'admision:*', 'aps:ver', 'laboratorio:*', 'imagenes:*'), adminController.getPersonal);
 router.post('/personal', permissionMiddleware('personal:crear'), [

@@ -63,7 +63,7 @@ const LEGACY_KEY_MAP = {
  * - Moderno: "modulo:accion" (ej. "admision:crear")
  * - Heredado: claves planas mapeadas mediante LEGACY_KEY_MAP
  * También expande conjuntos de permisos definidos en permission-sets.
- * El rol "administrador" y el permiso "*:*" tienen acceso total.
+ * El permiso "*:*" otorga acceso total.
  *
  * @param {...string} permisosRequeridos - Permisos requeridos (pueden incluir nombres de permission-sets)
  * @returns {import('express').RequestHandler} Middleware de Express
@@ -75,9 +75,6 @@ const permissionMiddleware = (...permisosRequeridos) => {
     }
     
     const permisosUsuario = req.usuario.permisos || [];
-
-    // Rol administrador tiene acceso total
-    if (req.usuario.rol === 'administrador') return next();
 
     if (permisosUsuario.includes('*:*')) return next();
 
@@ -125,4 +122,20 @@ const permissionMiddleware = (...permisosRequeridos) => {
   };
 };
 
-module.exports = { permissionMiddleware };
+/**
+ * Middleware que solo permite pasar a usuarios con rol administrador.
+ * Usado para operaciones de infraestructura (sedes, servicios, consultorios)
+ * que no forman parte de la matriz de permisología.
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+const soloAdministrador = (req, res, next) => {
+  if (req.usuario && req.usuario.rol === 'administrador') {
+    return next();
+  }
+  return res.status(403).json({ mensaje: 'No tienes permisos para realizar esta acción' });
+};
+
+module.exports = { permissionMiddleware, soloAdministrador };

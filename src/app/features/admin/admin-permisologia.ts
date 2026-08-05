@@ -54,7 +54,7 @@ export class AdminPermisologia implements OnInit, OnDestroy {
   permisosTemp: string[] = [];
   cargando: boolean = true;
 
-  private recursosPermitidos = ['admision', 'aps', 'laboratorio', 'imagenes', 'atencion_medica', 'aseguradoras', 'personal', 'roles', 'especialidades', 'permisologia', 'llamado', 'sedes', 'servicios'];
+  private recursosPermitidos = ['admision', 'aps', 'laboratorio', 'imagenes', 'atencion_medica', 'aseguradoras', 'especialidades'];
   private recursosSoloVer = new Set(['laboratorio', 'imagenes', 'atencion_medica']);
 
   getAccionesRecurso(key: string): string[] {
@@ -188,15 +188,12 @@ export class AdminPermisologia implements OnInit, OnDestroy {
     return rol?.nombre || '';
   }
 
-  esRolAdministrador(): boolean {
-    if (!this.selectedRoleId) return false;
-    const rol = this.roles.find(r => r.id === this.selectedRoleId);
-    return rol?.key === 'administrador';
-  }
-
   selectRol(id: number) {
     this.selectedRoleId = id;
     this.showRolDropdown = false;
+    if (!this.isEditing) {
+      this.cargarPermisosRol(id);
+    }
   }
 
   selectSede(id: number | null) {
@@ -247,7 +244,11 @@ export class AdminPermisologia implements OnInit, OnDestroy {
     this.modalTrigger = trigger || null;
     this.showModal = true;
 
-    this.api.getPermisosByRol(rol.id).subscribe({
+    this.cargarPermisosRol(rol.id);
+  }
+
+  private cargarPermisosRol(id: number) {
+    this.api.getPermisosByRol(id).subscribe({
       next: (permisos: any) => {
         if (Array.isArray(permisos)) {
           if (permisos.length > 0 && typeof permisos[0] === 'string') {
@@ -321,9 +322,6 @@ export class AdminPermisologia implements OnInit, OnDestroy {
     this.isSaving = true;
 
     const permisosAGuardar = [...this.permisosTemp];
-    if (this.esRolAdministrador() && !permisosAGuardar.includes('permisologia:gestionar_permisos')) {
-      permisosAGuardar.push('permisologia:gestionar_permisos');
-    }
 
     this.api.asignarPermisos(rolId, permisosAGuardar).subscribe({
       next: () => {

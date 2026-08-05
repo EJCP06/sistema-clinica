@@ -49,12 +49,47 @@ export class Admin implements OnInit {
   cargando = false;
   permisosListos = false;
 
+  /** Indica si el usuario puede ver una pestaña del panel según sus permisos. */
+  puedeVerTab(tab: string): boolean {
+    const usuario = this.authService.usuarioActual;
+    if (usuario?.rol === 'administrador') return true;
+    const p = usuario?.permisos || [];
+    const tiene = (...claves: string[]) => p.some(k => k === '*:*' || claves.includes(k));
+    switch (tab) {
+      case 'reports':
+      case 'stats':
+        return tiene('reportes:ver', 'reportes:*');
+      case 'personal':
+        return tiene('personal:ver', 'personal:*');
+      case 'roles':
+        return tiene('roles:ver', 'roles:*');
+      case 'permisologia':
+        return tiene('permisologia:ver', 'permisologia:*', 'permisologia:gestionar_permisos');
+      case 'especialidades':
+        return tiene('especialidades:ver', 'especialidades:*');
+      default:
+        return false;
+    }
+  }
+
+  private tabPorDefecto(): Admin['activeTab'] {
+    const tabs: Admin['activeTab'][] = ['reports', 'personal', 'roles', 'permisologia', 'especialidades'];
+    return tabs.find(t => this.puedeVerTab(t)) || 'especialidades';
+  }
+
   ngOnInit() {
     const usuario = this.authService.usuarioActual;
     const esAdmin = usuario?.rol === 'administrador';
-    const sinPermisos = !usuario?.permisos || usuario.permisos.length === 0;
+    const tieneReportes = usuario?.permisos?.some(p => p === 'reportes:*' || p === 'reportes:ver' || p === '*:*');
+    const tienePermisologia = usuario?.permisos?.some(p => p === 'permisologia:*' || p === 'permisologia:gestionar_permisos' || p === '*:*');
+    const necesitaSeed = esAdmin && (
+      !usuario?.permisos ||
+      usuario.permisos.length === 0 ||
+      !tieneReportes ||
+      !tienePermisologia
+    );
 
-    if (esAdmin && sinPermisos) {
+    if (necesitaSeed) {
       this.apiService.seedPermisosAdmin().subscribe({
         next: () => {
           this.authService.refrescarPermisos().subscribe({
@@ -67,14 +102,20 @@ export class Admin implements OnInit {
     } else {
       this.permisosListos = true;
     }
-    const savedTab = sessionStorage.getItem('admin_activeTab');
-    if (savedTab) {
-      this.activeTab = savedTab as Admin['activeTab'];
+    const savedTab = sessionStorage.getItem('admin_activeTab') as Admin['activeTab'] | null;
+    if (savedTab && this.puedeVerTab(savedTab)) {
+      this.activeTab = savedTab;
+    }
+    if (!this.puedeVerTab(this.activeTab)) {
+      this.activeTab = this.tabPorDefecto();
     }
     this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       if (params['tab']) {
-        this.activeTab = params['tab'] as Admin['activeTab'];
-        sessionStorage.setItem('admin_activeTab', params['tab']);
+        const tab = params['tab'] as Admin['activeTab'];
+        if (this.puedeVerTab(tab)) {
+          this.activeTab = tab;
+          sessionStorage.setItem('admin_activeTab', tab);
+        }
       }
     });
   }
