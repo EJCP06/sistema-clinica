@@ -87,16 +87,8 @@ export class AuthService implements OnDestroy {
       if (event.tipo === 'permisos' && event.id_rol) {
         const usuario = this.usuarioActual;
         if (usuario?.id_rol && usuario.id_rol === event.id_rol) {
-          Swal.fire({
-            icon: 'info',
-            title: 'Permisos actualizados',
-            text: 'Tus permisos han sido modificados. Debes iniciar sesión nuevamente.',
-            timer: 10000,
-            timerProgressBar: true,
-            confirmButtonColor: '#2563eb',
-            willClose: () => {
-              this.emergencyLogout();
-            },
+          this.refrescarPermisos().subscribe({
+            error: () => {},
           });
         }
       }
@@ -363,13 +355,13 @@ export class AuthService implements OnDestroy {
   }
 
   refrescarPermisos(): Observable<any> {
-    return this.http.get(`${environment.apiUrl}/auth/permisos`).pipe(
+    return this.http.get(`${environment.apiUrl}/auth/mis-permisos`).pipe(
       tap((res: any) => {
         const usuario = this.usuarioActual;
         if (usuario && res.permisos) {
-          usuario.permisos = res.permisos;
-          sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(usuario));
-          this.usuarioSubject.next(usuario);
+          const nuevoUsuario = { ...usuario, permisos: res.permisos };
+          sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(nuevoUsuario));
+          this.usuarioSubject.next(nuevoUsuario);
         }
       }),
     );

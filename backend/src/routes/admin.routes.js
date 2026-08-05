@@ -67,6 +67,6 @@ router.get('/permisos/matriz', permissionMiddleware('permisologia:gestionar_perm
 router.post('/permisos/recargar-cache', permissionMiddleware('permisologia:gestionar_permisos'), adminController.recargarCachePermisos);
 router.get('/roles/:id/permisos', permissionMiddleware('permisologia:gestionar_permisos'), adminController.getPermisosByRol);
 router.put('/roles/:id/permisos', permissionMiddleware('permisologia:gestionar_permisos'), adminController.asignarPermisos);
-router.post('/permisos/seed-admin', permissionMiddleware('permisologia:gestionar_permisos'), adminController.seedPermisosAdmin);
+router.post('/permisos/seed-admin', adminController.seedPermisosAdmin);
 
 module.exports = router;

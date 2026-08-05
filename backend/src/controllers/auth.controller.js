@@ -69,6 +69,13 @@ const login = async (req, res) => {
     const sesionToken = crypto.randomUUID();
     await usuarioRepo.actualizarSesionToken(usuario.id, sesionToken);
 
+    let permisosArr;
+    try {
+      permisosArr = Array.isArray(usuario.permisos) ? usuario.permisos : (usuario.permisos ? JSON.parse(usuario.permisos) : []);
+    } catch (e) {
+      permisosArr = [];
+    }
+
     const payload = {
       id: usuario.id,
       id_rol: usuario.id_rol,
@@ -76,7 +83,7 @@ const login = async (req, res) => {
       nombre: usuario.nombre,
       apellido: usuario.apellido,
       rol: usuario.rol,
-      permisos: usuario.permisos || [],
+      permisos: permisosArr,
       servicio_id: usuario.servicio_id,
       consultorio_id: usuario.consultorio_id,
       id_sede: usuario.id_sede,
@@ -167,7 +174,14 @@ const misPermisos = async (req, res) => {
     if (!usuario) {
       return res.status(404).json({ mensaje: 'Usuario no encontrado' });
     }
-    res.json({ permisos: usuario.permisos || [] });
+    let permisosArr;
+    try {
+      permisosArr = Array.isArray(usuario.permisos) ? usuario.permisos
+        : (usuario.permisos ? JSON.parse(usuario.permisos) : []);
+    } catch (e) {
+      permisosArr = [];
+    }
+    res.json({ permisos: permisosArr });
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al obtener permisos' });
   }
@@ -240,6 +254,13 @@ const refrescarToken = async (req, res) => {
     const sesionToken = crypto.randomUUID();
     await usuarioRepo.actualizarSesionToken(usuario.id, sesionToken);
 
+    let permisosArr2;
+    try {
+      permisosArr2 = Array.isArray(usuario.permisos) ? usuario.permisos : (usuario.permisos ? JSON.parse(usuario.permisos) : []);
+    } catch (e) {
+      permisosArr2 = [];
+    }
+
     const payload = {
       id: usuario.id,
       id_rol: usuario.id_rol,
@@ -247,7 +268,7 @@ const refrescarToken = async (req, res) => {
       nombre: usuario.nombre,
       apellido: usuario.apellido,
       rol: usuario.rol,
-      permisos: usuario.permisos || [],
+      permisos: permisosArr2,
       servicio_id: usuario.servicio_id,
       consultorio_id: usuario.consultorio_id,
       id_sede: usuario.id_sede,

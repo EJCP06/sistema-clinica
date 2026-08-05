@@ -53,13 +53,15 @@
       <style>
         .flex-1::-webkit-scrollbar { display: none; }
       </style>
-      <app-admin-reports *ngIf="activeTab === 'reports' || activeTab === 'stats'"></app-admin-reports>
+      <ng-container *ngIf="permisosListos">
+        <app-admin-reports *ngIf="activeTab === 'reports' || activeTab === 'stats'"></app-admin-reports>
 
-      <app-admin-personal *ngIf="activeTab === 'personal'"></app-admin-personal>
+        <app-admin-personal *ngIf="activeTab === 'personal'"></app-admin-personal>
 
-      <app-admin-especialidades *ngIf="activeTab === 'especialidades'"></app-admin-especialidades>
-      <app-admin-roles *ngIf="activeTab === 'roles'"></app-admin-roles>
-      <app-admin-permisologia *ngIf="activeTab === 'permisologia'"></app-admin-permisologia>
+        <app-admin-especialidades *ngIf="activeTab === 'especialidades'"></app-admin-especialidades>
+        <app-admin-roles *ngIf="activeTab === 'roles'"></app-admin-roles>
+        <app-admin-permisologia *ngIf="activeTab === 'permisologia'"></app-admin-permisologia>
+      </ng-container>
     </div>
   </main>
 </div>
