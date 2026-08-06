@@ -310,8 +310,17 @@ export class AdminPermisologia implements OnInit, OnDestroy {
     const idx = this.permisosTemp.indexOf(key);
     if (idx === -1) {
       this.permisosTemp.push(key);
+      if (accion !== 'ver' && !this.permisosTemp.includes(`${recurso}:ver`)) {
+        this.permisosTemp.push(`${recurso}:ver`);
+      }
     } else {
       this.permisosTemp.splice(idx, 1);
+      if (accion === 'ver') {
+        for (const other of ['crear', 'editar', 'eliminar']) {
+          const otherIdx = this.permisosTemp.indexOf(`${recurso}:${other}`);
+          if (otherIdx !== -1) this.permisosTemp.splice(otherIdx, 1);
+        }
+      }
     }
   }
 
@@ -344,10 +353,17 @@ export class AdminPermisologia implements OnInit, OnDestroy {
       next: () => {
         this.finalizarGuardado(() => {
           this.cerrarModal();
-          this.auth.refrescarPermisos().subscribe({
-            error: () => {},
-          });
           this.swal.success('Permisos actualizados exitosamente');
+          this.auth.refrescarPermisos().subscribe({
+            next: () => {},
+            error: () => {
+              this.auth.refrescarPermisos().subscribe({
+                error: () => {
+                  window.location.reload();
+                },
+              });
+            },
+          });
         });
       },
       error: (err) => {
