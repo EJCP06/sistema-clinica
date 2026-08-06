@@ -500,6 +500,16 @@ const actualizarPersonal = async (req, res) => {
       }
     }
 
+    if (safeFields.rol !== undefined && usuarioAntes && usuarioAntes.rol !== safeFields.rol && req.io) {
+      const sockets = await req.io.fetchSockets();
+      for (const socket of sockets) {
+        if (socket.usuario && Number(socket.usuario.id) === Number(id)) {
+          socket.emit('rol-cambiado', { rol: safeFields.rol });
+          break;
+        }
+      }
+    }
+
     res.json({ mensaje: 'Personal actualizado' });
   } catch (error) {
     logger.error(error);
@@ -872,7 +882,10 @@ module.exports = {
 
       await permisoRepo.asignarPermisos(id, permisosFinales);
 
-      req.io.emit('permisos-actualizados', { id_rol: Number(id) });
+      const esMiRol = req.usuario?.id_rol && Number(req.usuario.id_rol) === Number(id);
+      if (!esMiRol) {
+        req.io.emit('permisos-actualizados', { id_rol: Number(id) });
+      }
 
       res.json({ mensaje: 'Matriz de permisos actualizada correctamente' });
     } catch (error) {
