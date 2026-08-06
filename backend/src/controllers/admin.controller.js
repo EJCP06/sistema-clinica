@@ -859,17 +859,15 @@ module.exports = {
 
       if (esAdmin) {
         // El administrador controla los módulos operativos visibles desde la
-        // permisología: los que vienen marcados se mantienen (como "modulo:*")
-        // y los desmarcados se eliminan. Los módulos del sistema (INMUTABLES_ADMIN)
-        // siempre quedan activos para garantizar que el administrador nunca se
-        // quede sin acceso al panel ni a la permisología.
-        const activos = new Set(
-          permisosFinales
-            .map(k => String(k).split(':')[0])
-            .filter(m => VISIBLES_ADMIN.has(m))
-        );
-        INMUTABLES_ADMIN.forEach(m => activos.add(m));
-        permisosFinales = [...activos].map(m => `${m}:*`);
+        // permisología: se guardan las acciones individuales que envíe el
+        // frontend (ver, crear, editar, eliminar). Los módulos del sistema
+        // (INMUTABLES_ADMIN) siempre quedan con "*" para garantizar acceso
+        // completo al panel y a la permisología.
+        permisosFinales = permisosFinales.filter(k => {
+          const mod = String(k).split(':')[0];
+          return VISIBLES_ADMIN.has(mod);
+        });
+        INMUTABLES_ADMIN.forEach(m => permisosFinales.push(`${m}:*`));
       }
 
       await permisoRepo.asignarPermisos(id, permisosFinales);
