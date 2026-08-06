@@ -82,7 +82,7 @@ describe('authController.login', () => {
     expect(res.json).toHaveBeenCalledWith({
       mensaje: 'Login exitoso',
       token: 'token-falso',
-      expiresIn: 900,
+      expiresIn: 86400,
       usuario: expect.objectContaining({
         id: 1, cedula: '00000000', rol: 'admin', nombre: 'Admin',
       }),

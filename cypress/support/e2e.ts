@@ -8,7 +8,7 @@ Cypress.Commands.add('login', (cedula: string, password: string) => {
 
 Cypress.Commands.add('loginAsAdmin', () => {
   cy.login('00000000', '123456');
-  cy.url().should('include', '/admin');
+  cy.url().should('include', '/administrador');
 });
 
 Cypress.Commands.add('loginAsRecepcionista', () => {

@@ -23,9 +23,9 @@ describe('Login Flow', () => {
     cy.contains('Por favor ingrese su cédula y contraseña.').should('be.visible');
   });
 
-  it('should login as admin and redirect to /admin', () => {
+  it('should login as admin and redirect to /administrador', () => {
     cy.loginAsAdmin();
-    cy.url().should('include', '/admin');
+    cy.url().should('include', '/administrador');
   });
 
   it('should toggle dark mode', () => {

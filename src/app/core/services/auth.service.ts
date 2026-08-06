@@ -87,8 +87,17 @@ export class AuthService implements OnDestroy {
       if (event.tipo === 'permisos' && event.id_rol) {
         const usuario = this.usuarioActual;
         if (usuario?.id_rol && usuario.id_rol === event.id_rol) {
-          this.refrescarPermisos().subscribe({
-            error: () => {},
+          Swal.fire({
+            icon: 'info',
+            title: 'Permisos actualizados',
+            text: 'Tus permisos han sido modificados. Debes iniciar sesión nuevamente.',
+            timer: 10000,
+            timerProgressBar: true,
+            confirmButtonColor: '#2563eb',
+            allowOutsideClick: false,
+            willClose: () => {
+              this.emergencyLogout();
+            },
           });
         }
       }
