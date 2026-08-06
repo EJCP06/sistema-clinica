@@ -22,7 +22,7 @@ module.exports = {
     'admision:marcar_ausente'
   ],
   RECURSOS_ADMIN: [
-    'admision', 'aps', 'laboratorio', 'imagenes', 'atencion_medica', 'aseguradoras',
+    'admision', 'aps', 'laboratorio', 'imagenes', 'aseguradoras',
     'personal', 'roles', 'especialidades', 'permisologia', 'llamado', 'reportes'
   ]
 };

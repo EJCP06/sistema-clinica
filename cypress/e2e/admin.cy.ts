@@ -4,13 +4,14 @@ describe('Admin Dashboard', () => {
   });
 
   it('should load admin dashboard', () => {
-    cy.url().should('include', '/admin');
-    cy.contains('Dashboard').should('be.visible');
+    cy.url().should('include', '/administrador');
+    cy.contains('Dashboard Global').should('be.visible');
   });
 
   it('should display key metric cards', () => {
+    cy.contains('Total Admisiones').should('be.visible');
+    cy.contains('Pacientes Atendidos').should('be.visible');
     cy.contains('Pacientes en Espera').should('be.visible');
-    cy.contains('En Atención').should('be.visible');
-    cy.contains('Completados Hoy').should('be.visible');
+    cy.contains('Pacientes Ausentes').should('be.visible');
   });
 });

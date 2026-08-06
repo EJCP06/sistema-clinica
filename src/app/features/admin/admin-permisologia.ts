@@ -75,6 +75,8 @@ export class AdminPermisologia implements OnInit, OnDestroy {
   showModuloDropdown = false;
   isEditing = false;
   isSaving = false;
+  private inicioGuardado: number = 0;
+  private readonly MIN_GUARDADO = 800;
   selectedRoleId: number | null = null;
   selectedSedeId: number | null = null;
   selectedModuloKey: string | null = null;
@@ -186,6 +188,11 @@ export class AdminPermisologia implements OnInit, OnDestroy {
   getRolNombre(id: number): string {
     const rol = this.roles.find(r => r.id === id);
     return rol?.nombre || '';
+  }
+
+  get selectedRolEsAdmin(): boolean {
+    const rol = this.roles.find(r => r.id === this.selectedRoleId);
+    return rol?.key === 'administrador';
   }
 
   selectRol(id: number) {
@@ -308,6 +315,15 @@ export class AdminPermisologia implements OnInit, OnDestroy {
     }
   }
 
+  private finalizarGuardado(accion?: () => void) {
+    const transcurrido = Date.now() - this.inicioGuardado;
+    const restante = Math.max(0, this.MIN_GUARDADO - transcurrido);
+    setTimeout(() => {
+      if (accion) accion();
+      this.isSaving = false;
+    }, restante);
+  }
+
   guardarPermisos() {
     if (this.isSaving) return;
     const rolId = this.selectedRoleId;
@@ -320,21 +336,24 @@ export class AdminPermisologia implements OnInit, OnDestroy {
       return;
     }
     this.isSaving = true;
+    this.inicioGuardado = Date.now();
 
     const permisosAGuardar = [...this.permisosTemp];
 
     this.api.asignarPermisos(rolId, permisosAGuardar).subscribe({
       next: () => {
-        this.isSaving = false;
-        this.cerrarModal();
-        this.auth.refrescarPermisos().subscribe({
-          error: () => {},
+        this.finalizarGuardado(() => {
+          this.cerrarModal();
+          this.auth.refrescarPermisos().subscribe({
+            error: () => {},
+          });
+          this.swal.success('Permisos actualizados exitosamente');
         });
-        this.swal.success('Permisos actualizados exitosamente');
       },
       error: (err) => {
-        this.isSaving = false;
-        this.swal.error(err.error?.mensaje || 'Error al asignar permisos');
+        this.finalizarGuardado(() => {
+          this.swal.error(err.error?.mensaje || 'Error al asignar permisos');
+        });
       },
     });
   }

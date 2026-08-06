@@ -15,6 +15,17 @@ const { auditar } = require('../middleware/audit');
 
 const getUserId = (req) => req.usuario?.id;
 
+// Módulos operativos visibles en la permisología. Son los únicos que el
+// administrador puede quitar o agregar para su propio rol.
+const VISIBLES_ADMIN = new Set([
+  'admision', 'aps', 'laboratorio', 'imagenes', 'atencion_medica', 'aseguradoras', 'especialidades'
+]);
+
+// Módulos del sistema garantizados al administrador. No aparecen en la
+// permisología y siempre se mantienen activos para evitar que el
+// administrador se quede sin acceso al panel y a la propia permisología.
+const INMUTABLES_ADMIN = ['personal', 'roles', 'permisologia', 'reportes', 'llamado'];
+
 const getSede = (req, res) => {
   const sede = req.usuario?.id_sede;
   const rol = req.usuario?.rol;
@@ -844,11 +855,22 @@ module.exports = {
       const rolRes = await pool.query('SELECT key FROM "Roles" WHERE id_rol = $1', [id]);
       const esAdmin = rolRes.rows.length > 0 && rolRes.rows[0].key === 'administrador';
 
-      // Invariante: el rol administrador nunca pierde sus permisos, sin importar
-      // lo que se envíe desde la interfaz.
-      const permisosFinales = esAdmin
-        ? permissionSets.RECURSOS_ADMIN.map(r => `${r}:*`)
-        : (permisos || []);
+      let permisosFinales = permisos || [];
+
+      if (esAdmin) {
+        // El administrador controla los módulos operativos visibles desde la
+        // permisología: los que vienen marcados se mantienen (como "modulo:*")
+        // y los desmarcados se eliminan. Los módulos del sistema (INMUTABLES_ADMIN)
+        // siempre quedan activos para garantizar que el administrador nunca se
+        // quede sin acceso al panel ni a la permisología.
+        const activos = new Set(
+          permisosFinales
+            .map(k => String(k).split(':')[0])
+            .filter(m => VISIBLES_ADMIN.has(m))
+        );
+        INMUTABLES_ADMIN.forEach(m => activos.add(m));
+        permisosFinales = [...activos].map(m => `${m}:*`);
+      }
 
       await permisoRepo.asignarPermisos(id, permisosFinales);
 
