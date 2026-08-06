@@ -88,9 +88,31 @@ export class AuthService implements OnDestroy {
         const usuario = this.usuarioActual;
         if (usuario?.id_rol && usuario.id_rol === event.id_rol) {
           this.refrescarPermisos().subscribe({
+            next: () => {
+              Swal.fire({
+                icon: 'info',
+                title: 'Permisos actualizados',
+                text: 'Tus permisos han sido modificados. Inicia sesión nuevamente.',
+                confirmButtonColor: '#2563eb',
+              }).then(() => {
+                this.emergencyLogout();
+              });
+            },
             error: () => {},
           });
         }
+      }
+
+      if (event.tipo === 'rol-cambiado' && this.usuarioActual) {
+        Swal.fire({
+          icon: 'info',
+          title: 'Permisos actualizados',
+          text: 'Tu rol ha sido modificado. Inicia sesión nuevamente.',
+          confirmButtonColor: '#2563eb',
+          allowOutsideClick: false,
+        }).then(() => {
+          this.emergencyLogout();
+        });
       }
 
       if (event.tipo === 'usuario-desactivado' && this.usuarioActual) {

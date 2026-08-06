@@ -207,7 +207,13 @@ const eliminarPersonal = async (id, sede) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    
+
+    // 0. Delete refresh tokens first (FK constraint)
+    await client.query('DELETE FROM "Refresh_Tokens" WHERE id_usuario = $1', [id]);
+
+    // 0.1 Nullify audit log references
+    await client.query('UPDATE "Audit_Log" SET id_usuario = NULL WHERE id_usuario = $1', [id]);
+
     // 1. Delete from "Recuperacion_Clave"
     await client.query('DELETE FROM "Recuperacion_Clave" WHERE id_usuario = $1', [id]);
     
