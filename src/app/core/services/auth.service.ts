@@ -128,6 +128,32 @@ export class AuthService implements OnDestroy {
         });
       }
 
+      if (event.tipo === 'rol-desactivado' && this.usuarioActual) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Rol desactivado',
+          text: 'Tu rol ha sido desactivado por un administrador. Serás redirigido al inicio de sesión.',
+          confirmButtonColor: '#2563eb',
+          allowOutsideClick: false,
+          willClose: () => {
+            this.emergencyLogout();
+          },
+        });
+      }
+
+      if (event.tipo === 'especialidad-desactivada' && this.usuarioActual) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Especialidad desactivada',
+          text: 'Tu especialidad ha sido desactivada por un administrador. Serás redirigido al inicio de sesión.',
+          confirmButtonColor: '#2563eb',
+          allowOutsideClick: false,
+          willClose: () => {
+            this.emergencyLogout();
+          },
+        });
+      }
+
       if (event.tipo === 'sede-cambiada' && this.usuarioActual) {
         Swal.fire({
           icon: 'warning',

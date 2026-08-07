@@ -1135,11 +1135,11 @@ nuevoPaciente: any = {
 
   getEspecialidades() {
     if (!this.categoriaServicio) {
-      return this.especialidades;
+      return this.especialidades.filter((e: any) => e.activo !== false);
     }
 
     if (this.categoriaServicio === 'Consulta') {
-      return this.especialidades;
+      return this.especialidades.filter((e: any) => e.activo !== false);
     }
     if (this.categoriaServicio === 'Laboratorio') {
       return this.servicios.filter((s) => {

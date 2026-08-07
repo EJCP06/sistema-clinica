@@ -65,6 +65,15 @@ const getById = async (id) => {
   return result.rows[0] || null;
 };
 
+const esEspecialidadActiva = async (id_especialidad, sede) => {
+  const result = await db.query(
+    `SELECT activo FROM "Especialidades" WHERE id_especialidad = $1 AND id_sede = $2`,
+    [id_especialidad, sede],
+  );
+  const row = result.rows[0];
+  return row ? row.activo === true : false;
+};
+
 const getConsultorioIdsByEspecialidad = async (id) => {
   const result = await db.query(
     `SELECT id_consultorio FROM "Especialidad_Consultorio" WHERE id_especialidad = $1`, [id],
@@ -82,4 +91,5 @@ module.exports = {
   remove,
   getById,
   getConsultorioIdsByEspecialidad,
+  esEspecialidadActiva,
 };

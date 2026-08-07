@@ -79,6 +79,16 @@ export class ApiService {
           this.cambios$.next({ tipo: 'usuario-desactivado' } as any);
         });
       });
+      this.socket.on('rol-desactivado', () => {
+        this.zone.run(() => {
+          this.cambios$.next({ tipo: 'rol-desactivado' } as any);
+        });
+      });
+      this.socket.on('especialidad-desactivada', () => {
+        this.zone.run(() => {
+          this.cambios$.next({ tipo: 'especialidad-desactivada' } as any);
+        });
+      });
       this.socket.on('sede-cambiada', () => {
         this.zone.run(() => {
           this.cambios$.next({ tipo: 'sede-cambiada' } as any);

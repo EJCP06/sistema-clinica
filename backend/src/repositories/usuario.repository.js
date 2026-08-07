@@ -13,9 +13,10 @@ const findByCedulas = async (cedulas) => {
 const findByCedula = async (cedula) => {
   const result = await pool.query(`
     SELECT u.id_usuario as id, u.cedula, u.password_hash, r.key as rol, u.id_rol,
+           r.activo as rol_activo,
            u.primer_nombre AS nombre, u.primer_apellido AS apellido,
            u.id_servicio as servicio_id, u.id_consultorio as consultorio_id, u.id_sede,
-           u.id_especialidad, e.nombre as especialidad_nombre,
+           u.id_especialidad, e.nombre as especialidad_nombre, e.activo as esp_activo,
            u.sesion_token, u.status,
            COALESCE(
              (SELECT json_agg(rec.key || ':' || acc.key)
@@ -36,9 +37,10 @@ const findByCedula = async (cedula) => {
 const findManyByCedula = async (cedula) => {
   const result = await pool.query(`
     SELECT u.id_usuario as id, u.cedula, u.password_hash, r.key as rol, u.id_rol,
+           r.activo as rol_activo,
            u.primer_nombre AS nombre, u.primer_apellido AS apellido,
            u.id_servicio as servicio_id, u.id_consultorio as consultorio_id, u.id_sede,
-           u.id_especialidad, e.nombre as especialidad_nombre,
+           u.id_especialidad, e.nombre as especialidad_nombre, e.activo as esp_activo,
            u.sesion_token, u.status,
            COALESCE(
              (SELECT json_agg(rec.key || ':' || acc.key)
@@ -63,9 +65,10 @@ const actualizarSesionToken = async (id, token) => {
 const findById = async (id) => {
   const result = await pool.query(`
     SELECT u.id_usuario as id, u.cedula, u.password_hash, r.key as rol, u.id_rol,
+           r.activo as rol_activo,
            u.primer_nombre AS nombre, u.primer_apellido AS apellido,
            u.id_servicio as servicio_id, u.id_consultorio as consultorio_id, u.id_sede,
-           u.id_especialidad, e.nombre as especialidad_nombre,
+           u.id_especialidad, e.nombre as especialidad_nombre, e.activo as esp_activo,
            u.sesion_token, u.status,
            COALESCE(
              (SELECT json_agg(rec.key || ':' || acc.key)

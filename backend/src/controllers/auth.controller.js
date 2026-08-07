@@ -50,6 +50,14 @@ const login = async (req, res) => {
       return res.status(403).json({ mensaje: 'Su usuario se encuentra inactivo. Contacte al administrador.' });
     }
 
+    if (usuario.rol_activo === false) {
+      return res.status(403).json({ mensaje: 'Su rol se encuentra inactivo. Contacte al administrador.' });
+    }
+
+    if (usuario.id_especialidad != null && usuario.esp_activo === false) {
+      return res.status(403).json({ mensaje: 'Su especialidad se encuentra inactiva. Contacte al administrador.' });
+    }
+
     // Desconectar sockets previos del mismo usuario — el último login siempre gana
     let socketsPrevios = [];
     try {
@@ -174,6 +182,12 @@ const misPermisos = async (req, res) => {
     if (!usuario) {
       return res.status(404).json({ mensaje: 'Usuario no encontrado' });
     }
+    if (usuario.rol_activo === false) {
+      return res.status(403).json({ mensaje: 'Su rol se encuentra inactivo. Contacte al administrador.' });
+    }
+    if (usuario.id_especialidad != null && usuario.esp_activo === false) {
+      return res.status(403).json({ mensaje: 'Su especialidad se encuentra inactiva. Contacte al administrador.' });
+    }
     let permisosArr;
     try {
       permisosArr = Array.isArray(usuario.permisos) ? usuario.permisos
@@ -249,6 +263,14 @@ const refrescarToken = async (req, res) => {
     if (!usuario || usuario.status === false) {
       res.clearCookie('refresh_token', { ...COOKIE_OPTIONS });
       return res.status(401).json({ mensaje: 'Usuario desactivado' });
+    }
+    if (usuario.rol_activo === false) {
+      res.clearCookie('refresh_token', { ...COOKIE_OPTIONS });
+      return res.status(401).json({ mensaje: 'Rol desactivado' });
+    }
+    if (usuario.id_especialidad != null && usuario.esp_activo === false) {
+      res.clearCookie('refresh_token', { ...COOKIE_OPTIONS });
+      return res.status(401).json({ mensaje: 'Especialidad desactivada' });
     }
 
     const sesionToken = crypto.randomUUID();

@@ -756,7 +756,20 @@ const actualizarRol = async (req, res) => {
         .replace(/^_+|_+$/g, "");
     }
 
+    const rolAntes = await rolRepo.getById(id);
     await rolRepo.update(id, nombreLimpio, key, id_sede, activo);
+
+    // Si el rol se desactiva, desconectar en tiempo real a los usuarios
+    // que lo tengan asignado para que no sigan operando con su sesión.
+    if (activo === false && rolAntes && rolAntes.activo !== false && req.io) {
+      const sockets = await req.io.fetchSockets();
+      for (const socket of sockets) {
+        if (socket.usuario && Number(socket.usuario.id_rol) === Number(id)) {
+          socket.emit('rol-desactivado');
+        }
+      }
+    }
+
     res.json({ mensaje: 'Rol actualizado' });
   } catch (error) {
     logger.error(error);
