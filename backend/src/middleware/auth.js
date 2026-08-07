@@ -56,7 +56,9 @@ const authMiddleware = async (req, res, next) => {
     }
 
     const result = await pool.query(
-      `SELECT u.sesion_token, u.status, u.id_rol,
+      `SELECT u.sesion_token, u.status, u.id_rol, u.id_especialidad,
+              r.activo AS rol_activo,
+              esp.activo AS esp_activo,
               COALESCE(
                 (SELECT json_agg(rec.key || ':' || acc.key)
                  FROM "Roles_Recursos_Acciones" rra
@@ -65,6 +67,8 @@ const authMiddleware = async (req, res, next) => {
                  WHERE rra.id_rol = u.id_rol), '[]'
               ) AS permisos
        FROM "Usuarios" u
+       LEFT JOIN "Roles" r ON u.id_rol = r.id_rol
+       LEFT JOIN "Especialidades" esp ON u.id_especialidad = esp.id_especialidad
        WHERE u.id_usuario = $1`,
       [decoded.id],
     );
@@ -72,6 +76,12 @@ const authMiddleware = async (req, res, next) => {
     const usuario = result.rows[0];
     if (!usuario || usuario.status === false) {
       return res.status(401).json({ mensaje: 'Sesión inválida. Tu usuario ha sido desactivado.' });
+    }
+    if (usuario.rol_activo === false) {
+      return res.status(401).json({ mensaje: 'Sesión inválida. Tu rol ha sido desactivado.' });
+    }
+    if (usuario.id_especialidad != null && usuario.esp_activo === false) {
+      return res.status(401).json({ mensaje: 'Sesión inválida. Tu especialidad ha sido desactivada.' });
     }
     if (usuario.sesion_token && decoded.sesion_token && !timingSafeCompare(usuario.sesion_token, decoded.sesion_token)) {
       return res.status(401).json({ mensaje: 'Sesión inválida. Otro usuario ha iniciado sesión con tus credenciales.' });

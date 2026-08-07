@@ -106,6 +106,14 @@ describe('recepcionController', () => {
       expect(res.status).toHaveBeenCalledWith(400);
     });
 
+    test('debe retornar 400 si la especialidad está inactiva', async () => {
+      req.body = { id_paciente: 1, id_servicio: 1, id_especialidad: 99 };
+      mockPool.query.mockResolvedValueOnce({ rows: [{ activo: false }] });
+      await ctrl.generarTurno(req, res);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ mensaje: 'La especialidad seleccionada está inactiva' });
+    });
+
     test('debe generar turno exitosamente', async () => {
       req.body = { id_paciente: 1, id_servicio: 1 };
       mockPool.query

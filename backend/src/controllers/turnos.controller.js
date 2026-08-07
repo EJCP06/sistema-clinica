@@ -3,6 +3,7 @@ const logger = require('../config/logger');
 const atencionRepo = require('../repositories/atencion.repository');
 const consultorioRepo = require('../repositories/consultorio.repository');
 const historialRepo = require('../repositories/historial.repository');
+const espRepo = require('../repositories/especialidad.repository');
 
 /**
  * Obtiene todos los turnos del día para la sede del usuario autenticado.
@@ -58,8 +59,15 @@ const crearTurno = async (req, res) => {
   if (!req.usuario || !req.usuario.id_sede) {
     return res.status(400).json({ mensaje: 'Datos de usuario insuficientes' });
   }
-  
+
   try {
+    if (id_especialidad) {
+      const activa = await espRepo.esEspecialidadActiva(id_especialidad, req.usuario.id_sede);
+      if (!activa) {
+        return res.status(400).json({ mensaje: 'La especialidad seleccionada está inactiva' });
+      }
+    }
+
     const next = await atencionRepo.getConteoServicioHoy(id_servicio);
     const prefijo = await atencionRepo.getServicioPrefijo(id_servicio);
     const nuevoNumero = `${prefijo}-${String(next).padStart(2, '0')}`;

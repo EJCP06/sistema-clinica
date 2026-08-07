@@ -89,6 +89,39 @@ describe('authController.login', () => {
     });
   });
 
+  test('debe retornar 403 si el rol está inactivo', async () => {
+    const mockUsuario = {
+      id: 1, cedula: '00000000', password_hash: '$2a$10$hash',
+      rol: 'medico', nombre: 'Doc', apellido: 'Uno',
+      status: true, rol_activo: false,
+    };
+    req.body = { username: '00000000', password: '123456' };
+    mockPool.query.mockResolvedValue({ rows: [mockUsuario] });
+    bcrypt.compare.mockResolvedValue(true);
+
+    await authController.login(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({ mensaje: 'Su rol se encuentra inactivo. Contacte al administrador.' });
+  });
+
+  test('debe retornar 403 si la especialidad del médico está inactiva', async () => {
+    const mockUsuario = {
+      id: 1, cedula: '00000000', password_hash: '$2a$10$hash',
+      rol: 'medico', nombre: 'Doc', apellido: 'Uno',
+      id_especialidad: 5, esp_activo: false,
+      status: true, rol_activo: true,
+    };
+    req.body = { username: '00000000', password: '123456' };
+    mockPool.query.mockResolvedValue({ rows: [mockUsuario] });
+    bcrypt.compare.mockResolvedValue(true);
+
+    await authController.login(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({ mensaje: 'Su especialidad se encuentra inactiva. Contacte al administrador.' });
+  });
+
   test('debe retornar 500 si hay un error de base de datos', async () => {
     req.body = { username: '00000000', password: '123456' };
     mockPool.query.mockRejectedValue(new Error('DB connection failed'));

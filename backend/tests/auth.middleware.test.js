@@ -46,7 +46,7 @@ describe('authMiddleware', () => {
     req.headers.authorization = 'Bearer token-valido';
     jwt.verify.mockReturnValue(decoded);
     mockPool.query.mockResolvedValue({
-      rows: [{ sesion_token: 'token123', status: true }],
+      rows: [{ sesion_token: 'token123', status: true, rol_activo: true, id_especialidad: null, esp_activo: null }],
     });
 
     await authMiddleware(req, res, next);
@@ -60,7 +60,7 @@ describe('authMiddleware', () => {
     req.headers.authorization = 'Bearer mi-token-seguro';
     jwt.verify.mockReturnValue(decoded);
     mockPool.query.mockResolvedValue({
-      rows: [{ sesion_token: 'token456', status: true }],
+      rows: [{ sesion_token: 'token456', status: true, rol_activo: true, id_especialidad: null, esp_activo: null }],
     });
 
     await authMiddleware(req, res, next);
@@ -74,7 +74,7 @@ describe('authMiddleware', () => {
     req.headers.authorization = 'Bearer token-valido';
     jwt.verify.mockReturnValue(decoded);
     mockPool.query.mockResolvedValue({
-      rows: [{ sesion_token: 'token123', status: false }],
+      rows: [{ sesion_token: 'token123', status: false, rol_activo: true, id_especialidad: null, esp_activo: null }],
     });
 
     await authMiddleware(req, res, next);
@@ -84,12 +84,42 @@ describe('authMiddleware', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
+  test('debe retornar 401 si el rol está desactivado', async () => {
+    const decoded = { id: 1, username: 'admin', rol: 'admin', sesion_token: 'token123' };
+    req.headers.authorization = 'Bearer token-valido';
+    jwt.verify.mockReturnValue(decoded);
+    mockPool.query.mockResolvedValue({
+      rows: [{ sesion_token: 'token123', status: true, rol_activo: false, id_especialidad: null, esp_activo: null }],
+    });
+
+    await authMiddleware(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({ mensaje: 'Sesión inválida. Tu rol ha sido desactivado.' });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  test('debe retornar 401 si la especialidad del médico está desactivada', async () => {
+    const decoded = { id: 1, username: 'doc', rol: 'medico', sesion_token: 'token123' };
+    req.headers.authorization = 'Bearer token-valido';
+    jwt.verify.mockReturnValue(decoded);
+    mockPool.query.mockResolvedValue({
+      rows: [{ sesion_token: 'token123', status: true, rol_activo: true, id_especialidad: 5, esp_activo: false }],
+    });
+
+    await authMiddleware(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({ mensaje: 'Sesión inválida. Tu especialidad ha sido desactivada.' });
+    expect(next).not.toHaveBeenCalled();
+  });
+
   test('debe retornar 401 si el token de sesión no coincide (sesión concurrente)', async () => {
     const decoded = { id: 1, username: 'admin', rol: 'admin', sesion_token: 'token-antiguo' };
     req.headers.authorization = 'Bearer token-valido';
     jwt.verify.mockReturnValue(decoded);
     mockPool.query.mockResolvedValue({
-      rows: [{ sesion_token: 'token-nuevo', status: true }],
+      rows: [{ sesion_token: 'token-nuevo', status: true, rol_activo: true, id_especialidad: null, esp_activo: null }],
     });
 
     await authMiddleware(req, res, next);

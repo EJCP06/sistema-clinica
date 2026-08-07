@@ -89,6 +89,8 @@ const updateEspecialidad = async (req, res) => {
   try {
     await client.query('BEGIN');
 
+    const espAntes = await espRepo.getById(id);
+
     const sets = [];
     const values = [];
     let idx = 1;
@@ -115,6 +117,18 @@ const updateEspecialidad = async (req, res) => {
 
     const result = await espRepo.getById(id);
     const consultoriosIds = await espRepo.getConsultorioIdsByEspecialidad(id);
+
+    // Si la especialidad se desactiva, desconectar en tiempo real a los
+    // médicos que la tengan asignada para que no sigan operando con su sesión.
+    if (activo === false && espAntes && espAntes.activo !== false && req.io) {
+      const sockets = await req.io.fetchSockets();
+      for (const socket of sockets) {
+        if (socket.usuario && Number(socket.usuario.id_especialidad) === Number(id)) {
+          socket.emit('especialidad-desactivada');
+        }
+      }
+    }
+
     res.json({
       ...result,
       consultorios_ids: consultoriosIds,

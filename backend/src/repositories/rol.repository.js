@@ -14,6 +14,16 @@ const getAll = async (sede) => {
   return result.rows;
 };
 
+const getById = async (id) => {
+  const result = await pool.query(
+    `SELECT id_rol as id, nombre, key, id_sede, activo
+     FROM "Roles"
+     WHERE id_rol = $1`,
+    [id]
+  );
+  return result.rows[0] || null;
+};
+
 const create = async (nombre, key, id_sede, activo) => {
   const result = await pool.query(
     `INSERT INTO "Roles" (nombre, key, id_sede, activo)
@@ -52,6 +62,7 @@ const existsKeyForSede = async (key, id_sede) => {
 
 module.exports = {
   getAll,
+  getById,
   create,
   update,
   remove,

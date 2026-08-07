@@ -3,6 +3,7 @@ const pacienteRepo = require('../repositories/paciente.repository');
 const atencionRepo = require('../repositories/atencion.repository');
 const sharedRepo = require('../repositories/shared.repository');
 const historialRepo = require('../repositories/historial.repository');
+const espRepo = require('../repositories/especialidad.repository');
 const pool = require('../config/db');
 
 const getSede = (req) => {
@@ -255,6 +256,13 @@ const actualizarAtencion = async (req, res) => {
     const { id } = req.params;
     const { id_servicio, id_responsable, id_cliente, id_especialidad, id_medico, id_consultorio } = req.body;
 
+    if (id_especialidad) {
+      const activa = await espRepo.esEspecialidadActiva(id_especialidad, sede);
+      if (!activa) {
+        return res.status(400).json({ mensaje: 'La especialidad seleccionada está inactiva' });
+      }
+    }
+
     if (id_servicio !== undefined) {
       const current = await atencionRepo.getAtencionEstado(id, sede);
 
@@ -378,6 +386,13 @@ const generarTurno = async (req, res) => {
 
     if (!id_paciente || !id_servicio) {
       return res.status(400).json({ mensaje: 'Paciente y servicio son requeridos' });
+    }
+
+    if (id_especialidad) {
+      const activa = await espRepo.esEspecialidadActiva(id_especialidad, sede);
+      if (!activa) {
+        return res.status(400).json({ mensaje: 'La especialidad seleccionada está inactiva' });
+      }
     }
 
     const { prefijo, next } = await atencionRepo.getPrefijoYConteo(id_servicio, sede);
