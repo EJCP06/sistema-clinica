@@ -21,10 +21,10 @@
 
       <!-- VISTA: ATENCION -->
       <ng-container>
-        <div class="w-full xl:h-full flex flex-col xl:grid xl:grid-cols-10 gap-6 lg:gap-10 items-center mx-auto">
+        <div class="w-full xl:h-full flex flex-col xl:grid xl:grid-cols-10 gap-6 lg:gap-10 items-stretch mx-auto">
 
           <!-- TARJETAS + CARD ACTIVO (mobile: 1ero, desktop: columna derecha) -->
-          <div class="xl:col-span-5 xl:order-2 flex flex-col gap-6 w-full">
+          <div class="xl:col-span-5 xl:order-2 flex flex-col gap-6 w-full xl:flex-1">
 
             <!-- TARJETAS DE ESTADISTICAS -->
             <div class="flex flex-col xl:grid xl:grid-cols-2 gap-4">
@@ -58,10 +58,10 @@
             </div>
 
             <!-- TARJETA ACTIVA -->
-            <div class="flex flex-col">
+            <div class="flex flex-col flex-1">
 
               <!-- CARD ESTADO: LIBRE -->
-              <div *ngIf="!turnoActual || (turnoActual.estado !== 'LLAMADO' && turnoActual.estado !== 'EN_ATENCION')" class="bg-white dark:bg-slate-900 rounded-[32px] px-6 md:px-10 py-6 md:py-8 text-center shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-center min-h-[250px] lg:h-[530px] relative">
+              <div *ngIf="!turnoActual || (turnoActual.estado !== 'LLAMADO' && turnoActual.estado !== 'EN_ATENCION')" class="bg-white dark:bg-slate-900 rounded-[32px] px-6 md:px-10 py-6 md:py-8 text-center shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col justify-center min-h-[250px] xl:flex-1 relative">
                 <button *ngIf="tienePermiso('atencion_medica_liberar_consultorio') || tienePermisoAtencion('liberar_consultorio')" (click)="liberarConsultorio()" class="absolute top-4 right-4 text-slate-300 hover:text-blue-500 transition-colors" title="Liberar consultorio manualmente">
                   <lucide-icon [name]="RefreshCcw" class="w-5 h-5"></lucide-icon>
                 </button>
@@ -88,7 +88,7 @@
               </div>
 
               <!-- ESTADO: TURNO ACTIVO -->
-              <div *ngIf="turnoActual && (turnoActual.estado === 'LLAMADO' || turnoActual.estado === 'EN_ATENCION')" class="bg-white dark:bg-slate-900 rounded-[32px] p-6 md:p-8 shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50 border border-slate-100 dark:border-slate-800 flex flex-col min-h-[300px] lg:h-[530px]">
+              <div *ngIf="turnoActual && (turnoActual.estado === 'LLAMADO' || turnoActual.estado === 'EN_ATENCION')" class="bg-white dark:bg-slate-900 rounded-[32px] p-6 md:p-8 shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50 border border-slate-100 dark:border-slate-800 flex flex-col min-h-[300px] xl:flex-1">
                 <div class="flex flex-col md:flex-row items-center justify-between mb-6 pb-6 border-b border-slate-100 dark:border-slate-800 gap-4">
                   <div class="flex items-center gap-4">
                     <div class="text-5xl font-black font-mono text-slate-900 dark:text-white tracking-tighter">{{ turnoActual.numero }}</div>
@@ -114,7 +114,7 @@
                 </div>
 
                 <!-- TEMPORIZADOR Y ACCIONES (LLAMADO) -->
-                <div *ngIf="turnoActual.estado === 'LLAMADO'" class="text-center bg-blue-50/50 dark:bg-blue-500/5 p-6 rounded-3xl border border-blue-100 dark:border-blue-500/20 mt-auto">
+                <div *ngIf="turnoActual.estado === 'LLAMADO'" class="text-center bg-blue-50/50 dark:bg-blue-500/5 p-6 rounded-3xl border border-blue-100 dark:border-blue-500/20 shrink-0 mt-auto mb-auto">
                   <div class="relative w-24 h-24 mx-auto mb-4">
                     <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
                       <circle cx="50" cy="50" r="44" fill="none" class="stroke-slate-200 dark:stroke-slate-800" stroke-width="8"></circle>
@@ -135,7 +135,7 @@
                 </div>
 
                 <!-- ACCIONES (EN_ATENCION) -->
-                <div *ngIf="turnoActual.estado === 'EN_ATENCION'" class="flex-1 flex flex-col items-center justify-center gap-4">
+                <div *ngIf="turnoActual.estado === 'EN_ATENCION'" class="flex flex-col items-center justify-center gap-4 shrink-0 mt-auto mb-auto">
                   <button *ngIf="tienePermiso('atencion_medica_finalizar') || tienePermisoAtencion('finalizar')" (click)="finalizarAtencion()" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-black py-4 rounded-[24px] shadow-xl shadow-teal-500/30 hover:shadow-teal-500/50 transition-all duration-300 text-lg flex items-center justify-center gap-3 group active:scale-95">
                     <lucide-icon [name]="CheckCircle2" class="w-6 h-6 group-hover:scale-110 transition-transform"></lucide-icon> Finalizar Atención
                   </button>
@@ -146,10 +146,10 @@
           </div>
 
           <!-- COLUMNA IZQUIERDA: En Espera + Historial -->
-          <div class="xl:col-span-5 xl:order-1 flex flex-col gap-4 w-full">
+          <div class="xl:col-span-5 xl:order-1 flex flex-col gap-4 w-full xl:flex-1">
 
             <!-- PACIENTES EN ESPERA -->
-            <div class="flex flex-col bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden w-full">
+            <div class="flex flex-col bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden w-full xl:flex-1">
               <div class="px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50 shrink-0">
                 <h3 class="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2">
                   <lucide-icon [name]="MonitorSpeaker" class="w-4 h-4 text-slate-400"></lucide-icon>
@@ -159,7 +159,7 @@
               </div>
 
               <div class="flex-1 flex flex-col min-h-0">
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto flex-1">
                   <table class="w-full text-center text-[11px] sm:text-sm">
                     <thead class="bg-white dark:bg-slate-900">
                       <tr class="h-[36px] border-b border-slate-100 dark:border-slate-800 text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -212,7 +212,7 @@
             </div>
 
             <!-- HISTORIAL -->
-            <div class="flex flex-col bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden w-full">
+            <div class="flex flex-col bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden w-full xl:flex-1">
               <div class="px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50 shrink-0">
                 <h3 class="text-sm font-black text-slate-800 dark:text-white flex items-center gap-2">
                   <lucide-icon [name]="Clock" class="w-4 h-4 text-slate-400"></lucide-icon>
@@ -222,7 +222,7 @@
               </div>
 
               <div class="flex-1 flex flex-col min-h-0">
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto flex-1">
                   <table class="w-full text-center text-[11px] sm:text-sm">
                     <thead class="bg-white dark:bg-slate-900">
                       <tr class="h-[36px] border-b border-slate-100 dark:border-slate-800 text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest">

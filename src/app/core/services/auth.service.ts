@@ -22,6 +22,7 @@ export class AuthService implements OnDestroy {
   private readonly FECHA_KEY = 'clinica_fecha';
   private readonly usuarioSubject = new BehaviorSubject<Usuario | null>(this.cargarSesion());
   private readonly permisosSub: Subscription;
+  private sessionVerified = false;
 
   private readonly LEGACY_KEY_MAP: Record<string, string> = {
     ver_reportes: 'reportes:ver',
@@ -209,9 +210,14 @@ export class AuthService implements OnDestroy {
         this.api.actualizarSocketToken(res.token);
       }),
       catchError(() => {
+        this.limpiarSesionSinNavegar();
         return of(null);
       }),
     );
+  }
+
+  needsSessionVerification(): boolean {
+    return !this.sessionVerified && this.estaAutenticado();
   }
 
   refreshTokenSiEsNuevoDia(): void {
@@ -227,12 +233,34 @@ export class AuthService implements OnDestroy {
     }
   }
 
+  refreshTokenSiProximoAVencer(): void {
+    const token = this.getToken();
+    if (!token) return;
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const expMs = payload.exp * 1000;
+      const nowMs = Date.now();
+      const horasRestantes = (expMs - nowMs) / (1000 * 60 * 60);
+
+      if (horasRestantes < 4) {
+        this.refreshSession().subscribe();
+      }
+    } catch {
+      this.refreshSession().subscribe();
+    }
+  }
+
   verifySession(): Observable<boolean> {
     const token = this.getToken();
-    if (!token) return of(false);
+    if (!token) {
+      this.sessionVerified = true;
+      return of(false);
+    }
     const usuarioActual = this.usuarioActual;
     return this.http.get<{ valido: boolean; usuario: any }>(`${environment.apiUrl}/auth/verify`).pipe(
       tap((res) => {
+        this.sessionVerified = true;
         if (usuarioActual?.id_sede && res.usuario.id_sede && usuarioActual.id_sede !== res.usuario.id_sede) {
           Swal.fire({
             icon: 'warning',
@@ -255,6 +283,7 @@ export class AuthService implements OnDestroy {
       }),
       map(() => true),
       catchError((err) => {
+        this.sessionVerified = true;
         if (err?.status === 401 || err?.status === 403) {
           this.logoutSilently();
         }

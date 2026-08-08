@@ -51,8 +51,8 @@ export class Atencion implements OnInit, OnDestroy {
   readonly RefreshCcw = RefreshCcw;
 
   tipo: string = 'medico';
-  esperaPageSize = 4;
-  historialPageSize = 4;
+  esperaPageSize = 5;
+  historialPageSize = 5;
   currentHistorialPage = 1;
   currentHistorialTabPage = 1;
   currentEsperaPage = 1;

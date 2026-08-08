@@ -113,7 +113,7 @@ const marcarAusente = async (req, res) => {
     if (req.io) {
       const sede = req.usuario?.id_sede || 1;
       const admision = await atencionRepo.getAdmisionById(id, sede);
-      req.io.emit('estado-actualizado', { tipo: 'retirado', id_atencion: Number(id), admision });
+      req.io.emit('estado-actualizado', { tipo: 'retirado', id_atencion: Number(id), admision, id_sede: sede });
     }
     res.json({ mensaje: 'Turno marcado como ausente' });
   } catch (error) {
@@ -152,7 +152,7 @@ const reincorporarPaciente = async (req, res) => {
     if (req.io) {
       const sede = req.usuario?.id_sede || 1;
       const admision = await atencionRepo.getAdmisionById(id, sede);
-      req.io.emit('estado-actualizado', { tipo: 'estado-cambiado', id_atencion: Number(id), id_estado_nuevo: 3, admision });
+      req.io.emit('estado-actualizado', { tipo: 'estado-cambiado', id_atencion: Number(id), id_estado_nuevo: 3, admision, id_sede: sede });
     }
     res.json({ mensaje: 'Paciente reincorporado a Sala de Espera' });
   } catch (error) {

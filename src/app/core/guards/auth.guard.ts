@@ -3,6 +3,7 @@ import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { Rol } from '@core/models/usuario.model';
 import { VISTA_POR_PERMISO } from '@core/config/permisos.config';
+import { map, catchError, of, switchMap } from 'rxjs';
 
 /** Guard que verifica si el usuario está autenticado. Redirige a /login si no. */
 export const authGuard: CanActivateFn = () => {
@@ -13,6 +14,21 @@ export const authGuard: CanActivateFn = () => {
     router.navigate(['/login']);
     return false;
   }
+
+  if (auth.needsSessionVerification()) {
+    return auth.verifySession().pipe(
+      map(valid => {
+        if (valid) return true;
+        router.navigate(['/login']);
+        return false;
+      }),
+      catchError(() => {
+        router.navigate(['/login']);
+        return of(false);
+      }),
+    );
+  }
+
   return true;
 };
 
