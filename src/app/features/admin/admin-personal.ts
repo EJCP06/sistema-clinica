@@ -99,7 +99,7 @@ export class AdminPersonal implements OnInit {
   private cdr = inject(ChangeDetectorRef);
   private zone = inject(NgZone);
 
-  pageSize = 7;
+  pageSize = 9;
   currentPage = 1;
   cargando: boolean = true;
 

@@ -14,19 +14,20 @@
     >
     </app-header>
 
-    <div class="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8">
+    <div class="flex-1 overflow-y-auto custom-scrollbar px-4 pt-4 pb-4 md:px-8 md:pt-8 md:pb-8 flex flex-col">
 
-      <!-- BUSCADOR CON FILTROS -->
-      <div class="flex justify-center mb-6 md:mb-10 mt-6 md:mt-14">
-        <div class="relative w-full max-w-2xl">
-          <div
-            class="flex items-center w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-1 shadow-sm group focus-within:ring-4 focus-within:ring-blue-500/5 focus-within:border-blue-500 transition-all"
-          >
-            <div class="relative search-filter-container">
+      <!-- HISTORIAL / PANTALLA DE CONTROL LABORATORIO -->
+      <div class="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6 flex-1 flex flex-col">
+        <div
+          class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex-1 flex flex-col"
+        >
+          <!-- BUSCADOR DENTRO DE LA TABLA -->
+          <div class="flex items-center gap-2 px-4 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+            <div class="relative search-filter-container shrink-0">
               <button
                 type="button"
                 (click)="toggleSearchFilterDropdown()"
-                class="bg-white dark:bg-transparent border-r border-slate-100 dark:border-slate-800 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-slate-500 focus:outline-none rounded-l-2xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2"
+                class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-4 py-3 text-[10px] font-black uppercase tracking-wider text-slate-500 focus:outline-none rounded-2xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2"
               >
                 <span>{{ getSearchFilterLabel() }}</span>
                 <lucide-icon
@@ -97,7 +98,7 @@
               </div>
             </div>
 
-            <div class="relative flex-1">
+            <div class="relative flex-1 min-w-0">
               <lucide-icon
                 [name]="Search"
                 class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"
@@ -108,26 +109,16 @@
                 [(ngModel)]="cedulaBusqueda"
                 (ngModelChange)="onSearchChange($event)"
                 placeholder="Buscar paciente registrado..."
-                class="w-full pl-14 pr-10 py-4 text-sm focus:outline-none font-medium bg-transparent rounded-r-2xl text-slate-900 dark:text-white"
+                class="w-full pl-14 pr-10 py-3 text-sm focus:outline-none font-medium bg-slate-100 dark:bg-slate-800 rounded-2xl text-slate-900 dark:text-white"
               />
             </div>
           </div>
-        </div>
-      </div>
-
-
-
-      <!-- HISTORIAL / PANTALLA DE CONTROL LABORATORIO -->
-      <div class="mt-12 animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-        <div
-          class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden"
-        >
           <div *ngIf="cargando" class="flex flex-col items-center justify-center py-16 bg-white dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800/80 rounded-[32px]">
             <div class="w-8 h-8 border-[3px] border-blue-600/30 border-t-blue-600 rounded-full animate-spin"></div>
             <span class="text-sm text-slate-500 dark:text-slate-400 mt-4 font-semibold animate-pulse">Cargando admisiones...</span>
           </div>
-          <div *ngIf="!cargando" class="flex flex-col justify-between">
-            <div class="overflow-x-auto">
+          <div *ngIf="!cargando" class="flex flex-col justify-between flex-1">
+            <div class="overflow-x-auto flex-1">
 <table class="w-full min-w-[1100px] text-left text-[11px] sm:text-sm">
               <thead
                 class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800"

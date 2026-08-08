@@ -49,18 +49,18 @@
     >
     </app-header>
 
-    <div class="flex-1 overflow-y-auto p-4 md:p-8" style="scrollbar-width: none; -ms-overflow-style: none;">
+    <div class="flex-1 overflow-y-auto px-4 pt-4 pb-4 md:px-8 md:pt-8 md:pb-8 flex flex-col" style="scrollbar-width: none; -ms-overflow-style: none;">
       <style>
         .flex-1::-webkit-scrollbar { display: none; }
       </style>
       <ng-container *ngIf="permisosListos">
-        <app-admin-reports *ngIf="activeTab === 'reports' || activeTab === 'stats'"></app-admin-reports>
+        <app-admin-reports *ngIf="activeTab === 'reports' || activeTab === 'stats'" class="flex flex-col flex-1"></app-admin-reports>
 
-        <app-admin-personal *ngIf="activeTab === 'personal'"></app-admin-personal>
+        <app-admin-personal *ngIf="activeTab === 'personal'" class="flex flex-col flex-1"></app-admin-personal>
 
-        <app-admin-especialidades *ngIf="activeTab === 'especialidades'"></app-admin-especialidades>
-        <app-admin-roles *ngIf="activeTab === 'roles'"></app-admin-roles>
-        <app-admin-permisologia *ngIf="activeTab === 'permisologia'"></app-admin-permisologia>
+        <app-admin-especialidades *ngIf="activeTab === 'especialidades'" class="flex flex-col flex-1"></app-admin-especialidades>
+        <app-admin-roles *ngIf="activeTab === 'roles'" class="flex flex-col flex-1"></app-admin-roles>
+        <app-admin-permisologia *ngIf="activeTab === 'permisologia'" class="flex flex-col flex-1"></app-admin-permisologia>
       </ng-container>
     </div>
   </main>

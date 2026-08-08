@@ -15,6 +15,7 @@ const COOKIE_OPTIONS = {
   secure: isProduction,
   sameSite: 'lax',
   path: '/api/auth',
+  maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
 /**
@@ -273,8 +274,7 @@ const refrescarToken = async (req, res) => {
       return res.status(401).json({ mensaje: 'Especialidad desactivada' });
     }
 
-    const sesionToken = crypto.randomUUID();
-    await usuarioRepo.actualizarSesionToken(usuario.id, sesionToken);
+    const sesionToken = usuario.sesion_token;
 
     let permisosArr2;
     try {

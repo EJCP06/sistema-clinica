@@ -38,7 +38,7 @@ export class ApsComponent implements OnInit, OnDestroy {
   readonly DollarSign = DollarSign;
   readonly Trash2 = Trash2;
 
-  pageSize = 7;
+  pageSize = 9;
   currentPage = 1;
 
   sidebarOpen = false;
