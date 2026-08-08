@@ -247,7 +247,11 @@ export class TurneroComponent implements OnInit, OnDestroy {
   
   private repeatTimerId: any = null;
   private ultimoIdAtencion: number | null = null;
+  private ultimoNumeroTurno: string | null = null;
   private pacienteParaRepetir: { paciente: string; apellido: string; consultorio: string } | null = null;
+  private estaReproduciendo: boolean = false;
+  private audioDesbloqueado: boolean = typeof sessionStorage !== 'undefined' && sessionStorage.getItem('turnero_audio_unlocked') === 'true';
+  private resumeHandler: (() => void) | null = null;
 
   constructor(
     readonly api: ApiService,
@@ -282,6 +286,31 @@ export class TurneroComponent implements OnInit, OnDestroy {
     };
     cargarVoces();
 
+    if (this.resumeHandler) {
+      document.removeEventListener('click', this.resumeHandler);
+    }
+    this.resumeHandler = () => {
+      if ('speechSynthesis' in window && window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
+    };
+    document.addEventListener('click', this.resumeHandler);
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && 'speechSynthesis' in window) {
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
+        if (this.pacienteParaRepetir && !window.speechSynthesis.speaking) {
+          this.reproducirAudio(
+            this.pacienteParaRepetir.paciente,
+            this.pacienteParaRepetir.apellido,
+            this.pacienteParaRepetir.consultorio
+          );
+        }
+      }
+    });
+
     this.queryParamsSub = this.route.queryParams.subscribe(params => {
       const sala = params['sala'] as SalaMode;
       this.sala = SALAS[sala] ? sala : 'aps';
@@ -290,28 +319,37 @@ export class TurneroComponent implements OnInit, OnDestroy {
     });
 
     this.cambiosSub = this.api.cambios$.subscribe((data: any) => {
-      if (data.id_sede && this.sede && data.id_sede !== this.sede) {
-        this.cargarDatosSala();
+      if (data.id_sede && this.sede && Number(data.id_sede) !== Number(this.sede)) {
         return;
       }
       
       const esLlamado = data.tipo === 'llamado' && data.paciente && data.consultorio;
-      const esMismoPaciente = data.id_atencion && data.id_atencion === this.ultimoIdAtencion;
-      const esLiberacion = data.tipo === 'liberacion' || (data.tipo === 'estado-actualizado' && data.estado && data.estado.toUpperCase() !== 'LLAMADO');
+      const esMismoPaciente = data.id_atencion && (data.id_atencion === this.ultimoIdAtencion || 
+        (data.turno && data.turno === this.ultimoNumeroTurno));
+      const esLiberacion = data.tipo === 'liberacion' || data.tipo === 'retirado' || (data.tipo === 'estado-cambiado' && esMismoPaciente);
 
       if (esLiberacion) {
         this.detenerRepeticion();
       }
 
       if (esLlamado && !esMismoPaciente) {
+        if (!this.audioDesbloqueado || this.estaReproduciendo) {
+          this.cargarDatosSala();
+          return;
+        }
+
         this.pacienteParaRepetir = { paciente: data.paciente, apellido: data.apellido || '', consultorio: data.consultorio };
         this.ultimoIdAtencion = data.id_atencion;
+        this.ultimoNumeroTurno = data.turno || null;
         
+        this.estaReproduciendo = true;
         this.reproducirAudio(data.paciente, data.apellido || '', data.consultorio);
         this.iniciarTemporizadorRepeticion();
       }
       this.cargarDatosSala();
     });
+
+    this.verificarUltimoLlamado();
 
     this.timerSub = interval(5000).subscribe(() => {
         this.cargarDatosSala();
@@ -369,9 +407,59 @@ export class TurneroComponent implements OnInit, OnDestroy {
     this.detenerRepeticionTimer();
     this.pacienteParaRepetir = null;
     this.ultimoIdAtencion = null;
+    this.ultimoNumeroTurno = null;
+    this.estaReproduciendo = false;
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
+  }
+
+  private verificarUltimoLlamado() {
+    if (!this.sede) return;
+
+    const intentarReproducir = (retries = 0) => {
+      setTimeout(() => {
+        this.api.get<any>(`turnero/ultimo-llamado?sede=${this.sede}`).subscribe({
+          next: (data) => {
+            if (data && data.id_atencion && data.paciente && data.consultorio) {
+              const esMismoPaciente = this.ultimoIdAtencion === data.id_atencion || 
+                this.ultimoNumeroTurno === data.turno;
+              
+              if (esMismoPaciente) {
+                return;
+              }
+
+              if (!this.audioDesbloqueado || this.estaReproduciendo) {
+                return;
+              }
+
+              this.pacienteParaRepetir = {
+                paciente: data.paciente,
+                apellido: data.apellido || '',
+                consultorio: data.consultorio,
+              };
+              this.ultimoIdAtencion = data.id_atencion;
+              this.ultimoNumeroTurno = data.turno || null;
+
+              if (!this.vozFemenina) {
+                this.cargarVozFemenina();
+              }
+
+              if (this.vozFemenina || retries >= 5) {
+                this.estaReproduciendo = true;
+                this.reproducirAudio(data.paciente, data.apellido || '', data.consultorio);
+                this.iniciarTemporizadorRepeticion();
+              } else {
+                intentarReproducir(retries + 1);
+              }
+            }
+          },
+          error: () => {},
+        });
+      }, retries === 0 ? 500 : 1000);
+    };
+
+    intentarReproducir();
   }
 
   ngOnDestroy() {
@@ -380,6 +468,10 @@ export class TurneroComponent implements OnInit, OnDestroy {
     this.timerSub?.unsubscribe();
     this.clockSub?.unsubscribe();
     this.detenerRepeticionTimer();
+    if (this.resumeHandler) {
+      document.removeEventListener('click', this.resumeHandler);
+      this.resumeHandler = null;
+    }
   }
 
   cambiarSala(sala: SalaMode) {
@@ -640,7 +732,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
     }
   }
 
-  private reproducirAudio(nombre: string, apellido: string, consultorio: string) {
+  private reproducirAudio(nombre: string, apellido: string, consultorio: string, retryCount = 0) {
     if (!('speechSynthesis' in window)) {
       console.error('SpeechSynthesis no soportado.');
       return;
@@ -665,16 +757,33 @@ export class TurneroComponent implements OnInit, OnDestroy {
 
     window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(texto.toLowerCase());
+    const utterance = new SpeechSynthesisUtterance(texto);
     if (this.vozFemenina) {
       utterance.voice = this.vozFemenina;
       utterance.lang = this.vozFemenina.lang;
+    } else {
+      utterance.lang = 'es-MX';
     }
     utterance.rate = 0.9;
+
+    utterance.onend = () => {
+      this.estaReproduciendo = false;
+    };
+
+    utterance.onerror = (e) => {
+      console.warn('SpeechSynthesis error:', e.error, 'retry:', retryCount);
+      if (retryCount < 3 && e.error !== 'canceled') {
+        setTimeout(() => {
+          this.reproducirAudio(nombre, apellido, consultorio, retryCount + 1);
+        }, 500);
+      } else {
+        this.estaReproduciendo = false;
+      }
+    };
     
     setTimeout(() => {
       window.speechSynthesis.speak(utterance);
-    }, 100);
+    }, 300);
   }
 
 }

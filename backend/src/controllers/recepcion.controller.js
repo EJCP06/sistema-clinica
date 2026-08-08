@@ -64,7 +64,7 @@ const marcarAusente = async (req, res) => {
       
       if (req.io) {
         const admision = await atencionRepo.getAdmisionById(id, sede);
-        req.io.emit('estado-actualizado', { tipo: 'retirado', id_atencion: Number(id), admision });
+        req.io.emit('estado-actualizado', { tipo: 'retirado', id_atencion: Number(id), admision, id_sede: sede });
       }
       
       await historialRepo.insertSinTransaccion(id, 9);
@@ -356,7 +356,7 @@ const actualizarEstadoAtencion = async (req, res) => {
       return res.status(404).json({ mensaje: 'Atención no encontrada' });
     }
 
-    if (req.io) req.io.emit('estado-actualizado', { tipo: 'estado-cambiado', id_atencion: id, id_estado_nuevo });
+    if (req.io) req.io.emit('estado-actualizado', { tipo: 'estado-cambiado', id_atencion: id, id_estado_nuevo, id_sede: sede });
 
     await historialRepo.insertSinTransaccion(id, id_estado_nuevo);
 

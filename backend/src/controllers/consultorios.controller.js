@@ -133,7 +133,7 @@ const llamarSiguiente = async (req, res) => {
     await client.query('COMMIT');
 
     if (req.io) {
-      req.io.emit('estado-actualizado', { tipo: 'llamado', id_atencion: turno.id });
+      req.io.emit('estado-actualizado', { tipo: 'llamado', id_atencion: turno.id, id_sede: req.usuario.id_sede });
       req.io.emit('nuevo-llamado', { 
         tipo: 'llamado',
         id_atencion: turno.id,
@@ -212,7 +212,7 @@ const iniciarAtencion = async (req, res) => {
     await historialRepo.insert(client, atencionId, 5);
     await client.query('COMMIT');
 
-    if (req.io) req.io.emit('estado-actualizado', { tipo: 'liberacion', id_atencion: atencionId });
+    if (req.io) req.io.emit('estado-actualizado', { tipo: 'liberacion', id_atencion: atencionId, id_sede: req.usuario.id_sede });
 
     res.json({ mensaje: 'Atención iniciada correctamente', id_atencion: atencionId });
   } catch (error) {
@@ -270,7 +270,7 @@ const finalizarAtencion = async (req, res) => {
 
     await client.query('COMMIT');
 
-    if (req.io) req.io.emit('estado-actualizado', { tipo: 'estado-cambiado', id_atencion: atencionId, id_estado_nuevo: 6 });
+    if (req.io) req.io.emit('estado-actualizado', { tipo: 'estado-cambiado', id_atencion: atencionId, id_estado_nuevo: 6, id_sede: req.usuario.id_sede });
 
     res.json({ mensaje: 'Atención finalizada' });
   } catch (error) {
@@ -311,7 +311,7 @@ const liberarConsultorio = async (req, res) => {
     }
 
     await client.query('COMMIT');
-    if (req.io) req.io.emit('estado-actualizado', { tipo: 'liberacion' });
+    if (req.io) req.io.emit('estado-actualizado', { tipo: 'liberacion', id_sede: req.usuario.id_sede });
     
     res.json({ mensaje: 'Consultorio liberado correctamente' });
   } catch (error) {

@@ -54,7 +54,7 @@ const llamarPaciente = async (req, res) => {
 
     await client.query('COMMIT');
 
-    if (req.io) req.io.emit('estado-actualizado', { tipo: 'estado-cambiado', id_atencion, id_estado_nuevo });
+    if (req.io) req.io.emit('estado-actualizado', { tipo: 'estado-cambiado', id_atencion, id_estado_nuevo, id_sede: req.usuario?.id_sede });
 
     res.json({ mensaje: 'Paciente en atención', id_estado_nuevo });
   } catch (error) {
@@ -97,7 +97,7 @@ const finalizarAtencion = async (req, res) => {
 
     await client.query('COMMIT');
 
-    if (req.io) req.io.emit('estado-actualizado', { tipo: 'estado-cambiado', id_atencion, id_estado_nuevo: id_estado_final });
+    if (req.io) req.io.emit('estado-actualizado', { tipo: 'estado-cambiado', id_atencion, id_estado_nuevo: id_estado_final, id_sede: req.usuario?.id_sede });
 
     res.json({ mensaje: 'Atención finalizada' });
   } catch (error) {

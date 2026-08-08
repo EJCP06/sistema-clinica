@@ -565,6 +565,23 @@ const limpiarEstadosPendientes = async () => {
   }
 };
 
+const getUltimoLlamado = async (sede) => {
+  const result = await pool.query(
+    `SELECT a.id_atencion, a.numero,
+            p.primer_nombre, p.primer_apellido,
+            c.nombre as consultorio_nombre,
+            s.nombre_servicio
+     FROM "Atencion" a
+     JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
+     LEFT JOIN "Consultorios" c ON a.id_consultorio = c.id_consultorio
+     LEFT JOIN "Servicio" s ON a.id_servicio = s.id_servicio
+     WHERE a.id_sede = $1 AND a.id_estado_actual = 4 AND a.hora_salida IS NULL
+     ORDER BY a.hora_llegada DESC LIMIT 1`,
+    [sede],
+  );
+  return result.rows[0] || null;
+};
+
 module.exports = {
   getUltimasAdmisiones,
   getAdmisionById,
@@ -599,5 +616,6 @@ module.exports = {
   getAtendidosHoy,
   getTurneroPacientes,
   getSalaEspera,
+  getUltimoLlamado,
   limpiarEstadosPendientes,
 };

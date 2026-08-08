@@ -34,6 +34,31 @@ router.get('/pacientes', async (req, res) => {
   }
 });
 
+router.get('/ultimo-llamado', async (req, res) => {
+  try {
+    const { sede } = req.query;
+    if (!sede) {
+      return res.json({});
+    }
+
+    const llamado = await atencionRepo.getUltimoLlamado(Number(sede));
+
+    if (!llamado) {
+      return res.json({});
+    }
+
+    res.json({
+      id_atencion: llamado.id_atencion,
+      paciente: llamado.primer_nombre,
+      apellido: llamado.primer_apellido || '',
+      consultorio: llamado.consultorio_nombre || llamado.nombre_servicio,
+    });
+  } catch (error) {
+    logger.error(error);
+    res.status(500).json({ mensaje: 'Error al obtener último llamado' });
+  }
+});
+
 router.get('/sala-espera', async (req, res) => {
   try {
     const rows = await atencionRepo.getSalaEspera();

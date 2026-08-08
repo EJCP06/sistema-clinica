@@ -30,6 +30,7 @@ export class App implements OnInit, OnDestroy {
     this.intervalRefrescador = setInterval(() => {
       if (this.auth.getToken()) {
         this.auth.refreshTokenSiEsNuevoDia();
+        this.auth.refreshTokenSiProximoAVencer();
       }
     }, 5 * 60 * 1000);
   }
