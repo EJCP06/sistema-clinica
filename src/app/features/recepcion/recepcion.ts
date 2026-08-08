@@ -88,7 +88,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   readonly Upload = Upload;
   readonly Info = Info;
 
-  pageSize: number = 7;
+  pageSize: number = 9;
   currentPage: number = 1;
 
   sidebarOpen: boolean = false;

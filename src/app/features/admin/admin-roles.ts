@@ -104,7 +104,7 @@ export class AdminRoles implements OnInit {
   cargando: boolean = true;
 
   currentPageRoles = 1;
-  pageSize = 7;
+  pageSize = 9;
 
   searchQuery = '';
   searchFilter = 'todo';

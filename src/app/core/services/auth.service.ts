@@ -92,10 +92,8 @@ export class AuthService implements OnDestroy {
               Swal.fire({
                 icon: 'info',
                 title: 'Permisos actualizados',
-                text: 'Tus permisos han sido modificados. Inicia sesión nuevamente.',
+                text: 'Tus permisos han sido actualizados.',
                 confirmButtonColor: '#2563eb',
-              }).then(() => {
-                this.emergencyLogout();
               });
             },
             error: () => {},
@@ -104,14 +102,15 @@ export class AuthService implements OnDestroy {
       }
 
       if (event.tipo === 'rol-cambiado' && this.usuarioActual) {
-        Swal.fire({
-          icon: 'info',
-          title: 'Permisos actualizados',
-          text: 'Tu rol ha sido modificado. Inicia sesión nuevamente.',
-          confirmButtonColor: '#2563eb',
-          allowOutsideClick: false,
-        }).then(() => {
-          this.emergencyLogout();
+        this.verifySession().subscribe({
+          next: () => {
+            Swal.fire({
+              icon: 'info',
+              title: 'Datos actualizados',
+              text: 'Tu rol ha sido modificado. Tus datos han sido actualizados.',
+              confirmButtonColor: '#2563eb',
+            });
+          },
         });
       }
 
@@ -255,8 +254,10 @@ export class AuthService implements OnDestroy {
         this.usuarioSubject.next(usuario);
       }),
       map(() => true),
-      catchError(() => {
-        this.logoutSilently();
+      catchError((err) => {
+        if (err?.status === 401 || err?.status === 403) {
+          this.logoutSilently();
+        }
         return of(false);
       }),
     );

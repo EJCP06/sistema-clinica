@@ -67,7 +67,7 @@ export class AdminPermisologia implements OnInit, OnDestroy {
   showSearchFilterDropdown = false;
 
   currentPage = 1;
-  pageSize = 7;
+  pageSize = 9;
 
   showModal = false;
   showRolDropdown = false;

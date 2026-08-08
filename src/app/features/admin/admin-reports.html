@@ -1,4 +1,4 @@
-<div class="space-y-8 animate-in fade-in duration-500">
+<div class="space-y-8 animate-in fade-in duration-500 flex-1 flex flex-col">
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
     <div class="bg-white dark:bg-slate-900 p-5 rounded-[24px] border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-5 group transition-all hover:shadow-md">
       <div class="w-16 h-16 rounded-2xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center shrink-0">
@@ -38,7 +38,7 @@
     </div>
   </div>
 
-  <div class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+  <div class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex-1 flex flex-col">
     <div class="px-5 md:px-8 py-3 md:py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
         <h3 class="font-bold text-slate-900 dark:text-white">{{ tituloActividad }}</h3>
@@ -72,12 +72,12 @@
       <div class="w-8 h-8 border-[3px] border-blue-600/30 border-t-blue-600 rounded-full animate-spin"></div>
       <span class="text-sm text-slate-500 dark:text-slate-400 mt-4 font-semibold animate-pulse">Cargando reporte...</span>
     </div>
-    <div *ngIf="!cargando" class="flex flex-col justify-between">
-      <div class="overflow-x-auto" style="scrollbar-width: none; -ms-overflow-style: none;">
+    <div *ngIf="!cargando" class="flex flex-col justify-between flex-1">
+      <div class="overflow-x-auto flex-1" style="scrollbar-width: none; -ms-overflow-style: none;">
         <style>
           .overflow-x-auto::-webkit-scrollbar { display: none; }
         </style>
-<table class="w-full min-w-[800px] text-left text-[11px] sm:text-sm h-full">
+<table class="w-full min-w-[800px] text-left text-[11px] sm:text-sm">
         <thead class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
           <tr class="h-[52px] md:h-[64px] text-slate-500 dark:text-slate-400 font-black text-[9px] sm:text-[10px] uppercase tracking-[2px]">
             <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Turno</th>
