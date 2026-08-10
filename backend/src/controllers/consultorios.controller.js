@@ -6,6 +6,14 @@ const consultorioRepo = require('../repositories/consultorio.repository');
 const historialRepo = require('../repositories/historial.repository');
 
 /**
+ * Margen (ms) entre la emisión del evento y el momento en que TODOS los
+ * dispositivos deben empezar a reproducir la voz. Da tiempo a que el evento
+ * de Socket.IO llegue a todos los turneros (incluso por redes con algo de
+ * latencia) antes de que empiece la locución, y así las voces suenan a la vez.
+ */
+const RETARDO_INICIO_ANUNCIO_MS = 1500;
+
+/**
  * Obtiene el estado actual del consultorio o servicio del médico
  * autenticado. Para roles "laboratorio" e "imagenes" opera a nivel
  * de servicio; para el resto a nivel de consultorio físico.
@@ -133,7 +141,19 @@ const llamarSiguiente = async (req, res) => {
     await client.query('COMMIT');
 
     if (req.io) {
-      req.io.emit('estado-actualizado', { tipo: 'llamado', id_atencion: turno.id, id_sede: req.usuario.id_sede });
+      // Un solo evento por llamado: antes se emitían DOS (estado-actualizado
+      // + nuevo-llamado) con el mismo tipo 'llamado', y el turnero los recibía
+      // duplicados por el socket, lo que podía duplicar la voz. Se conserva
+      // 'nuevo-llamado' (con los datos completos del paciente), que es el que
+      // el turnero usa para anunciar. Los demás suscriptores (recepción,
+      // atención) refrescan con cualquier evento, así que no pierden nada.
+      //
+      // SINCRONIZACIÓN DE VOZ: `inicio_ms` es la hora (reloj del servidor) en
+      // la que TODOS los turneros deben empezar a hablar. Cada dispositivo
+      // agendó la locución para esa misma hora absoluta, así las voces suenan
+      // simultáneamente en todas las pantallas. `server_now` permite que el
+      // cliente estime el desfase de su reloj local respecto al servidor.
+      const ahoraServidor = Date.now();
       req.io.emit('nuevo-llamado', { 
         tipo: 'llamado',
         id_atencion: turno.id,
@@ -141,7 +161,9 @@ const llamarSiguiente = async (req, res) => {
         consultorio: servicioNombre,
         paciente: turno.nombre_paciente,
         apellido: turno.apellido_paciente || '',
-        id_sede: req.usuario.id_sede
+        id_sede: req.usuario.id_sede,
+        server_now: ahoraServidor,
+        inicio_ms: ahoraServidor + RETARDO_INICIO_ANUNCIO_MS
       });
     }
 

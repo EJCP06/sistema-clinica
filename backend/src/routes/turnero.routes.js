@@ -3,6 +3,11 @@ const router = express.Router();
 const logger = require('../config/logger');
 const atencionRepo = require('../repositories/atencion.repository');
 
+// Mismo margen que en consultorios.controller.js: hora objetivo de inicio de
+// la voz = hora del llamado + este margen. Debe coincidir para que los
+// turneros que se conectan tarde se alineen al mismo ciclo de 20s.
+const RETARDO_INICIO_ANUNCIO_MS = 1500;
+
 router.get('/pacientes', async (req, res) => {
   try {
     const { estados, servicios, responsable, sede } = req.query;
@@ -47,11 +52,18 @@ router.get('/ultimo-llamado', async (req, res) => {
       return res.json({});
     }
 
+    const horaLlamadoMs = llamado.hora_llamado ? new Date(llamado.hora_llamado).getTime() : null;
+
     res.json({
       id_atencion: llamado.id_atencion,
+      turno: llamado.numero,
       paciente: llamado.primer_nombre,
       apellido: llamado.primer_apellido || '',
       consultorio: llamado.consultorio_nombre || llamado.nombre_servicio,
+      hora_llamado: llamado.hora_llamado || null,
+      hora_llamado_epoch: horaLlamadoMs,
+      inicio_ms: horaLlamadoMs ? horaLlamadoMs + RETARDO_INICIO_ANUNCIO_MS : null,
+      server_now: Date.now(),
     });
   } catch (error) {
     logger.error(error);

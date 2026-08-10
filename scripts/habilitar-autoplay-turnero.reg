@@ -1,0 +1,31 @@
+Windows Registry Editor Version 5.00
+
+; ============================================================
+;  Habilitar autoplay de audio (voz del turnero) SIN clicks
+; ------------------------------------------------------------
+;  Este archivo crea la politica de Windows "AutoplayAllowed"
+;  para Chrome y Edge, que permite que la sintesis de voz
+;  (speechSynthesis) suene sin necesidad de interaccion del
+;  usuario. Es la solucion oficial de Google para kioscos.
+;
+;  COMO APLICARLA:
+;    1. Clic derecho sobre el archivo -> "Combinar" (Merge)
+;       (o doble clic y aceptar). Se necesita permisos de
+;       administrador.
+;    2. Cerrar TODAS las ventanas de Chrome/Edge y abrirlo
+;       de nuevo (el cambio aplica al reiniciar el navegador).
+;    3. El equipo debe estar en la configuracion correcta de
+;       reloj/dominio (la politica requiere hora correcta).
+;
+;  Si luego quieres quitarla, borra las claves de abajo o usa:
+;     reg delete "HKLM\SOFTWARE\Policies\Google\Chrome" /v AutoplayAllowed /f
+;     reg delete "HKLM\SOFTWARE\Policies\Microsoft\Edge" /v AutoplayAllowed /f
+; ============================================================
+
+; --- Google Chrome ---
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Google\Chrome]
+"AutoplayAllowed"=dword:00000001
+
+; --- Microsoft Edge ---
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge]
+"AutoplayAllowed"=dword:00000001

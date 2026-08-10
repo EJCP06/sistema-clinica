@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { LucideAngularModule, Building2, Monitor, ArrowLeft } from 'lucide-angular';
+import { desbloquearVozNavegador } from './voz.util';
 
 @Component({
   selector: 'app-turnero-sede-selector',
@@ -40,6 +41,10 @@ export class TurneroSedeSelector {
 
   ir(sede: number) {
     sessionStorage.setItem('turnero_sede', String(sede));
+    // El click para elegir sede es un gesto de usuario: desbloquea el audio
+    // para que el turnero pueda anunciar los llamados por voz.
+    sessionStorage.setItem('turnero_audio_unlocked', 'true');
+    desbloquearVozNavegador();
     this.router.navigate(['/turnero', sede], { queryParams: { sala: 'aps' } });
   }
 

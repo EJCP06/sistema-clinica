@@ -1,5 +1,6 @@
 const mockPool = {
   query: jest.fn(),
+  connect: jest.fn(),
 };
 jest.mock('../src/config/db', () => mockPool);
 
@@ -116,11 +117,22 @@ describe('recepcionController', () => {
 
     test('debe generar turno exitosamente', async () => {
       req.body = { id_paciente: 1, id_servicio: 1 };
+      const client = {
+        query: jest.fn()
+          .mockResolvedValueOnce({ rows: [] })
+          .mockResolvedValueOnce({ rows: [{ ultimo: 5 }] })
+          .mockResolvedValueOnce({ rows: [{ id_atencion: 10, numero: 'C-005', hora_llegada: new Date() }] })
+          .mockResolvedValueOnce({ rows: [] }),
+        release: jest.fn(),
+      };
+      mockPool.connect.mockResolvedValue(client);
       mockPool.query
         .mockResolvedValueOnce({ rows: [{ prefijo: 'C' }] })
-        .mockResolvedValueOnce({ rows: [{ next: 5 }] })
-        .mockResolvedValueOnce({ rows: [{ id_atencion: 10, numero: 'C-005', hora_llegada: new Date() }] });
+        .mockResolvedValue({ rows: [] });
       await ctrl.generarTurno(req, res);
+      expect(mockPool.connect).toHaveBeenCalled();
+      expect(client.query).toHaveBeenCalledWith('BEGIN');
+      expect(client.query).toHaveBeenCalledWith('COMMIT');
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ id_atencion: 10, numero: 'C-005' }));
     });

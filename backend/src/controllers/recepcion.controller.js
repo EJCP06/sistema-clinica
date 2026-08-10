@@ -369,8 +369,9 @@ const actualizarEstadoAtencion = async (req, res) => {
 
 /**
  * Genera un nuevo turno (atención) para un paciente y servicio dados.
- * Calcula el número de turno usando el prefijo del servicio y el
- * conteo del día. Emite evento Socket.IO al crearlo.
+ * El número de turno sale de una secuencia atómica por día (sede + servicio)
+ * dentro de la misma transacción: es imposible que dos turnos repitan número.
+ * Emite evento Socket.IO al crearlo.
  *
  * @param {import('express').Request} req - Petición HTTP
  * @param {import('express').Response} res - Respuesta HTTP
@@ -395,10 +396,27 @@ const generarTurno = async (req, res) => {
       }
     }
 
-    const { prefijo, next } = await atencionRepo.getPrefijoYConteo(id_servicio, sede);
-    const numero = `${prefijo}-${String(next).padStart(2, '0')}`;
+    const prefijo = await atencionRepo.getServicioPrefijo(id_servicio);
 
-    const turno = await atencionRepo.insertarAtencion({ id_paciente, id_servicio, id_responsable, sede, usuarioId, numero, id_cliente, id_especialidad, id_medico, id_consultorio });
+    // Número de turno ATÓMICO: la secuencia por día (sede + servicio) se
+    // incrementa dentro de la misma transacción del turno. Así es imposible
+    // que dos turnos repitan número, incluso con registros simultáneos o
+    // con atenciones borradas durante el día (el método anterior contaba
+    // las atenciones del día y reciclaba números al borrarse alguna).
+    const client = await pool.connect();
+    let turno;
+    try {
+      await client.query('BEGIN');
+      const siguiente = await atencionRepo.getSiguienteNumero(client, id_servicio, sede);
+      const numero = `${prefijo}-${String(siguiente).padStart(2, '0')}`;
+      turno = await atencionRepo.insertarAtencion({ id_paciente, id_servicio, id_responsable, sede, usuarioId, numero, id_cliente, id_especialidad, id_medico, id_consultorio }, client);
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
 
     if (req.io) {
       const admision = await atencionRepo.getAdmisionById(turno.id_atencion, sede);

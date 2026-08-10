@@ -6,6 +6,7 @@ import { TurnoDTO } from '../../core/models/dto.models';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription, interval } from 'rxjs';
 import { ApsScrollDirective } from './aps-scroll.directive';
+import { desbloquearVozNavegador, instalarGuardiaGlobalAntiDoble, limpiarGuardiaGlobalAntiDoble } from './voz.util';
 
 type SalaMode = 'aps' | 'aps-espera' | 'lab-espera' | 'lab-en-espera' | 'img-espera' | 'img-en-espera' | 'consulta';
 
@@ -26,6 +27,18 @@ interface SalaConfig {
   servicios: number[] | null;
   icon: LucideIconData;
   layout: 'llamados' | 'lista' | 'aps' | 'lab' | 'img';
+}
+
+interface AnuncioActivo {
+  idAtencion: number;
+  numeroTurno: string | null;
+  paciente: string;
+  apellido: string;
+  consultorio: string;
+  inicioMs: number | null;
+  timerId: any | null;
+  speakTimerId: any | null;
+  ultimaVozMs: number;
 }
 
 const SALAS: Record<SalaMode, SalaConfig> = {
@@ -86,6 +99,31 @@ const SALAS: Record<SalaMode, SalaConfig> = {
     layout: 'img',
   },
 };
+
+/**
+ * GUARDIA GLOBAL ANTI-DOBLE.
+ * Compartida por TODAS las instancias del turnero y por todas las vías de
+ * anuncio (socket, polling periódico, click de desbloqueo, reanudación tras
+ * recarga). El MISMO texto (mismo paciente + consultorio) no puede
+ * reproducirse dos veces: se bloquea si el anuncio anterior aún se está
+ * reproduciendo o si ya sonó hace menos de 9s. La repetición legítima ocurre
+ * a los 10s exactos, así que siempre se permite; cualquier duplicado queda
+ * físicamente bloqueado. Un texto DISTINTO (otro paciente o consultorio, p. ej.
+ * dos doctores con la misma especialidad en consultorios diferentes) nunca se
+ * bloquea. Se reinicia en detenerRepeticion(): tras Iniciar/Ausente/Retirar,
+ * un nuevo llamado del mismo paciente sí debe sonar de inmediato.
+ */
+let ultimoAnuncioGlobal: { texto: string; ts: number; sonado: boolean } | null = null;
+const VENTANA_ANTIDOBLE_MS = 9000;
+/**
+ * Ventana del llamado (desde `inicio_ms`): coincide con el contador del
+ * médico (120s desde la hora del llamado). Pasada esta ventana (~115s desde
+ * `inicio_ms`), la repetición se DETIENE sola: la voz suena cada 10s mientras
+ * el paciente siga llamado y el corte final lo hace el auto-ausente del
+ * médico. Si ese evento se pierde por el socket, este tope evita que la voz
+ * siga sonando en bucle.
+ */
+const VENTANA_LLAMADO_MS = 115000;
 
 @Component({
   selector: 'app-turnero',
@@ -244,14 +282,399 @@ export class TurneroComponent implements OnInit, OnDestroy {
   private timerSub: Subscription | null = null;
   private clockSub: Subscription | null = null;
   private cambiosSub: Subscription | null = null;
-  
+
+  // Anuncios activos por id_atencion: cada llamado tiene su PROPIO ciclo de
+  // repetición (grilla de 10s anclada a su `inicio_ms`). Dos doctores llamando
+  // casi a la vez → dos anuncios simultáneos que suenan uno tras otro sin
+  // pisarse (la voz nunca interrumpe: espera a que el motor quede libre).
+  private anunciosActivos = new Map<number, AnuncioActivo>();
+  private colaVoz: AnuncioActivo[] = [];
+
+  /**
+   * Calcula el retardo hasta la siguiente marca de 10s de la grilla del llamado.
+   * Devuelve null si el llamado ya pasó la ventana de 115s (VENTANA_LLAMADO_MS).
+   */
+  private retardoHastaSiguienteMarca(a: AnuncioActivo, minMs: number): number | null {
+    if (!a.inicioMs || !Number.isFinite(a.inicioMs)) {
+      return Math.max(minMs, 10000);
+    }
+    const baseLocal = a.inicioMs - this.deltaRelojMs;
+    const ahora = Date.now();
+    const desfase = ahora - baseLocal;
+    if (desfase >= VENTANA_LLAMADO_MS) return null;
+    const periodos = Math.max(1, Math.floor(desfase / 10000) + 1);
+    const siguienteBorde = baseLocal + periodos * 10000;
+    if (siguienteBorde - baseLocal >= VENTANA_LLAMADO_MS) return null;
+    return Math.max(minMs, siguienteBorde - ahora);
+  }
+
+  /**
+   * Inicia/reinicia el ciclo de repetición de 10s para un anuncio específico.
+   * Usa setTimeout recursivo (NO setInterval) para auto-corregir deriva.
+   */
+  private iniciarRepeticionAnuncio(a: AnuncioActivo): void {
+    if (a.timerId) {
+      clearTimeout(a.timerId);
+      a.timerId = null;
+    }
+    const hablar = (): boolean => {
+      if (!this.anunciosActivos.has(a.idAtencion)) {
+        return false; // Fue detenido/retirado
+      }
+      const anunciado = this.reproducirAudio(a);
+      return anunciado;
+    };
+    const delay = this.retardoHastaSiguienteMarca(a, 500);
+    if (delay === null) {
+      this.anunciosActivos.delete(a.idAtencion);
+      return;
+    }
+    a.timerId = setTimeout(() => {
+      let continuar = true;
+      try {
+        continuar = hablar();
+        if (continuar) {
+          console.log('[Turnero v7] Anuncio repetido (ciclo de 10s) para', a.idAtencion);
+        }
+      } catch (e) {
+        console.error('[Turnero v7] Error en anuncio repetido:', e);
+      }
+      if (continuar) {
+        this.iniciarRepeticionAnuncio(a);
+      } else {
+        this.anunciosActivos.delete(a.idAtencion);
+      }
+    }, delay);
+  }
+
+  /**
+   * Procesa un llamado (socket o polling): crea el anuncio si no existe y arranca su ciclo.
+   */
+  private procesarLlamado(data: any): void {
+    const id = data.id_atencion;
+    if (!id || this.anunciosActivos.has(id)) {
+      return; // Ya procesado
+    }
+    this.actualizarDeltaReloj(data.server_now);
+    if (data.inicio_ms) {
+      this.inicioMsActual = data.inicio_ms;
+    }
+    const anuncio: AnuncioActivo = {
+      idAtencion: id,
+      numeroTurno: data.turno || null,
+      paciente: data.paciente,
+      apellido: data.apellido || '',
+      consultorio: data.consultorio,
+      inicioMs: data.inicio_ms ?? this.inicioMsActual,
+      timerId: null,
+      speakTimerId: null,
+      ultimaVozMs: 0,
+    };
+    this.anunciosActivos.set(id, anuncio);
+    this.iniciarRepeticionAnuncio(anuncio);
+    // Memoria anti-voz-doble para polling
+    this.ultimoLlamadoProcesadoId = id;
+    this.ultimoLlamadoProcesadoHora = data.inicio_ms || data.server_now || Date.now();
+  }
+
+  /**
+   * Reproduce el audio de un anuncio. Devuelve true si se programó/sonó.
+   * Respeta la guardia global anti-doble y serializa las voces (cola si hay otra sonando).
+   */
+  private reproducirAudio(a: AnuncioActivo): boolean {
+    if (!('speechSynthesis' in window)) {
+      console.error('SpeechSynthesis no soportado.');
+      return false;
+    }
+    const nombreCompleto = `${a.paciente} ${a.apellido}`.trim();
+    const consultorioLimpio = a.consultorio.replace(/\b0+(\d+)\b/g, '$1');
+    let texto = `Paciente ${nombreCompleto}, diríjase al consultorio ${consultorioLimpio}`;
+    const c = a.consultorio.toLowerCase();
+    if (c.includes('laboratorio')) {
+      texto = `Paciente ${nombreCompleto}, diríjase a laboratorio`;
+    } else if (c.includes('imágenes') || c.includes('imagenes')) {
+      texto = `Paciente ${nombreCompleto}, diríjase a imágenes`;
+    } else if (c.includes('consulta')) {
+      texto = `Paciente ${nombreCompleto}, diríjase a consulta`;
+    } else if (c.startsWith('consultorio')) {
+      texto = `Paciente ${nombreCompleto}, diríjase al ${consultorioLimpio}`;
+    }
+    const ahora = Date.now();
+    // Deduplicación local por instancia (complemento a la guardia global)
+    if (this.sonidoConfirmado && a.idAtencion === this.ultimoIdAnunciado && ahora - this.ultimaVezAnunciado < 9000) {
+      return false;
+    }
+    this.ultimoIdAnunciado = a.idAtencion;
+    this.ultimaVezAnunciado = ahora;
+    try {
+      if (a.idAtencion) {
+        sessionStorage.setItem('turnero_ultimo_anuncio_id', String(a.idAtencion));
+      }
+      sessionStorage.setItem('turnero_ultimo_anuncio_ts', String(ahora));
+    } catch {}
+    // Guardia global anti-doble
+    const hablandoAhora = 'speechSynthesis' in window && window.speechSynthesis.speaking;
+    const bloqueaDoble = !!ultimoAnuncioGlobal && ultimoAnuncioGlobal.texto === texto && (
+      hablandoAhora || (ultimoAnuncioGlobal.sonado && ahora - ultimoAnuncioGlobal.ts < VENTANA_ANTIDOBLE_MS)
+    );
+    if (bloqueaDoble) {
+      return false;
+    }
+    ultimoAnuncioGlobal = { texto, ts: ahora, sonado: false };
+    // Si el motor está ocupado (otra voz sonando), encolar y salir: sonará en onend
+    if (hablandoAhora) {
+      if (!this.colaVoz.some(x => x.idAtencion === a.idAtencion)) {
+        this.colaVoz.push(a);
+      }
+      return true; // Tick consumido, se re-agendará en su ciclo
+    }
+    // Watchdog de seguridad
+    if (a.speakTimerId) {
+      clearTimeout(a.speakTimerId);
+      a.speakTimerId = null;
+    }
+    const utterance = new SpeechSynthesisUtterance(texto);
+    if (this.vozFemenina) {
+      utterance.voice = this.vozFemenina;
+      utterance.lang = this.vozFemenina.lang;
+    } else {
+      utterance.lang = 'es-MX';
+    }
+    utterance.rate = 0.9;
+    utterance.onstart = () => {
+      this.sonidoConfirmado = true;
+      if (ultimoAnuncioGlobal) ultimoAnuncioGlobal.sonado = true;
+      this.quitarListenersDesbloqueo();
+    };
+    utterance.onend = () => {
+      this.sonidoConfirmado = true;
+      if (ultimoAnuncioGlobal) ultimoAnuncioGlobal.sonado = true;
+      this.quitarListenersDesbloqueo();
+      if (a.speakTimerId) {
+        clearTimeout(a.speakTimerId);
+        a.speakTimerId = null;
+      }
+      a.ultimaVozMs = Date.now();
+      this.procesarColaVoz();
+    };
+    utterance.onerror = (e) => {
+      console.warn('SpeechSynthesis error:', e.error);
+      if (a.speakTimerId) {
+        clearTimeout(a.speakTimerId);
+        a.speakTimerId = null;
+      }
+      // NO reintentar aquí: la repetición cada 10s lo re-anunciará
+      if (e.error === 'interrupted' || e.error === 'canceled') {
+        return;
+      }
+      this.procesarColaVoz();
+    };
+    // Sincronización con inicio_ms del servidor
+    let retrasoSpeak = 300;
+    if (a.inicioMs && Number.isFinite(a.inicioMs)) {
+      const objetivoLocal = a.inicioMs - this.deltaRelojMs;
+      retrasoSpeak = Math.max(0, objetivoLocal - Date.now());
+    }
+    a.speakTimerId = setTimeout(() => {
+      a.speakTimerId = null;
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
+      this.ultimoDisparoVozMs = Date.now();
+      window.speechSynthesis.speak(utterance);
+    }, retrasoSpeak);
+    return true;
+  }
+
+  /**
+   * Saca el siguiente anuncio de la cola y lo reproduce (cuando el motor se libera).
+   */
+  private procesarColaVoz(): void {
+    while (this.colaVoz.length > 0) {
+      const next = this.colaVoz.shift()!;
+      if (this.anunciosActivos.has(next.idAtencion)) {
+        // Reproducir inmediatamente (sin delay de grilla)
+        const utterance = new SpeechSynthesisUtterance(this.construirTexto(next));
+        if (this.vozFemenina) {
+          utterance.voice = this.vozFemenina;
+          utterance.lang = this.vozFemenina.lang;
+        } else {
+          utterance.lang = 'es-MX';
+        }
+        utterance.rate = 0.9;
+        const ahora = Date.now();
+        const texto = this.construirTexto(next);
+        // Guardia global para la cola también
+        const bloqueaDoble = !!ultimoAnuncioGlobal && ultimoAnuncioGlobal.texto === texto && (
+          window.speechSynthesis.speaking || (ultimoAnuncioGlobal.sonado && ahora - ultimoAnuncioGlobal.ts < VENTANA_ANTIDOBLE_MS)
+        );
+        if (bloqueaDoble) {
+          continue; // Saltar este, siguiente de la cola
+        }
+        ultimoAnuncioGlobal = { texto, ts: ahora, sonado: false };
+        utterance.onstart = () => {
+          this.sonidoConfirmado = true;
+          if (ultimoAnuncioGlobal) ultimoAnuncioGlobal.sonado = true;
+          this.quitarListenersDesbloqueo();
+        };
+        utterance.onend = () => {
+          this.sonidoConfirmado = true;
+          if (ultimoAnuncioGlobal) ultimoAnuncioGlobal.sonado = true;
+          this.quitarListenersDesbloqueo();
+          next.ultimaVozMs = Date.now();
+          this.procesarColaVoz();
+        };
+        utterance.onerror = (e) => {
+          console.warn('SpeechSynthesis error (cola):', e.error);
+          if (e.error === 'interrupted' || e.error === 'canceled') return;
+          this.procesarColaVoz();
+        };
+        if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+        this.ultimoDisparoVozMs = Date.now();
+        window.speechSynthesis.speak(utterance);
+        return; // Solo uno a la vez; onend continuará la cola
+      }
+    }
+  }
+
+  /**
+   * Construye el texto de anuncio para un AnuncioActivo (extraído para reusar en cola).
+   */
+  private construirTexto(a: AnuncioActivo): string {
+    const nombreCompleto = `${a.paciente} ${a.apellido}`.trim();
+    const consultorioLimpio = a.consultorio.replace(/\b0+(\d+)\b/g, '$1');
+    let texto = `Paciente ${nombreCompleto}, diríjase al consultorio ${consultorioLimpio}`;
+    const c = a.consultorio.toLowerCase();
+    if (c.includes('laboratorio')) {
+      texto = `Paciente ${nombreCompleto}, diríjase a laboratorio`;
+    } else if (c.includes('imágenes') || c.includes('imagenes')) {
+      texto = `Paciente ${nombreCompleto}, diríjase a imágenes`;
+    } else if (c.includes('consulta')) {
+      texto = `Paciente ${nombreCompleto}, diríjase a consulta`;
+    } else if (c.startsWith('consultorio')) {
+      texto = `Paciente ${nombreCompleto}, diríjase al ${consultorioLimpio}`;
+    }
+    return texto;
+  }
+
+  /**
+   * Detiene la repetición de un anuncio específico (por id_atencion) o de todos.
+   * Limpia la guardia global para que un re-llamado inmediato suene.
+   */
+  private detenerRepeticion(idAtencion?: number): void {
+    if (idAtencion !== undefined) {
+      const a = this.anunciosActivos.get(idAtencion);
+      if (a) {
+        if (a.timerId) { clearTimeout(a.timerId); a.timerId = null; }
+        if (a.speakTimerId) { clearTimeout(a.speakTimerId); a.speakTimerId = null; }
+        this.anunciosActivos.delete(idAtencion);
+        // Sacar de la cola si estaba esperando
+        const idx = this.colaVoz.findIndex(x => x.idAtencion === idAtencion);
+        if (idx >= 0) this.colaVoz.splice(idx, 1);
+      }
+    } else {
+      // Detener todos
+      for (const a of this.anunciosActivos.values()) {
+        if (a.timerId) { clearTimeout(a.timerId); a.timerId = null; }
+        if (a.speakTimerId) { clearTimeout(a.speakTimerId); a.speakTimerId = null; }
+      }
+      this.anunciosActivos.clear();
+      this.colaVoz.length = 0;
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    }
+    // Reiniciar guardias para permitir re-llamado inmediato del mismo paciente
+    ultimoAnuncioGlobal = null;
+    limpiarGuardiaGlobalAntiDoble();
+    try {
+      sessionStorage.removeItem('turnero_ultimo_anuncio_id');
+      sessionStorage.removeItem('turnero_ultimo_anuncio_ts');
+    } catch {}
+  }
+  // Memoria anti-voz-doble: el último llamado que ESTE turnero ya procesó
+  // (anunció o detuvo). El polling NO debe re-anunciarlo: tras
+  // Iniciar/Ausente/Retirar el paciente sigue en estado "Llamado" en la BD y
+  // sin esta memoria el polling lo re-anunciaba + reiniciaba su ciclo (la voz
+  // que debía callar seguía sonando y se duplicaba con la del siguiente tick).
+  private ultimoLlamadoProcesadoId: number | null = null;
+  private ultimoLlamadoProcesadoHora: number = 0;
+  // Momento (Date.now) en que la ÚLTIMA locución se disparó de verdad en el
+  // motor de voz (dentro del speak). Se usa para el guard del click de
+  // desbloqueo: anclar al disparo real (no a la programación) evita que la
+  // cadena de 10s refresque el ancla y deje ventanas de doble voz.
+  private ultimoDisparoVozMs: number = 0;
+  private audioDesbloqueado: boolean = (() => {
+    try {
+      return typeof sessionStorage !== 'undefined' && sessionStorage.getItem('turnero_audio_unlocked') === 'true';
+    } catch {
+      return false;
+    }
+  })();
+  /**
+   * Confirmación REAL de que el navegador reprodujo voz en ESTA carga de
+   * página. A diferencia del flag de sessionStorage, no sobrevive a un F5:
+   * la activación de audio del navegador se reinicia con cada recarga, por
+   * lo que los listeners de desbloqueo deben seguir activos hasta que
+   * speechSynthesis realmente emita onstart.
+   */
+  private sonidoConfirmado: boolean = false;
+  private resumeHandler: (() => void) | null = null;
+  private beforeUnloadHandler: (() => void) | null = null;
+  private visibilityHandler: (() => void) | null = null;
+  private unlockHandlerClick: (() => void) | null = null;
+  private unlockHandlerKeydown: (() => void) | null = null;
+  private unlockHandlerTouch: (() => void) | null = null;
+  private verificandoUltimoLlamado: boolean = false;
+  private verificarTimeout: any = null;
+  private verificarFetchSub: Subscription | null = null;
+  private ultimoIdReproducido: number | null = null;
+  private audioWatchdog: any = null;
+  private verificarSub: Subscription | null = null;
+  // Campos legacy (ya no usados, mantenidos para compatibilidad con código muerto)
   private repeatTimerId: any = null;
+  private pacienteParaRepetir: { paciente: string; apellido: string; consultorio: string } | null = null;
   private ultimoIdAtencion: number | null = null;
   private ultimoNumeroTurno: string | null = null;
-  private pacienteParaRepetir: { paciente: string; apellido: string; consultorio: string } | null = null;
   private estaReproduciendo: boolean = false;
-  private audioDesbloqueado: boolean = typeof sessionStorage !== 'undefined' && sessionStorage.getItem('turnero_audio_unlocked') === 'true';
-  private resumeHandler: (() => void) | null = null;
+  private speakTimeout: any = null;
+  /**
+   * Hora objetivo (reloj del SERVIDOR) en la que debe sonar el anuncio del
+   * paciente actual. La envía el backend en el evento `nuevo-llamado` y en
+   * `ultimo-llamado` (`inicio_ms`). Todas las pantallas agendan la voz para
+   * esa MISMA hora absoluta → suenan simultáneamente.
+   */
+  private inicioMsActual: number | null = null;
+  /**
+   * Desfase estimado (ms) entre el reloj local y el del servidor
+   * (positivo si el servidor va adelantado). Se estima con cada evento que
+   * trae `server_now` y se usa para convertir `inicio_ms` a tiempo local:
+   * así cada dispositivo compensa su desfase y habla en el mismo instante.
+   */
+  private deltaRelojMs: number = 0;
+  private contadorDeltaReloj: number = 0;
+  /**
+   * Último paciente anunciado y cuándo (para deduplicar anuncios y para
+   * reanudar el ciclo de repetición tras una recarga de la página).
+   * Se persiste en sessionStorage porque la activación del componente no
+   * sobrevive a un F5: así la voz continúa el ciclo de 10s en la fase que
+   * le corresponde en vez de reiniciar la locución desde el principio.
+   */
+  private ultimoIdAnunciado: number | null = (() => {
+    try {
+      const v = sessionStorage.getItem('turnero_ultimo_anuncio_id');
+      return v ? Number(v) || null : null;
+    } catch {
+      return null;
+    }
+  })();
+  private ultimaVezAnunciado: number = (() => {
+    try {
+      return Number(sessionStorage.getItem('turnero_ultimo_anuncio_ts') || '0') || 0;
+    } catch {
+      return 0;
+    }
+  })();
 
   constructor(
     readonly api: ApiService,
@@ -261,11 +684,36 @@ export class TurneroComponent implements OnInit, OnDestroy {
 
   /** Inicializa: valida sede, carga voz femenina, suscribe a cambios y polling, inicia reloj. */
   ngOnInit() {
+    // Guardia global a nivel de window: envuelve speechSynthesis.speak UNA
+    // sola vez por pestaña. Aunque existan DOS instancias del turnero (HMR,
+    // chunk viejo en caché, doble montaje), el mismo texto jamás puede sonar
+    // dos veces en menos de 9s: todas pasan por el mismo envoltorio.
+    instalarGuardiaGlobalAntiDoble();
+    this.initTarjetasResponsive();
+    // Marca de versión para verificar en consola (F12) que este turnero corre
+    // el código con la guardia anti-doble (un anuncio por ciclo de 10s).
+    // El contador de instancias detecta turneros duplicados en la misma pestaña.
+    try {
+      (window as any).__turnero_instancias = ((window as any).__turnero_instancias || 0) + 1;
+      console.log(`[Turnero v7] Guardia anti-doble activa (instancia #${(window as any).__turnero_instancias}): un anuncio cada 10s anclado al contador del médico.`);
+    } catch {
+      console.log('[Turnero v7] Guardia anti-doble activa: un anuncio cada 10s anclado al contador del médico.');
+    }
     const validarSede = (sedeUrl: string | undefined): boolean => {
-      const sedeEsperada = sessionStorage.getItem('turnero_sede');
-      if (!sedeEsperada || sedeUrl !== sedeEsperada) {
+      // Modo kiosco: la sede puede venir directa en la URL (/turnero/1,
+      // /turnero/2). Se acepta y se guarda sin necesidad de pasar por el
+      // selector de sedes (cero clicks para entrar al turnero).
+      const esSedeValida = sedeUrl === '1' || sedeUrl === '2';
+      if (!esSedeValida) {
         this.router.navigate(['/turnero'], { replaceUrl: true });
         return false;
+      }
+      try {
+        if (sessionStorage.getItem('turnero_sede') !== sedeUrl) {
+          sessionStorage.setItem('turnero_sede', sedeUrl);
+        }
+      } catch {
+        // Almacenamiento no disponible: la sede queda solo en memoria.
       }
       return true;
     };
@@ -275,6 +723,10 @@ export class TurneroComponent implements OnInit, OnDestroy {
     this.route.params.subscribe(params => {
       if (!validarSede(params['sede'])) return;
       this.sede = params['sede'] ? Number(params['sede']) : null;
+      // Al recargar la vista, la sede llega de forma asíncrona: se dispara
+      // la verificación del último llamado apenas se conoce, para que el
+      // anuncio inicial no se pierda esperando el intervalo de 10s.
+      this.verificarUltimoLlamado();
     });
 
     const cargarVoces = () => {
@@ -296,20 +748,28 @@ export class TurneroComponent implements OnInit, OnDestroy {
     };
     document.addEventListener('click', this.resumeHandler);
 
-    document.addEventListener('visibilitychange', () => {
+    this.registrarDesbloqueoAudio();
+
+    this.visibilityHandler = () => {
       if (document.visibilityState === 'visible' && 'speechSynthesis' in window) {
         if (window.speechSynthesis.paused) {
           window.speechSynthesis.resume();
         }
-        if (this.pacienteParaRepetir && !window.speechSynthesis.speaking) {
-          this.reproducirAudio(
-            this.pacienteParaRepetir.paciente,
-            this.pacienteParaRepetir.apellido,
-            this.pacienteParaRepetir.consultorio
-          );
-        }
       }
-    });
+    };
+    document.addEventListener('visibilitychange', this.visibilityHandler);
+
+    // Al recargar la página, la voz de la página anterior seguiría sonando
+    // en algunos navegadores (móvil, TV) mientras la nueva página anuncia:
+    // se escuchaban dos voces encimadas. Se cancela la voz al abandonar la
+    // página (beforeunload/pagehide cubren la recarga en todos los navegadores).
+    this.beforeUnloadHandler = () => {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+    window.addEventListener('beforeunload', this.beforeUnloadHandler);
+    window.addEventListener('pagehide', this.beforeUnloadHandler);
 
     this.queryParamsSub = this.route.queryParams.subscribe(params => {
       const sala = params['sala'] as SalaMode;
@@ -322,34 +782,29 @@ export class TurneroComponent implements OnInit, OnDestroy {
       if (data.id_sede && this.sede && Number(data.id_sede) !== Number(this.sede)) {
         return;
       }
-      
-      const esLlamado = data.tipo === 'llamado' && data.paciente && data.consultorio;
-      const esMismoPaciente = data.id_atencion && (data.id_atencion === this.ultimoIdAtencion || 
-        (data.turno && data.turno === this.ultimoNumeroTurno));
-      const esLiberacion = data.tipo === 'liberacion' || data.tipo === 'retirado' || (data.tipo === 'estado-cambiado' && esMismoPaciente);
+
+      // Liberación: Iniciar / Ausente / Retirado / estado-cambiado (no 4)
+      const esLiberacion = data.id_atencion && (data.tipo === 'liberacion' || data.tipo === 'retirado' ||
+        (data.tipo === 'estado-cambiado' && data.id_estado_nuevo !== undefined && Number(data.id_estado_nuevo) !== 4));
 
       if (esLiberacion) {
-        this.detenerRepeticion();
+        this.detenerRepeticion(data.id_atencion);
       }
 
-      if (esLlamado && !esMismoPaciente) {
-        if (!this.audioDesbloqueado || this.estaReproduciendo) {
-          this.cargarDatosSala();
-          return;
-        }
-
-        this.pacienteParaRepetir = { paciente: data.paciente, apellido: data.apellido || '', consultorio: data.consultorio };
-        this.ultimoIdAtencion = data.id_atencion;
-        this.ultimoNumeroTurno = data.turno || null;
-        
-        this.estaReproduciendo = true;
-        this.reproducirAudio(data.paciente, data.apellido || '', data.consultorio);
-        this.iniciarTemporizadorRepeticion();
+      // Nuevo llamado
+      const esLlamado = data.tipo === 'llamado' && data.paciente && data.consultorio;
+      if (esLlamado) {
+        this.procesarLlamado(data);
       }
+
       this.cargarDatosSala();
     });
 
-    this.verificarUltimoLlamado();
+    // Revisa periódicamente el último llamado para anunciar llamadas
+    // que pudieron perderse si el socket se desconectó o reconectó.
+    this.verificarSub = interval(10000).subscribe(() => {
+      this.verificarUltimoLlamado();
+    });
 
     this.timerSub = interval(5000).subscribe(() => {
         this.cargarDatosSala();
@@ -381,96 +836,255 @@ export class TurneroComponent implements OnInit, OnDestroy {
       }
   }
 
-  private iniciarTemporizadorRepeticion() {
-    this.detenerRepeticionTimer();
-    this.repeatTimerId = setInterval(() => {
-      if (this.pacienteParaRepetir) {
-        this.reproducirAudio(
-          this.pacienteParaRepetir.paciente,
-          this.pacienteParaRepetir.apellido,
-          this.pacienteParaRepetir.consultorio
+  /**
+   * Programa la repetición del anuncio CADA 10 SEGUNDOS EXACTOS, anclada a
+   * la grilla global: cada anuncio cae en una marca de `cicloBaseMs + n*10000`
+   * (la misma grilla del contador del médico), corregida con `deltaRelojMs`.
+   * `primerDelayMs` se usa solo si no hay `cicloBaseMs` (repite cada 10s
+   * exactos desde el primer disparo).
+   *
+   * Usa setTimeout recursivo (NO setInterval): tras cada anuncio se re-agenda
+   * el siguiente en la SIGUIENTE marca de 10s. Si un tick se retrasa por
+   * throttling del navegador o carga de CPU, el siguiente vuelve a caer
+   * EXACTAMENTE en la marca de la grilla: el intervalo jamás acumula deriva.
+   */
+
+  private registrarDesbloqueoAudio() {
+    if (this.sonidoConfirmado || typeof document === 'undefined') return;
+    const desbloquear = () => this.desbloquearAudio();
+    this.unlockHandlerClick = desbloquear;
+    this.unlockHandlerKeydown = desbloquear;
+    this.unlockHandlerTouch = desbloquear;
+    document.addEventListener('click', desbloquear);
+    document.addEventListener('keydown', desbloquear);
+    document.addEventListener('touchstart', desbloquear);
+  }
+
+  private quitarListenersDesbloqueo() {
+    if (typeof document === 'undefined') return;
+    if (this.unlockHandlerClick) document.removeEventListener('click', this.unlockHandlerClick);
+    if (this.unlockHandlerKeydown) document.removeEventListener('keydown', this.unlockHandlerKeydown);
+    if (this.unlockHandlerTouch) document.removeEventListener('touchstart', this.unlockHandlerTouch);
+    this.unlockHandlerClick = null;
+    this.unlockHandlerKeydown = null;
+    this.unlockHandlerTouch = null;
+  }
+
+  private desbloquearAudio() {
+    // Si el audio ya fue confirmado en ESTA carga de página (onstart recibido),
+    // los clicks posteriores son inofensivos: no hay que volver a desbloquear
+    // ni cancelar nada (cancelar cortaría una locución en curso).
+    if (this.sonidoConfirmado) return;
+    // Si una locución YA se está reproduciendo en este momento, el click no
+    // debe cortarla ni re-anunciar: en Chrome/Windows onstart no siempre
+    // dispara, así que sonidoConfirmado puede seguir en false mientras la
+    // voz suena, y un click aquí cancelaba la locución y la volvía a decir
+    // desde el principio (el "recarga y suena otra vez" que escuchabas).
+    if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
+      return;
+    }
+    // Tras un F5 el flag de sessionStorage sigue en 'true' pero el navegador
+    // reinició la activación de audio: hay que volver a desbloquear dentro
+    // del gesto del usuario.
+    this.audioDesbloqueado = true;
+    try {
+      sessionStorage.setItem('turnero_audio_unlocked', 'true');
+    } catch {
+      // Almacenamiento no disponible: el flag queda activo solo en memoria.
+    }
+    desbloquearVozNavegador();
+
+    // Buscar un anuncio activo que NUNCA haya sonado (ultimaVozMs === 0)
+    // o cuya última voz fue hace >8s (posible autoplay bloqueado).
+    // El click fuerza ese anuncio inmediatamente (sin esperar marca de 10s).
+    const ahora = Date.now();
+    let forzado = false;
+    for (const a of this.anunciosActivos.values()) {
+      const nuncaSono = a.ultimaVozMs === 0;
+      const haceTiempo = a.ultimaVozMs > 0 && ahora - a.ultimaVozMs > 8000;
+      if (nuncaSono || haceTiempo) {
+        // Forzar ahora: cancelar speakTimerId pendiente y hablar ya
+        if (a.speakTimerId) {
+          clearTimeout(a.speakTimerId);
+          a.speakTimerId = null;
+        }
+        // Reproducir inmediatamente (sin delay de grilla)
+        const texto = this.construirTexto(a);
+        // Guardia global
+        const bloqueaDoble = !!ultimoAnuncioGlobal && ultimoAnuncioGlobal.texto === texto && (
+          window.speechSynthesis.speaking || (ultimoAnuncioGlobal.sonado && ahora - ultimoAnuncioGlobal.ts < VENTANA_ANTIDOBLE_MS)
         );
-      } else {
-        this.detenerRepeticionTimer();
+        if (!bloqueaDoble) {
+          ultimoAnuncioGlobal = { texto, ts: ahora, sonado: false };
+          const utterance = new SpeechSynthesisUtterance(texto);
+          if (this.vozFemenina) {
+            utterance.voice = this.vozFemenina;
+            utterance.lang = this.vozFemenina.lang;
+          } else {
+            utterance.lang = 'es-MX';
+          }
+          utterance.rate = 0.9;
+          utterance.onstart = () => {
+            this.sonidoConfirmado = true;
+            if (ultimoAnuncioGlobal) ultimoAnuncioGlobal.sonado = true;
+            this.quitarListenersDesbloqueo();
+          };
+          utterance.onend = () => {
+            this.sonidoConfirmado = true;
+            if (ultimoAnuncioGlobal) ultimoAnuncioGlobal.sonado = true;
+            this.quitarListenersDesbloqueo();
+            a.ultimaVozMs = Date.now();
+            this.procesarColaVoz();
+          };
+          utterance.onerror = (e) => {
+            console.warn('SpeechSynthesis error (click):', e.error);
+            if (e.error === 'interrupted' || e.error === 'canceled') return;
+            this.procesarColaVoz();
+          };
+          if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+          this.ultimoDisparoVozMs = Date.now();
+          window.speechSynthesis.speak(utterance);
+          forzado = true;
+          break; // Solo uno por click
+        }
       }
-    }, 20000); // 20 segundos
+    }
+
+    if (!forzado) {
+      // Si no hubo nada que forzar, procesar cola normal (llamados en espera)
+      this.procesarColaVoz();
+    }
+    // Si hubo un llamado mientras el audio estaba bloqueado, polling lo anunciará
+    this.verificarUltimoLlamado();
   }
 
-  private detenerRepeticionTimer() {
-    if (this.repeatTimerId) {
-      clearInterval(this.repeatTimerId);
-      this.repeatTimerId = null;
+  /**
+   * Actualiza el desfase de reloj con una muestra de `server_now`. La primera
+   * muestra define el desfase y las siguientes lo suavizan (filtra el ruido
+   * de la latencia de red). Se usa para convertir `inicio_ms` (reloj del
+   * servidor) a tiempo local y así todas las pantallas hablan a la vez.
+   */
+  private actualizarDeltaReloj(serverNow: number | undefined) {
+    if (typeof serverNow !== 'number' || !Number.isFinite(serverNow)) return;
+    const muestra = serverNow - Date.now();
+    this.contadorDeltaReloj++;
+    if (this.contadorDeltaReloj === 1) {
+      this.deltaRelojMs = muestra;
+    } else {
+      this.deltaRelojMs += 0.25 * (muestra - this.deltaRelojMs);
     }
   }
 
-  private detenerRepeticion() {
-    this.detenerRepeticionTimer();
-    this.pacienteParaRepetir = null;
-    this.ultimoIdAtencion = null;
-    this.ultimoNumeroTurno = null;
-    this.estaReproduciendo = false;
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
-  }
+private verificarUltimoLlamado() {
+    if (!this.sede || this.verificandoUltimoLlamado) return;
+    this.verificandoUltimoLlamado = true;
 
-  private verificarUltimoLlamado() {
-    if (!this.sede) return;
-
-    const intentarReproducir = (retries = 0) => {
-      setTimeout(() => {
-        this.api.get<any>(`turnero/ultimo-llamado?sede=${this.sede}`).subscribe({
-          next: (data) => {
-            if (data && data.id_atencion && data.paciente && data.consultorio) {
-              const esMismoPaciente = this.ultimoIdAtencion === data.id_atencion || 
-                this.ultimoNumeroTurno === data.turno;
-              
-              if (esMismoPaciente) {
-                return;
-              }
-
-              if (!this.audioDesbloqueado || this.estaReproduciendo) {
-                return;
-              }
-
-              this.pacienteParaRepetir = {
-                paciente: data.paciente,
-                apellido: data.apellido || '',
-                consultorio: data.consultorio,
-              };
-              this.ultimoIdAtencion = data.id_atencion;
-              this.ultimoNumeroTurno = data.turno || null;
-
-              if (!this.vozFemenina) {
-                this.cargarVozFemenina();
-              }
-
-              if (this.vozFemenina || retries >= 5) {
-                this.estaReproduciendo = true;
-                this.reproducirAudio(data.paciente, data.apellido || '', data.consultorio);
-                this.iniciarTemporizadorRepeticion();
-              } else {
-                intentarReproducir(retries + 1);
-              }
-            }
-          },
-          error: () => {},
-        });
-      }, retries === 0 ? 500 : 1000);
+    const terminar = () => {
+      this.verificandoUltimoLlamado = false;
     };
 
-    intentarReproducir();
+    this.verificarTimeout = setTimeout(() => {
+      this.verificarFetchSub = this.api.get<any>(`turnero/ultimo-llamado?sede=${this.sede}`).subscribe({
+          next: (data) => {
+            if (!data || !data.id_atencion || !data.paciente || !data.consultorio) {
+              // Ya no hay un llamado reciente activo: si había un anuncio para este id, se detiene.
+              // Como no tenemos id, no sabemos cuál; pero el socket debería haber enviado liberación.
+              terminar();
+              return;
+            }
+
+            // Actualiza el desfase de reloj y la hora objetivo del anuncio
+            this.actualizarDeltaReloj(data.server_now);
+            if (data.inicio_ms) {
+              this.inicioMsActual = data.inicio_ms;
+            }
+
+            // Defensa extra: no anunciar llamados antiguos (>10 min)
+            const referenciaHora = data.hora_llamado_epoch || (data.hora_llamado ? new Date(data.hora_llamado).getTime() : null);
+            if (referenciaHora) {
+              const antiguedadMin = (Date.now() - (referenciaHora - this.deltaRelojMs)) / 60000;
+              if (antiguedadMin > 10) {
+                // Llamado viejo: si estaba en nuestro mapa, lo sacamos
+                if (this.anunciosActivos.has(data.id_atencion)) {
+                  this.detenerRepeticion(data.id_atencion);
+                }
+                terminar();
+                return;
+              }
+            }
+
+            // ANTI VOZ DOBLE (memoria de llamado ya procesado): polling no re-anuncia
+            const horaDeEsteLlamado = data.inicio_ms || data.hora_llamado_epoch ||
+              (data.hora_llamado ? new Date(data.hora_llamado).getTime() : 0) || 0;
+            if (data.id_atencion === this.ultimoLlamadoProcesadoId) {
+              if (!horaDeEsteLlamado || horaDeEsteLlamado <= this.ultimoLlamadoProcesadoHora) {
+                terminar();
+                return;
+              }
+            } else if (horaDeEsteLlamado && this.ultimoLlamadoProcesadoHora >= horaDeEsteLlamado) {
+              terminar();
+              return;
+            }
+            this.ultimoLlamadoProcesadoId = data.id_atencion;
+            this.ultimoLlamadoProcesadoHora = horaDeEsteLlamado;
+
+            // Si ya tenemos este anuncio activo, polling no hace nada (el ciclo corre solo)
+            if (this.anunciosActivos.has(data.id_atencion)) {
+              terminar();
+              return;
+            }
+
+            // Reanudación tras recarga: si este dispositivo ya anunció a este paciente
+            // y hay ancla, el ciclo sigue la grilla global. Si no hay ancla o está fuera
+            // de ventana, se trata como nuevo llamado.
+            if (this.ultimoIdAnunciado === data.id_atencion && this.ultimaVezAnunciado > 0 && this.inicioMsActual) {
+              const anclaLocal = this.inicioMsActual - this.deltaRelojMs;
+              const elapsed = Date.now() - anclaLocal;
+              if (elapsed >= -3000 && elapsed < 120000) {
+                console.log(`[Turnero v7] Ciclo anclado (polling): próximo anuncio en la siguiente marca de 10s (contador ≈ ${Math.max(0, Math.round((120000 - elapsed) / 1000))}s).`);
+                // Crear anuncio y arrancar su ciclo alineado
+                this.procesarLlamado(data);
+                terminar();
+                return;
+              }
+            }
+
+            // Nuevo llamado desde polling: crear anuncio y arrancar ciclo
+            this.procesarLlamado(data);
+            terminar();
+          },
+          error: () => terminar(),
+        });
+    }, 500);
   }
 
   ngOnDestroy() {
+    this.destroyTarjetasResponsive();
     this.queryParamsSub?.unsubscribe();
     this.cambiosSub?.unsubscribe();
     this.timerSub?.unsubscribe();
     this.clockSub?.unsubscribe();
-    this.detenerRepeticionTimer();
+    this.verificarSub?.unsubscribe();
+    if (this.verificarTimeout) {
+      clearTimeout(this.verificarTimeout);
+      this.verificarTimeout = null;
+    }
+    this.verificarFetchSub?.unsubscribe();
+    // Detener todos los anuncios y limpiar timers/cola
+    this.detenerRepeticion();
+    this.quitarListenersDesbloqueo();
     if (this.resumeHandler) {
       document.removeEventListener('click', this.resumeHandler);
       this.resumeHandler = null;
+    }
+    if (this.visibilityHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityHandler);
+      this.visibilityHandler = null;
+    }
+    if (this.beforeUnloadHandler) {
+      window.removeEventListener('beforeunload', this.beforeUnloadHandler);
+      window.removeEventListener('pagehide', this.beforeUnloadHandler);
+      this.beforeUnloadHandler = null;
     }
   }
 
@@ -667,12 +1281,32 @@ export class TurneroComponent implements OnInit, OnDestroy {
     }
   }
 
-  private readonly MAX_VISIBLE = 4;
-  private readonly CARD_H = 86;
-  private readonly GAP = 12;
+  /**
+   * Cantidad de tarjetas visibles por sección (y umbral de animación):
+   * en PC se ven 4 y la animación arranca con 5+ pacientes; en móvil se ven
+   * 2 y arranca con 3+. Se detecta con el breakpoint md de Tailwind (768px).
+   */
+  maxVisibleTarjetas: number = 4;
+  private mediaQueryMovil: MediaQueryList | null = null;
+  private mediaQueryHandler: (() => void) | null = null;
 
-  get viewportH(): number {
-    return this.MAX_VISIBLE * this.CARD_H + (this.MAX_VISIBLE - 1) * this.GAP;
+  private initTarjetasResponsive() {
+    if (typeof window === 'undefined') return;
+    this.mediaQueryMovil = window.matchMedia('(max-width: 767px)');
+    const aplicar = () => {
+      this.maxVisibleTarjetas = this.mediaQueryMovil!.matches ? 2 : 4;
+    };
+    aplicar();
+    this.mediaQueryHandler = aplicar;
+    this.mediaQueryMovil.addEventListener('change', aplicar);
+  }
+
+  private destroyTarjetasResponsive() {
+    if (this.mediaQueryMovil && this.mediaQueryHandler) {
+      this.mediaQueryMovil.removeEventListener('change', this.mediaQueryHandler);
+    }
+    this.mediaQueryMovil = null;
+    this.mediaQueryHandler = null;
   }
 
   private vozFemenina: SpeechSynthesisVoice | null = null;
@@ -732,58 +1366,6 @@ export class TurneroComponent implements OnInit, OnDestroy {
     }
   }
 
-  private reproducirAudio(nombre: string, apellido: string, consultorio: string, retryCount = 0) {
-    if (!('speechSynthesis' in window)) {
-      console.error('SpeechSynthesis no soportado.');
-      return;
-    }
-    
-    if (!this.vozFemenina) {
-      this.cargarVozFemenina();
-    }
-    
-    const nombreCompleto = `${nombre} ${apellido}`.trim();
 
-    const consultorioLimpio = consultorio.replace(/\b0+(\d+)\b/g, '$1');
-
-    let texto = `Paciente ${nombreCompleto}, diríjase al consultorio ${consultorioLimpio}`;
-    
-    const c = consultorio.toLowerCase();
-    if (c.includes('laboratorio')) {
-      texto = `Paciente ${nombreCompleto}, diríjase a laboratorio`;
-    } else if (c.includes('imágenes') || c.includes('imagenes')) {
-      texto = `Paciente ${nombreCompleto}, diríjase a imágenes`;
-    }
-
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(texto);
-    if (this.vozFemenina) {
-      utterance.voice = this.vozFemenina;
-      utterance.lang = this.vozFemenina.lang;
-    } else {
-      utterance.lang = 'es-MX';
-    }
-    utterance.rate = 0.9;
-
-    utterance.onend = () => {
-      this.estaReproduciendo = false;
-    };
-
-    utterance.onerror = (e) => {
-      console.warn('SpeechSynthesis error:', e.error, 'retry:', retryCount);
-      if (retryCount < 3 && e.error !== 'canceled') {
-        setTimeout(() => {
-          this.reproducirAudio(nombre, apellido, consultorio, retryCount + 1);
-        }, 500);
-      } else {
-        this.estaReproduciendo = false;
-      }
-    };
-    
-    setTimeout(() => {
-      window.speechSynthesis.speak(utterance);
-    }, 300);
-  }
 
 }
