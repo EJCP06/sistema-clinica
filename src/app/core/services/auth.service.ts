@@ -191,6 +191,10 @@ export class AuthService implements OnDestroy {
           };
           sessionStorage.setItem(this.TOKEN_KEY, response.token);
           sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(usuario));
+          // Marcar el día de hoy al iniciar sesión: así la primera recarga
+          // no dispara un refresh innecesario (que al rotar la cookie y fallar
+          // por concurrencia expulsaba al usuario al login).
+          sessionStorage.setItem(this.FECHA_KEY, this.fechaHoy());
           this.api.actualizarSocketToken(response.token);
           this.usuarioSubject.next(usuario);
         }),
@@ -206,6 +210,7 @@ export class AuthService implements OnDestroy {
         sessionStorage.setItem(this.TOKEN_KEY, res.token);
         const usuario: Usuario = { ...res.usuario, nombre: res.usuario.nombre || res.usuario.username };
         sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(usuario));
+        sessionStorage.setItem(this.FECHA_KEY, this.fechaHoy());
         this.usuarioSubject.next(usuario);
         this.api.actualizarSocketToken(res.token);
       }),
@@ -220,11 +225,19 @@ export class AuthService implements OnDestroy {
     return !this.sessionVerified && this.estaAutenticado();
   }
 
+  /** Fecha local actual en formato YYYY-MM-DD (día clínico del usuario).
+   *  Se usa la fecha LOCAL y no UTC para que el cambio de día coincida con
+   *  la medianoche de la clínica (UTC cambia a las 20:00 en Bolivia). */
+  private fechaHoy(): string {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
   refreshTokenSiEsNuevoDia(): void {
     const token = this.getToken();
     if (!token) return;
 
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = this.fechaHoy();
     const fechaGuardada = sessionStorage.getItem(this.FECHA_KEY);
 
     if (fechaGuardada !== hoy) {
@@ -243,7 +256,10 @@ export class AuthService implements OnDestroy {
       const nowMs = Date.now();
       const horasRestantes = (expMs - nowMs) / (1000 * 60 * 60);
 
-      if (horasRestantes < 4) {
+      // Umbral reducido (1h en vez de 4h): refrescar solo cuando el token
+      // está realmente por expirar, para evitar rotaciones innecesarias
+      // que entre varias pestañas/dispositivos podían expulsar la sesión.
+      if (horasRestantes < 1) {
         this.refreshSession().subscribe();
       }
     } catch {
@@ -407,6 +423,23 @@ export class AuthService implements OnDestroy {
       return '/administrador?tab=reports';
     }
 
+    // Rutas por rol conocido: el rol manda sobre los permisos para evitar
+    // que un MÉDICO con permiso de APS (o permisos desactualizados en la
+    // sesión) aterrice en APS en vez de su módulo de Atención Médica.
+    const rutaPorRol: Record<string, { ruta: string; permiso: string }> = {
+      recepcionista: { ruta: '/recepcion', permiso: 'admision:ver' },
+      medico: { ruta: '/atencion', permiso: 'atencion_medica:ver' },
+      coordinador: { ruta: '/aps', permiso: 'aps:ver' },
+      analista: { ruta: '/aps', permiso: 'aps:ver' },
+      laboratorio: { ruta: '/laboratorio', permiso: 'laboratorio:ver' },
+      imagenes: { ruta: '/imagenes', permiso: 'imagenes:ver' },
+    };
+    const cfgRol = rutaPorRol[usuario.rol];
+    if (cfgRol && this.tienePermiso(cfgRol.permiso)) {
+      return cfgRol.ruta;
+    }
+
+    // Roles personalizados: primer permiso disponible
     const prioridadPermisos = [
       'ver_reportes',
       'admin_panel',

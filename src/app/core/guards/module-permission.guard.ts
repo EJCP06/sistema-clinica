@@ -74,7 +74,9 @@ export const modulePermissionGuard: CanActivateFn = (route) => {
   });
 
   if (!tieneAcceso) {
-    router.navigate(['/login']);
+    // Sin acceso al módulo: ir a la ruta por defecto del usuario (su rol)
+    // en vez del login, para no expulsarlo de la sesión.
+    router.navigate([auth.obtenerRutaInicial()]);
     return false;
   }
 

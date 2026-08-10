@@ -46,8 +46,8 @@ const getTodosLosTurnos = async (req, res) => {
 };
 
 /**
- * Crea un nuevo turno de forma manual. Calcula el número de turno
- * usando el prefijo del servicio y el conteo del día.
+ * Crea un nuevo turno de forma manual. El número de turno sale de la
+ * secuencia atómica por día (sede + servicio): es imposible que se repita.
  *
  * @param {import('express').Request} req - Petición HTTP
  * @param {import('express').Response} res - Respuesta HTTP
@@ -68,14 +68,26 @@ const crearTurno = async (req, res) => {
       }
     }
 
-    const next = await atencionRepo.getConteoServicioHoy(id_servicio);
-    const prefijo = await atencionRepo.getServicioPrefijo(id_servicio);
-    const nuevoNumero = `${prefijo}-${String(next).padStart(2, '0')}`;
-
-    const turno = await atencionRepo.insertarTurno({
-      id_paciente, id_servicio, id_especialidad, id_responsable,
-      id_sede: req.usuario.id_sede, numero: nuevoNumero,
-    });
+    // Número de turno ATÓMICO: secuencia por día (sede + servicio) dentro de
+    // la misma transacción. Imposible que dos turnos repitan número.
+    const client = await pool.connect();
+    let turno;
+    try {
+      await client.query('BEGIN');
+      const prefijo = await atencionRepo.getServicioPrefijo(id_servicio);
+      const siguiente = await atencionRepo.getSiguienteNumero(client, id_servicio, req.usuario.id_sede);
+      const nuevoNumero = `${prefijo}-${String(siguiente).padStart(2, '0')}`;
+      turno = await atencionRepo.insertarTurno({
+        id_paciente, id_servicio, id_especialidad, id_responsable,
+        id_sede: req.usuario.id_sede, numero: nuevoNumero,
+      }, client);
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
     res.status(201).json(turno);
   } catch (error) {
     logger.error('Error en crearTurno:', error);

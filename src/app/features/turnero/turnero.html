@@ -62,13 +62,12 @@
             <p class="text-slate-600 text-sm md:text-base font-bold uppercase tracking-widest">Sin pacientes</p>
           </div>
           <div *ngIf="!apsLoading[i] && apsData[i] && apsData[i].length > 0" class="overflow-hidden relative"
-               [style.height.px]="viewportH"
-               [style.display]="apsData[i].length <= 4 ? 'flex' : 'block'"
-               [style.flex-direction]="apsData[i].length <= 4 ? 'column' : null"
-               [class.justify-center]="apsData[i].length <= 4">
+               [style.display]="apsData[i].length <= maxVisibleTarjetas ? 'flex' : 'block'"
+               [style.flex-direction]="apsData[i].length <= maxVisibleTarjetas ? 'column' : null"
+               [class.justify-center]="apsData[i].length <= maxVisibleTarjetas">
             <div class="space-y-2 md:space-y-3"
                  [apsScroll]="apsData[i].length"
-                 [apsScrollViewportH]="viewportH">
+                 [apsScrollMaxVisible]="maxVisibleTarjetas">
                <div *ngFor="let t of apsData[i]; trackBy: trackById"
                    class="bg-slate-800/40 border border-slate-700/50 p-2 md:p-3 rounded-[16px] md:rounded-[24px] flex flex-col md:flex-row items-center md:justify-between gap-2"
                  >
@@ -112,13 +111,12 @@
             <p class="text-slate-600 text-sm md:text-base font-bold uppercase tracking-widest">Sin pacientes</p>
           </div>
           <div *ngIf="!apsEsperaLoading[i] && apsEsperaData[i] && apsEsperaData[i].length > 0" class="overflow-hidden relative"
-               [style.height.px]="viewportH"
-               [style.display]="apsEsperaData[i].length <= 4 ? 'flex' : 'block'"
-               [style.flex-direction]="apsEsperaData[i].length <= 4 ? 'column' : null"
-               [class.justify-center]="apsEsperaData[i].length <= 4">
+               [style.display]="apsEsperaData[i].length <= maxVisibleTarjetas ? 'flex' : 'block'"
+               [style.flex-direction]="apsEsperaData[i].length <= maxVisibleTarjetas ? 'column' : null"
+               [class.justify-center]="apsEsperaData[i].length <= maxVisibleTarjetas">
             <div class="space-y-2 md:space-y-3"
                  [apsScroll]="apsEsperaData[i].length"
-                 [apsScrollViewportH]="viewportH">
+                  [apsScrollMaxVisible]="maxVisibleTarjetas">
                <div *ngFor="let t of apsEsperaData[i]; trackBy: trackById"
                     class="bg-slate-800/40 border border-slate-700/50 p-2 md:p-3 rounded-[16px] md:rounded-[24px] flex flex-col md:flex-row items-center md:justify-between gap-2"
                   >
@@ -160,7 +158,7 @@
     <!-- LAYOUT: LAB -->
     <div *ngIf="config.layout === 'lab'" class="flex-1 flex flex-col items-center overflow-visible md:overflow-hidden">
       <ng-container *ngIf="sala === 'lab-espera'">
-        <div *ngFor="let seccion of labSections; let i = index" class="w-[90%] flex flex-col bg-slate-800/20 rounded-[24px] md:rounded-[40px] border border-slate-700/30 p-4 md:p-6 overflow-hidden">
+        <div *ngFor="let seccion of labSections; let i = index" class="w-[90%] flex-1 flex flex-col bg-slate-800/20 rounded-[24px] md:rounded-[40px] border border-slate-700/30 p-4 md:p-6 overflow-hidden">
           <h3 class="text-slate-400 font-black text-xs md:text-sm uppercase tracking-widest mb-7 shrink-0 text-center">{{ seccion.titulo }}</h3>
           <div *ngIf="labLoading[i]" class="flex-1 flex items-center justify-center">
             <div class="w-8 h-8 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
@@ -169,13 +167,12 @@
             <p class="text-slate-600 text-sm md:text-base font-bold uppercase tracking-widest">Sin pacientes</p>
           </div>
           <div *ngIf="!labLoading[i] && labData[i] && labData[i].length > 0" class="overflow-hidden relative"
-               [style.height.px]="viewportH"
-               [style.display]="labData[i].length <= 4 ? 'flex' : 'block'"
-               [style.flex-direction]="labData[i].length <= 4 ? 'column' : null"
-               [class.justify-center]="labData[i].length <= 4">
+               [style.display]="labData[i].length <= maxVisibleTarjetas ? 'flex' : 'block'"
+               [style.flex-direction]="labData[i].length <= maxVisibleTarjetas ? 'column' : null"
+               [class.justify-center]="labData[i].length <= maxVisibleTarjetas">
             <div class="space-y-2 md:space-y-3"
                  [apsScroll]="labData[i].length"
-                 [apsScrollViewportH]="viewportH">
+                  [apsScrollMaxVisible]="maxVisibleTarjetas">
                <div *ngFor="let t of labData[i]; trackBy: trackById"
                    class="bg-slate-800/40 border border-slate-700/50 p-2 md:p-3 rounded-[16px] md:rounded-[24px] flex flex-col md:flex-row items-center md:justify-between gap-2"
                  >
@@ -209,7 +206,7 @@
          </div>
        </ng-container>
        <ng-container *ngIf="sala === 'lab-en-espera'">
-        <div *ngFor="let seccion of labEsperaSections; let i = index" class="w-[90%] flex flex-col bg-slate-800/20 rounded-[24px] md:rounded-[40px] border border-slate-700/30 p-4 md:p-6 overflow-hidden">
+        <div *ngFor="let seccion of labEsperaSections; let i = index" class="w-[90%] flex-1 flex flex-col bg-slate-800/20 rounded-[24px] md:rounded-[40px] border border-slate-700/30 p-4 md:p-6 overflow-hidden">
           <h3 class="text-slate-400 font-black text-xs md:text-sm uppercase tracking-widest mb-7 shrink-0 text-center">{{ seccion.titulo }}</h3>
           <div *ngIf="labEsperaLoading[i]" class="flex-1 flex items-center justify-center">
             <div class="w-8 h-8 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
@@ -218,13 +215,12 @@
             <p class="text-slate-600 text-sm md:text-base font-bold uppercase tracking-widest">Sin pacientes</p>
           </div>
           <div *ngIf="!labEsperaLoading[i] && labEsperaData[i] && labEsperaData[i].length > 0" class="overflow-hidden relative"
-               [style.height.px]="viewportH"
-               [style.display]="labEsperaData[i].length <= 4 ? 'flex' : 'block'"
-               [style.flex-direction]="labEsperaData[i].length <= 4 ? 'column' : null"
-               [class.justify-center]="labEsperaData[i].length <= 4">
+               [style.display]="labEsperaData[i].length <= maxVisibleTarjetas ? 'flex' : 'block'"
+               [style.flex-direction]="labEsperaData[i].length <= maxVisibleTarjetas ? 'column' : null"
+               [class.justify-center]="labEsperaData[i].length <= maxVisibleTarjetas">
             <div class="space-y-2 md:space-y-3"
                  [apsScroll]="labEsperaData[i].length"
-                 [apsScrollViewportH]="viewportH">
+                  [apsScrollMaxVisible]="maxVisibleTarjetas">
                <div *ngFor="let t of labEsperaData[i]; trackBy: trackById"
                    class="bg-slate-800/40 border border-slate-700/50 p-2 md:p-3 rounded-[16px] md:rounded-[24px] flex flex-col md:flex-row items-center md:justify-between gap-2"
                  >
@@ -262,7 +258,7 @@
     <!-- LAYOUT: IMG -->
     <div *ngIf="config.layout === 'img'" class="flex-1 flex flex-col items-center overflow-visible md:overflow-hidden">
       <ng-container *ngIf="sala === 'img-espera'">
-        <div *ngFor="let seccion of imgSections; let i = index" class="w-[90%] flex flex-col bg-slate-800/20 rounded-[24px] md:rounded-[40px] border border-slate-700/30 p-4 md:p-6 overflow-hidden">
+        <div *ngFor="let seccion of imgSections; let i = index" class="w-[90%] flex-1 flex flex-col bg-slate-800/20 rounded-[24px] md:rounded-[40px] border border-slate-700/30 p-4 md:p-6 overflow-hidden">
           <h3 class="text-slate-400 font-black text-xs md:text-sm uppercase tracking-widest mb-7 shrink-0 text-center">{{ seccion.titulo }}</h3>
           <div *ngIf="imgLoading[i]" class="flex-1 flex items-center justify-center">
             <div class="w-8 h-8 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
@@ -271,13 +267,12 @@
             <p class="text-slate-600 text-sm md:text-base font-bold uppercase tracking-widest">Sin pacientes</p>
           </div>
           <div *ngIf="!imgLoading[i] && imgData[i] && imgData[i].length > 0" class="overflow-hidden relative"
-               [style.height.px]="viewportH"
-               [style.display]="imgData[i].length <= 4 ? 'flex' : 'block'"
-               [style.flex-direction]="imgData[i].length <= 4 ? 'column' : null"
-               [class.justify-center]="imgData[i].length <= 4">
+               [style.display]="imgData[i].length <= maxVisibleTarjetas ? 'flex' : 'block'"
+               [style.flex-direction]="imgData[i].length <= maxVisibleTarjetas ? 'column' : null"
+               [class.justify-center]="imgData[i].length <= maxVisibleTarjetas">
             <div class="space-y-2 md:space-y-3"
                  [apsScroll]="imgData[i].length"
-                 [apsScrollViewportH]="viewportH">
+                  [apsScrollMaxVisible]="maxVisibleTarjetas">
                <div *ngFor="let t of imgData[i]; trackBy: trackById"
                    class="bg-slate-800/40 border border-slate-700/50 p-2 md:p-3 rounded-[16px] md:rounded-[24px] flex flex-col md:flex-row items-center md:justify-between gap-2"
                  >
@@ -311,7 +306,7 @@
          </div>
        </ng-container>
        <ng-container *ngIf="sala === 'img-en-espera'">
-        <div *ngFor="let seccion of imgEsperaSections; let i = index" class="w-[90%] flex flex-col bg-slate-800/20 rounded-[24px] md:rounded-[40px] border border-slate-700/30 p-4 md:p-6 overflow-hidden">
+        <div *ngFor="let seccion of imgEsperaSections; let i = index" class="w-[90%] flex-1 flex flex-col bg-slate-800/20 rounded-[24px] md:rounded-[40px] border border-slate-700/30 p-4 md:p-6 overflow-hidden">
           <h3 class="text-slate-400 font-black text-xs md:text-sm uppercase tracking-widest mb-7 shrink-0 text-center">{{ seccion.titulo }}</h3>
           <div *ngIf="imgEsperaLoading[i]" class="flex-1 flex items-center justify-center">
             <div class="w-8 h-8 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
@@ -320,13 +315,12 @@
             <p class="text-slate-600 text-sm md:text-base font-bold uppercase tracking-widest">Sin pacientes</p>
           </div>
           <div *ngIf="!imgEsperaLoading[i] && imgEsperaData[i] && imgEsperaData[i].length > 0" class="overflow-hidden relative"
-               [style.height.px]="viewportH"
-               [style.display]="imgEsperaData[i].length <= 4 ? 'flex' : 'block'"
-               [style.flex-direction]="imgEsperaData[i].length <= 4 ? 'column' : null"
-               [class.justify-center]="imgEsperaData[i].length <= 4">
+               [style.display]="imgEsperaData[i].length <= maxVisibleTarjetas ? 'flex' : 'block'"
+               [style.flex-direction]="imgEsperaData[i].length <= maxVisibleTarjetas ? 'column' : null"
+               [class.justify-center]="imgEsperaData[i].length <= maxVisibleTarjetas">
             <div class="space-y-2 md:space-y-3"
                  [apsScroll]="imgEsperaData[i].length"
-                 [apsScrollViewportH]="viewportH">
+                  [apsScrollMaxVisible]="maxVisibleTarjetas">
                <div *ngFor="let t of imgEsperaData[i]; trackBy: trackById"
                    class="bg-slate-800/40 border border-slate-700/50 p-2 md:p-3 rounded-[16px] md:rounded-[24px] flex flex-col md:flex-row items-center md:justify-between gap-2"
                  >
@@ -360,7 +354,7 @@
          </div>
        </ng-container>
        <ng-container *ngIf="sala === 'consulta'">
-        <div *ngFor="let seccion of consultaSections; let i = index" class="w-[90%] flex flex-col bg-slate-800/20 rounded-[24px] md:rounded-[40px] border border-slate-700/30 p-4 md:p-6 overflow-hidden">
+        <div *ngFor="let seccion of consultaSections; let i = index" class="w-[90%] flex-1 flex flex-col bg-slate-800/20 rounded-[24px] md:rounded-[40px] border border-slate-700/30 p-4 md:p-6 overflow-hidden">
           <h3 class="text-slate-400 font-black text-xs md:text-sm uppercase tracking-widest mb-7 shrink-0 text-center">{{ seccion.titulo }}</h3>
           <div *ngIf="consultaLoading[i]" class="flex-1 flex items-center justify-center">
             <div class="w-8 h-8 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
@@ -369,13 +363,12 @@
             <p class="text-slate-600 text-sm md:text-base font-bold uppercase tracking-widest">Sin pacientes</p>
           </div>
           <div *ngIf="!consultaLoading[i] && consultaData[i] && consultaData[i].length > 0" class="overflow-hidden relative"
-               [style.height.px]="viewportH"
-               [style.display]="consultaData[i].length <= 4 ? 'flex' : 'block'"
-               [style.flex-direction]="consultaData[i].length <= 4 ? 'column' : null"
-               [class.justify-center]="consultaData[i].length <= 4">
+               [style.display]="consultaData[i].length <= maxVisibleTarjetas ? 'flex' : 'block'"
+               [style.flex-direction]="consultaData[i].length <= maxVisibleTarjetas ? 'column' : null"
+               [class.justify-center]="consultaData[i].length <= maxVisibleTarjetas">
             <div class="space-y-2 md:space-y-3"
                  [apsScroll]="consultaData[i].length"
-                 [apsScrollViewportH]="viewportH">
+                  [apsScrollMaxVisible]="maxVisibleTarjetas">
                <div *ngFor="let t of consultaData[i]; trackBy: trackById"
                   class="bg-slate-800/40 border border-slate-700/50 p-2 md:p-3 rounded-[16px] md:rounded-[24px] flex flex-col md:flex-row items-center md:justify-between gap-2"
                 >

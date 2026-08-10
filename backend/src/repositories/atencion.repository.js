@@ -106,23 +106,9 @@ const actualizarEstadoAtencion = async (id, sede, idEstadoNuevo) => {
   return result.rows[0] || null;
 };
 
-const getPrefijoYConteo = async (idServicio, sede) => {
-  const prefijoResult = await pool.query(
-    `SELECT prefijo FROM "Servicio" WHERE id_servicio = $1`,
-    [idServicio],
-  );
-  const prefijo = prefijoResult.rows[0]?.prefijo || 'T';
-
-  const countResult = await pool.query(
-    `SELECT COUNT(*) + 1 as next FROM "Atencion"
-     WHERE id_servicio = $1 AND hora_llegada >= CURRENT_DATE AND id_sede = $2`,
-    [idServicio, sede],
-  );
-  return { prefijo, next: countResult.rows[0].next };
-};
-
-const insertarAtencion = async (data) => {
-  const result = await pool.query(
+const insertarAtencion = async (data, client = null) => {
+  const db = client || pool;
+  const result = await db.query(
     `INSERT INTO "Atencion" (id_paciente, id_servicio, id_responsable, id_estado_actual, id_sede, id_usuario_registro, numero, id_cliente, id_especialidad, id_medico, id_consultorio)
      VALUES ($1, $2, $3, 1, $4, $5, $6, $7, $8, $9, $10)
      RETURNING id_atencion, numero, hora_llegada`,
@@ -158,12 +144,20 @@ const getTodosLosTurnos = async (sede) => {
   return result.rows;
 };
 
-const getConteoServicioHoy = async (idServicio) => {
-  const result = await pool.query(
-    'SELECT COUNT(*) + 1 as next FROM "Atencion" WHERE id_servicio = $1 AND hora_llegada >= CURRENT_DATE',
-    [idServicio],
+const getSiguienteNumero = async (client, idServicio, sede) => {
+  // La unicidad del número se garantiza a nivel de aplicación con este upsert
+  // atómico: el bloqueo de fila de la PK (sede + servicio + fecha) serializa
+  // las transacciones concurrentes, por lo que cada turno recibe un número
+  // distinto y creciente aunque se registren varios a la vez.
+  const result = await client.query(
+    `INSERT INTO "Secuencia_Turnos" ("id_sede", "id_servicio", "fecha", "ultimo")
+     VALUES ($1, $2, CURRENT_DATE, 1)
+     ON CONFLICT ("id_sede", "id_servicio", "fecha")
+     DO UPDATE SET ultimo = "Secuencia_Turnos".ultimo + 1
+     RETURNING ultimo`,
+    [sede, idServicio],
   );
-  return result.rows[0].next;
+  return Number(result.rows[0].ultimo);
 };
 
 const getServicioPrefijo = async (idServicio) => {
@@ -171,8 +165,9 @@ const getServicioPrefijo = async (idServicio) => {
   return result.rows[0]?.prefijo || 'T';
 };
 
-const insertarTurno = async (data) => {
-  const result = await pool.query(
+const insertarTurno = async (data, client = null) => {
+  const db = client || pool;
+  const result = await db.query(
     'INSERT INTO "Atencion" (id_paciente, id_servicio, id_especialidad, id_responsable, id_estado_actual, id_sede, numero) VALUES ($1, $2, $3, $4, 1, $5, $6) RETURNING *',
     [data.id_paciente, data.id_servicio, data.id_especialidad, data.id_responsable, data.id_sede, data.numero],
   );
@@ -536,7 +531,7 @@ const limpiarEstadosPendientes = async () => {
 
     const result = await client.query(
       `UPDATE "Atencion" SET id_estado_actual = 7
-       WHERE hora_llegada::date = CURRENT_DATE - INTERVAL '1 day'
+       WHERE hora_llegada::date < CURRENT_DATE
          AND id_estado_actual IN (1, 2, 3, 4, 5, 8)
        RETURNING id_atencion, numero, id_estado_actual`,
     );
@@ -566,17 +561,26 @@ const limpiarEstadosPendientes = async () => {
 };
 
 const getUltimoLlamado = async (sede) => {
+  // Solo devuelve llamados RECIENTES: los registros que quedaron atascados en
+  // estado "Llamado" desde hace mucho tiempo (p. ej. por fallos de flujo) no
+  // deben volver a anunciarse cada vez que el turnero consulta el endpoint.
   const result = await pool.query(
     `SELECT a.id_atencion, a.numero,
             p.primer_nombre, p.primer_apellido,
             c.nombre as consultorio_nombre,
-            s.nombre_servicio
+            s.nombre_servicio,
+            (SELECT h.fecha_hora FROM "Historial_Atencion" h
+             WHERE h.id_atencion = a.id_atencion AND h.id_estado = 4
+             ORDER BY h.fecha_hora DESC LIMIT 1) as hora_llamado
      FROM "Atencion" a
      JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
      LEFT JOIN "Consultorios" c ON a.id_consultorio = c.id_consultorio
      LEFT JOIN "Servicio" s ON a.id_servicio = s.id_servicio
      WHERE a.id_sede = $1 AND a.id_estado_actual = 4 AND a.hora_salida IS NULL
-     ORDER BY a.hora_llegada DESC LIMIT 1`,
+       AND (SELECT h.fecha_hora FROM "Historial_Atencion" h
+            WHERE h.id_atencion = a.id_atencion AND h.id_estado = 4
+            ORDER BY h.fecha_hora DESC LIMIT 1) >= NOW() - INTERVAL '10 minutes'
+     ORDER BY hora_llamado DESC NULLS LAST LIMIT 1`,
     [sede],
   );
   return result.rows[0] || null;
@@ -590,10 +594,9 @@ module.exports = {
   actualizarAtencionSimple,
   eliminarAtencion,
   actualizarEstadoAtencion,
-  getPrefijoYConteo,
+  getSiguienteNumero,
   insertarAtencion,
   getTodosLosTurnos,
-  getConteoServicioHoy,
   getServicioPrefijo,
   insertarTurno,
   marcarAusente,

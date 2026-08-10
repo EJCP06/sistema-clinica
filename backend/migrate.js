@@ -157,6 +157,84 @@ const runMigrations = async () => {
   await pool.query('CREATE INDEX IF NOT EXISTS idx_audit_log_fecha ON "Audit_Log"("fecha")');
   await pool.query('CREATE INDEX IF NOT EXISTS idx_audit_log_accion ON "Audit_Log"("accion")');
 
+  // ====================================================================
+  // Numeración atómica de turnos por día
+  // ====================================================================
+  // El método anterior calculaba el número con COUNT(*) + 1 de las atenciones
+  // del día: si se borraba una atención, el conteo bajaba y el número se
+  // reciclaba (números duplicados), y dos registros simultáneos podían
+  // obtener el mismo número. La secuencia por día (sede + servicio) se
+  // incrementa dentro de la misma transacción del turno: es imposible
+  // que dos turnos repitan número, incluso con concurrencia o borrados.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS "Secuencia_Turnos" (
+      "id_sede" INTEGER NOT NULL REFERENCES "Sedes"("id_sede"),
+      "id_servicio" INTEGER NOT NULL REFERENCES "Servicio"("id_servicio"),
+      "fecha" DATE NOT NULL,
+      "ultimo" INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY ("id_sede", "id_servicio", "fecha")
+    );
+  `);
+
+  // Sembrar el contador de HOY con el máximo existente (para no repetir números)
+  await pool.query(`
+    INSERT INTO "Secuencia_Turnos" ("id_sede", "id_servicio", "fecha", "ultimo")
+    SELECT a.id_sede, a.id_servicio, CURRENT_DATE,
+           MAX(NULLIF(regexp_replace(a.numero, '[^0-9]', '', 'g'), '')::int)
+    FROM "Atencion" a
+    WHERE a.hora_llegada >= CURRENT_DATE AND a.numero ~ '[0-9]'
+    GROUP BY a.id_sede, a.id_servicio
+    ON CONFLICT ("id_sede", "id_servicio", "fecha") DO NOTHING
+  `);
+
+  // Corregir duplicados de HOY: la atención más antigua conserva el número y
+  // las posteriores se renumeran al final de la secuencia del día.
+  const atencionesHoy = await pool.query(`
+    SELECT a.id_atencion, a.id_sede, a.id_servicio, a.numero
+    FROM "Atencion" a
+    WHERE a.hora_llegada >= CURRENT_DATE
+    ORDER BY a.id_sede, a.id_servicio, a.numero, a.id_atencion
+  `);
+  const maxPorGrupo = new Map();
+  for (const f of atencionesHoy.rows) {
+    const grupo = `${f.id_sede}|${f.id_servicio}`;
+    const num = parseInt(String(f.numero).replace(/[^0-9]/g, ''), 10) || 0;
+    maxPorGrupo.set(grupo, Math.max(maxPorGrupo.get(grupo) || 0, num));
+  }
+  const vistos = new Map();
+  for (const f of atencionesHoy.rows) {
+    const clave = `${f.id_sede}|${f.id_servicio}|${f.numero}`;
+    const veces = (vistos.get(clave) || 0) + 1;
+    vistos.set(clave, veces);
+    if (veces > 1) {
+      const grupo = `${f.id_sede}|${f.id_servicio}`;
+      const siguiente = (maxPorGrupo.get(grupo) || 0) + 1;
+      maxPorGrupo.set(grupo, siguiente);
+      const nuevoNumero = String(f.numero).replace(/[0-9]+$/, String(siguiente).padStart(2, '0'));
+      await pool.query('UPDATE "Atencion" SET numero = $1 WHERE id_atencion = $2', [nuevoNumero, f.id_atencion]);
+      logger.info(`Turno duplicado corregido: atención #${f.id_atencion} ahora es ${nuevoNumero}`);
+    }
+  }
+
+  // Sincronizar el contador con el máximo tras cualquier renumeración
+  await pool.query(`
+    UPDATE "Secuencia_Turnos" s SET ultimo = sub.mx
+    FROM (
+      SELECT a.id_sede, a.id_servicio,
+             MAX(NULLIF(regexp_replace(a.numero, '[^0-9]', '', 'g'), '')::int) as mx
+      FROM "Atencion" a
+      WHERE a.hora_llegada >= CURRENT_DATE AND a.numero ~ '[0-9]'
+      GROUP BY a.id_sede, a.id_servicio
+    ) sub
+    WHERE s.id_sede = sub.id_sede AND s.id_servicio = sub.id_servicio AND s.fecha = CURRENT_DATE
+  `);
+
+  // Índice de apoyo para las consultas de turnos del día
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_atencion_sede_servicio_numero
+    ON "Atencion" ("id_sede", "id_servicio", "numero")
+  `);
+
   logger.info('Base de datos inicializada correctamente');
 };
 

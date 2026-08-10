@@ -34,7 +34,7 @@ export class ApiService {
   private base = environment.apiUrl;
   private socket!: Socket;
   /** Observable que emite eventos en tiempo real (cambios de estado, nuevos llamados, actualización de permisos). */
-  public cambios$ = new Subject<{ tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; apellido?: string; id_sede?: number }>();
+  public cambios$ = new Subject<{ tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; apellido?: string; id_sede?: number; inicio_ms?: number; server_now?: number }>();
 
   constructor() {
     this.conectarSocket(sessionStorage.getItem('clinica_token'));
