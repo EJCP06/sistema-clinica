@@ -35,6 +35,10 @@ interface AnuncioActivo {
   paciente: string;
   apellido: string;
   consultorio: string;
+  /** Llamado de módulo (APS / Laboratorio / Imágenes): anuncio único e inmediato. */
+  destinoInmediato: boolean;
+  /** Llamado del médico ("Llamar al Siguiente"): el primer anuncio sale ya y el ciclo de 10s continúa. */
+  primerTickInmediato: boolean;
   inicioMs: number | null;
   timerId: any | null;
   speakTimerId: any | null;
@@ -309,6 +313,27 @@ export class TurneroComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Retardo hasta el instante objetivo del anuncio (`inicio_ms` en hora
+   * local). Se usa para los llamados que deben sonar de INMEDIATO: los
+   * botones de módulo (APS/Lab/Imágenes) y el primer tick del médico
+   * ("Llamar al Siguiente") emiten `inicio_ms` en el mismo instante del
+   * clic, así que cuando el evento llega el objetivo ya está en el pasado y
+   * el retardo queda en `minMs` (la voz sale YA), en vez de esperar la
+   * siguiente marca de 10s de la grilla de consultorios. Devuelve null si
+   * el llamado ya pasó la ventana de 115s.
+   */
+  private retardoHastaInicioAnuncio(a: AnuncioActivo, minMs: number): number | null {
+    if (!a.inicioMs || !Number.isFinite(a.inicioMs)) {
+      return Math.max(minMs, 500);
+    }
+    const baseLocal = a.inicioMs - this.deltaRelojMs;
+    const ahora = Date.now();
+    const desfase = ahora - baseLocal;
+    if (desfase >= VENTANA_LLAMADO_MS) return null;
+    return Math.max(minMs, baseLocal - ahora);
+  }
+
+  /**
    * Inicia/reinicia el ciclo de repetición de 10s para un anuncio específico.
    * Usa setTimeout recursivo (NO setInterval) para auto-corregir deriva.
    */
@@ -324,7 +349,23 @@ export class TurneroComponent implements OnInit, OnDestroy {
       const anunciado = this.reproducirAudio(a);
       return anunciado;
     };
-    const delay = this.retardoHastaSiguienteMarca(a, 500);
+    // Llamados de módulo (APS / Laboratorio / Imágenes): anuncio único e
+    // inmediato. El backend manda `inicio_ms` en el pasado inmediato del
+    // clic, así que con minMs 0 la voz sale YA, sin esperar la siguiente
+    // marca de 10s de la grilla de consultorios.
+    const esDestino = a.destinoInmediato || this.esAnuncioAPS(a.consultorio);
+    // Llamados del médico ("Llamar al Siguiente"): el backend manda
+    // `inicio_inmediato` para que el PRIMER anuncio salga ya, y las
+    // siguientes repeticiones siguen ancladas a la grilla de 10s.
+    let delay: number | null;
+    if (esDestino) {
+      delay = this.retardoHastaInicioAnuncio(a, 0);
+    } else if (a.primerTickInmediato) {
+      delay = this.retardoHastaInicioAnuncio(a, 300);
+      a.primerTickInmediato = false;
+    } else {
+      delay = this.retardoHastaSiguienteMarca(a, 500);
+    }
     if (delay === null) {
       this.anunciosActivos.delete(a.idAtencion);
       return;
@@ -339,7 +380,10 @@ export class TurneroComponent implements OnInit, OnDestroy {
       } catch (e) {
         console.error('[Turnero v7] Error en anuncio repetido:', e);
       }
-      if (continuar) {
+      // Llamados de módulo: anuncio único. Como el paciente no cambia de
+      // estado al llamarlo, el ciclo de repetición de 10s sonaría en bucle,
+      // así que no se re-agenda.
+      if (continuar && !esDestino) {
         this.iniciarRepeticionAnuncio(a);
       } else {
         this.anunciosActivos.delete(a.idAtencion);
@@ -352,9 +396,30 @@ export class TurneroComponent implements OnInit, OnDestroy {
    */
   private procesarLlamado(data: any): void {
     const id = data.id_atencion;
-    if (!id || this.anunciosActivos.has(id)) {
+    if (!id) {
+      return;
+    }
+    // Re-llamado explícito (botón "Llamar" de APS pulsado de nuevo): la voz
+    // debe repetirse AL INSTANTE en CADA pulsación. El APS es de anuncio
+    // único, así que al terminar la primera locución el id ya no está en el
+    // mapa: por eso `forzar` se evalúa ANTES de la guardia de "ya procesado".
+    if (data.forzar) {
+      this.reanunciarInmediato(data);
+      return;
+    }
+    if (this.anunciosActivos.has(id)) {
       return; // Ya procesado
     }
+    this.crearAnuncio(data);
+  }
+
+  /**
+   * Crea el anuncio de un llamado nuevo y arranca su ciclo de voz.
+   * Extraído para reusarse desde el re-llamado forzado (APS), donde primero
+   * se limpian las guardias anti-doble y luego se recrea el anuncio.
+   */
+  private crearAnuncio(data: any): void {
+    const id = data.id_atencion;
     this.actualizarDeltaReloj(data.server_now);
     if (data.inicio_ms) {
       this.inicioMsActual = data.inicio_ms;
@@ -365,6 +430,13 @@ export class TurneroComponent implements OnInit, OnDestroy {
       paciente: data.paciente,
       apellido: data.apellido || '',
       consultorio: data.consultorio,
+      // Los llamados de módulo (botones "Llamar" de APS/Lab/Imágenes) llevan
+      // `forzar: true`: suenan al instante, son de disparo único y se
+      // repiten en cada pulsación. La grilla de consultorios no lo lleva.
+      destinoInmediato: data.forzar === true,
+      // El médico ("Llamar al Siguiente") manda `inicio_inmediato: true`:
+      // el primer anuncio sale ya y el ciclo de 10s de la grilla continúa.
+      primerTickInmediato: data.inicio_inmediato === true,
       inicioMs: data.inicio_ms ?? this.inicioMsActual,
       timerId: null,
       speakTimerId: null,
@@ -375,6 +447,43 @@ export class TurneroComponent implements OnInit, OnDestroy {
     // Memoria anti-voz-doble para polling
     this.ultimoLlamadoProcesadoId = id;
     this.ultimoLlamadoProcesadoHora = data.inicio_ms || data.server_now || Date.now();
+  }
+
+  /**
+   * ¿Este llamado es de APS? El backend emite `consultorio: 'APS'` para los
+   * botones "Llamar" de APS. Los anuncios APS son de disparo único e
+   * inmediato (sin grilla de 10s ni espera de marca).
+   */
+  private esAnuncioAPS(consultorio: string): boolean {
+    return consultorio.trim().toLowerCase() === 'aps';
+  }
+
+  /**
+   * Re-llamado explícito (botón "Llamar" de APS pulsado de nuevo): limpia las
+   * guardias anti-doble del mismo texto, corta la locución en curso si la hay
+   * y reprocesa el llamado como nuevo. Como `inicio_ms` ya está en el pasado,
+   * `reproducirAudio` habla de inmediato (retardo 0).
+   */
+  private reanunciarInmediato(data: any): void {
+    const id = data.id_atencion;
+    // Limpia timers, cola y guardias anti-doble (global y de ventana)
+    this.detenerRepeticion(id);
+    // Resetea la memoria local anti-doble para que el MISMO texto suene YA
+    this.ultimoIdAnunciado = null;
+    this.ultimaVezAnunciado = 0;
+    // Evita que el polling re-anuncie este mismo llamado
+    this.ultimoLlamadoProcesadoId = id;
+    this.ultimoLlamadoProcesadoHora = data.inicio_ms || data.server_now || Date.now();
+    // Si otra locución está sonando, se corta para que la voz salga al instante
+    const hablando = 'speechSynthesis' in window && window.speechSynthesis.speaking;
+    if (hablando) {
+      window.speechSynthesis.cancel();
+      // Chrome ignora speak() inmediatamente después de cancel(): se espera
+      // ~120ms para que el motor quede libre antes de recrear el anuncio.
+      setTimeout(() => this.crearAnuncio(data), 120);
+    } else {
+      this.crearAnuncio(data);
+    }
   }
 
   /**
@@ -390,7 +499,11 @@ export class TurneroComponent implements OnInit, OnDestroy {
     const consultorioLimpio = a.consultorio.replace(/\b0+(\d+)\b/g, '$1');
     let texto = `Paciente ${nombreCompleto}, diríjase al consultorio ${consultorioLimpio}`;
     const c = a.consultorio.toLowerCase();
-    if (c.includes('laboratorio')) {
+    if (a.destinoInmediato) {
+      // Botones "Llamar" de módulos (APS / clave / laboratorio / imágenes):
+      // anuncio único genérico, sin variantes por servicio.
+      texto = `Paciente ${nombreCompleto}, por favor acérquese a la recepción`;
+    } else if (c.includes('laboratorio')) {
       texto = `Paciente ${nombreCompleto}, diríjase a laboratorio`;
     } else if (c.includes('imágenes') || c.includes('imagenes')) {
       texto = `Paciente ${nombreCompleto}, diríjase a imágenes`;
@@ -398,20 +511,27 @@ export class TurneroComponent implements OnInit, OnDestroy {
       texto = `Paciente ${nombreCompleto}, diríjase a consulta`;
     } else if (c.startsWith('consultorio')) {
       texto = `Paciente ${nombreCompleto}, diríjase al ${consultorioLimpio}`;
+    } else if (this.esAnuncioAPS(a.consultorio)) {
+      texto = `Paciente ${nombreCompleto}, por favor acérquese a la recepción`;
     }
     const ahora = Date.now();
-    // Deduplicación local por instancia (complemento a la guardia global)
-    if (this.sonidoConfirmado && a.idAtencion === this.ultimoIdAnunciado && ahora - this.ultimaVezAnunciado < 9000) {
+    // Deduplicación local por instancia (complemento a la guardia global):
+    // SOLO bloquea si es el MISMO llamado (mismo ancla `inicio_ms`) que sonó
+    // hace <9s. Un llamado NUEVO del mismo paciente (p. ej. el médico llama a
+    // alguien que minutos antes fue anunciado por el botón de APS) NO se
+    // bloquea: la voz debe salir ya.
+    const esMismoLlamadoLocal = a.inicioMs && Number.isFinite(a.inicioMs) &&
+      this.ultimoAnuncioInicioMs !== null && Number.isFinite(this.ultimoAnuncioInicioMs) &&
+      Math.abs(a.inicioMs - this.ultimoAnuncioInicioMs) < 2000;
+    if (this.sonidoConfirmado && a.idAtencion === this.ultimoIdAnunciado && esMismoLlamadoLocal && ahora - this.ultimaVezAnunciado < 9000) {
       return false;
     }
     this.ultimoIdAnunciado = a.idAtencion;
     this.ultimaVezAnunciado = ahora;
-    try {
-      if (a.idAtencion) {
-        sessionStorage.setItem('turnero_ultimo_anuncio_id', String(a.idAtencion));
-      }
-      sessionStorage.setItem('turnero_ultimo_anuncio_ts', String(ahora));
-    } catch {}
+    if (a.inicioMs && Number.isFinite(a.inicioMs)) {
+      this.ultimoAnuncioInicioMs = a.inicioMs;
+    }
+    this.persistirAnuncioEnSesion(a);
     // Guardia global anti-doble
     const hablandoAhora = 'speechSynthesis' in window && window.speechSynthesis.speaking;
     const bloqueaDoble = !!ultimoAnuncioGlobal && ultimoAnuncioGlobal.texto === texto && (
@@ -545,7 +665,11 @@ export class TurneroComponent implements OnInit, OnDestroy {
     const consultorioLimpio = a.consultorio.replace(/\b0+(\d+)\b/g, '$1');
     let texto = `Paciente ${nombreCompleto}, diríjase al consultorio ${consultorioLimpio}`;
     const c = a.consultorio.toLowerCase();
-    if (c.includes('laboratorio')) {
+    if (a.destinoInmediato) {
+      // Botones "Llamar" de módulos (APS / clave / laboratorio / imágenes):
+      // anuncio único genérico, sin variantes por servicio.
+      texto = `Paciente ${nombreCompleto}, por favor acérquese a la recepción`;
+    } else if (c.includes('laboratorio')) {
       texto = `Paciente ${nombreCompleto}, diríjase a laboratorio`;
     } else if (c.includes('imágenes') || c.includes('imagenes')) {
       texto = `Paciente ${nombreCompleto}, diríjase a imágenes`;
@@ -553,15 +677,36 @@ export class TurneroComponent implements OnInit, OnDestroy {
       texto = `Paciente ${nombreCompleto}, diríjase a consulta`;
     } else if (c.startsWith('consultorio')) {
       texto = `Paciente ${nombreCompleto}, diríjase al ${consultorioLimpio}`;
+    } else if (this.esAnuncioAPS(a.consultorio)) {
+      texto = `Paciente ${nombreCompleto}, por favor acérquese a la recepción`;
     }
     return texto;
   }
 
   /**
+   * Persiste el id y momento del último anuncio en sessionStorage para que,
+   * tras un F5, el polling (`verificarUltimoLlamado`) detecte que ESTE
+   * dispositivo ya anunció a este paciente y reanude el ciclo de 10s en la
+   * fase de la grilla que le corresponde (la voz continúa donde iba, como el
+   * contador del médico) en vez de re-anunciar de golpe.
+   */
+  private persistirAnuncioEnSesion(a: AnuncioActivo): void {
+    try {
+      sessionStorage.setItem('turnero_ultimo_anuncio_id', String(a.idAtencion));
+      sessionStorage.setItem('turnero_ultimo_anuncio_ts', String(Date.now()));
+      if (a.inicioMs && Number.isFinite(a.inicioMs)) {
+        sessionStorage.setItem('turnero_ultimo_anuncio_inicio_ms', String(a.inicioMs));
+      }
+    } catch {}
+  }
+
+  /**
    * Detiene la repetición de un anuncio específico (por id_atencion) o de todos.
    * Limpia la guardia global para que un re-llamado inmediato suene.
+   * `preservarSesion`: true solo en recarga de página (F5), donde la memoria
+   * de reanudación debe sobrevivir para que la voz continúe el ciclo de 10s.
    */
-  private detenerRepeticion(idAtencion?: number): void {
+  private detenerRepeticion(idAtencion?: number, preservarSesion: boolean = false): void {
     if (idAtencion !== undefined) {
       const a = this.anunciosActivos.get(idAtencion);
       if (a) {
@@ -587,9 +732,14 @@ export class TurneroComponent implements OnInit, OnDestroy {
     // Reiniciar guardias para permitir re-llamado inmediato del mismo paciente
     ultimoAnuncioGlobal = null;
     limpiarGuardiaGlobalAntiDoble();
+    if (preservarSesion) {
+      // F5: la memoria de reanudación debe sobrevivir a la recarga.
+      return;
+    }
     try {
       sessionStorage.removeItem('turnero_ultimo_anuncio_id');
       sessionStorage.removeItem('turnero_ultimo_anuncio_ts');
+      sessionStorage.removeItem('turnero_ultimo_anuncio_inicio_ms');
     } catch {}
   }
   // Memoria anti-voz-doble: el último llamado que ESTE turnero ya procesó
@@ -675,6 +825,23 @@ export class TurneroComponent implements OnInit, OnDestroy {
       return 0;
     }
   })();
+  /**
+   * Ancla (`inicio_ms` del servidor) del último anuncio reproducido por ESTE
+   * dispositivo. Se persiste en sessionStorage para que, tras un F5, el
+   * polling distinga el MISMO llamado (reanudar la grilla de 10s) de un
+   * llamado NUEVO del mismo paciente (p. ej. el médico llama a un paciente
+   * que minutos antes fue anunciado por el botón de APS): si el ancla
+   * coincide con el `inicio_ms` del llamado, es el mismo; si es más reciente,
+   * la voz debe salir YA, sin esperar la siguiente marca de 10s.
+   */
+  private ultimoAnuncioInicioMs: number | null = (() => {
+    try {
+      const v = sessionStorage.getItem('turnero_ultimo_anuncio_inicio_ms');
+      return v ? Number(v) || null : null;
+    } catch {
+      return null;
+    }
+  })();
 
   constructor(
     readonly api: ApiService,
@@ -689,6 +856,10 @@ export class TurneroComponent implements OnInit, OnDestroy {
     // chunk viejo en caché, doble montaje), el mismo texto jamás puede sonar
     // dos veces en menos de 9s: todas pasan por el mismo envoltorio.
     instalarGuardiaGlobalAntiDoble();
+    // Intento de desbloqueo automático al cargar (modo kiosco, cero clicks):
+    // en navegadores que lo permiten activa el motor de voz; en Chrome sin
+    // gesto previo es un no-op silencioso y los listeners de desbloqueo siguen.
+    desbloquearVozNavegador();
     this.initTarjetasResponsive();
     // Marca de versión para verificar en consola (F12) que este turnero corre
     // el código con la guardia anti-doble (un anuncio por ciclo de 10s).
@@ -802,7 +973,10 @@ export class TurneroComponent implements OnInit, OnDestroy {
 
     // Revisa periódicamente el último llamado para anunciar llamadas
     // que pudieron perderse si el socket se desconectó o reconectó.
-    this.verificarSub = interval(10000).subscribe(() => {
+    // Cada 4s (antes 10s): al ser el mecanismo de respaldo (y el principal
+    // si el socket del turnero público se cae), un intervalo menor hace que
+    // la voz salga "de una vez" en lugar de tardar hasta 10s.
+    this.verificarSub = interval(4000).subscribe(() => {
       this.verificarUltimoLlamado();
     });
 
@@ -1037,12 +1211,23 @@ private verificarUltimoLlamado() {
             // Reanudación tras recarga: si este dispositivo ya anunció a este paciente
             // y hay ancla, el ciclo sigue la grilla global. Si no hay ancla o está fuera
             // de ventana, se trata como nuevo llamado.
+            //
+            // IMPORTANTE: solo se reanuda si es el MISMO llamado (el ancla
+            // `inicio_ms` coincide con lo último anunciado, p. ej. tras un F5).
+            // Si el llamado es NUEVO (inicio_ms más reciente), aunque sea el
+            // mismo paciente (p. ej. el médico llama a alguien que minutos antes
+            // fue anunciado por APS), la voz debe salir YA, no esperar la
+            // siguiente marca de 10s.
             if (this.ultimoIdAnunciado === data.id_atencion && this.ultimaVezAnunciado > 0 && this.inicioMsActual) {
+              const esMismoLlamado = this.ultimoAnuncioInicioMs !== null && Number.isFinite(this.ultimoAnuncioInicioMs) &&
+                !!data.inicio_ms && Math.abs(data.inicio_ms - this.ultimoAnuncioInicioMs) < 2000;
               const anclaLocal = this.inicioMsActual - this.deltaRelojMs;
               const elapsed = Date.now() - anclaLocal;
-              if (elapsed >= -3000 && elapsed < 120000) {
+              if (esMismoLlamado && elapsed >= -3000 && elapsed < 120000) {
                 console.log(`[Turnero v7] Ciclo anclado (polling): próximo anuncio en la siguiente marca de 10s (contador ≈ ${Math.max(0, Math.round((120000 - elapsed) / 1000))}s).`);
-                // Crear anuncio y arrancar su ciclo alineado
+                // Reanudar en la SIGUIENTE marca de la grilla, NO disparar el
+                // tick inmediato (el primer anuncio ya sonó antes de la recarga).
+                data.inicio_inmediato = false;
                 this.procesarLlamado(data);
                 terminar();
                 return;
@@ -1070,8 +1255,15 @@ private verificarUltimoLlamado() {
       this.verificarTimeout = null;
     }
     this.verificarFetchSub?.unsubscribe();
-    // Detener todos los anuncios y limpiar timers/cola
-    this.detenerRepeticion();
+    // Detener todos los anuncios y limpiar timers/cola. En un F5 (reload) se
+    // PRESERVA la memoria de reanudación en sessionStorage para que la nueva
+    // página continúe el ciclo de 10s en la fase que le corresponde (como el
+    // contador del médico). En navegación SPA normal se limpia como siempre.
+    const esRecargaPagina =
+      typeof performance !== 'undefined' &&
+      performance.getEntriesByType('navigation')?.length > 0 &&
+      (performance.getEntriesByType('navigation')[0] as any)?.type === 'reload';
+    this.detenerRepeticion(undefined, esRecargaPagina);
     this.quitarListenersDesbloqueo();
     if (this.resumeHandler) {
       document.removeEventListener('click', this.resumeHandler);

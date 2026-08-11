@@ -71,12 +71,11 @@
                   </div>
                   <h2 class="text-3xl font-black text-slate-900 dark:text-white mb-3 tracking-tight leading-none">Consultorio Listo</h2>
                   <p class="text-slate-500 dark:text-slate-400 mb-8 text-sm px-4 leading-relaxed font-medium">Presione el botón para llamar al próximo turno.</p>
-                  <div class="flex justify-center">
-                    <button *ngIf="tienePermiso('atencion_medica_llamar_siguiente') || tienePermisoAtencion('llamar_siguiente')" (click)="llamarSiguiente()" [disabled]="cargando" class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-black py-4 rounded-[24px] shadow-xl shadow-blue-600/30 hover:shadow-blue-600/50 transition-all duration-300 flex items-center justify-center gap-3 text-lg group active:scale-95">
-                      <span *ngIf="cargando" class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                      <lucide-icon *ngIf="!cargando" [name]="Volume2" class="w-6 h-6 transition-transform group-hover:scale-110"></lucide-icon>
-                      {{ cargando ? 'Llamando...' : 'Llamar al Siguiente' }}
-                    </button>
+                  <div class="flex justify-center"><button *ngIf="tienePermiso('atencion_medica_llamar_siguiente') || tienePermisoAtencion('llamar_siguiente')" (click)="llamarSiguiente()" [disabled]="llamando" class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-black py-4 rounded-[24px] shadow-xl shadow-blue-600/30 hover:shadow-blue-600/50 transition-all duration-300 flex items-center justify-center gap-3 text-lg group active:scale-95">
+  <span *ngIf="llamando" class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+  <lucide-icon *ngIf="!llamando" [name]="Volume2" class="w-6 h-6 transition-transform group-hover:scale-110"></lucide-icon>
+  {{ llamando ? 'Llamando...' : 'Llamar al Siguiente' }}
+</button>
                   </div>
                 </ng-container>
                 <ng-template #noPacientes>

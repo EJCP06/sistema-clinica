@@ -25,6 +25,31 @@ router.get('/responsables-pago', perm(
   'IMAGENES_TOTAL'
 ), ctrl.getResponsablesPago);
 
+// Llamados por voz hacia los módulos (APS, Laboratorio, Imágenes):
+// restringidos por rol (analista / coordinador / administrador) y sin
+// depender de los permisos de admisión del resto de rutas del módulo.
+// Cada ruta permite los roles que operan ese módulo: analista, coordinador
+// y administrador en todos; el técnico de laboratorio/imágenes solo en su
+// propio módulo.
+const permitirLlamado = (rolesPermitidos) => (req, res, next) => {
+  const rol = req.usuario && req.usuario.rol;
+  if (rolesPermitidos.includes(rol)) return next();
+  return res.status(403).json({ mensaje: 'No tienes permisos para realizar esta acción' });
+};
+
+const rolesModulos = ['analista', 'coordinador', 'administrador'];
+
+// Primer llamado hacia APS (paciente Registrado).
+router.post('/atencion/:id/llamar-aps', permitirLlamado(rolesModulos), ctrl.llamarAPS);
+
+// Segundo llamado hacia APS (aseguradora con clave aprobada, estado
+// Espera de Clave): mismo criterio de rol que el primer llamado.
+router.post('/atencion/:id/llamar-clave', permitirLlamado(rolesModulos), ctrl.llamarClaveAPS);
+
+// Llamado hacia Laboratorio / Imágenes (pacientes particulares registrados).
+router.post('/atencion/:id/llamar-laboratorio', permitirLlamado([...rolesModulos, 'laboratorio']), ctrl.llamarLaboratorio);
+router.post('/atencion/:id/llamar-imagenes', permitirLlamado([...rolesModulos, 'imagenes']), ctrl.llamarImagenes);
+
 router.use(perm(
   'ADMISION_TOTAL',
   'LABORATORIO_TOTAL',

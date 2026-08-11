@@ -6,14 +6,6 @@ const consultorioRepo = require('../repositories/consultorio.repository');
 const historialRepo = require('../repositories/historial.repository');
 
 /**
- * Margen (ms) entre la emisión del evento y el momento en que TODOS los
- * dispositivos deben empezar a reproducir la voz. Da tiempo a que el evento
- * de Socket.IO llegue a todos los turneros (incluso por redes con algo de
- * latencia) antes de que empiece la locución, y así las voces suenan a la vez.
- */
-const RETARDO_INICIO_ANUNCIO_MS = 1500;
-
-/**
  * Obtiene el estado actual del consultorio o servicio del médico
  * autenticado. Para roles "laboratorio" e "imagenes" opera a nivel
  * de servicio; para el resto a nivel de consultorio físico.
@@ -148,11 +140,12 @@ const llamarSiguiente = async (req, res) => {
       // el turnero usa para anunciar. Los demás suscriptores (recepción,
       // atención) refrescan con cualquier evento, así que no pierden nada.
       //
-      // SINCRONIZACIÓN DE VOZ: `inicio_ms` es la hora (reloj del servidor) en
-      // la que TODOS los turneros deben empezar a hablar. Cada dispositivo
-      // agendó la locución para esa misma hora absoluta, así las voces suenan
-      // simultáneamente en todas las pantallas. `server_now` permite que el
-      // cliente estime el desfase de su reloj local respecto al servidor.
+      // VOZ INMEDIATA: al pulsar "Llamar al Siguiente" la voz sale YA (igual
+      // que los botones de módulo): `inicio_ms` en el pasado inmediato => el
+      // turnero habla apenas recibe el evento. `inicio_inmediato: true` le
+      // indica que tras el primer anuncio debe CONTINUAR con su ciclo normal
+      // de repetición cada 10s anclado a la grilla del consultorio.
+      // `server_now` permite que el cliente estime el desfase de su reloj.
       const ahoraServidor = Date.now();
       req.io.emit('nuevo-llamado', { 
         tipo: 'llamado',
@@ -163,7 +156,8 @@ const llamarSiguiente = async (req, res) => {
         apellido: turno.apellido_paciente || '',
         id_sede: req.usuario.id_sede,
         server_now: ahoraServidor,
-        inicio_ms: ahoraServidor + RETARDO_INICIO_ANUNCIO_MS
+        inicio_ms: ahoraServidor,
+        inicio_inmediato: true
       });
     }
 

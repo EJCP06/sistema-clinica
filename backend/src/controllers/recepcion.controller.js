@@ -62,12 +62,16 @@ const marcarAusente = async (req, res) => {
       
       await client.query('COMMIT');
       
-      if (req.io) {
+      // Solo se emite e inserta historial si el estado realmente cambió
+      // (idempotente ante dobles envíos o reintentos).
+      if (result && req.io) {
         const admision = await atencionRepo.getAdmisionById(id, sede);
         req.io.emit('estado-actualizado', { tipo: 'retirado', id_atencion: Number(id), admision, id_sede: sede });
       }
       
-      await historialRepo.insertSinTransaccion(id, 9);
+      if (result) {
+        await historialRepo.insertSinTransaccion(id, 9);
+      }
       
       res.json({ mensaje: 'Paciente retirado correctamente' });
     } catch (error) {
@@ -349,11 +353,24 @@ const actualizarEstadoAtencion = async (req, res) => {
   try {
     const { id } = req.params;
     const { id_estado_nuevo } = req.body;
+    const estadoNuevo = Number(id_estado_nuevo);
+
+    const actual = await atencionRepo.getAtencionEstado(id, sede);
+    if (!actual) {
+      return res.status(404).json({ mensaje: 'Atención no encontrada' });
+    }
+
+    // Idempotente: si la atención ya está en ese estado, no se reinserta
+    // historial ni se reemite el evento (evita duplicados por doble envío).
+    if (Number(actual.id_estado_actual) === estadoNuevo) {
+      return res.json({ mensaje: 'Estado actualizado', id_estado_actual: estadoNuevo });
+    }
 
     const result = await atencionRepo.actualizarEstadoAtencion(id, sede, id_estado_nuevo);
 
     if (!result) {
-      return res.status(404).json({ mensaje: 'Atención no encontrada' });
+      // Posible carrera: otro proceso ya cambió el estado; no duplicar historial.
+      return res.json({ mensaje: 'Estado actualizado', id_estado_actual: estadoNuevo });
     }
 
     if (req.io) req.io.emit('estado-actualizado', { tipo: 'estado-cambiado', id_atencion: id, id_estado_nuevo, id_sede: sede });
@@ -366,6 +383,113 @@ const actualizarEstadoAtencion = async (req, res) => {
     res.status(500).json({ mensaje: 'Error al actualizar estado de atención' });
   }
 };
+
+/**
+ * Emite por Socket.IO el evento de anuncio de voz hacia el turnero.
+ * Compartido por el primer llamado (paciente Registrado) y el segundo
+ * llamado (paciente de aseguradora en Espera de Clave con clave aprobada):
+ * ambos deben sonar AL INSTANTE y repetirse en cada pulsación del botón.
+ *
+ * @param {object} io - Servidor Socket.IO (req.io)
+ * @param {object} admision - Atención con datos del paciente
+ * @param {number} sede - Identificador de la sede
+ */
+const emitirLlamadoNuevo = (io, admision, sede, consultorio = 'APS') => {
+  const ahoraServidor = Date.now();
+  io.emit('nuevo-llamado', {
+    tipo: 'llamado',
+    id_atencion: Number(admision.id_atencion),
+    turno: admision.numero,
+    consultorio,
+    paciente: admision.nombre,
+    apellido: admision.apellido || '',
+    id_sede: sede,
+    server_now: ahoraServidor,
+    // La voz debe salir AL INSTANTE al pulsar "Llamar": sin margen de
+    // sincronización (inicio_ms en el pasado inmediato => el turnero
+    // habla apenas recibe el evento).
+    inicio_ms: ahoraServidor,
+    // Indica al turnero que si el mismo paciente ya está anunciado
+    // (segunda pulsación del botón), la voz se repite de inmediato.
+    forzar: true,
+  });
+};
+
+/**
+ * Llama por voz a un paciente hacia un módulo de destino (APS,
+ * Laboratorio o Imágenes). Solo emite el anuncio (voz en el turnero) SIN
+ * cambiar el estado actual de la atención. Se valida que la atención esté
+ * en el estado esperado del flujo de ese módulo.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @param {string} consultorio - Destino del anuncio ('APS' | 'LABORATORIO' | 'IMAGENES')
+ * @param {number} estadoEsperado - Estado en que debe estar la atención
+ * @param {string} mensajeEstado - Mensaje de error si no está en ese estado
+ * @returns {Promise<void>}
+ */
+const llamarDestino = async (req, res, consultorio, estadoEsperado, mensajeEstado) => {
+  const sede = getSede(req);
+  if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
+
+  try {
+    const { id } = req.params;
+
+    const admision = await atencionRepo.getAdmisionById(id, sede);
+    if (!admision) {
+      return res.status(404).json({ mensaje: 'Atención no encontrada' });
+    }
+
+    if (Number(admision.id_estado_actual) !== estadoEsperado) {
+      return res.status(400).json({ mensaje: mensajeEstado });
+    }
+
+    if (req.io) {
+      emitirLlamadoNuevo(req.io, admision, sede, consultorio);
+    }
+
+    res.json({
+      mensaje: 'Paciente llamado correctamente',
+      paciente: {
+        id_atencion: Number(id),
+        nombre: admision.nombre,
+        apellido: admision.apellido || '',
+      },
+    });
+  } catch (error) {
+    logger.error(error);
+    res.status(500).json({ mensaje: 'Error al llamar paciente' });
+  }
+};
+
+/**
+ * Primer llamado hacia APS: paciente en estado "Registrado" (particulares
+ * y aseguradoras).
+ */
+const llamarAPS = (req, res) =>
+  llamarDestino(req, res, 'APS', 1, 'El paciente debe estar en estado Registrado para ser llamado');
+
+/**
+ * Segundo llamado hacia APS: paciente de aseguradora en estado "Espera de
+ * Clave" (8) con clave aprobada, para confirmar antes de pasar a Sala de
+ * Espera.
+ */
+const llamarClaveAPS = (req, res) =>
+  llamarDestino(req, res, 'APS', 8, 'El paciente debe estar en estado Espera de Clave para ser llamado');
+
+/**
+ * Llamado hacia el módulo de Laboratorio: paciente particular en estado
+ * "Registrado".
+ */
+const llamarLaboratorio = (req, res) =>
+  llamarDestino(req, res, 'LABORATORIO', 1, 'El paciente debe estar en estado Registrado para ser llamado');
+
+/**
+ * Llamado hacia el módulo de Imágenes: paciente particular en estado
+ * "Registrado".
+ */
+const llamarImagenes = (req, res) =>
+  llamarDestino(req, res, 'IMAGENES', 1, 'El paciente debe estar en estado Registrado para ser llamado');
 
 /**
  * Genera un nuevo turno (atención) para un paciente y servicio dados.
@@ -442,4 +566,8 @@ module.exports = {
   actualizarEstadoAtencion,
   generarTurno,
   marcarAusente,
+  llamarAPS,
+  llamarClaveAPS,
+  llamarLaboratorio,
+  llamarImagenes,
 };

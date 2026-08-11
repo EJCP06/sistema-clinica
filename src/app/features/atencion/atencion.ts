@@ -118,7 +118,11 @@ export class Atencion implements OnInit, OnDestroy {
 
 
   mensajeInfo = '';
-  cargando = false;
+  /** Flag DEDICADO a la acción de llamar/liberar: NO se mezcla con la carga
+   *  del historial, que se dispara en cada evento del sistema y antes hacía
+   *  que el botón "Llamar al Siguiente" quedara deshabilitado silenciosamente
+   *  (el click no se reconocía) mientras la tabla se recargaba. */
+  llamando = false;
 
   turnosAtendidos: TurnoDTO[] = [];
   turnosEnEsperaLista: TurnoDTO[] = [];
@@ -284,12 +288,18 @@ export class Atencion implements OnInit, OnDestroy {
 
   /** Llama al siguiente paciente en espera y activa el temporizador de ausencia (2 min). */
   llamarSiguiente() {
-    if (this.cargando) return;
-    this.cargando = true;
-    
+    if (this.llamando) return;
+    this.llamando = true;
+
+    // Watchdog: si el servidor no responde a tiempo, se libera el flag para
+    // que el botón nunca quede muerto ("Llamando..." para siempre). El
+    // request real NO se cancela: si responde después, el next lo procesa.
+    const watchdog = setTimeout(() => { this.llamando = false; }, 15000);
+
     this.apiService.llamarSiguiente().subscribe({
       next: (res: LlamarSiguienteResponseDTO) => {
-        this.cargando = false;
+        clearTimeout(watchdog);
+        this.llamando = false;
         if (!res.turno) {
           this.swal.warning(res.mensaje || 'No hay pacientes en espera de este servicio.');
           return;
@@ -300,7 +310,8 @@ export class Atencion implements OnInit, OnDestroy {
         this.iniciarTemporizador();
       },
       error: (err: any) => {
-        this.cargando = false;
+        clearTimeout(watchdog);
+        this.llamando = false;
         const msg = err.error?.mensaje || '';
         if (msg.includes('LIBRE')) {
           Swal.fire({
@@ -324,15 +335,21 @@ export class Atencion implements OnInit, OnDestroy {
 
   /** Fuerza la liberación del consultorio (cuando queda colgado en estado OCUPADO sin paciente). */
   liberarConsultorio() {
-    this.cargando = true;
+    if (this.llamando) return;
+    this.llamando = true;
+    // Mismo watchdog que en llamarSiguiente: si el servidor no responde, el
+    // botón no queda deshabilitado para siempre.
+    const watchdog = setTimeout(() => { this.llamando = false; }, 15000);
     this.apiService.liberarConsultorio().subscribe({
       next: () => {
-        this.cargando = false;
+        clearTimeout(watchdog);
+        this.llamando = false;
         this.swal.success('Consultorio liberado correctamente.');
         this.cargarEstadoConsultorio();
       },
       error: (err) => {
-        this.cargando = false;
+        clearTimeout(watchdog);
+        this.llamando = false;
         this.swal.error(err.error?.mensaje || 'Error al liberar consultorio.');
       }
     });
@@ -340,7 +357,11 @@ export class Atencion implements OnInit, OnDestroy {
 
   /** Confirma el inicio de la atención (cambia estado a EN_ATENCION). */
   iniciarAtencion() {
-    window.speechSynthesis?.cancel();
+    // IMPORTANTE: NO cancelar la voz aquí. El turnero comparte el motor de
+    // voz del navegador (misma máquina/pestañas) y al pulsar Iniciar la
+    // locución en curso debe TERMINAR de decirse (el evento de liberación
+    // del backend detiene el ciclo de repetición de 10s del turnero). Un
+    // cancel() cortaba el anuncio a la mitad, de forma abrupta.
     this.apiService.iniciarAtencion().subscribe({
       next: () => {
         this.detenerTemporizador();
@@ -355,7 +376,6 @@ export class Atencion implements OnInit, OnDestroy {
 
   /** Finaliza la atención y libera el consultorio. */
   finalizarAtencion() {
-    window.speechSynthesis?.cancel();
     this.apiService.finalizarAtencion().subscribe({
       next: () => {
         this.turnoActual = null;
@@ -369,7 +389,8 @@ export class Atencion implements OnInit, OnDestroy {
   }
 
   async marcarAusente() {
-    window.speechSynthesis?.cancel();
+    // Sin cancel() de voz: igual que en iniciarAtencion, la locución del
+    // turnero debe terminar de decirse (el evento 'retirado' detiene el ciclo).
     if (!this.turnoActual) return;
     const result = await this.swal.confirm(`¿Marcar turno ${this.turnoActual.numero} como AUSENTE?`);
     if (!result.isConfirmed) return;
@@ -387,7 +408,8 @@ export class Atencion implements OnInit, OnDestroy {
   }
 
   marcarAusenteAuto() {
-    window.speechSynthesis?.cancel();
+    // Sin cancel() de voz: el ausente automático tampoco debe cortar la
+    // locución en curso del turnero.
     if (!this.turnoActual) return;
     this.apiService.marcarAusente(this.turnoActual.id).subscribe({
       next: () => {
@@ -431,7 +453,6 @@ export class Atencion implements OnInit, OnDestroy {
 
   /** Carga el historial de turnos atendidos y la lista de pacientes en espera. */
   cargarHistorial() {
-    this.cargando = true;
     const usuario = this.authService.usuarioActual;
     const cid = usuario?.consultorio_id;
     const eid = usuario?.id_especialidad;
@@ -557,11 +578,9 @@ export class Atencion implements OnInit, OnDestroy {
         }
 
         this.tiempoPromedioConsulta = '12 min';
-        this.cargando = false;
       },
       error: (err: any) => {
         console.error('Error cargando historial:', err);
-        this.cargando = false;
       }
     });
   }
