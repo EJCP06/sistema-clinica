@@ -45,12 +45,15 @@ const llamarPaciente = async (req, res) => {
 
     const id_estado_nuevo = estadoResult.rows[0].id_estado;
 
-    await client.query('UPDATE "Atencion" SET id_estado_actual = $1 WHERE id_atencion = $2', [
-      id_estado_nuevo,
-      id_atencion,
-    ]);
+    const upd = await client.query(
+      'UPDATE "Atencion" SET id_estado_actual = $1 WHERE id_atencion = $2 AND id_estado_actual <> $1 RETURNING id_atencion',
+      [id_estado_nuevo, id_atencion],
+    );
 
-    await historialRepo.insert(client, id_atencion, id_estado_nuevo);
+    // Idempotente: solo se registra en el historial si el estado cambió.
+    if (upd.rowCount > 0) {
+      await historialRepo.insert(client, id_atencion, id_estado_nuevo);
+    }
 
     await client.query('COMMIT');
 
@@ -88,12 +91,15 @@ const finalizarAtencion = async (req, res) => {
 
     const id_estado_final = estadoResult.rows[0].id_estado;
 
-    await client.query(
-      'UPDATE "Atencion" SET id_estado_actual = $1, hora_salida = NOW() WHERE id_atencion = $2',
+    const upd = await client.query(
+      'UPDATE "Atencion" SET id_estado_actual = $1, hora_salida = NOW() WHERE id_atencion = $2 AND id_estado_actual <> $1 RETURNING id_atencion',
       [id_estado_final, id_atencion],
     );
 
-    await historialRepo.insert(client, id_atencion, id_estado_final);
+    // Idempotente: solo se registra en el historial si el estado cambió.
+    if (upd.rowCount > 0) {
+      await historialRepo.insert(client, id_atencion, id_estado_final);
+    }
 
     await client.query('COMMIT');
 

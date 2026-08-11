@@ -137,4 +137,223 @@ describe('recepcionController', () => {
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ id_atencion: 10, numero: 'C-005' }));
     });
   });
+
+  describe('llamarAPS', () => {
+    test('debe retornar 401 sin sede', async () => {
+      req.usuario = {};
+      await ctrl.llamarAPS(req, res);
+      expect(res.status).toHaveBeenCalledWith(401);
+    });
+
+    test('debe retornar 404 si la atención no existe', async () => {
+      req.params = { id: '999' };
+      mockPool.query.mockResolvedValue({ rows: [] });
+      await ctrl.llamarAPS(req, res);
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ mensaje: 'Atención no encontrada' });
+    });
+
+    test('debe retornar 400 si el paciente no está en estado Registrado', async () => {
+      req.params = { id: '1' };
+      mockPool.query.mockResolvedValue({ rows: [{ id_atencion: 1, id_estado_actual: 4, numero: 'C-01', nombre: 'Juan', apellido: 'Pérez' }] });
+      await ctrl.llamarAPS(req, res);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ mensaje: 'El paciente debe estar en estado Registrado para ser llamado' });
+    });
+
+    test('debe emitir nuevo-llamado sin cambiar el estado', async () => {
+      req.params = { id: '1' };
+      const emit = jest.fn();
+      req.io = { emit };
+      mockPool.query.mockResolvedValue({ rows: [{ id_atencion: 1, id_estado_actual: 1, numero: 'C-01', nombre: 'Juan', apellido: 'Pérez' }] });
+      await ctrl.llamarAPS(req, res);
+      expect(emit).toHaveBeenCalledWith('nuevo-llamado', expect.objectContaining({
+        tipo: 'llamado',
+        id_atencion: 1,
+        turno: 'C-01',
+        consultorio: 'APS',
+        paciente: 'Juan',
+        apellido: 'Pérez',
+        id_sede: 1,
+      }));
+      expect(mockPool.query).toHaveBeenCalledTimes(1);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ mensaje: 'Paciente llamado correctamente' }));
+    });
+  });
+
+  describe('llamarClaveAPS', () => {
+    test('debe retornar 401 sin sede', async () => {
+      req.usuario = {};
+      await ctrl.llamarClaveAPS(req, res);
+      expect(res.status).toHaveBeenCalledWith(401);
+    });
+
+    test('debe retornar 404 si la atención no existe', async () => {
+      req.params = { id: '999' };
+      mockPool.query.mockResolvedValue({ rows: [] });
+      await ctrl.llamarClaveAPS(req, res);
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ mensaje: 'Atención no encontrada' });
+    });
+
+    test('debe retornar 400 si el paciente no está en estado Espera de Clave', async () => {
+      req.params = { id: '1' };
+      mockPool.query.mockResolvedValue({ rows: [{ id_atencion: 1, id_estado_actual: 1, numero: 'C-01', nombre: 'Juan', apellido: 'Pérez' }] });
+      await ctrl.llamarClaveAPS(req, res);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ mensaje: 'El paciente debe estar en estado Espera de Clave para ser llamado' });
+    });
+
+    test('debe emitir nuevo-llamado sin cambiar el estado (clave aprobada)', async () => {
+      req.params = { id: '1' };
+      const emit = jest.fn();
+      req.io = { emit };
+      mockPool.query.mockResolvedValue({ rows: [{ id_atencion: 1, id_estado_actual: 8, numero: 'C-01', nombre: 'Juan', apellido: 'Pérez' }] });
+      await ctrl.llamarClaveAPS(req, res);
+      expect(emit).toHaveBeenCalledWith('nuevo-llamado', expect.objectContaining({
+        tipo: 'llamado',
+        id_atencion: 1,
+        turno: 'C-01',
+        consultorio: 'APS',
+        paciente: 'Juan',
+        apellido: 'Pérez',
+        id_sede: 1,
+        forzar: true,
+      }));
+      expect(mockPool.query).toHaveBeenCalledTimes(1);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ mensaje: 'Paciente llamado correctamente' }));
+    });
+  });
+
+  describe('llamarLaboratorio / llamarImagenes', () => {
+    test('deben retornar 401 sin sede', async () => {
+      req.usuario = {};
+      await ctrl.llamarLaboratorio(req, res);
+      await ctrl.llamarImagenes(req, res);
+      expect(res.status).toHaveBeenCalledWith(401);
+    });
+
+    test('deben retornar 400 si el paciente no está en estado Registrado', async () => {
+      req.params = { id: '1' };
+      mockPool.query.mockResolvedValue({ rows: [{ id_atencion: 1, id_estado_actual: 4, numero: 'L-01', nombre: 'Ana', apellido: 'Gómez' }] });
+      await ctrl.llamarLaboratorio(req, res);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ mensaje: 'El paciente debe estar en estado Registrado para ser llamado' });
+    });
+
+    test('laboratorio debe emitir nuevo-llamado con consultorio LABORATORIO', async () => {
+      req.params = { id: '1' };
+      const emit = jest.fn();
+      req.io = { emit };
+      mockPool.query.mockResolvedValue({ rows: [{ id_atencion: 1, id_estado_actual: 1, numero: 'L-01', nombre: 'Ana', apellido: 'Gómez' }] });
+      await ctrl.llamarLaboratorio(req, res);
+      expect(emit).toHaveBeenCalledWith('nuevo-llamado', expect.objectContaining({
+        tipo: 'llamado',
+        id_atencion: 1,
+        turno: 'L-01',
+        consultorio: 'LABORATORIO',
+        paciente: 'Ana',
+        apellido: 'Gómez',
+        id_sede: 1,
+        forzar: true,
+      }));
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ mensaje: 'Paciente llamado correctamente' }));
+    });
+
+    test('imagenes debe emitir nuevo-llamado con consultorio IMAGENES', async () => {
+      req.params = { id: '1' };
+      const emit = jest.fn();
+      req.io = { emit };
+      mockPool.query.mockResolvedValue({ rows: [{ id_atencion: 1, id_estado_actual: 1, numero: 'I-01', nombre: 'Luis', apellido: 'Mora' }] });
+      await ctrl.llamarImagenes(req, res);
+      expect(emit).toHaveBeenCalledWith('nuevo-llamado', expect.objectContaining({
+        tipo: 'llamado',
+        id_atencion: 1,
+        turno: 'I-01',
+        consultorio: 'IMAGENES',
+        paciente: 'Luis',
+        apellido: 'Mora',
+        id_sede: 1,
+        forzar: true,
+      }));
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ mensaje: 'Paciente llamado correctamente' }));
+    });
+  });
+
+  describe('actualizarEstadoAtencion', () => {
+    test('debe retornar 404 si la atención no existe', async () => {
+      req.params = { id: '999' };
+      req.body = { id_estado_nuevo: 4 };
+      mockPool.query.mockResolvedValue({ rows: [] });
+      await ctrl.actualizarEstadoAtencion(req, res);
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ mensaje: 'Atención no encontrada' });
+    });
+
+    test('debe ser idempotente si la atención ya está en ese estado (sin duplicar historial)', async () => {
+      req.params = { id: '1' };
+      req.body = { id_estado_nuevo: 3 };
+      req.io = { emit: jest.fn() };
+      mockPool.query.mockResolvedValue({ rows: [{ id_estado_actual: 3 }] });
+      await ctrl.actualizarEstadoAtencion(req, res);
+      expect(res.json).toHaveBeenCalledWith({ mensaje: 'Estado actualizado', id_estado_actual: 3 });
+      expect(mockPool.query).toHaveBeenCalledTimes(1); // solo la lectura del estado
+      expect(req.io.emit).not.toHaveBeenCalled();
+    });
+
+    test('debe actualizar el estado, emitir evento e insertar historial cuando cambia', async () => {
+      req.params = { id: '1' };
+      req.body = { id_estado_nuevo: 4 };
+      req.io = { emit: jest.fn() };
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [{ id_estado_actual: 3 }] })              // getAtencionEstado
+        .mockResolvedValueOnce({ rows: [{ id_atencion: 1, id_estado_actual: 4 }] }) // UPDATE con guard
+        .mockResolvedValueOnce({ rows: [] });                                     // INSERT historial
+      await ctrl.actualizarEstadoAtencion(req, res);
+      expect(req.io.emit).toHaveBeenCalledWith('estado-actualizado', expect.objectContaining({ id_estado_nuevo: 4 }));
+      expect(res.json).toHaveBeenCalledWith({ mensaje: 'Estado actualizado', id_estado_actual: 4 });
+      expect(mockPool.query).toHaveBeenCalledTimes(3);
+    });
+  });
+
+  describe('marcarAusente', () => {
+    test('debe retirar, emitir e insertar historial cuando el estado cambia', async () => {
+      req.params = { id: '1' };
+      req.io = { emit: jest.fn() };
+      const client = {
+        query: jest.fn()
+          .mockResolvedValueOnce({ rows: [] })                                 // BEGIN
+          .mockResolvedValueOnce({ rows: [{ id_consultorio: null }] })         // UPDATE -> 9
+          .mockResolvedValueOnce({ rows: [] }),                                // COMMIT
+        release: jest.fn(),
+      };
+      mockPool.connect.mockResolvedValue(client);
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [{ id_estado_actual: 2 }] })            // getAtencionEstado
+        .mockResolvedValueOnce({ rows: [{ id_atencion: 1, numero: 'C-01' }] }) // getAdmisionById (emit)
+        .mockResolvedValueOnce({ rows: [] });                                  // INSERT historial 9
+      await ctrl.marcarAusente(req, res);
+      expect(res.json).toHaveBeenCalledWith({ mensaje: 'Paciente retirado correctamente' });
+      expect(req.io.emit).toHaveBeenCalled();
+      expect(mockPool.query).toHaveBeenCalledTimes(3);
+    });
+
+    test('no debe duplicar historial ni emitir si ya estaba retirado', async () => {
+      req.params = { id: '1' };
+      req.io = { emit: jest.fn() };
+      const client = {
+        query: jest.fn()
+          .mockResolvedValueOnce({ rows: [] })   // BEGIN
+          .mockResolvedValueOnce({ rows: [] })   // UPDATE sin match (ya retirado)
+          .mockResolvedValueOnce({ rows: [] }),  // COMMIT
+        release: jest.fn(),
+      };
+      mockPool.connect.mockResolvedValue(client);
+      mockPool.query.mockResolvedValueOnce({ rows: [{ id_estado_actual: 2 }] }); // getAtencionEstado
+      await ctrl.marcarAusente(req, res);
+      expect(res.json).toHaveBeenCalledWith({ mensaje: 'Paciente retirado correctamente' });
+      expect(req.io.emit).not.toHaveBeenCalled();
+      expect(mockPool.query).toHaveBeenCalledTimes(1); // solo la lectura del estado
+    });
+  });
 });

@@ -3,12 +3,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize, interval } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronDown, Undo2, KeyRound, DollarSign, Trash2 } from 'lucide-angular';
+import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronDown, Undo2, KeyRound, DollarSign, Trash2, Volume2, Megaphone } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '@core/services/auth.service';
 import { SwalService } from '../../core/services/swal.service';
 import { AdmisionDTO } from '@core/models/dto.models';
-import Swal from 'sweetalert2';
 
 import { Sidebar } from '../../shared/components/sidebar/sidebar';
 import { Header } from '../../shared/components/header/header';
@@ -37,6 +36,8 @@ export class ApsComponent implements OnInit, OnDestroy {
   readonly KeyRound = KeyRound;
   readonly DollarSign = DollarSign;
   readonly Trash2 = Trash2;
+  readonly Volume2 = Volume2;
+  readonly Megaphone = Megaphone;
 
   pageSize = 9;
   currentPage = 1;
@@ -49,6 +50,10 @@ export class ApsComponent implements OnInit, OnDestroy {
   showSearchFilterDropdown = false;
 
   ultimasAdmisiones: AdmisionDTO[] = [];
+
+  get hayRegistradosEnCola(): boolean {
+    return this.ultimasAdmisiones.some(a => Number(a.id_estado_actual) === 1);
+  }
 
   get admisionesFiltradas(): AdmisionDTO[] {
     return this.ultimasAdmisiones.filter(a => {
@@ -94,6 +99,7 @@ export class ApsComponent implements OnInit, OnDestroy {
 
     this.api.cambios$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((event: any) => {
       if (this.marcandoAusente) return;
+      if (event?.tipo === 'llamado') return;
       if (event?.admision) {
         const a = event.admision;
         const servicioLower = (a.nombre_servicio || '').toLowerCase();
@@ -201,6 +207,34 @@ export class ApsComponent implements OnInit, OnDestroy {
   onSearchChange(value: string | undefined) {
   }
 
+  llamarSiguienteRegistrado() {
+    const cola = this.ultimasAdmisiones
+      .filter(a => Number(a.id_estado_actual) === 1)
+      .sort((a, b) => new Date(a.fecha_creacion).getTime() - new Date(b.fecha_creacion).getTime());
+
+    if (cola.length === 0) return;
+
+    const paciente = cola[0];
+    this.api.post(`recepcion/atencion/${paciente.id_atencion}/llamar-aps`, {}).subscribe({
+      next: () => {},
+      error: (err) => this.swal.error(err.error?.mensaje || 'Error al llamar paciente')
+    });
+  }
+
+  /**
+   * Segundo llamado para pacientes de aseguradora: cuando la clave fue
+   * aprobada (estado Espera de Clave), se llama al paciente por voz para
+   * confirmar antes de pasarlo a Sala de Espera. Igual que el botón
+   * "Llamar" global: el anuncio suena al instante y se repite en cada
+   * pulsación, sin cambiar el estado.
+   */
+  llamarClave(admision: any) {
+    this.api.post(`recepcion/atencion/${admision.id_atencion}/llamar-clave`, {}).subscribe({
+      next: () => {},
+      error: (err) => this.swal.error(err.error?.mensaje || 'Error al llamar paciente')
+    });
+  }
+
   async enviarAPresupuesto(admision: any) {
     const result = await this.swal.confirm('¿Ya se creó el presupuesto al paciente?');
     if (!result.isConfirmed) return;
@@ -208,14 +242,6 @@ export class ApsComponent implements OnInit, OnDestroy {
     const targetState = this.esAseguradora(admision) ? 8 : 2;
     this.api.actualizarEstadoAtencion(admision.id_atencion, targetState).subscribe({
       next: () => {
-        Swal.fire({
-          icon: 'success',
-          title: 'El presupuesto fue creado con éxito',
-          text: this.esAseguradora(admision) ? 'El paciente está en Espera de Clave' : 'El paciente ya esta en Caja',
-          timer: 3000,
-          timerProgressBar: true,
-          showConfirmButton: false
-        });
         this.cargarUltimasAdmisiones();
       },
       error: (err) => this.swal.error(err.error?.mensaje || 'Error al cambiar estado')

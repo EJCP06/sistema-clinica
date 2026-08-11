@@ -108,11 +108,17 @@ const marcarAusente = async (req, res) => {
   try {
     await client.query('BEGIN');
     
+    // Idempotente: si el turno ya está ausente (doble clic, temporizador + botón
+    // manual, reintento), no se duplica el historial ni se vuelve a emitir.
     const atencion = await atencionRepo.marcarAusente(client, id);
     
     if (!atencion) {
+      const existe = await client.query('SELECT 1 FROM "Atencion" WHERE id_atencion = $1', [id]);
       await client.query('ROLLBACK');
-      return res.status(404).json({ mensaje: 'Turno no encontrado' });
+      if (existe.rowCount === 0) {
+        return res.status(404).json({ mensaje: 'Turno no encontrado' });
+      }
+      return res.status(200).json({ mensaje: 'Turno ya se encontraba marcado como ausente' });
     }
     
     if (atencion.id_consultorio) {

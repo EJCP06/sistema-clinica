@@ -96,10 +96,12 @@ const eliminarAtencion = async (client, id, sede) => {
 };
 
 const actualizarEstadoAtencion = async (id, sede, idEstadoNuevo) => {
+  // Idempotente: solo hace match si el estado realmente cambia, así un doble
+  // envío no inserta un historial duplicado.
   const result = await pool.query(
     `UPDATE "Atencion"
      SET id_estado_actual = $1
-     WHERE id_atencion = $2 AND id_sede = $3
+     WHERE id_atencion = $2 AND id_sede = $3 AND id_estado_actual <> $1
      RETURNING id_atencion, id_estado_actual`,
     [idEstadoNuevo, id, sede],
   );
@@ -175,8 +177,9 @@ const insertarTurno = async (data, client = null) => {
 };
 
 const marcarAusente = async (client, id, targetState = 7) => {
+  // Idempotente: no vuelve a cambiar/insertar historial si ya está en ese estado.
   const result = await client.query(
-    'UPDATE "Atencion" SET id_estado_actual = $2, hora_salida = NOW() WHERE id_atencion = $1 RETURNING id_consultorio',
+    'UPDATE "Atencion" SET id_estado_actual = $2, hora_salida = NOW() WHERE id_atencion = $1 AND id_estado_actual <> $2 RETURNING id_consultorio',
     [id, targetState],
   );
   return result.rows[0] || null;
@@ -301,10 +304,14 @@ const getReporteDiario = async (sede, fecha_desde = null, fecha_hasta = null) =>
       c.nombre as consultorio,
       u.primer_nombre as medico_nombre,
       u.primer_apellido as medico_apellido,
-      h_inicio.fecha_hora as hora_inicio_atencion,
-      h_fin.fecha_hora as hora_fin_atencion,
-      h_ausente.fecha_hora as hora_marcado_ausente,
-      h_retirado.fecha_hora as hora_retirado,
+      -- Horas del historial obtenidas con subconsultas escalares (NO con
+      -- LEFT JOIN): si una atención tiene varios historiales del mismo estado
+      -- (p. ej. Ausente marcado 2 veces), el JOIN multiplicaba la fila y el
+      -- paciente aparecía repetido en el dashboard con el mismo turno/servicio.
+      (SELECT MAX(h.fecha_hora) FROM "Historial_Atencion" h WHERE h.id_atencion = a.id_atencion AND h.id_estado = 5) as hora_inicio_atencion,
+      (SELECT MAX(h.fecha_hora) FROM "Historial_Atencion" h WHERE h.id_atencion = a.id_atencion AND h.id_estado = 6) as hora_fin_atencion,
+      (SELECT MAX(h.fecha_hora) FROM "Historial_Atencion" h WHERE h.id_atencion = a.id_atencion AND h.id_estado = 7) as hora_marcado_ausente,
+      (SELECT MAX(h.fecha_hora) FROM "Historial_Atencion" h WHERE h.id_atencion = a.id_atencion AND h.id_estado = 9) as hora_retirado,
       a.id_sede
     FROM "Atencion" a
     JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
@@ -313,10 +320,6 @@ const getReporteDiario = async (sede, fecha_desde = null, fecha_hasta = null) =>
     LEFT JOIN "Especialidades" esp ON a.id_especialidad = esp.id_especialidad
     LEFT JOIN "Consultorios" c ON a.id_consultorio = c.id_consultorio
     LEFT JOIN "Usuarios" u ON a.id_usuario_registro = u.id_usuario
-    LEFT JOIN "Historial_Atencion" h_inicio ON h_inicio.id_atencion = a.id_atencion AND h_inicio.id_estado = 5
-    LEFT JOIN "Historial_Atencion" h_fin ON h_fin.id_atencion = a.id_atencion AND h_fin.id_estado = 6
-    LEFT JOIN "Historial_Atencion" h_ausente ON h_ausente.id_atencion = a.id_atencion AND h_ausente.id_estado = 7
-    LEFT JOIN "Historial_Atencion" h_retirado ON h_retirado.id_atencion = a.id_atencion AND h_retirado.id_estado = 9
     WHERE a.id_sede = $1
   `;
   const params = [sede];

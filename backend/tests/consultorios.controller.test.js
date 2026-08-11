@@ -89,6 +89,16 @@ describe('consultoriosController', () => {
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
         mensaje: 'Paciente llamado exitosamente',
       }));
+      expect(req.io.emit).toHaveBeenCalledWith('nuevo-llamado', expect.objectContaining({
+        tipo: 'llamado',
+        id_atencion: 1,
+        turno: 'C-001',
+        consultorio: 'C1',
+        paciente: 'Juan',
+        apellido: 'Pérez',
+        id_sede: 1,
+        inicio_inmediato: true,
+      }));
     });
   });
 

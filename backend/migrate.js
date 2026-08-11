@@ -235,6 +235,13 @@ const runMigrations = async () => {
     ON "Atencion" ("id_sede", "id_servicio", "numero")
   `);
 
+  // Índice para el reporte diario: las subconsultas del historial (estados
+  // 5, 6, 7, 9) usan (id_atencion, id_estado) y la FK no crea índice solo.
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_historial_atencion_estado
+    ON "Historial_Atencion" ("id_atencion", "id_estado")
+  `);
+
   logger.info('Base de datos inicializada correctamente');
 };
 

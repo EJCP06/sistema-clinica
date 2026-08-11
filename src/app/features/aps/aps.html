@@ -112,6 +112,16 @@
                 class="w-full pl-14 pr-10 py-3 text-sm focus:outline-none font-medium bg-slate-100 dark:bg-slate-800 rounded-2xl text-slate-900 dark:text-white"
               />
             </div>
+            <button
+              *ngIf="auth.tieneRol(['analista', 'coordinador', 'administrador'])"
+              (click)="llamarSiguienteRegistrado()"
+              [disabled]="!hayRegistradosEnCola"
+              class="shrink-0 flex items-center gap-2 px-4 py-3 text-[10px] font-black uppercase tracking-wider rounded-2xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none transition-all"
+              title="Llamar al siguiente paciente registrado"
+            >
+              <lucide-icon [name]="Volume2" class="w-4 h-4"></lucide-icon>
+              Llamar
+            </button>
           </div>
           <div *ngIf="cargando" class="flex flex-col items-center justify-center py-16 bg-white dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800/80 rounded-[32px]">
             <div class="w-8 h-8 border-[3px] border-blue-600/30 border-t-blue-600 rounded-full animate-spin"></div>
@@ -171,6 +181,15 @@
                           <lucide-icon [name]="CheckCircle2" class="w-4 h-4"></lucide-icon>
                         </button>
 
+                        <button
+                          *ngIf="a.id_estado_actual === 8 && esAseguradora(a) && auth.tieneRol(['analista', 'coordinador', 'administrador'])"
+                          (click)="llamarClave(a)"
+                          aria-label="Llamar al paciente (clave aprobada)"
+                          title="Llamar al paciente (clave aprobada)"
+                          class="p-2 text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
+                        >
+                          <lucide-icon [name]="Megaphone" class="w-4 h-4"></lucide-icon>
+                        </button>
                         <button *ngIf="a.id_estado_actual === 8 && tienePermiso('aps_aprobar_clave')" (click)="aprobarClave(a)" aria-label="Enviar a sala de espera" title="Enviar a Sala de Espera" class="p-2 text-teal-500 hover:bg-teal-50 rounded-xl transition-all">
                           <lucide-icon [name]="CheckCircle2" class="w-4 h-4"></lucide-icon>
                         </button>
