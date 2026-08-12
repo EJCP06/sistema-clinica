@@ -427,8 +427,8 @@ export class TurneroComponent implements OnInit, OnDestroy {
     const anuncio: AnuncioActivo = {
       idAtencion: id,
       numeroTurno: data.turno || null,
-      paciente: data.paciente,
-      apellido: data.apellido || '',
+      paciente: this.aNombreNatural(data.paciente || ''),
+      apellido: this.aNombreNatural(data.apellido || ''),
       consultorio: data.consultorio,
       // Los llamados de módulo (botones "Llamar" de APS/Lab/Imágenes) llevan
       // `forzar: true`: suenan al instante, son de disparo único y se
@@ -554,12 +554,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       a.speakTimerId = null;
     }
     const utterance = new SpeechSynthesisUtterance(texto);
-    if (this.vozFemenina) {
-      utterance.voice = this.vozFemenina;
-      utterance.lang = this.vozFemenina.lang;
-    } else {
-      utterance.lang = 'es-MX';
-    }
+    this.aplicarVoz(utterance);
     utterance.rate = 0.9;
     utterance.onstart = () => {
       this.sonidoConfirmado = true;
@@ -615,12 +610,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       if (this.anunciosActivos.has(next.idAtencion)) {
         // Reproducir inmediatamente (sin delay de grilla)
         const utterance = new SpeechSynthesisUtterance(this.construirTexto(next));
-        if (this.vozFemenina) {
-          utterance.voice = this.vozFemenina;
-          utterance.lang = this.vozFemenina.lang;
-        } else {
-          utterance.lang = 'es-MX';
-        }
+        this.aplicarVoz(utterance);
         utterance.rate = 0.9;
         const ahora = Date.now();
         const texto = this.construirTexto(next);
@@ -900,15 +890,6 @@ export class TurneroComponent implements OnInit, OnDestroy {
       this.verificarUltimoLlamado();
     });
 
-    const cargarVoces = () => {
-      if (window.speechSynthesis.getVoices().length > 0) {
-        this.cargarVozFemenina();
-      } else {
-        window.speechSynthesis.onvoiceschanged = () => this.cargarVozFemenina();
-      }
-    };
-    cargarVoces();
-
     if (this.resumeHandler) {
       document.removeEventListener('click', this.resumeHandler);
     }
@@ -1091,12 +1072,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
         if (!bloqueaDoble) {
           ultimoAnuncioGlobal = { texto, ts: ahora, sonado: false };
           const utterance = new SpeechSynthesisUtterance(texto);
-          if (this.vozFemenina) {
-            utterance.voice = this.vozFemenina;
-            utterance.lang = this.vozFemenina.lang;
-          } else {
-            utterance.lang = 'es-MX';
-          }
+          this.aplicarVoz(utterance);
           utterance.rate = 0.9;
           utterance.onstart = () => {
             this.sonidoConfirmado = true;
@@ -1501,63 +1477,80 @@ private verificarUltimoLlamado() {
     this.mediaQueryHandler = null;
   }
 
-  private vozFemenina: SpeechSynthesisVoice | null = null;
+  /**
+   * Selecciona la mejor voz en español disponible EN ESTE MOMENTO.
+   * Re-consulta `getVoices()` en cada llamada (en Android la lista se carga
+   * de forma asíncrona y las referencias guardadas pueden quedar obsoletas).
+   * Prefiere: femenina es-MX → es-MX → femenina es-* → cualquier es-*.
+   * Devuelve null si NO existe ninguna voz en español (típico en móviles
+   * sin el paquete de voz española instalado).
+   */
+  private elegirVozEspañola(): SpeechSynthesisVoice | null {
+    if (!('speechSynthesis' in window)) return null;
+    const voces = window.speechSynthesis.getVoices();
+    if (!voces.length) return null;
 
-  private cargarVozFemenina() {
-    if (!('speechSynthesis' in window)) return;
-    const buscarVoz = () => {
-      const voces = window.speechSynthesis.getVoices();
-      if (voces.length === 0) return;
-
-      const femaleKeywords = [
-        'female', 'femenina', 'mujer', 'girl', 'sabina', 'paulina', 'helena', 
-        'monica', 'mónica', 'siri', 'luz', 'marisol', 'rosa', 'alicia', 'elena', 
-        'carmen', 'valeria', 'sofia', 'sofía', 'maria', 'maría', 'lucia', 'lucía', 
-        'irene', 'cristina', 'sara', 'laura', 'patricia', 'silvia', 'yolanda', 
-        'gloria', 'marta', 'ana', 'rebeca', 'victoria', 'julia', 'claudia'
-      ];
-
-      let voz = voces.find(v => {
-        const langLower = v.lang.toLowerCase();
-        const isMX = langLower === 'es-mx' || langLower === 'es_mx';
-        if (!isMX) return false;
-        const nameLower = v.name.toLowerCase();
-        return femaleKeywords.some(keyword => nameLower.includes(keyword));
-      });
-
-      if (!voz) {
-        voz = voces.find(v => {
-          const langLower = v.lang.toLowerCase();
-          return langLower === 'es-mx' || langLower === 'es_mx';
-        });
-      }
-
-      if (!voz) {
-        voz = voces.find(v => {
-          const langLower = v.lang.toLowerCase();
-          const isEs = langLower.startsWith('es');
-          if (!isEs) return false;
-          const nameLower = v.name.toLowerCase();
-          return femaleKeywords.some(keyword => nameLower.includes(keyword));
-        });
-      }
-
-      if (!voz) {
-        voz = voces.find(v => v.lang.toLowerCase().startsWith('es'));
-      }
-
-      if (!voz) {
-        voz = voces[0] || null;
-      }
-
-      this.vozFemenina = voz;
+    const femaleKeywords = [
+      'female', 'femenina', 'mujer', 'girl', 'sabina', 'paulina', 'helena',
+      'monica', 'mónica', 'siri', 'luz', 'marisol', 'rosa', 'alicia', 'elena',
+      'carmen', 'valeria', 'sofia', 'sofía', 'maria', 'maría', 'lucia', 'lucía',
+      'irene', 'cristina', 'sara', 'laura', 'patricia', 'silvia', 'yolanda',
+      'gloria', 'marta', 'ana', 'rebeca', 'victoria', 'julia', 'claudia'
+    ];
+    const esFemale = (v: SpeechSynthesisVoice) => {
+      const langLower = v.lang.toLowerCase();
+      if (!langLower.startsWith('es')) return false;
+      const nameLower = v.name.toLowerCase();
+      return femaleKeywords.some(keyword => nameLower.includes(keyword));
     };
-    buscarVoz();
-    if (!this.vozFemenina) {
-      window.speechSynthesis.onvoiceschanged = () => buscarVoz();
-    }
+    const esMX = (v: SpeechSynthesisVoice) => {
+      const langLower = v.lang.toLowerCase();
+      return langLower === 'es-mx' || langLower === 'es_mx';
+    };
+
+    return voces.find(v => esMX(v) && esFemale(v))
+        || voces.find(esMX)
+        || voces.find(esFemale)
+        || voces.find(v => v.lang.toLowerCase().startsWith('es'))
+        || null;
   }
 
+  /**
+   * Aplica a la utterance la mejor voz en español disponible.
+   *
+   * Si NO existe ninguna voz en español, NO se fuerza `utterance.lang`:
+   * en Android, pedir un idioma (p. ej. 'es-MX') que no tiene voz instalada
+   * hace que Chrome deletree el texto letra por letra. Sin `lang`, el
+   * navegador usa su voz por defecto y lee la frase de corrido.
+   *
+   * Tampoco se asigna nunca una voz de OTRO idioma (p. ej. una voz en
+   * inglés leyendo español): esa mezcla es justo lo que provoca que los
+   * nombres se deletreen en el móvil.
+   */
+  private aplicarVoz(utterance: SpeechSynthesisUtterance): void {
+    const voz = this.elegirVozEspañola();
+    if (voz) {
+      utterance.voice = voz;
+      utterance.lang = voz.lang;
+    }
+    // Sin voz en español → no se toca utterance.lang (evita el deletreo).
+  }
 
+  /**
+   * Convierte un nombre guardado en MAYÚSCULAS a formato natural
+   * ("JUAN CARLOS" → "Juan Carlos") SOLO para la voz. Los motores TTS en
+   * Android (Google TTS) interpretan las palabras en mayúscula sostenida
+   * como acrónimos y las deletrean letra por letra (por eso el nombre se
+   * deletreaba en el móvil pero no en PC). La pantalla sigue mostrando el
+   * nombre en mayúsculas: este cambio afecta únicamente la locución.
+   */
+  private aNombreNatural(nombre: string): string {
+    return nombre
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map(p => p.charAt(0).toUpperCase() + p.slice(1))
+      .join(' ');
+  }
 
 }
