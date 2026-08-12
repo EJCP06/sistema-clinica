@@ -960,7 +960,7 @@
                               <lucide-icon [name]="Edit2" class="w-4 h-4"></lucide-icon>
                             </button>
                             <button
-                              *ngIf="tienePermiso('admision_eliminar')"
+                              *ngIf="a.id_estado_actual === 1 && tienePermiso('admision_eliminar')"
                               (click)="eliminarFila(a)"
                               class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl focus:outline-none"
                             >

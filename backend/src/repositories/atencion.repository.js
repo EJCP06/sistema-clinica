@@ -66,6 +66,14 @@ const getAtencionEstado = async (id, sede) => {
   return result.rows[0] || null;
 };
 
+const getAtencionesDePaciente = async (idPaciente, sede) => {
+  const result = await pool.query(
+    `SELECT id_atencion, id_estado_actual FROM "Atencion" WHERE id_paciente = $1 AND id_sede = $2`,
+    [idPaciente, sede],
+  );
+  return result.rows;
+};
+
 const actualizarAtencionConServicio = async (id, sede, data) => {
   await pool.query(
     `UPDATE "Atencion"
@@ -593,6 +601,7 @@ module.exports = {
   getUltimasAdmisiones,
   getAdmisionById,
   getAtencionEstado,
+  getAtencionesDePaciente,
   actualizarAtencionConServicio,
   actualizarAtencionSimple,
   eliminarAtencion,
