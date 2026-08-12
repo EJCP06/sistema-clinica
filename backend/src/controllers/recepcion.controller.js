@@ -237,13 +237,28 @@ const eliminarPaciente = async (req, res) => {
       return res.status(400).json({ mensaje: 'Solo se puede eliminar un paciente en estado Registrado' });
     }
 
-    const eliminado = await pacienteRepo.eliminarPaciente(id, sede);
+    // Borrado en cascada dentro de la misma transacción: historial, atenciones
+    // y paciente. Así los números de turno (p. ej. CONS-01) quedan libres y el
+    // siguiente paciente los reutiliza.
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await historialRepo.deleteByPaciente(client, id, sede);
+      await atencionRepo.eliminarAtencionesDePaciente(client, id, sede);
+      const eliminado = await pacienteRepo.eliminarPaciente(id, sede, client);
+      await client.query('COMMIT');
 
-    if (!eliminado) {
-      return res.status(404).json({ mensaje: 'Paciente no encontrado' });
+      if (!eliminado) {
+        return res.status(404).json({ mensaje: 'Paciente no encontrado' });
+      }
+
+      res.json({ mensaje: 'Paciente eliminado' });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
-
-    res.json({ mensaje: 'Paciente eliminado' });
   } catch (error) {
     logger.error(error);
     res.status(500).json({ mensaje: 'Error al eliminar paciente' });

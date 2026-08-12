@@ -103,6 +103,10 @@ const eliminarAtencion = async (client, id, sede) => {
   await client.query('DELETE FROM "Atencion" WHERE id_atencion = $1 AND id_sede = $2', [id, sede]);
 };
 
+const eliminarAtencionesDePaciente = async (client, idPaciente, sede) => {
+  await client.query('DELETE FROM "Atencion" WHERE id_paciente = $1 AND id_sede = $2', [idPaciente, sede]);
+};
+
 const actualizarEstadoAtencion = async (id, sede, idEstadoNuevo) => {
   // Idempotente: solo hace match si el estado realmente cambia, así un doble
   // envío no inserta un historial duplicado.
@@ -167,7 +171,29 @@ const getSiguienteNumero = async (client, idServicio, sede) => {
      RETURNING ultimo`,
     [sede, idServicio],
   );
-  return Number(result.rows[0].ultimo);
+  const ultimo = Number(result.rows[0].ultimo);
+
+  // RECICLAJE: si durante el día se eliminó alguna atención (p. ej. un turno
+  // en estado Registrado), su número quedó libre. Se devuelve el menor número
+  // libre del día en [1..ultimo] (que será "ultimo" si no hay huecos). El
+  // contador NO se decrementa, para no volver a emitir números que ya están
+  // en uso (el bug del método anterior con COUNT + recontar). La consulta
+  // corre dentro de la transacción que ya tiene el bloqueo de la fila de la
+  // secuencia, así que el conjunto de números usados es estable y no se puede
+  // entregar dos veces el mismo número.
+  const usados = await client.query(
+    `SELECT NULLIF(regexp_replace(a.numero, '[^0-9]', '', 'g'), '')::int AS n
+     FROM "Atencion" a
+     WHERE a.id_sede = $1 AND a.id_servicio = $2
+       AND a.hora_llegada >= CURRENT_DATE
+       AND a.numero ~ '[0-9]'`,
+    [sede, idServicio],
+  );
+  const enUso = new Set(usados.rows.map((r) => r.n).filter((n) => Number.isInteger(n)));
+  for (let n = 1; n <= ultimo; n++) {
+    if (!enUso.has(n)) return n;
+  }
+  return ultimo;
 };
 
 const getServicioPrefijo = async (idServicio) => {
@@ -605,6 +631,7 @@ module.exports = {
   actualizarAtencionConServicio,
   actualizarAtencionSimple,
   eliminarAtencion,
+  eliminarAtencionesDePaciente,
   actualizarEstadoAtencion,
   getSiguienteNumero,
   insertarAtencion,
