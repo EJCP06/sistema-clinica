@@ -18,8 +18,19 @@ const deleteByAtencion = async (client, idAtencion) => {
   await client.query('DELETE FROM "Historial_Atencion" WHERE id_atencion = $1', [idAtencion]);
 };
 
+const deleteByPaciente = async (client, idPaciente, sede) => {
+  await client.query(
+    `DELETE FROM "Historial_Atencion"
+     WHERE id_atencion IN (
+       SELECT id_atencion FROM "Atencion" WHERE id_paciente = $1 AND id_sede = $2
+     )`,
+    [idPaciente, sede],
+  );
+};
+
 module.exports = {
   insert,
   insertSinTransaccion,
   deleteByAtencion,
+  deleteByPaciente,
 };

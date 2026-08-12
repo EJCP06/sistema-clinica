@@ -58,8 +58,9 @@ const actualizarPaciente = async (id, sede, data) => {
   return (result.rows && result.rows[0]) || null;
 };
 
-const eliminarPaciente = async (id, sede) => {
-  const result = await pool.query(
+const eliminarPaciente = async (id, sede, client = null) => {
+  const db = client || pool;
+  const result = await db.query(
     'DELETE FROM "Pacientes" WHERE id_paciente = $1 AND id_sede = $2 RETURNING id_paciente',
     [id, sede],
   );
