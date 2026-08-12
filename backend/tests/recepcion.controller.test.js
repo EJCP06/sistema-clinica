@@ -356,4 +356,61 @@ describe('recepcionController', () => {
       expect(mockPool.query).toHaveBeenCalledTimes(1); // solo la lectura del estado
     });
   });
+
+  describe('eliminarAtencion', () => {
+    test('debe retornar 404 si la atención no existe', async () => {
+      req.params = { id: '999' };
+      mockPool.query.mockResolvedValue({ rows: [] });
+      await ctrl.eliminarAtencion(req, res);
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ mensaje: 'Atención no encontrada' });
+    });
+
+    test('debe retornar 400 si la atención no está en estado Registrado', async () => {
+      req.params = { id: '1' };
+      mockPool.query.mockResolvedValue({ rows: [{ id_estado_actual: 2 }] }); // En Caja
+      await ctrl.eliminarAtencion(req, res);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ mensaje: 'Solo se puede eliminar una atención en estado Registrado' });
+    });
+
+    test('debe eliminar la atención y su historial si está en estado Registrado', async () => {
+      req.params = { id: '1' };
+      const client = {
+        query: jest.fn()
+          .mockResolvedValueOnce({ rows: [] })   // BEGIN
+          .mockResolvedValueOnce({ rows: [] })   // DELETE historial
+          .mockResolvedValueOnce({ rows: [] })   // DELETE atención
+          .mockResolvedValueOnce({ rows: [] }),  // COMMIT
+        release: jest.fn(),
+      };
+      mockPool.connect.mockResolvedValue(client);
+      mockPool.query.mockResolvedValue({ rows: [{ id_estado_actual: 1 }] });
+      await ctrl.eliminarAtencion(req, res);
+      expect(mockPool.connect).toHaveBeenCalled();
+      expect(client.query).toHaveBeenCalledWith('BEGIN');
+      expect(client.query).toHaveBeenCalledWith('COMMIT');
+      expect(res.json).toHaveBeenCalledWith({ mensaje: 'Atención eliminada' });
+    });
+  });
+
+  describe('eliminarPaciente', () => {
+    test('debe retornar 400 si el paciente tiene una atención fuera de estado Registrado', async () => {
+      req.params = { id: '5' };
+      mockPool.query.mockResolvedValue({ rows: [{ id_atencion: 1, id_estado_actual: 2 }] }); // En Caja
+      await ctrl.eliminarPaciente(req, res);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ mensaje: 'Solo se puede eliminar un paciente en estado Registrado' });
+      expect(mockPool.query).toHaveBeenCalledTimes(1);
+    });
+
+    test('debe eliminar el paciente si no tiene atenciones fuera de estado Registrado', async () => {
+      req.params = { id: '5' };
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [] }) // getAtencionesDePaciente
+        .mockResolvedValueOnce({ rows: [{ id_paciente: 5 }], rowCount: 1 }); // DELETE
+      await ctrl.eliminarPaciente(req, res);
+      expect(res.json).toHaveBeenCalledWith({ mensaje: 'Paciente eliminado' });
+    });
+  });
 });

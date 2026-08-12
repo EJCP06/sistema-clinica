@@ -230,6 +230,13 @@ const eliminarPaciente = async (req, res) => {
 
   try {
     const { id } = req.params;
+
+    const atenciones = await atencionRepo.getAtencionesDePaciente(id, sede);
+    const fueraDeRegistrado = atenciones.some((a) => Number(a.id_estado_actual) !== 1);
+    if (fueraDeRegistrado) {
+      return res.status(400).json({ mensaje: 'Solo se puede eliminar un paciente en estado Registrado' });
+    }
+
     const eliminado = await pacienteRepo.eliminarPaciente(id, sede);
 
     if (!eliminado) {
@@ -322,10 +329,20 @@ const eliminarAtencion = async (req, res) => {
   const sede = getSede(req);
   if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
 
+  const { id } = req.params;
+
+  const atencion = await atencionRepo.getAtencionEstado(id, sede);
+  if (!atencion) {
+    return res.status(404).json({ mensaje: 'Atención no encontrada' });
+  }
+
+  if (Number(atencion.id_estado_actual) !== 1) {
+    return res.status(400).json({ mensaje: 'Solo se puede eliminar una atención en estado Registrado' });
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { id } = req.params;
     await historialRepo.deleteByAtencion(client, id);
     await atencionRepo.eliminarAtencion(client, id, sede);
     await client.query('COMMIT');
