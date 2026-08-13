@@ -11,8 +11,29 @@ const runMigrations = async () => {
   logger.info('Ejecutando migraciones...');
 
   await pool.query('ALTER TABLE "Atencion" ADD COLUMN IF NOT EXISTS id_consultorio INTEGER REFERENCES "Consultorios"("id_consultorio")');
-  await pool.query('ALTER TABLE "Atencion" ADD COLUMN IF NOT EXISTS id_cliente INTEGER REFERENCES "cliente"("id_cliente")');
+  await pool.query('ALTER TABLE "Atencion" ADD COLUMN IF NOT EXISTS id_cliente INTEGER REFERENCES "cliente"("id_cliente") ON DELETE SET NULL');
   await pool.query('ALTER TABLE "Atencion" ADD COLUMN IF NOT EXISTS id_medico INTEGER REFERENCES "Usuarios"("id_usuario")');
+
+  // Permitir eliminar aseguradoras: al borrar una, las atenciones asociadas
+  // se conservan pero quedan sin aseguradora (id_cliente = NULL).
+  const fkCliente = await pool.query(`
+    SELECT conname FROM pg_constraint c
+    JOIN pg_class t ON c.conrelid = t.oid
+    JOIN pg_namespace n ON t.relnamespace = n.oid
+    JOIN pg_class r ON c.confrelid = r.oid
+    WHERE t.relname = 'Atencion'
+      AND n.nspname = 'public'
+      AND r.relname = 'cliente'
+      AND c.contype = 'f'
+  `);
+  for (const row of fkCliente.rows) {
+    await pool.query(`ALTER TABLE "Atencion" DROP CONSTRAINT IF EXISTS "${row.conname}"`);
+  }
+  await pool.query(`
+    ALTER TABLE "Atencion"
+    ADD CONSTRAINT "Atencion_id_cliente_fkey"
+    FOREIGN KEY ("id_cliente") REFERENCES "cliente"("id_cliente") ON DELETE SET NULL
+  `);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS "tipo_cliente" (

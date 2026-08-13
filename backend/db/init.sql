@@ -186,7 +186,7 @@ CREATE TABLE "Atencion" (
   "id_usuario_registro" integer REFERENCES "Usuarios"("id_usuario"),
   "id_consultorio" integer REFERENCES "Consultorios"("id_consultorio"),
   "numero" VARCHAR(20),
-  "id_cliente" integer REFERENCES "cliente"("id_cliente")
+  "id_cliente" integer REFERENCES "cliente"("id_cliente") ON DELETE SET NULL
 );
 
 -- JUNCTION: ESPECIALIDAD <-> CONSULTORIO
