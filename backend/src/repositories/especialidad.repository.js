@@ -87,9 +87,14 @@ const deleteConsultorioRelations = async (client, id) => {
   await client.query(`DELETE FROM "Especialidad_Consultorio" WHERE id_especialidad = $1`, [id]);
 };
 
-const remove = async (id) => {
-  await db.query('DELETE FROM "Especialidad_Consultorio" WHERE id_especialidad = $1', [id]);
-  await db.query('DELETE FROM "Especialidades" WHERE id_especialidad = $1', [id]);
+const remove = async (client, id) => {
+  // Desvincula los registros que referencian la especialidad (sin cascada en la BD)
+  // para permitir su eliminación: los médicos quedan sin especialidad y el historial
+  // de atenciones se conserva pero pierde el enlace.
+  await client.query('UPDATE "Usuarios" SET id_especialidad = NULL WHERE id_especialidad = $1', [id]);
+  await client.query('UPDATE "Atencion" SET id_especialidad = NULL WHERE id_especialidad = $1', [id]);
+  await client.query('DELETE FROM "Especialidad_Consultorio" WHERE id_especialidad = $1', [id]);
+  await client.query('DELETE FROM "Especialidades" WHERE id_especialidad = $1', [id]);
 };
 
 const getById = async (id) => {

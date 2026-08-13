@@ -146,8 +146,11 @@ const updateEspecialidad = async (req, res) => {
 };
 
 /**
- * Elimina una especialidad del sistema. Previene la eliminación si
- * existen médicos o registros de atención asociados.
+ * Elimina una especialidad del sistema.
+ *
+ * Antes de borrarla desvincula los registros que la referencian (médicos y
+ * historial de atenciones) para que la eliminación siempre sea posible, y
+ * desconecta en tiempo real a los médicos conectados que la tenían asignada.
  *
  * @param {import('express').Request} req - Petición HTTP
  * @param {import('express').Response} res - Respuesta HTTP
@@ -155,15 +158,30 @@ const updateEspecialidad = async (req, res) => {
  */
 const deleteEspecialidad = async (req, res) => {
   const { id } = req.params;
+  const client = await db.connect();
   try {
-    await espRepo.remove(id);
+    await client.query('BEGIN');
+    await espRepo.remove(client, id);
+    await client.query('COMMIT');
+
+    // Desconectar en tiempo real a los médicos que tenían la especialidad
+    // para que no sigan operando con una especialidad ya eliminada.
+    if (req.io) {
+      const sockets = await req.io.fetchSockets();
+      for (const socket of sockets) {
+        if (socket.usuario && Number(socket.usuario.id_especialidad) === Number(id)) {
+          socket.emit('especialidad-desactivada');
+        }
+      }
+    }
+
     res.json({ mensaje: 'Especialidad eliminada' });
   } catch (err) {
-    if (err.code === '23503') {
-      return res.status(409).json({ mensaje: 'No se puede eliminar: hay médicos o registros de atención asociados a esta especialidad.' });
-    }
+    await client.query('ROLLBACK');
     logger.error(err);
     res.status(500).json({ mensaje: 'Error interno del servidor' });
+  } finally {
+    client.release();
   }
 };
 
@@ -199,11 +217,14 @@ const importarEspecialidades = async (req, res) => {
   const nombresExcel = rows.map(r =>
     (r.nombre || r.Nombre || r.NOMBRE || '').toString().toUpperCase().trim()
   ).filter(n => n);
+  // La existencia se verifica POR SEDE: cada sede tiene sus propias especialidades,
+  // así que una especialidad eliminada en una sede puede reimportarse aunque el
+  // mismo nombre exista en otra sede.
   const existentes = await db.query(
-    `SELECT nombre FROM "Especialidades" WHERE nombre = ANY($1)`,
+    `SELECT nombre, id_sede FROM "Especialidades" WHERE nombre = ANY($1)`,
     [nombresExcel],
   );
-  const nombresExistentes = new Set(existentes.rows.map((r) => r.nombre));
+  const clavesExistentes = new Set(existentes.rows.map((r) => `${r.id_sede}|${String(r.nombre).toUpperCase().trim()}`));
 
   for (const row of rows) {
     try {
@@ -233,7 +254,7 @@ const importarEspecialidades = async (req, res) => {
         continue;
       }
 
-      if (nombresExistentes.has(nombre)) {
+      if (clavesExistentes.has(`${idSede}|${nombre}`)) {
         omitidos++;
         continue;
       }

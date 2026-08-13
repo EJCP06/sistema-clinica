@@ -253,8 +253,8 @@ export class AdminEspecialidades implements OnInit {
         this.cargarEspecialidades();
         this.swal.success('Especialidad eliminada correctamente');
       },
-      error: () => {
-        this.swal.error('Error al eliminar especialidad');
+      error: (err) => {
+        this.swal.error(err.error?.mensaje || 'Error al eliminar especialidad');
       },
     });
   }
