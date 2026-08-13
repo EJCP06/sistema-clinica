@@ -1,3 +1,10 @@
+/**
+ * Rutas de gestión de turnos (crear, marcar ausente, reincorporar).
+ *
+ * Accesible para cualquier módulo operativo (admisión, laboratorio, imágenes,
+ * atención médica) porque todos generan o gestionan turnos. Requiere JWT y
+ * cualquiera de los conjuntos de permisos indicados.
+ */
 const express = require('express');
 const { body, param, validationResult } = require('express-validator');
 const router = express.Router();

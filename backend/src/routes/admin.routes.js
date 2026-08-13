@@ -1,3 +1,15 @@
+/**
+ * Rutas de administración (módulo admin).
+ *
+ * Agrupa la gestión de: sedes, servicios, consultorios, personal, roles,
+ * permisología y reportes. Requiere token JWT (authMiddleware) y, según el
+ * endpoint, permisos específicos o rol administrador (soloAdministrador).
+ *
+ * Convención de permisos:
+ *   - permiso de acción (ej. 'personal:crear') para operaciones de negocio.
+ *   - soloAdministrador para operaciones de infraestructura (servicios,
+ *     consultorios, sedes) que no están en la matriz de permisología.
+ */
 const express = require('express');
 const { body, param, validationResult } = require('express-validator');
 const router = express.Router();
@@ -13,6 +25,7 @@ const validar = (req, res, next) => {
   next();
 };
 
+// Todas las rutas de este router requieren autenticación.
 router.use(authMiddleware);
 
 router.get('/sedes', permissionMiddleware('admision:crear', 'aps:ver', 'aseguradoras:ver', 'laboratorio:registrar_caja', 'imagenes:registrar_caja', 'atencion_medica:llamar_siguiente', 'especialidades:ver'), adminController.getSedes);

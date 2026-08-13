@@ -1,5 +1,18 @@
+/**
+ * Repositorio de roles (tabla "Roles").
+ *
+ * Un rol pertenece a una sede (id_sede NULL = rol global aplicable a todas
+ * las sedes; ver migraciones 008 y 009 que hicieron la key única por sede).
+ * Los permisos asociados a cada rol se manejan en permiso.repository.js.
+ */
 const pool = require('../config/db');
 
+/**
+ * Lista todos los roles con el nombre de su sede.
+ *
+ * @param {number|null} sede - ID de la sede; null devuelve todos los roles
+ * @returns {Promise<Array<object>>}
+ */
 const getAll = async (sede) => {
   let query = `SELECT r.id_rol as id, r.nombre, r.key, r.id_sede, r.activo, s.nombre as sede_nombre
      FROM "Roles" r

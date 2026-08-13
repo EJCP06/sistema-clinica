@@ -1,3 +1,13 @@
+/**
+ * Repositorio de pacientes (tabla "Pacientes").
+ *
+ * Los nombres se guardan divididos en primer/segundo nombre y primer/segundo
+ * apellido (ver migración 006_dividir_nombres_pacientes.sql). La cédula es
+ * única por sede (ver migración 010).
+ *
+ * Nota: casi todas las consultas filtran también por id_sede para mantener
+ * el aislamiento de datos entre sedes.
+ */
 const pool = require('../config/db');
 
 const findByCedula = async (cedula, sede) => {

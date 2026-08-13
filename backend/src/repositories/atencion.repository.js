@@ -1,5 +1,36 @@
+/**
+ * Repositorio de atenciones/turnos (tabla "Atencion") — el corazón del sistema.
+ *
+ * Cada fila de "Atencion" es un turno: un paciente + servicio + número +
+ * estado actual. Los cambios de estado se registran además en
+ * "Historial_Atencion" (ver historial.repository.js).
+ *
+ * MÁQUINA DE ESTADOS (tabla "Estado", backend/db/init.sql):
+ *   1 Registrado       -> al crear el turno (insertarAtencion/insertarTurno)
+ *   2 En Caja          -> paciente en caja (pago)
+ *   3 Sala de Espera   -> esperando ser llamado (en la cola)
+ *   4 Llamado          -> llamado por el turnero a un consultorio
+ *   5 En Atencion      -> el médico inició la consulta
+ *   6 Atendido         -> finalizado (hora_salida se llena aquí)
+ *   7 Ausente          -> marcado como ausente (o limpieza diaria)
+ *   8 Espera de clave  -> esperando autorización de aseguradora (APS)
+ *   9 Retirado         -> se retiró voluntariamente
+ *
+ * PATRÓN DE TRANSACCIONES: las funciones que reciben `client` se ejecutan
+ * dentro de una transacción iniciada por el controlador (BEGIN/COMMIT/ROLLBACK),
+ * y usan 'SELECT ... FOR UPDATE' para bloquear filas y evitar carreras
+ * (p. ej. que dos médicos llamen al mismo paciente). Si no reciben `client`,
+ * usan el pool global.
+ */
 const pool = require('../config/db');
 
+/**
+ * Lista las últimas 50 admisiones de hoy (día actual), con datos completos
+ * del paciente, servicio, especialidad, médico y modalidad de pago.
+ *
+ * @param {number} sede - ID de la sede
+ * @returns {Promise<Array<object>>}
+ */
 const getUltimasAdmisiones = async (sede) => {
   const result = await pool.query(
     `SELECT
@@ -30,6 +61,13 @@ const getUltimasAdmisiones = async (sede) => {
   return result.rows;
 };
 
+/**
+ * Obtiene una atención con todos sus datos relacionados por ID.
+ *
+ * @param {number} id - ID de la atención
+ * @param {number} sede - ID de la sede (filtro de aislamiento)
+ * @returns {Promise<object|null>}
+ */
 const getAdmisionById = async (id, sede) => {
   const result = await pool.query(
     `SELECT
@@ -66,6 +104,10 @@ const getAtencionEstado = async (id, sede) => {
   return result.rows[0] || null;
 };
 
+/**
+ * Lista los turnos que tiene un paciente (para saber si ya fue atendido hoy
+ * o si tiene turnos activos antes de registrar uno nuevo).
+ */
 const getAtencionesDePaciente = async (idPaciente, sede) => {
   const result = await pool.query(
     `SELECT id_atencion, id_estado_actual FROM "Atencion" WHERE id_paciente = $1 AND id_sede = $2`,
@@ -120,6 +162,13 @@ const actualizarEstadoAtencion = async (id, sede, idEstadoNuevo) => {
   return result.rows[0] || null;
 };
 
+/**
+ * Crea una atención desde admisión/recepción. El estado inicial es 1 (Registrado).
+ *
+ * @param {object} data - Datos del turno (id_paciente, id_servicio, id_responsable, sede, numero, ...)
+ * @param {object} [client] - Cliente de transacción opcional
+ * @returns {Promise<object>} Atención creada (id_atencion, numero, hora_llegada)
+ */
 const insertarAtencion = async (data, client = null) => {
   const db = client || pool;
   const result = await db.query(
@@ -201,6 +250,14 @@ const getServicioPrefijo = async (idServicio) => {
   return result.rows[0]?.prefijo || 'T';
 };
 
+/**
+ * Crea un turno (variante del turnero, con especialidad y responsable).
+ * El estado inicial también es 1 (Registrado).
+ *
+ * @param {object} data - Datos del turno
+ * @param {object} [client] - Cliente de transacción opcional
+ * @returns {Promise<object>} Turno creado
+ */
 const insertarTurno = async (data, client = null) => {
   const db = client || pool;
   const result = await db.query(
@@ -227,6 +284,10 @@ const finalizarAtencionTransferencia = async (client, id) => {
   return result.rows[0] || null;
 };
 
+/**
+ * Reincorpora a la cola (estado 3) a un paciente marcado como ausente (estado 7).
+ * Solo aplica si el paciente sigue en estado 7 (idempotente).
+ */
 const reincorporarPaciente = async (client, id) => {
   const result = await client.query(
     'UPDATE "Atencion" SET id_estado_actual = 3, hora_salida = NULL WHERE id_atencion = $1 AND id_estado_actual = 7 RETURNING *',
@@ -235,6 +296,20 @@ const reincorporarPaciente = async (client, id) => {
   return result.rows[0] || null;
 };
 
+/**
+ * Toma el siguiente paciente en la cola (estado 3) de un servicio, respetando
+ * el orden de llegada (más antiguo primero).
+ *
+ * 'FOR UPDATE SKIP LOCKED' es clave para la concurrencia: si dos médicos
+ * llaman a la vez, cada uno bloquea/recibe una fila distinta y nadie llama
+ * dos veces al mismo paciente.
+ *
+ * @param {object} client - Cliente de transacción
+ * @param {number} servicioId - ID del servicio
+ * @param {number} sede - ID de la sede
+ * @param {number} [idEspecialidad] - Filtro opcional de especialidad
+ * @returns {Promise<object|null>} Próximo paciente en espera o null si no hay
+ */
 const getEnEsperaPorServicio = async (client, servicioId, sede, idEspecialidad) => {
   let query = `
     SELECT a.id_atencion as id, a.numero, e.nombre_estado as estado, p.primer_nombre as nombre_paciente, p.primer_apellido as apellido_paciente, p.cedula as documento_paciente, p.telefono as telefono_paciente, a.hora_llegada
@@ -253,6 +328,9 @@ const getEnEsperaPorServicio = async (client, servicioId, sede, idEspecialidad) 
   return result.rows[0] || null;
 };
 
+/**
+ * Llama a un paciente: lo mueve a estado 4 (Llamado) y le asigna el consultorio.
+ */
 const llamarAtencion = async (client, id, consultorioId) => {
   await client.query(
     'UPDATE "Atencion" SET id_estado_actual = 4, id_consultorio = $1 WHERE id_atencion = $2',
@@ -260,6 +338,10 @@ const llamarAtencion = async (client, id, consultorioId) => {
   );
 };
 
+/**
+ * Busca la atención en estado 4 (Llamado) de un consultorio y la bloquea
+ * (FOR UPDATE) para iniciarla. Se usa al pulsar "Iniciar atención".
+ */
 const iniciarAtencionPorConsultorio = async (client, consultorioId) => {
   const result = await client.query(
     'SELECT id_atencion FROM "Atencion" WHERE id_consultorio = $1 AND id_estado_actual = 4 LIMIT 1 FOR UPDATE',
@@ -537,6 +619,12 @@ const getTurneroPacientes = async (estados, servicios, responsable, sede) => {
   return result.rows;
 };
 
+/**
+ * Lista los pacientes llamados (estado 4) de hoy, para la pantalla de sala
+ * de espera. DISTINCT ON evita filas duplicadas por el JOIN con el historial.
+ *
+ * @returns {Promise<Array<object>>}
+ */
 const getSalaEspera = async () => {
   const result = await pool.query(
     `SELECT DISTINCT ON (a.id_atencion)

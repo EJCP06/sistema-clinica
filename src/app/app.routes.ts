@@ -5,8 +5,15 @@ import { modulePermissionGuard } from '@core/guards/module-permission.guard';
 
 /**
  * Configuración central de rutas de la aplicación.
- * Cada ruta protegida usa authGuard + modulePermissionGuard
- * con la metadata `modules` para verificar permisos del módulo.
+ *
+ * Rutas PÚBLICAS (sin guard): /login y /turnero* (pantalla pública de sala
+ * de espera). Todo lo demás está protegido con authGuard + modulePermissionGuard,
+ * y la metadata `modules` define qué permiso(s) permiten entrar
+ * (ej. { module: 'admision', allowedActions: ['ver'] }).
+ *
+ * Nota: /aseguradoras reutiliza el componente de recepción en modo
+ * 'aseguradorasMode' (ver recepcion.ts); /atencion-laboratorio y
+ * /atencion-imagenes reutilizan el componente de atención con `tipo`.
  */
 export const routes: Routes = [
   {

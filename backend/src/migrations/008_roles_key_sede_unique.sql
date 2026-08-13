@@ -1,3 +1,6 @@
+-- ======================================================
+-- MIGRACIÓN 008: Roles key única por sede
+-- ======================================================
 -- Cambiar la restricción UNIQUE de "key" a una restricción compuesta (key, id_sede)
 -- Esto permite tener roles con la misma clave en diferentes sedes
 

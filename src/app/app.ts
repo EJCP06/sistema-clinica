@@ -9,7 +9,16 @@ import { AuthService } from '@core/services/auth.service';
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
-/** Componente raíz de la aplicación. Verifica la sesión al iniciar y escucha cambios de permisos. */
+/**
+ * Componente raíz de la aplicación (bootstrap en src/main.ts).
+ *
+ * Responsabilidades:
+ * 1. Escuchar los eventos en tiempo real de `ApiService.cambios$` y refrescar
+ *    los permisos del usuario cuando el administrador los modifica.
+ * 2. Al iniciar, verificar la sesión guardada y renovar el token si es un día
+ *    nuevo o si está por expirar (AuthService).
+ * 3. Mantener un refresco periódico del token cada 5 minutos mientras haya sesión.
+ */
 export class App implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly api = inject(ApiService);

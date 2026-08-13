@@ -1,3 +1,14 @@
+/**
+ * Proxy de desarrollo de Angular (ng serve).
+ *
+ * Redirige las peticiones del frontend hacia el backend local:
+ *   - /api/*        -> http://127.0.0.1:3001/api/*  (peticiones HTTP REST)
+ *   - /socket.io/*  -> http://127.0.0.1:3001/socket.io/*  (WebSocket en tiempo real)
+ *
+ * Así el frontend usa rutas relativas ('/api') igual que en producción
+ * (ver src/environments/environment.ts y nginx.conf). En producción este
+ * proxy NO se usa: Nginx hace la misma función de reverso.
+ */
 const PROXY_CONFIG = {
   "/api": {
     "target": "http://127.0.0.1:3001",

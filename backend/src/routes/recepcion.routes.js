@@ -1,3 +1,19 @@
+/**
+ * Rutas de recepción/admisión.
+ *
+ * Cubre: gestión de pacientes (buscar, crear, actualizar, eliminar), generación
+ * de turnos, actualización de atenciones y los llamados por voz hacia los
+ * módulos (APS, Laboratorio, Imágenes).
+ *
+ * Estructura de permisos:
+ *   - El grueso del router requiere los conjuntos ADMISION_TOTAL /
+ *     LABORATORIO_TOTAL / IMAGENES_TOTAL (definidos en permission-sets.js).
+ *   - Los llamados por voz (llamar-aps, llamar-clave, llamar-laboratorio,
+ *     llamar-imagenes) usan control por ROL (analista/coordinador/admin,
+ *     + laboratorio/imagenes en su propio módulo) porque el técnico de
+ *     laboratorio no tiene permisos de admisión.
+ *   - marcar_ausente permite además al rol coordinador directamente.
+ */
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const router = express.Router();

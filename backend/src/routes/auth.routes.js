@@ -1,3 +1,15 @@
+/**
+ * Rutas de autenticación (módulo público).
+ *
+ * - POST /login               -> Inicio de sesión (protegido por loginLimiter)
+ * - POST /refresh             -> Renovación de access token vía refresh token
+ * - POST /logout              -> Cierre de sesión
+ * - GET  /verify              -> Valida si la sesión actual sigue siendo válida
+ * - GET  /mis-permisos        -> Permisos del usuario autenticado
+ * - PUT  /cambiar-password    -> Cambio de contraseña
+ *
+ * Nota: el limiter de login se aplica en backend/index.js (ver rateLimiter.js).
+ */
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const router = express.Router();

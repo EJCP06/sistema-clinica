@@ -1,5 +1,18 @@
+/**
+ * Repositorio de servicios (tabla "Servicio").
+ *
+ * Un servicio es la unidad organizativa de alto nivel (ej. Medicina General,
+ * Laboratorio, Imágenes). Su `prefijo` se usa para formar el código de turno
+ * (ej. prefijo 'M' + número correlativo -> 'M001').
+ */
 const pool = require('../config/db');
 
+/**
+ * Lista todos los servicios, opcionalmente filtrados por sede.
+ *
+ * @param {string|number} [sede] - ID de la sede
+ * @returns {Promise<Array<object>>}
+ */
 const getAll = async (sede) => {
   let query = `SELECT id_servicio as id, nombre_servicio as nombre, prefijo, status as activo
      FROM "Servicio"`;

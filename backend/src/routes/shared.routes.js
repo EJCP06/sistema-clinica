@@ -1,3 +1,10 @@
+/**
+ * Rutas de datos compartidos entre módulos (catálogos).
+ *
+ * Actualmente solo el catálogo de aseguradoras (ver, crear, importar desde
+ * Excel). La lectura está abierta a los módulos que usan aseguradoras en su
+ * flujo (admisión, APS); las escrituras requieren permisos de aseguradoras.
+ */
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const router = express.Router();

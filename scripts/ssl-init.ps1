@@ -1,3 +1,13 @@
+# ============================================================
+# Script de generación de certificados SSL autofirmados (Windows/PowerShell)
+# ------------------------------------------------------------
+# Crea un certificado autofirmado para un dominio (por defecto localhost)
+# y lo exporta como fullchain.pem + privkey.pem en ./certs, en el formato
+# que espera nginx.conf (/etc/nginx/ssl/). Útil para HTTPS en desarrollo o
+# despliegues internos; para producción se recomienda un CA real (Let's Encrypt).
+#
+# Requiere: PowerShell + OpenSSL en el PATH.
+# ============================================================
 param(
   [string]$Domain = "localhost",
   [int]$ValidDays = 365

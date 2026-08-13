@@ -1,3 +1,17 @@
+/**
+ * Rutas de consultorios y del flujo de atención por consultorio/servicio.
+ *
+ * Incluye el ciclo de vida del paciente en el módulo de atención:
+ *   - GET /mi-estado          -> estado actual del consultorio/servicio del médico
+ *   - POST /llamar-siguiente  -> llama al siguiente paciente de la cola
+ *   - POST /iniciar-atencion  -> inicia la consulta (estado En Atencion)
+ *   - POST /finalizar-atencion-> finaliza y libera el consultorio
+ *   - POST /liberar-consultorio -> liberación manual sin atender
+ * Y el CRUD de consultorios (solo administrador).
+ *
+ * El rol 'laboratorio'/'imagenes' opera a nivel de servicio en lugar de
+ * consultorio (ver consultorios.controller.js).
+ */
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const router = express.Router();

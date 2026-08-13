@@ -1,3 +1,18 @@
+# ============================================================
+# Docker Compose — Sistema Clínica (producción/desarrollo con Docker)
+# ------------------------------------------------------------
+# Levanta 3 servicios:
+#   db   -> PostgreSQL 15 (el esquema inicial se aplica automáticamente
+#           desde backend/db/init.sql en el primer arranque).
+#   api  -> Backend Node.js/Express (Dockerfile.backend) en el puerto 3000.
+#   web  -> Frontend Angular compilado servido por Nginx (Dockerfile.frontend)
+#           en el puerto 80 (y 443 con certificados).
+#   integration_test -> contenedor efímero que corre la prueba integral
+#           (backend/db/test_full_flow.js) contra los servicios levantados.
+#
+# Variables obligatorias: DB_PASSWORD y JWT_SECRET (fallan si no existen).
+# El resto tienen valores por defecto razonables (ver .env.example).
+# ============================================================
 version: '3.8'
 
 services:
@@ -19,6 +34,8 @@ services:
       timeout: 5s
       retries: 5
 
+  # Backend Express: expone el puerto 3000. Se conecta a la BD por el
+  # hostname 'db' de la red interna de Docker (no localhost).
   api:
     build:
       context: .
