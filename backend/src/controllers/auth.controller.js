@@ -6,6 +6,9 @@ const refreshTokenRepo = require('../repositories/refreshToken.repository');
 const { auditar } = require('../middleware/audit');
 const { logErrorSafe } = require('../utils/sanitize');
 
+/** Duración del access token JWT (24 horas). Se exporta para que el endpoint
+ *  de desarrollo /api/dev/token/:id emita tokens con la MISMA expiración
+ *  (ver backend/index.js). */
 const ACCESS_TOKEN_EXPIRY = '24h';
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -320,4 +323,5 @@ module.exports = {
   misPermisos,
   cerrarSesion,
   refrescarToken,
+  ACCESS_TOKEN_EXPIRY,
 };

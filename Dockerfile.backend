@@ -1,11 +1,21 @@
+# ============================================================
+# Dockerfile del BACKEND (Node.js 20 + Express)
+# ------------------------------------------------------------
+# Imagen de producción: instala SOLO dependencias de producción
+# (npm ci --only=production) y ejecuta el punto de entrada backend/index.js
+# (que valida variables de entorno, corre migraciones y levanta el servidor).
+# ============================================================
 FROM node:20-alpine
 
 WORKDIR /usr/src/app
 
+# package*.json primero para aprovechar la caché de capas de Docker:
+# si las dependencias no cambian, esta capa no se reconstruye.
 COPY package*.json ./
 
 RUN npm ci --only=production && npm cache clean --force
 
+# Solo se copia la carpeta backend/ (el frontend va en la otra imagen).
 COPY backend/ ./backend/
 
 EXPOSE 3000

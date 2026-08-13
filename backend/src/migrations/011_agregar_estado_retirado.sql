@@ -1,3 +1,6 @@
+-- ======================================================
+-- MIGRACIÓN 011: Agregar estado 9 (Retirado)
+-- ======================================================
 -- Agregar estado 9 = Retirado para pacientes retirados por coordinador/admin
 INSERT INTO "Estado" ("id_estado", "nombre_estado")
 SELECT 9, 'Retirado'

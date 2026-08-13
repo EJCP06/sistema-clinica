@@ -1,4 +1,9 @@
--- Migración: Dividir nombre/apellido en 4 campos + agregar fecha_nacimiento
+-- ======================================================
+-- MIGRACIÓN 006: Dividir nombres de pacientes
+-- Convierte nombre/apellido en 4 campos (primer/segundo nombre y
+-- primer/segundo apellido) y agrega fecha_nacimiento. Migra los datos
+-- existentes partiendo por espacios.
+-- ======================================================
 
 ALTER TABLE "Pacientes"
   ADD COLUMN IF NOT EXISTS "primer_nombre" varchar,

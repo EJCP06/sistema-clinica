@@ -1,3 +1,9 @@
+/**
+ * Rutas del módulo de atención médica (panel del médico).
+ *
+ * Proporciona la lista de espera, los pacientes atendidos hoy y las acciones
+ * de llamar/finalizar una atención. Requiere JWT y permisos de atención médica.
+ */
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const router = express.Router();

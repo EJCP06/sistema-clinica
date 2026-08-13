@@ -1,6 +1,22 @@
+/**
+ * Repositorio de refresh tokens (sesiones de larga duración).
+ *
+ * Seguridad: en la base de datos SOLO se guarda el hash SHA-256 del token,
+ * nunca el token en texto plano. El token crudo se devuelve una sola vez al
+ * cliente (al iniciar sesión) y se almacena del lado del navegador.
+ *
+ * Columnas relevantes: revocado (invalida sesiones) y expira (NULL = sin expiración,
+ * ver migración 014_refresh_token_sin_expiracion.sql).
+ */
 const crypto = require('crypto');
 const pool = require('../config/db');
 
+/**
+ * Genera un token aleatorio de 48 bytes, guarda su hash y devuelve el token crudo.
+ *
+ * @param {number} userId - ID del usuario dueño de la sesión
+ * @returns {Promise<string>} Token crudo que se entrega al cliente
+ */
 const createRefreshToken = async (userId) => {
   const raw = crypto.randomBytes(48).toString('hex');
   const hash = crypto.createHash('sha256').update(raw).digest('hex');

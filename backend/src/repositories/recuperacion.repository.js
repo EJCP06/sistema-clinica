@@ -1,3 +1,10 @@
+/**
+ * Repositorio del flujo de recuperación de contraseña (tabla "Recuperacion_Clave").
+ *
+ * Flujo: 1) validar email+cédula, 2) insertar código OTP con expiración de 3 min,
+ * 3) validar el código (con tope de intentos), 4) actualizar la contraseña.
+ * Los códigos se invalidan en masa al solicitar uno nuevo (un solo código válido por usuario).
+ */
 const pool = require('../config/db');
 
 const findUsuarioByEmailYCedula = async (email, cedula) => {
@@ -45,6 +52,12 @@ const marcarUsado = async (idRecuperacion) => {
   await pool.query('UPDATE "Recuperacion_Clave" SET usado = true WHERE id_recuperacion = $1', [idRecuperacion]);
 };
 
+/**
+ * Actualiza la contraseña de un usuario tras validar el código OTP.
+ *
+ * @param {string} cedula - Cédula del usuario (clave de búsqueda)
+ * @param {string} passwordHash - Hash bcrypt de la nueva contraseña
+ */
 const updatePassword = async (cedula, passwordHash) => {
   await pool.query('UPDATE "Usuarios" SET password_hash = $1 WHERE cedula = $2', [passwordHash, cedula.trim()]);
 };

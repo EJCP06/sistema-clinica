@@ -2,6 +2,15 @@ const logger = require('../config/logger');
 const pool = require('../config/db');
 const permissionSets = require('../config/permission-sets');
 
+/**
+ * Mapa de compatibilidad: convierte claves de permisos antiguas (formato
+ * plano, ej. 'admision_crear') al formato actual 'recurso:accion'.
+ *
+ * Esto existe porque versiones anteriores del sistema guardaban los
+ * permisos con nombres planos en la base de datos. NO eliminar mientras
+ * pueda haber roles antiguos en producción con esas claves; el middleware
+ * las traduce automáticamente al comparar.
+ */
 const LEGACY_KEY_MAP = {
   admin_panel: 'admin:panel',
   ver_reportes: 'reportes:ver',

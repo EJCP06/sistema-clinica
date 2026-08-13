@@ -26,8 +26,3 @@ export interface Sede {
   id_sede: number;
   nombre: string;
 }
-
-export interface Sede {
-  id_sede: number;
-  nombre: string;
-}

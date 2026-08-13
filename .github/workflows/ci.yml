@@ -1,3 +1,13 @@
+# ============================================================
+# CI — Integración continua (GitHub Actions)
+# ------------------------------------------------------------
+# Se ejecuta al hacer push a main/develop o en pull requests hacia main.
+#
+# Trabajos:
+#   frontend -> compila la app Angular en modo producción (npm run build).
+#   lint     -> corre ESLint sobre backend/src y src/app (tolerando hasta
+#               50 warnings para no bloquear la entrega).
+# ============================================================
 name: CI
 
 on:

@@ -1,6 +1,23 @@
+/**
+ * Repositorio de permisos / permisología.
+ *
+ * Modelo de datos: un permiso es la combinación de un Recurso (rec.key) y una
+ * Acción (acc.key) -> "recurso:accion" (ej. "admision:crear"). Los permisos
+ * se asignan a roles en la tabla "Roles_Recursos_Acciones".
+ *
+ * asignarPermisos() es el corazón del sistema: además de guardar lo que marcó
+ * el administrador, expande automáticamente las "acciones especiales" de cada
+ * vista (ver backend/src/config/acciones-especiales.js) e inyecta los permisos
+ * cruzados de "llamado" para laboratorio e imágenes.
+ */
 const pool = require('../config/db');
 const { getTodasLasAccionesEspeciales, ACCIONES_ESPECIALES_POR_VISTA, CROSS_INJECTION } = require('../config/acciones-especiales');
 
+/**
+ * Lista todos los permisos existentes (combinaciones recurso:acción) con su descripción.
+ *
+ * @returns {Promise<Array<{id: number, key: string, nombre: string, descripcion: string}>>}
+ */
 const getAll = async () => {
   const result = await pool.query(
     `SELECT DISTINCT 
@@ -20,6 +37,12 @@ const getAll = async () => {
   }));
 };
 
+/**
+ * Lista los permisos asignados a un rol.
+ *
+ * @param {number} idRol - ID del rol
+ * @returns {Promise<Array<{id: number, key: string, nombre: string, descripcion: string}>>}
+ */
 const getByRolId = async (idRol) => {
   const result = await pool.query(
     `SELECT 
@@ -122,17 +145,32 @@ const remove = async (id) => {
   // Opcionalmente se puede limpiar de Recursos/Acciones si están huérfanos
 };
 
+/**
+ * Reemplaza TODOS los permisos de un rol por la lista indicada (borrado + alta en transacción).
+ *
+ * Lógica adicional automática (importante para entender el comportamiento):
+ * 1. Al dar acceso a una vista (ej. 'laboratorio:*'), se agregan automáticamente las
+ *    acciones especiales de esa vista definidas en acciones-especiales.js.
+ * 2. Se inyectan permisos cruzados: la vista 'laboratorio' otorga 'llamado:laboratorio'
+ *    y la vista 'imagenes' otorga 'llamado:imagenes' (para llamar pacientes en el turnero).
+ * 3. Los recursos/acciones que no existan en "Recursos"/"Acciones" se crean sobre la marcha.
+ *
+ * @param {number} idRol - ID del rol cuyos permisos se reemplazan
+ * @param {string[]} permisosKeys - Lista de claves 'recurso:accion' seleccionadas por el admin
+ * @returns {Promise<void>}
+ */
 const asignarPermisos = async (idRol, permisosKeys) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    // Se borran todas las asignaciones previas y se vuelven a insertar (modelo de reemplazo total).
     await client.query('DELETE FROM "Roles_Recursos_Acciones" WHERE id_rol = $1', [idRol]);
 
     if (permisosKeys && permisosKeys.length > 0) {
       // Expandir permisosKeys con acciones especiales automáticas
       const keysExpandidos = [...permisosKeys];
 
-      // Identificar qué vistast tienen algún permiso
+      // Identificar qué vistas tienen algún permiso (para saber a cuáles aplicar la expansión)
       const vistastConAcceso = new Set();
       for (const p of keysExpandidos) {
         if (!p || !p.includes(':')) continue;
@@ -143,7 +181,7 @@ const asignarPermisos = async (idRol, permisosKeys) => {
         }
       }
 
-      // Agregar acciones especiales para esas vistast
+      // Agregar acciones especiales para esas vistas
       for (const vista of vistastConAcceso) {
         const especiales = getTodasLasAccionesEspeciales(vista);
         for (const acc of especiales) {

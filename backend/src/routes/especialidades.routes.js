@@ -1,3 +1,10 @@
+/**
+ * Rutas de especialidades médicas (CRUD + importación Excel).
+ *
+ * La lectura (GET /) está abierta a varios módulos porque admisión y atención
+ * necesitan listar especialidades; las escrituras requieren permisos
+ * específicos ('especialidades:crear' | 'editar' | 'eliminar').
+ */
 const express = require('express');
 const { body, param, validationResult } = require('express-validator');
 const router = express.Router();

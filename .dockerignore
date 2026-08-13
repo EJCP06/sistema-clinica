@@ -1,3 +1,9 @@
+# ============================================================
+# .dockerignore — archivos que NO entran al contexto de build de Docker
+# (se excluyen dependencias, código fuente y archivos locales para que la
+# imagen solo contenga lo necesario; el backend se copia explícitamente
+# vía Dockerfile.backend y el frontend se compila en un stage previo).
+# ============================================================
 node_modules
 npm-debug.log
 dist

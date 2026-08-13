@@ -1,5 +1,6 @@
 -- ======================================================
 -- MIGRACIÓN 010: Usuarios Cédula por Sede
+-- (La misma cédula puede existir en distintas sedes.)
 -- Permite que la misma cédula exista en diferentes sedes
 -- ======================================================
 

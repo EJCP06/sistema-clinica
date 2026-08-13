@@ -1,3 +1,10 @@
+/**
+ * Repositorio de datos compartidos entre varios módulos (catálogos globales).
+ *
+ * - Responsables de pago: catálogo de quién paga la consulta (particular, aseguradora...).
+ * - Aseguradoras: clientes de tipo 2 (id_tipo_cliente = 2) en la tabla "cliente".
+ * - Sedes: unidades de la clínica. Muchos módulos filtran por id_sede.
+ */
 const pool = require('../config/db');
 
 const getResponsablesPago = async () => {

@@ -1,3 +1,25 @@
+/**
+ * PUNTO DE ENTRADA DEL BACKEND (Express + Socket.IO).
+ *
+ * Responsabilidades:
+ *   1. Configurar middlewares globales (Helmet, CORS, JSON, cookies, rate limit).
+ *   2. Crear el servidor HTTP y el servidor Socket.IO (tiempo real).
+ *   3. Registrar todas las rutas de la API bajo /api/*.
+ *   4. Iniciar: validar conexión a PostgreSQL, ejecutar migraciones, limpiar
+ *      estados pendientes del día anterior y resetear sesiones activas.
+ *   5. Manejar apagado graceful y errores no capturados.
+ *
+ * Estructura de carpetas:
+ *   - src/config/       -> configuración (db, logger, cache, email, swagger...)
+ *   - src/middleware/   -> auth JWT, permisos, auditoría, métricas, rate limit
+ *   - src/controllers/  -> lógica de negocio por módulo
+ *   - src/repositories/ -> consultas SQL
+ *   - src/routes/       -> definición de endpoints
+ *
+ * Comunicación en tiempo real (Socket.IO):
+ *   - 'estado-actualizado' -> cambio de estado de una atención (recepción, médico)
+ *   - 'nuevo-llamado'       -> llamado por voz hacia el turnero
+ */
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -11,18 +33,23 @@ const pool = require('./src/config/db');
 const logger = require('./src/config/logger');
 const requestId = require('./src/middleware/requestId');
 const { apiLimiter } = require('./src/middleware/rateLimiter');
-const { shutdown: shutdownAudit } = require('./src/middleware/audit');
+// Nota: el middleware de auditoría (audit.js) usa el pool compartido de
+// PostgreSQL, así que no necesita cerrarse por separado: pool.end() en
+// gracefulShutdown lo cubre.
 const { metricsMiddleware, metricsHandler } = require('./src/middleware/metrics');
 const { logErrorSafe } = require('./src/utils/sanitize');
 
 let swaggerUi = null, swaggerSpec = null;
 try { swaggerUi = require('swagger-ui-express'); swaggerSpec = require('./src/config/swagger'); } catch { logger.warn('Swagger no disponible — instala con: npm install swagger-jsdoc swagger-ui-express'); }
 
+// Redis es OPCIONAL: si no está disponible, se usa un cache dummy (no-op)
+// para que la API funcione sin Redis (ver src/config/cache.js).
 let cache = { get: () => null, set: () => {}, del: () => {}, close: () => {} };
 try { cache = require('./src/config/cache'); } catch { /* Redis opcional */ }
 
 dotenv.config({ path: path.join(__dirname, '.env') });
 
+// Validación temprana: sin estas variables el servidor no puede funcionar.
 const REQUIRED_ENV_VARS = ['JWT_SECRET', 'DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'];
 const missing = REQUIRED_ENV_VARS.filter(v => !process.env[v]);
 if (missing.length > 0) {
@@ -31,6 +58,8 @@ if (missing.length > 0) {
 }
 
 const app = express();
+// El servidor está detrás de Nginx (reverse proxy): confiar en el proxy para
+// obtener la IP real del cliente (necesario para rate limiting y auditoría).
 app.set('trust proxy', 1);
 const server = http.createServer(app);
 
@@ -88,13 +117,16 @@ app.use(cors({
 app.use(express.json({ limit: '1mb' }));
 
 app.use(cookieParser());
+// Expone el servidor Socket.IO en cada request (req.io) para que los
+// controladores puedan emitir eventos en tiempo real.
 app.use((req, res, next) => {
   req.io = io;
   next();
 });
-app.use(requestId);
-app.use(metricsMiddleware);
-app.use('/api', apiLimiter);
+app.use(requestId);          // ID único por request (trazabilidad en logs)
+app.use(metricsMiddleware);  // Métricas Prometheus
+app.use('/api', apiLimiter); // Rate limit general de la API
+
 
 /**
  * HTTPS is enforced at the Nginx reverse proxy level (SSL termination).
@@ -107,6 +139,8 @@ if (isProduction) {
 }
 
 const PORT = process.env.PORT || 3001;
+// (Ver README: el frontend Angular usa el proxy de proxy.conf.js para
+//  redirigir /api al backend durante el desarrollo.)
 
 /**
  * Inicia el servidor: verifica la conexión a la base de datos, ejecuta
@@ -174,6 +208,10 @@ app.use('/api/especialidades', especialidadesRoutes);
 app.use('/api/turnero', turneroRoutes);
 
 // Endpoint de desarrollo: generar token JWT para un usuario por ID
+// (solo disponible fuera de producción; NO exponer en despliegues reales).
+// ACCESS_TOKEN_EXPIRY se importa del controlador de auth para que el token
+// de desarrollo expire igual que los tokens reales del login (24h).
+const { ACCESS_TOKEN_EXPIRY } = require('./src/controllers/auth.controller');
 if (!isProduction) {
   app.post('/api/dev/token/:id', async (req, res) => {
     try {
@@ -272,7 +310,8 @@ io.on('connection', (socket) => {
  */
 const gracefulShutdown = async (signal) => {
   logger.info(`${signal} recibido, cerrando servidor...`);
-  await shutdownAudit();
+  // La auditoría usa el pool compartido de PostgreSQL: se cierra junto con
+  // pool.end() abajo, no hay recurso dedicado que liberar.
   await cache.close();
   io.close();
   server.close(() => {

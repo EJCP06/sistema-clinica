@@ -1,5 +1,20 @@
+/**
+ * Repositorio de especialidades médicas.
+ *
+ * Una especialidad pertenece a un servicio y puede estar asociada a varios
+ * consultorios mediante la tabla intermedia "Especialidad_Consultorio".
+ * Varias funciones reciben `client` (cliente de transacción) porque se usan
+ * dentro de operaciones atómicas (crear/editar especialidad + sus consultorios).
+ */
 const db = require('../config/db');
 
+/**
+ * Lista todas las especialidades con el nombre de su servicio, opcionalmente
+ * filtradas por sede.
+ *
+ * @param {string|number} sede - ID de la sede; 0/indefinido devuelve todas
+ * @returns {Promise<Array<object>>}
+ */
 const getAll = async (sede) => {
   let query = `
     SELECT e.*, e.id_especialidad as id,
@@ -27,6 +42,13 @@ const getConsultoriosByEspecialidad = async () => {
   return result.rows;
 };
 
+/**
+ * Crea una especialidad dentro de una transacción.
+ *
+ * @param {object} client - Cliente de transacción
+ * @param {object} data - Datos de la especialidad (nombre, prefijo, id_servicio, id_sede, piso, activo)
+ * @returns {Promise<object>} Especialidad creada
+ */
 const create = async (client, data) => {
   const result = await client.query(
     `INSERT INTO "Especialidades" (nombre, prefijo, id_servicio, id_sede, piso, activo)
@@ -43,6 +65,16 @@ const insertConsultorioRelation = async (client, espId, conId) => {
   );
 };
 
+/**
+ * Actualiza parcialmente una especialidad con columnas dinámicas (SET construido
+ * por el controlador). El índice `idx` indica la posición del parámetro $N del id.
+ *
+ * @param {object} client - Cliente de transacción
+ * @param {number} id - ID de la especialidad
+ * @param {string[]} sets - Fragmentos 'columna = $N' ya armados
+ * @param {Array} values - Valores de los parámetros
+ * @param {number} idx - Número de parámetro que corresponde al id
+ */
 const update = async (client, id, sets, values, idx) => {
   values.push(id);
   await client.query(

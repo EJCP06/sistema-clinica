@@ -1,3 +1,17 @@
+/**
+ * Rutas PÚBLICAS del turnero (pantalla de la sala de espera).
+ *
+ * IMPORTANTE: estas rutas NO requieren autenticación — el turnero es una
+ * pantalla pública. Por eso el rate limiter general de la API las excluye
+ * (ver rateLimiter.js) y por eso NO exponen datos sensibles (solo nombre,
+ * apellido, turno y estado). El filtrado por sede se hace con el query
+ * param `sede`.
+ *
+ * Endpoints:
+ *   GET /pacientes     -> cola del turnero con filtros (estados, servicios, responsable)
+ *   GET /ultimo-llamado-> último paciente llamado (para anuncio de voz)
+ *   GET /sala-espera   -> pacientes llamados (estado 4)
+ */
 const express = require('express');
 const router = express.Router();
 const logger = require('../config/logger');

@@ -1,5 +1,9 @@
--- Limpiar recursos viejos de la BD
+-- ======================================================
+-- MIGRACIÓN 005: Limpiar recursos viejos
+-- Elimina de "Recursos" y "Roles_Recursos_Acciones" todo lo que no esté
+-- en la lista de 10 vistas operativas y reasigna '*' al administrador.
 -- Ejecutar este script en la base de datos
+-- ======================================================
 
 -- Eliminar asignaciones de roles que usan recursos viejos
 DELETE FROM "Roles_Recursos_Acciones" 

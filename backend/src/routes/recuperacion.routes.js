@@ -1,3 +1,14 @@
+/**
+ * Rutas de recuperación de contraseña (módulo público).
+ *
+ * Flujo OTP por correo:
+ *   1. POST /solicitar   -> valida email+cédula y envía el código
+ *   2. POST /verificar   -> valida el código (protegido por otpLimiter)
+ *   3. POST /restablecer -> guarda la nueva contraseña
+ *
+ * 'verificar' y 'restablecer' están limitados a 5 intentos por 15 min por IP
+ * (ver backend/src/middleware/rateLimiter.js).
+ */
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const router = express.Router();

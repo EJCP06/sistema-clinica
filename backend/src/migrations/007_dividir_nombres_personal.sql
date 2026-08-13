@@ -1,4 +1,8 @@
--- Migración: Dividir nombre/apellido del personal en 4 campos
+-- ======================================================
+-- MIGRACIÓN 007: Dividir nombres del personal
+-- Igual que la 006 pero para la tabla "Usuarios". Al final elimina las
+-- columnas viejas nombre/apellido.
+-- ======================================================
 
 ALTER TABLE "Usuarios"
   ADD COLUMN IF NOT EXISTS "primer_nombre" varchar,

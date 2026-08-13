@@ -1,3 +1,15 @@
+# ============================================================
+# Script de BACKUP de la base de datos PostgreSQL (Windows/PowerShell)
+# ------------------------------------------------------------
+# Genera un dump (formato custom, -F c) de la BD con marca de tiempo y
+# elimina backups más antiguos que RetainDays.
+#
+# USO:
+#   .\scripts\backup-db.ps1                        (usa los valores por defecto)
+#   .\scripts\backup-db.ps1 -DbName clinica_colas -BackupDir C:\backups
+#
+# Requiere pg_dump en el PATH y la variable DB_PASSWORD (o la pide al usuario).
+# ============================================================
 param(
   [string]$DbName = "clinica_colas",
   [string]$DbUser = "postgres",

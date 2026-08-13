@@ -1,5 +1,22 @@
+/**
+ * Repositorio de usuarios/personal (tabla "Usuarios").
+ *
+ * Un usuario pertenece a una sede, tiene un rol (id_rol) y puede estar
+ * vinculado a un servicio, consultorio y/o especialidad. Cada usuario tiene
+ * un sesion_token que se renueva en cada login: sirve para invalidar sesiones
+ * antiguas (una sola sesión activa por usuario).
+ *
+ * Las consultas de login (findByCedula, findById, findManyByCedula) traen
+ * además la lista de permisos del rol como JSON (recursos:acciones).
+ */
 const pool = require('../config/db');
 
+/**
+ * Verifica qué cédulas de una lista ya existen en la base (validación en masa).
+ *
+ * @param {string[]} cedulas - Lista de cédulas a verificar
+ * @returns {Promise<Array<{cedula: string}>>}
+ */
 const findByCedulas = async (cedulas) => {
   if (!cedulas || cedulas.length === 0) return [];
   const placeholders = cedulas.map((_, i) => `$${i + 1}`).join(',');
@@ -206,27 +223,37 @@ const actualizarPersonal = async (id, sede, fields) => {
   );
 };
 
+/**
+ * Elimina un usuario de forma segura, en una transacción.
+ *
+ * El borrado es complejo porque "Usuarios" tiene claves foráneas hacia ella:
+ * se limpian/neutralizan los registros relacionados (refresh tokens, auditoría,
+ * códigos de recuperación y referencias en "Atencion") antes de borrar.
+ *
+ * @param {number} id - ID del usuario a eliminar
+ * @param {number} sede - Sede del usuario (filtro de seguridad adicional)
+ * @returns {Promise<boolean>} true si se eliminó algún registro
+ */
 const eliminarPersonal = async (id, sede) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
-    // 0. Delete refresh tokens first (FK constraint)
+    // 0. Se eliminan los refresh tokens primero (restricción de FK)
     await client.query('DELETE FROM "Refresh_Tokens" WHERE id_usuario = $1', [id]);
 
-    // 0.1 Nullify audit log references
+    // 0.1 Se anulan las referencias en el log de auditoría (se conserva el histórico)
     await client.query('UPDATE "Audit_Log" SET id_usuario = NULL WHERE id_usuario = $1', [id]);
 
-    // 1. Delete from "Recuperacion_Clave"
+    // 1. Códigos de recuperación de contraseña pendientes
     await client.query('DELETE FROM "Recuperacion_Clave" WHERE id_usuario = $1', [id]);
     
-    // 2. Set id_medico to NULL in "Atencion"
+    // 2 y 3. En "Atencion" el usuario puede aparecer como médico o como quien registró;
+    // se dejan en NULL para conservar la atención (no borrar histórico médico).
     await client.query('UPDATE "Atencion" SET id_medico = NULL WHERE id_medico = $1', [id]);
-    
-    // 3. Set id_usuario_registro to NULL in "Atencion"
     await client.query('UPDATE "Atencion" SET id_usuario_registro = NULL WHERE id_usuario_registro = $1', [id]);
     
-    // 4. Finally delete the user from "Usuarios"
+    // 4. Finalmente se elimina el usuario
     const result = await client.query(
       'DELETE FROM "Usuarios" WHERE id_usuario = $1 AND id_sede = $2 RETURNING id_usuario',
       [id, sede]
