@@ -52,11 +52,13 @@ const getEspecialidades = async (req, res) => {
  */
 const createEspecialidad = async (req, res) => {
   const { nombre, prefijo, id_servicio, id_sede, piso, consultorios_ids, activo } = req.body;
+  // El piso admite números y letras (M = mezanina); se guarda en MAYÚSCULA.
+  const pisoLimpio = (piso !== undefined && piso !== null) ? String(piso).trim().toUpperCase().replace(/[^A-Z0-9]/g, '') : piso;
   const client = await db.connect();
   try {
     await client.query('BEGIN');
 
-    const esp = await espRepo.create(client, { nombre, prefijo, id_servicio, id_sede, piso, activo });
+    const esp = await espRepo.create(client, { nombre, prefijo, id_servicio, id_sede, piso: pisoLimpio, activo });
     const espId = esp.id_especialidad;
 
     if (consultorios_ids && consultorios_ids.length > 0) {
@@ -85,6 +87,8 @@ const createEspecialidad = async (req, res) => {
 const updateEspecialidad = async (req, res) => {
   const { id } = req.params;
   const { nombre, prefijo, id_servicio, id_sede, piso, consultorios_ids, activo } = req.body;
+  // El piso admite números y letras (M = mezanina); se guarda en MAYÚSCULA.
+  const pisoLimpio = (piso !== undefined && piso !== null) ? String(piso).trim().toUpperCase().replace(/[^A-Z0-9]/g, '') : piso;
   const client = await db.connect();
   try {
     await client.query('BEGIN');
@@ -99,7 +103,7 @@ const updateEspecialidad = async (req, res) => {
     if (prefijo !== undefined) { sets.push(`prefijo = $${idx++}`); values.push(prefijo); }
     if (id_servicio !== undefined) { sets.push(`id_servicio = $${idx++}`); values.push(id_servicio); }
     if (id_sede !== undefined) { sets.push(`id_sede = $${idx++}`); values.push(id_sede); }
-    if (piso !== undefined) { sets.push(`piso = $${idx++}`); values.push(piso); }
+    if (piso !== undefined) { sets.push(`piso = $${idx++}`); values.push(pisoLimpio); }
     if (activo !== undefined) { sets.push(`activo = $${idx++}`); values.push(activo); }
 
     if (sets.length > 0) {
@@ -205,7 +209,8 @@ const importarEspecialidades = async (req, res) => {
     try {
       const nombre = (row.nombre || row.Nombre || row.NOMBRE || '').toString().toUpperCase().trim();
       const prefijo = (row.prefijo || row.Prefijo || row.PREFIJO || '').toString().toUpperCase().trim();
-      const piso = (row.piso || row.Piso || row.PISO || '').toString().replace(/\D/g, '');
+      // Piso: admite números y letras (M = mezanina); se guarda en MAYÚSCULA.
+      const piso = (row.piso || row.Piso || row.PISO || '').toString().trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
 
       let idSede = 1;
       if (row.id_sede !== undefined && row.id_sede !== null && row.id_sede !== '') {

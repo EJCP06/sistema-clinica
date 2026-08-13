@@ -90,6 +90,11 @@ const llamarSiguiente = async (req, res) => {
     await client.query('BEGIN');
     
     let servicioNombre = '';
+    // Piso físico del consultorio (tabla "Consultorios"): se envía al turnero
+    // para que anteponga el piso al número del consultorio en la voz y en la
+    // pantalla (ej. consultorio "01" en piso "1" => "101"). Se declara aquí,
+    // fuera del bloque else, para que el evento de socket pueda leerlo.
+    let consultorioPiso = null;
 
     if (rol === 'laboratorio' || rol === 'imagenes') {
       const sid = await resolverServicioId(rol, servicioId);
@@ -107,6 +112,7 @@ const llamarSiguiente = async (req, res) => {
       if (consultorio.estado !== 'LIBRE') { await client.query('ROLLBACK'); return res.status(400).json({ mensaje: 'El consultorio debe estar LIBRE para llamar' }); }
       servicioId = consultorio.servicio_id;
       servicioNombre = consultorio.nombre;
+      consultorioPiso = consultorio.piso || null;
     }
 
     if (!req.usuario || !req.usuario.id_sede) {
@@ -152,6 +158,12 @@ const llamarSiguiente = async (req, res) => {
         id_atencion: turno.id,
         turno: turno.numero, 
         consultorio: servicioNombre,
+        // Piso para el anuncio: se toma de la ESPECIALIDAD del turno (la que
+        // el admin configura en Especialidades, ej. "M" de mezanina) y se
+        // respalda con el piso físico del consultorio si la especialidad no
+        // tiene piso. El turnero lo antepone al número del consultorio
+        // (ej. especialidad en piso "M" + consultorio "01" => "M01").
+        piso: turno.especialidad_piso || consultorioPiso || null,
         paciente: turno.nombre_paciente,
         apellido: turno.apellido_paciente || '',
         id_sede: req.usuario.id_sede,

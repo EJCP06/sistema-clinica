@@ -15,7 +15,7 @@ const pool = require('../config/db');
  * @returns {Promise<Array<object>>}
  */
 const getConsultoriosBySede = async (sede) => {
-  let query = `SELECT id_consultorio as id, nombre, estado_fisico as estado, id_servicio as servicio_id
+  let query = `SELECT id_consultorio as id, nombre, estado_fisico as estado, id_servicio as servicio_id, piso
      FROM "Consultorios"`;
   const params = [];
   
@@ -40,23 +40,23 @@ const getConsultorioById = async (clientOrId, idOnly) => {
   const client = idOnly !== undefined ? clientOrId : pool;
   const consultorioId = idOnly !== undefined ? idOnly : clientOrId;
   const result = await client.query(
-    'SELECT estado_fisico as estado, id_servicio as servicio_id, nombre FROM "Consultorios" WHERE id_consultorio = $1 FOR UPDATE',
+    'SELECT estado_fisico as estado, id_servicio as servicio_id, nombre, piso FROM "Consultorios" WHERE id_consultorio = $1 FOR UPDATE',
     [consultorioId],
   );
   return result.rows[0] || null;
 };
 
-const createConsultorio = async (nombre, sede) => {
+const createConsultorio = async (nombre, sede, piso) => {
   await pool.query(
-    `INSERT INTO "Consultorios" (nombre, id_sede) VALUES ($1, $2)`,
-    [nombre, sede],
+    `INSERT INTO "Consultorios" (nombre, id_sede, piso) VALUES ($1, $2, $3)`,
+    [nombre, sede, piso || null],
   );
 };
 
-const updateConsultorio = async (id, sede, nombre) => {
+const updateConsultorio = async (id, sede, nombre, piso) => {
   await pool.query(
-    `UPDATE "Consultorios" SET nombre = $1 WHERE id_consultorio = $2 AND id_sede = $3`,
-    [nombre, id, sede],
+    `UPDATE "Consultorios" SET nombre = $1, piso = COALESCE($3, piso) WHERE id_consultorio = $2 AND id_sede = $4`,
+    [nombre, id, piso || null, sede],
   );
 };
 

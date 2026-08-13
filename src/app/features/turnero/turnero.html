@@ -146,7 +146,7 @@
                     </div>
                     <div *ngIf="t.id_estado_actual === 4" class="flex flex-col items-center gap-0 me-2 md:me-4">
                       <span class="text-[8px] md:text-[10px] font-bold text-white uppercase tracking-wider">CONSULTORIO</span>
-                      <span class="text-sm md:text-xl font-black text-white uppercase tracking-widest">{{ t.consultorio_nombre || '' }}</span>
+                      <span class="text-sm md:text-xl font-black text-white uppercase tracking-widest">{{ consultorioConPiso(t) }}</span>
                     </div>
                   </div>
               </div>
@@ -398,7 +398,7 @@
                   </div>
                   <div *ngIf="t.id_estado_actual === 4" class="flex flex-col items-center gap-0 me-2 md:me-4">
                     <span class="text-[8px] md:text-[10px] font-bold text-white uppercase tracking-wider">CONSULTORIO</span>
-                    <span class="text-sm md:text-xl font-black text-white uppercase tracking-widest">{{ t.consultorio_nombre || '' }}</span>
+                    <span class="text-sm md:text-xl font-black text-white uppercase tracking-widest">{{ consultorioConPiso(t) }}</span>
                   </div>
                 </div>
             </div>
@@ -440,7 +440,7 @@
               [class.text-orange-400]="t.id_estado_actual === 8"
             >{{ t.estado || '' }}</span>
           </div>
-                  <span *ngIf="t.id_estado_actual === 4" class="text-sm md:text-xl font-black text-white uppercase tracking-widest me-2 md:me-4">{{ t.consultorio_nombre || 'Consultorio' }}</span>
+                  <span *ngIf="t.id_estado_actual === 4" class="text-sm md:text-xl font-black text-white uppercase tracking-widest me-2 md:me-4">{{ consultorioConPiso(t) }}</span>
                 </div>
       </div>
     </div>

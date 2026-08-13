@@ -35,6 +35,8 @@ interface AnuncioActivo {
   paciente: string;
   apellido: string;
   consultorio: string;
+  /** Piso físico del consultorio (tabla "Consultorios"): se antepone al número en la voz (ej. "01" en piso "1" => "101"). */
+  piso: string | null;
   /** Llamado de módulo (APS / Laboratorio / Imágenes): anuncio único e inmediato. */
   destinoInmediato: boolean;
   /** Llamado del médico ("Llamar al Siguiente"): el primer anuncio sale ya y el ciclo de 10s continúa. */
@@ -282,6 +284,27 @@ export class TurneroComponent implements OnInit, OnDestroy {
 
   trackById = (index: number, item: TurnoDTO) => item?.id_atencion ?? item?.id ?? index;
 
+  /**
+   * Muestra el consultorio con el piso antepuesto en la pantalla (ej.
+   * consultorio "01" en piso "1" => "101", o en mezanina con piso "M" =>
+   * "M01", conservando el cero). El piso se toma de la ESPECIALIDAD del
+   * turno (configurado en Especialidades) y se respalda con el del
+   * consultorio físico. Puede ser numérico o una letra (M = mezanina),
+   * siempre en mayúscula. Si no hay piso o el nombre no es numérico,
+   * conserva el formato actual. Usado en las tarjetas de pacientes llamados.
+   */
+  consultorioConPiso(t: TurnoDTO): string {
+    const nombre = (t.consultorio_nombre || '').trim();
+    if (!nombre) return 'Consultorio';
+    const piso = (t.especialidad_piso || t.consultorio_piso || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const digitos = nombre.match(/\d+/);
+    if (piso && digitos) {
+      // Se conserva el número original del consultorio (con su cero): "M" + "01" => "M01".
+      return nombre.replace(digitos[0], `${piso}${digitos[0]}`);
+    }
+    return nombre.replace(/\b0+(\d+)\b/g, '$1');
+  }
+
   private queryParamsSub: Subscription | null = null;
   private timerSub: Subscription | null = null;
   private clockSub: Subscription | null = null;
@@ -430,6 +453,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       paciente: this.aNombreNatural(data.paciente || ''),
       apellido: this.aNombreNatural(data.apellido || ''),
       consultorio: data.consultorio,
+      piso: data.piso || null,
       // Los llamados de módulo (botones "Llamar" de APS/Lab/Imágenes) llevan
       // `forzar: true`: suenan al instante, son de disparo único y se
       // repiten en cada pulsación. La grilla de consultorios no lo lleva.
@@ -456,6 +480,27 @@ export class TurneroComponent implements OnInit, OnDestroy {
    */
   private esAnuncioAPS(consultorio: string): boolean {
     return consultorio.trim().toLowerCase() === 'aps';
+  }
+
+  /**
+   * Compone el destino del consultorio para la voz: si el consultorio tiene
+   * piso asignado, se antepone al número del consultorio (consultorio "01"
+   * en piso "1" => "101", o en mezanina con piso "M" => "M5", sin el cero:
+   * se lee "eme cinco" y no "eme cero cinco"). Cuando el piso es numérico se
+   * conserva el cero para que "1" + "01" siga siendo "101". El piso puede
+   * ser numérico o una letra (M = mezanina), siempre en mayúscula. Si no hay
+   * piso o el nombre no es numérico, conserva el formato actual.
+   */
+  private formatearConsultorioConPiso(consultorio: string, piso?: string | null): string {
+    const nombre = (consultorio || '').trim();
+    const pisoLimpio = (piso || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const digitos = nombre.match(/\d+/);
+    if (pisoLimpio && digitos) {
+      // Con piso de letra (M = mezanina) se quita el cero: "M" + "05" => "M5".
+      const numero = /^\d+$/.test(pisoLimpio) ? digitos[0] : digitos[0].replace(/^0+/, '');
+      return nombre.replace(digitos[0], `${pisoLimpio}${numero}`);
+    }
+    return nombre.replace(/\b0+(\d+)\b/g, '$1');
   }
 
   /**
@@ -496,8 +541,9 @@ export class TurneroComponent implements OnInit, OnDestroy {
       return false;
     }
     const nombreCompleto = `${a.paciente} ${a.apellido}`.trim();
-    const consultorioLimpio = a.consultorio.replace(/\b0+(\d+)\b/g, '$1');
-    let texto = `Paciente ${nombreCompleto}, diríjase al consultorio ${consultorioLimpio}`;
+    // Piso + número del consultorio (ej. consultorio "01" en piso "1" => "101")
+    const destinoConsultorio = this.formatearConsultorioConPiso(a.consultorio, a.piso);
+    let texto = `Paciente ${nombreCompleto}, diríjase al consultorio ${destinoConsultorio}`;
     const c = a.consultorio.toLowerCase();
     if (a.destinoInmediato) {
       // Botones "Llamar" de módulos (APS / clave / laboratorio / imágenes):
@@ -510,7 +556,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
     } else if (c.includes('consulta')) {
       texto = `Paciente ${nombreCompleto}, diríjase a consulta`;
     } else if (c.startsWith('consultorio')) {
-      texto = `Paciente ${nombreCompleto}, diríjase al ${consultorioLimpio}`;
+      texto = `Paciente ${nombreCompleto}, diríjase al ${destinoConsultorio}`;
     } else if (this.esAnuncioAPS(a.consultorio)) {
       texto = `Paciente ${nombreCompleto}, por favor acérquese a la recepción`;
     }
@@ -652,8 +698,9 @@ export class TurneroComponent implements OnInit, OnDestroy {
    */
   private construirTexto(a: AnuncioActivo): string {
     const nombreCompleto = `${a.paciente} ${a.apellido}`.trim();
-    const consultorioLimpio = a.consultorio.replace(/\b0+(\d+)\b/g, '$1');
-    let texto = `Paciente ${nombreCompleto}, diríjase al consultorio ${consultorioLimpio}`;
+    // Piso + número del consultorio (ej. consultorio "01" en piso "1" => "101")
+    const destinoConsultorio = this.formatearConsultorioConPiso(a.consultorio, a.piso);
+    let texto = `Paciente ${nombreCompleto}, diríjase al consultorio ${destinoConsultorio}`;
     const c = a.consultorio.toLowerCase();
     if (a.destinoInmediato) {
       // Botones "Llamar" de módulos (APS / clave / laboratorio / imágenes):
@@ -666,7 +713,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
     } else if (c.includes('consulta')) {
       texto = `Paciente ${nombreCompleto}, diríjase a consulta`;
     } else if (c.startsWith('consultorio')) {
-      texto = `Paciente ${nombreCompleto}, diríjase al ${consultorioLimpio}`;
+      texto = `Paciente ${nombreCompleto}, diríjase al ${destinoConsultorio}`;
     } else if (this.esAnuncioAPS(a.consultorio)) {
       texto = `Paciente ${nombreCompleto}, por favor acérquese a la recepción`;
     }
