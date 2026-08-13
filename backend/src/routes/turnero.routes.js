@@ -34,6 +34,10 @@ router.get('/pacientes', async (req, res) => {
       nombre_servicio: r.nombre_servicio,
       id_servicio: r.id_servicio,
       consultorio_nombre: r.consultorio_nombre,
+      // Piso físico del consultorio (respaldo si la especialidad no tiene piso).
+      consultorio_piso: r.consultorio_piso || null,
+      // Piso de la especialidad del turno: es el que se muestra antepuesto (ej. "M").
+      especialidad_piso: r.especialidad_piso || null,
       especialidad_nombre: r.nombre_especialidad,
       paciente: {
         nombre: r.nombre,
@@ -69,6 +73,10 @@ router.get('/ultimo-llamado', async (req, res) => {
       paciente: llamado.primer_nombre,
       apellido: llamado.primer_apellido || '',
       consultorio: llamado.consultorio_nombre || llamado.nombre_servicio,
+      // Piso para el anuncio: el de la ESPECIALIDAD del turno (configurado en
+      // Especialidades, ej. "M" de mezanina), con respaldo al piso físico del
+      // consultorio. El turnero lo antepone al número (ej. "M" + "01" => "M01").
+      piso: llamado.especialidad_piso || llamado.consultorio_piso || null,
       hora_llamado: llamado.hora_llamado || null,
       hora_llamado_epoch: horaLlamadoMs,
       // Mismo ancla que el evento por socket de consultorios.controller.js:
@@ -98,6 +106,10 @@ router.get('/sala-espera', async (req, res) => {
       nombre_servicio: r.nombre_servicio,
       id_servicio: r.id_servicio,
       consultorio_nombre: r.consultorio_nombre,
+      // Piso físico del consultorio (respaldo si la especialidad no tiene piso).
+      consultorio_piso: r.consultorio_piso || null,
+      // Piso de la especialidad del turno: es el que se muestra antepuesto (ej. "M").
+      especialidad_piso: r.especialidad_piso || null,
       especialidad_nombre: r.nombre_especialidad,
       paciente: {
         nombre: r.nombre,

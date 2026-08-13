@@ -127,6 +127,10 @@ export interface TurnoDTO {
   nombre_servicio?: string;
   especialidad_nombre?: string;
   consultorio_nombre?: string;
+  /** Piso físico del consultorio (respaldo si la especialidad no tiene piso). */
+  consultorio_piso?: string | null;
+  /** Piso de la especialidad del turno (ej. "M" de mezanina): es el que se antepone en la pantalla. */
+  especialidad_piso?: string | null;
   updated_at?: string;
 }
 

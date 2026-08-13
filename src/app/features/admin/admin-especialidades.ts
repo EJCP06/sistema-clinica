@@ -219,7 +219,8 @@ export class AdminEspecialidades implements OnInit {
       prefijo: (this.formEsp.prefijo || '').toUpperCase().trim(),
       id_servicio: 1,
       consultorios_ids: this.formEsp.consultorios_ids,
-      piso: (this.formEsp.piso || '').toString().replace(/\D/g, ''),
+      // Piso: admite números y letras (M = mezanina); se guarda en MAYÚSCULA.
+      piso: (this.formEsp.piso || '').toString().trim().toUpperCase().replace(/[^A-Z0-9]/g, ''),
       activo: this.formEsp.activo,
       id_sede: this.formEsp.id_sede ? Number(this.formEsp.id_sede) : 1,
     };
@@ -353,11 +354,6 @@ export class AdminEspecialidades implements OnInit {
     const input = event.target as HTMLInputElement;
     input.value = input.value.trim();
     input.dispatchEvent(new Event('input'));
-  }
-
-  soloNumeros(event: KeyboardEvent) {
-    const pattern = /\d/;
-    if (event.key.length === 1 && !pattern.test(event.key)) event.preventDefault();
   }
 
   importExcel(fileInput: HTMLInputElement) {

@@ -312,10 +312,12 @@ const reincorporarPaciente = async (client, id) => {
  */
 const getEnEsperaPorServicio = async (client, servicioId, sede, idEspecialidad) => {
   let query = `
-    SELECT a.id_atencion as id, a.numero, e.nombre_estado as estado, p.primer_nombre as nombre_paciente, p.primer_apellido as apellido_paciente, p.cedula as documento_paciente, p.telefono as telefono_paciente, a.hora_llegada
+    SELECT a.id_atencion as id, a.numero, e.nombre_estado as estado, p.primer_nombre as nombre_paciente, p.primer_apellido as apellido_paciente, p.cedula as documento_paciente, p.telefono as telefono_paciente, a.hora_llegada,
+           esp.piso as especialidad_piso
     FROM "Atencion" a
     JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
     JOIN "Estado" e ON a.id_estado_actual = e.id_estado
+    LEFT JOIN "Especialidades" esp ON a.id_especialidad = esp.id_especialidad
     WHERE a.id_servicio = $1 AND a.id_estado_actual = 3 AND a.id_sede = $2
   `;
   const params = [servicioId, sede];
@@ -323,7 +325,11 @@ const getEnEsperaPorServicio = async (client, servicioId, sede, idEspecialidad) 
     query += ` AND a.id_especialidad = $3`;
     params.push(idEspecialidad);
   }
-  query += ` ORDER BY a.hora_llegada ASC LIMIT 1 FOR UPDATE SKIP LOCKED`;
+  // FOR UPDATE OF a: bloquea SOLO las filas de "Atencion" (el lado no
+  // nulable). PostgreSQL no permite bloquear el lado nulable de un outer
+  // join (el LEFT JOIN con Especialidades para el piso), por eso se acota
+  // el bloqueo a la tabla base.
+  query += ` ORDER BY a.hora_llegada ASC LIMIT 1 FOR UPDATE OF a SKIP LOCKED`;
   const result = await client.query(query, params);
   return result.rows[0] || null;
 };
@@ -601,6 +607,8 @@ const getTurneroPacientes = async (estados, servicios, responsable, sede) => {
       s.nombre_servicio, s.prefijo, s.id_servicio,
       e.nombre_estado,
       c.nombre as consultorio_nombre,
+      c.piso as consultorio_piso,
+      esp.piso as especialidad_piso,
       rp.nombre as modalidad_pago,
       esp.nombre as nombre_especialidad
     FROM "Atencion" a
@@ -633,6 +641,8 @@ const getSalaEspera = async () => {
       s.nombre_servicio, s.prefijo, s.id_servicio,
       e.nombre_estado,
       c.nombre as consultorio_nombre,
+      c.piso as consultorio_piso,
+      esp.piso as especialidad_piso,
       esp.nombre as nombre_especialidad
     FROM "Atencion" a
     JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
@@ -693,6 +703,8 @@ const getUltimoLlamado = async (sede) => {
     `SELECT a.id_atencion, a.numero,
             p.primer_nombre, p.primer_apellido,
             c.nombre as consultorio_nombre,
+            c.piso as consultorio_piso,
+            esp.piso as especialidad_piso,
             s.nombre_servicio,
             (SELECT h.fecha_hora FROM "Historial_Atencion" h
              WHERE h.id_atencion = a.id_atencion AND h.id_estado = 4
@@ -700,6 +712,7 @@ const getUltimoLlamado = async (sede) => {
      FROM "Atencion" a
      JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
      LEFT JOIN "Consultorios" c ON a.id_consultorio = c.id_consultorio
+     LEFT JOIN "Especialidades" esp ON a.id_especialidad = esp.id_especialidad
      LEFT JOIN "Servicio" s ON a.id_servicio = s.id_servicio
      WHERE a.id_sede = $1 AND a.id_estado_actual = 4 AND a.hora_salida IS NULL
        AND (SELECT h.fecha_hora FROM "Historial_Atencion" h

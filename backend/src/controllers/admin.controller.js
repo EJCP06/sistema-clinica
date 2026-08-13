@@ -262,7 +262,11 @@ const crearConsultorio = async (req, res) => {
 
   try {
     const { nombre } = req.body;
-    await consultorioRepo.createConsultorio(nombre, sede);
+    // Piso: admite números y letras (M = mezanina); se guarda en MAYÚSCULA.
+    const piso = (req.body.piso !== undefined && req.body.piso !== null)
+      ? String(req.body.piso).trim().toUpperCase().replace(/[^A-Z0-9]/g, '')
+      : null;
+    await consultorioRepo.createConsultorio(nombre, sede, piso);
     res.json({ mensaje: 'Consultorio creado' });
   } catch (error) {
     logger.error(error);
@@ -284,8 +288,12 @@ const actualizarConsultorio = async (req, res) => {
   try {
     const { id } = req.params;
     const { nombre } = req.body;
+    // Piso: admite números y letras (M = mezanina); se guarda en MAYÚSCULA.
+    const piso = (req.body.piso !== undefined && req.body.piso !== null)
+      ? String(req.body.piso).trim().toUpperCase().replace(/[^A-Z0-9]/g, '')
+      : null;
 
-    await consultorioRepo.updateConsultorio(id, sede, nombre);
+    await consultorioRepo.updateConsultorio(id, sede, nombre, piso);
     res.json({ mensaje: 'Consultorio actualizado' });
   } catch (error) {
     logger.error(error);

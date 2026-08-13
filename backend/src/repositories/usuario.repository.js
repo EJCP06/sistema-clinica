@@ -204,7 +204,15 @@ const actualizarPersonal = async (id, sede, fields) => {
 
   for (const key of keys) {
     if (key === 'rol') {
-      const rolRes = await pool.query('SELECT id_rol FROM "Roles" WHERE key = $1 AND id_sede = $2', [fields.rol, sede]);
+      // El rol debe resolverse en la sede NUEVA del usuario (si viene en el
+      // mismo guardado) y no en la sede del admin que edita: si se usaba la
+      // sede del admin, al cambiarle la sede al usuario quedaba id_sede de
+      // una sede e id_rol de otra, y los permisos del sidebar correspondían
+      // al rol de la sede equivocada.
+      const sedeDelRol = fields.id_sede !== undefined && fields.id_sede !== null
+        ? Number(fields.id_sede)
+        : sede;
+      const rolRes = await pool.query('SELECT id_rol FROM "Roles" WHERE key = $1 AND id_sede = $2', [fields.rol, sedeDelRol]);
       const idRol = rolRes.rows[0]?.id_rol;
       if (idRol) {
         sets.push(`id_rol = $${idx++}`);
