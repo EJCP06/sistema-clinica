@@ -44,11 +44,13 @@ const findByCedula = async (cedula) => {
              '[]'::json
            ) as permisos,
            COALESCE(
-             (SELECT json_agg(json_build_object('id', ue.id_especialidad, 'nombre', e2.nombre))
+             (SELECT json_agg(
+                      json_build_object('id', ue.id_especialidad, 'nombre', e2.nombre)
+                      ORDER BY (ue.id_especialidad = u.id_especialidad) DESC, ue.id_especialidad
+                    )
               FROM "Usuario_Especialidad" ue
               LEFT JOIN "Especialidades" e2 ON ue.id_especialidad = e2.id_especialidad
-              WHERE ue.id_usuario = u.id_usuario AND ue.activo = TRUE AND e2.activo = TRUE
-              ORDER BY (ue.id_especialidad = u.id_especialidad) DESC, ue.id_especialidad),
+              WHERE ue.id_usuario = u.id_usuario AND ue.activo = TRUE AND e2.activo = TRUE),
              '[]'::json
            ) as especialidades_activas
     FROM "Usuarios" u
@@ -76,11 +78,13 @@ const findManyByCedula = async (cedula) => {
              '[]'::json
            ) as permisos,
            COALESCE(
-             (SELECT json_agg(json_build_object('id', ue.id_especialidad, 'nombre', e2.nombre))
+             (SELECT json_agg(
+                      json_build_object('id', ue.id_especialidad, 'nombre', e2.nombre)
+                      ORDER BY (ue.id_especialidad = u.id_especialidad) DESC, ue.id_especialidad
+                    )
               FROM "Usuario_Especialidad" ue
               LEFT JOIN "Especialidades" e2 ON ue.id_especialidad = e2.id_especialidad
-              WHERE ue.id_usuario = u.id_usuario AND ue.activo = TRUE AND e2.activo = TRUE
-              ORDER BY (ue.id_especialidad = u.id_especialidad) DESC, ue.id_especialidad),
+              WHERE ue.id_usuario = u.id_usuario AND ue.activo = TRUE AND e2.activo = TRUE),
              '[]'::json
            ) as especialidades_activas
     FROM "Usuarios" u
