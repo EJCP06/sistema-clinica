@@ -212,6 +212,10 @@ export interface PersonalDTO {
   servicio_id?: number;
   id_especialidad?: number;
   especialidad_id?: number;
+  /** IDs de TODAS las especialidades del usuario (la primera es la principal). */
+  especialidades?: number[];
+  /** IDs de las especialidades del usuario que están INACTIVAS (no puede entrar con ellas). */
+  especialidades_inactivas?: number[];
   id_sede?: number;
   status?: boolean;
   activo?: boolean;
@@ -234,6 +238,8 @@ export interface CrearPersonalRequest {
   id_consultorio?: number;
   id_servicio?: number;
   id_especialidad?: number;
+  /** IDs de TODAS las especialidades del usuario (la primera es la principal). */
+  especialidades?: number[];
   username?: string;
   status?: boolean;
   id_sede?: number;

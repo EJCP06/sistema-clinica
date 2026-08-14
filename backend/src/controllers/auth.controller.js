@@ -58,9 +58,17 @@ const login = async (req, res) => {
       return res.status(403).json({ mensaje: 'Su rol se encuentra inactivo. Contacte al administrador.' });
     }
 
-    if (usuario.id_especialidad != null && usuario.esp_activo === false) {
+    // Múltiples especialidades: entra si al menos una está activa. La sesión
+    // usa la PRIMERA activa (la principal si está activa, si no la primera
+    // de la lista). Si ninguna está activa, no entra.
+    const especialidadesActivas = Array.isArray(usuario.especialidades_activas)
+      ? usuario.especialidades_activas
+      : [];
+    const esMedicoConEspecialidad = usuario.id_especialidad != null || especialidadesActivas.length > 0;
+    if (esMedicoConEspecialidad && especialidadesActivas.length === 0) {
       return res.status(403).json({ mensaje: 'Su especialidad se encuentra inactiva. Contacte al administrador.' });
     }
+    const espSesion = especialidadesActivas[0] || null;
 
     // Desconectar sockets previos del mismo usuario — el último login siempre gana
     let socketsPrevios = [];
@@ -99,8 +107,9 @@ const login = async (req, res) => {
       servicio_id: usuario.servicio_id,
       consultorio_id: usuario.consultorio_id,
       id_sede: usuario.id_sede,
-      id_especialidad: usuario.id_especialidad,
-      especialidad_nombre: usuario.especialidad_nombre,
+      id_especialidad: espSesion ? Number(espSesion.id) : usuario.id_especialidad,
+      especialidad_nombre: espSesion ? espSesion.nombre : usuario.especialidad_nombre,
+      especialidades_activas: especialidadesActivas,
       sesion_token: sesionToken
     };
 
@@ -189,7 +198,11 @@ const misPermisos = async (req, res) => {
     if (usuario.rol_activo === false) {
       return res.status(403).json({ mensaje: 'Su rol se encuentra inactivo. Contacte al administrador.' });
     }
-    if (usuario.id_especialidad != null && usuario.esp_activo === false) {
+    const especialidadesActivas = Array.isArray(usuario.especialidades_activas)
+      ? usuario.especialidades_activas
+      : [];
+    const esMedicoConEspecialidad = usuario.id_especialidad != null || especialidadesActivas.length > 0;
+    if (esMedicoConEspecialidad && especialidadesActivas.length === 0) {
       return res.status(403).json({ mensaje: 'Su especialidad se encuentra inactiva. Contacte al administrador.' });
     }
     let permisosArr;
@@ -202,6 +215,82 @@ const misPermisos = async (req, res) => {
     res.json({ permisos: permisosArr });
   } catch (error) {
     res.status(500).json({ mensaje: 'Error al obtener permisos' });
+  }
+};
+
+/**
+ * Selecciona con cuál especialidad entra el médico cuando tiene varias
+ * activas. Valida que la especialidad sea de las activas del usuario y
+ * emite un access token NUEVO con esa especialidad en la sesión.
+ *
+ * @param {import('express').Request} req - Petición HTTP (autenticado)
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
+const seleccionarEspecialidad = async (req, res) => {
+  const { id_especialidad } = req.body;
+
+  if (!id_especialidad) {
+    return res.status(400).json({ mensaje: 'Seleccione una especialidad' });
+  }
+
+  try {
+    const usuario = await usuarioRepo.findByCedula(req.usuario.cedula);
+    if (!usuario) {
+      return res.status(404).json({ mensaje: 'Usuario no encontrado' });
+    }
+    if (usuario.status === false) {
+      return res.status(403).json({ mensaje: 'Su usuario se encuentra inactivo. Contacte al administrador.' });
+    }
+    if (usuario.rol_activo === false) {
+      return res.status(403).json({ mensaje: 'Su rol se encuentra inactivo. Contacte al administrador.' });
+    }
+
+    const especialidadesActivas = Array.isArray(usuario.especialidades_activas)
+      ? usuario.especialidades_activas
+      : [];
+    const elegida = especialidadesActivas.find(
+      (e) => Number(e.id) === Number(id_especialidad),
+    );
+    if (!elegida) {
+      return res.status(400).json({ mensaje: 'La especialidad seleccionada no está activa para este usuario' });
+    }
+
+    let permisosArr;
+    try {
+      permisosArr = Array.isArray(usuario.permisos) ? usuario.permisos : (usuario.permisos ? JSON.parse(usuario.permisos) : []);
+    } catch (e) {
+      permisosArr = [];
+    }
+
+    const payload = {
+      id: usuario.id,
+      id_rol: usuario.id_rol,
+      cedula: usuario.cedula,
+      nombre: usuario.nombre,
+      apellido: usuario.apellido,
+      rol: usuario.rol,
+      permisos: permisosArr,
+      servicio_id: usuario.servicio_id,
+      consultorio_id: usuario.consultorio_id,
+      id_sede: usuario.id_sede,
+      id_especialidad: Number(elegida.id),
+      especialidad_nombre: elegida.nombre,
+      especialidades_activas: especialidadesActivas,
+      sesion_token: usuario.sesion_token,
+    };
+
+    const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
+    auditar({ userId: usuario.id, accion: 'login', recurso: 'auth', detalle: { especialidad: elegida.nombre }, ip: req.ip });
+
+    res.json({
+      mensaje: 'Especialidad seleccionada',
+      token: accessToken,
+      expiresIn: 86400,
+      usuario: payload,
+    });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error interno' });
   }
 };
 
@@ -272,10 +361,15 @@ const refrescarToken = async (req, res) => {
       res.clearCookie('refresh_token', { ...COOKIE_OPTIONS });
       return res.status(401).json({ mensaje: 'Rol desactivado' });
     }
-    if (usuario.id_especialidad != null && usuario.esp_activo === false) {
+    const especialidadesActivas = Array.isArray(usuario.especialidades_activas)
+      ? usuario.especialidades_activas
+      : [];
+    const esMedicoConEspecialidad = usuario.id_especialidad != null || especialidadesActivas.length > 0;
+    if (esMedicoConEspecialidad && especialidadesActivas.length === 0) {
       res.clearCookie('refresh_token', { ...COOKIE_OPTIONS });
       return res.status(401).json({ mensaje: 'Especialidad desactivada' });
     }
+    const espSesion = especialidadesActivas[0] || null;
 
     const sesionToken = usuario.sesion_token;
 
@@ -297,8 +391,9 @@ const refrescarToken = async (req, res) => {
       servicio_id: usuario.servicio_id,
       consultorio_id: usuario.consultorio_id,
       id_sede: usuario.id_sede,
-      id_especialidad: usuario.id_especialidad,
-      especialidad_nombre: usuario.especialidad_nombre,
+      id_especialidad: espSesion ? Number(espSesion.id) : usuario.id_especialidad,
+      especialidad_nombre: espSesion ? espSesion.nombre : usuario.especialidad_nombre,
+      especialidades_activas: especialidadesActivas,
       sesion_token: sesionToken,
     };
 
@@ -319,6 +414,7 @@ const refrescarToken = async (req, res) => {
 
 module.exports = {
   login,
+  seleccionarEspecialidad,
   cambiarPassword,
   misPermisos,
   cerrarSesion,

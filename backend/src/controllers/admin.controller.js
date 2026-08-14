@@ -388,6 +388,8 @@ const crearPersonal = async (req, res) => {
       id_consultorio,
       id_servicio,
       id_especialidad,
+      especialidades,
+      especialidades_inactivas,
       username,
       status,
       id_sede,
@@ -420,6 +422,8 @@ const crearPersonal = async (req, res) => {
       id_consultorio: id_consultorio || null,
       id_servicio: id_servicio || null,
       id_especialidad: id_especialidad || null,
+      especialidades: Array.isArray(especialidades) ? especialidades.map(Number) : [],
+      especialidadesInactivas: Array.isArray(especialidades_inactivas) ? especialidades_inactivas.map(Number) : [],
       sede: sedeFinal,
       status: status !== false,
     });
@@ -469,7 +473,7 @@ const actualizarPersonal = async (req, res) => {
       'cedula', 'primer_nombre', 'segundo_nombre', 'primer_apellido',
       'segundo_apellido', 'telefono', 'email', 'password_hash',
       'rol', 'id_consultorio', 'id_servicio', 'id_especialidad',
-      'status', 'id_sede',
+      'especialidades', 'especialidades_inactivas', 'status', 'id_sede',
     ];
     const safeFields = {};
     for (const key of Object.keys(fields)) {
@@ -789,25 +793,70 @@ const actualizarRol = async (req, res) => {
 };
 
 /**
- * Elimina un rol del sistema. Previene la eliminación si hay usuarios
- * asignados al rol (foreign key).
+ * Elimina un rol del sistema.
+ *
+ * Si el rol está asignado a usuarios, estos se desactivan (status = false)
+ * y se les quita el rol (id_rol = NULL) para que no puedan iniciar sesión;
+ * luego se elimina el rol. Los permisos del rol se borran en cascada desde
+ * "Roles_Recursos_Acciones".
  *
  * @param {import('express').Request} req - Petición HTTP
  * @param {import('express').Response} res - Respuesta HTTP
  * @returns {Promise<void>}
  */
 const eliminarRol = async (req, res) => {
+  const { id } = req.params;
+  const client = await pool.connect();
+  let usuariosDesactivados = [];
   try {
-    const { id } = req.params;
-    await rolRepo.remove(id);
-    res.json({ mensaje: 'Rol eliminado' });
+    await client.query('BEGIN');
+
+    // 1. Usuarios que tienen este rol: se desactivan y se les quita el rol
+    const usersRes = await client.query(
+      'SELECT id_usuario FROM "Usuarios" WHERE id_rol = $1',
+      [id]
+    );
+    usuariosDesactivados = usersRes.rows.map((r) => Number(r.id_usuario));
+
+    if (usuariosDesactivados.length > 0) {
+      await client.query(
+        'UPDATE "Usuarios" SET status = false, id_rol = NULL WHERE id_rol = $1',
+        [id]
+      );
+    }
+
+    // 2. Se elimina el rol (sus permisos se borran en cascada)
+    await client.query('DELETE FROM "Roles" WHERE id_rol = $1', [id]);
+
+    await client.query('COMMIT');
   } catch (error) {
+    await client.query('ROLLBACK');
     logger.error('Error al eliminar rol:', error);
     if (error.code === '23503') {
       return res.status(409).json({ mensaje: 'No se puede eliminar el rol porque está asignado a uno o más usuarios' });
     }
-    res.status(500).json({ mensaje: 'Error al eliminar rol' });
+    return res.status(500).json({ mensaje: 'Error al eliminar rol' });
+  } finally {
+    client.release();
   }
+
+  // 3. Desconectar en tiempo real a los usuarios que quedaron desactivados
+  if (usuariosDesactivados.length > 0 && req.io) {
+    try {
+      const sockets = await req.io.fetchSockets();
+      for (const socket of sockets) {
+        if (socket.usuario && usuariosDesactivados.includes(Number(socket.usuario.id))) {
+          socket.emit('rol-desactivado');
+          socket.disconnect(true);
+        }
+      }
+    } catch { /* Si fetchSockets falla, los usuarios ya quedaron desactivados en BD */ }
+  }
+
+  res.json({
+    mensaje: 'Rol eliminado',
+    desactivados: usuariosDesactivados.length,
+  });
 };
 
 module.exports = {

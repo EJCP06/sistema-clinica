@@ -69,7 +69,12 @@ router.post('/atencion/:id/llamar-imagenes', permitirLlamado([...rolesModulos, '
 router.use(perm(
   'ADMISION_TOTAL',
   'LABORATORIO_TOTAL',
-  'IMAGENES_TOTAL'
+  'IMAGENES_TOTAL',
+  // El analista (APS) edita pacientes desde su módulo con aps:editar,
+  // y los técnicos de laboratorio/imágenes con laboratorio:editar / imagenes:editar.
+  'aps:editar',
+  'laboratorio:editar',
+  'imagenes:editar'
 ));
 router.get('/pacientes/:termino', ctrl.buscarPaciente);
 router.post('/pacientes', [

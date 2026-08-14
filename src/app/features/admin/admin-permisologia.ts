@@ -55,10 +55,14 @@ export class AdminPermisologia implements OnInit, OnDestroy {
   cargando: boolean = true;
 
   private recursosPermitidos = ['admision', 'aps', 'laboratorio', 'imagenes', 'atencion_medica', 'aseguradoras', 'especialidades'];
-  private recursosSoloVer = new Set(['laboratorio', 'imagenes', 'atencion_medica']);
+  private recursosSoloVer = new Set(['atencion_medica']);
+  // APS, Laboratorio e Imágenes no registran pacientes (eso es de admisión):
+  // solo ven, editan y retiran (eliminar = retirar al paciente).
+  private recursosSinCrear = new Set(['aps', 'laboratorio', 'imagenes']);
 
   getAccionesRecurso(key: string): string[] {
     if (this.recursosSoloVer.has(key)) return ['ver'];
+    if (this.recursosSinCrear.has(key)) return ['ver', 'editar', 'eliminar'];
     return ['ver', 'crear', 'editar', 'eliminar'];
   }
 
@@ -73,6 +77,73 @@ export class AdminPermisologia implements OnInit, OnDestroy {
   showRolDropdown = false;
   showSedeDropdown = false;
   showModuloDropdown = false;
+
+  // ---- Autocomplete de los selects del modal (escribir para filtrar) ----
+  rolFiltro: string = '';
+  moduloFiltro: string = '';
+  rolIndex: number = -1;
+  moduloIndex: number = -1;
+
+  get rolesConFiltro(): RolDTO[] {
+    const q = (this.rolFiltro || '').trim().toLowerCase();
+    return this.roles.filter(r => !q || (r.nombre || '').toLowerCase().includes(q) || (r.key || '').toLowerCase().includes(q));
+  }
+
+  get modulosConFiltro(): RecursoMatrizDTO[] {
+    const q = (this.moduloFiltro || '').trim().toLowerCase();
+    return this.recursos.filter(r => !q || (r.nombre || '').toLowerCase().includes(q) || (r.key || '').toLowerCase().includes(q));
+  }
+
+  onRolInput(event: Event) {
+    this.rolFiltro = (event.target as HTMLInputElement).value;
+    this.showRolDropdown = true;
+    this.rolIndex = -1;
+  }
+
+  onRolKeydown(event: KeyboardEvent) {
+    const list = this.rolesConFiltro;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.showRolDropdown = true;
+      if (list.length) this.rolIndex = (this.rolIndex + 1) % list.length;
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (list.length) this.rolIndex = (this.rolIndex - 1 + list.length) % list.length;
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      if (this.showRolDropdown && list[this.rolIndex]) {
+        this.selectRol(list[this.rolIndex].id);
+      }
+    } else if (event.key === 'Escape') {
+      this.showRolDropdown = false;
+    }
+  }
+
+  onModuloInput(event: Event) {
+    this.moduloFiltro = (event.target as HTMLInputElement).value;
+    this.showModuloDropdown = true;
+    this.moduloIndex = -1;
+  }
+
+  onModuloKeydown(event: KeyboardEvent) {
+    const list = this.modulosConFiltro;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.showModuloDropdown = true;
+      if (list.length) this.moduloIndex = (this.moduloIndex + 1) % list.length;
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (list.length) this.moduloIndex = (this.moduloIndex - 1 + list.length) % list.length;
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      if (this.showModuloDropdown && list[this.moduloIndex]) {
+        this.selectModulo(list[this.moduloIndex].key);
+      }
+    } else if (event.key === 'Escape') {
+      this.showModuloDropdown = false;
+    }
+  }
+
   isEditing = false;
   isSaving = false;
   private inicioGuardado: number = 0;
@@ -198,6 +269,8 @@ export class AdminPermisologia implements OnInit, OnDestroy {
   selectRol(id: number) {
     this.selectedRoleId = id;
     this.showRolDropdown = false;
+    this.rolIndex = -1;
+    this.rolFiltro = this.toTitleCase(this.getRolNombre(id));
     if (!this.isEditing) {
       this.cargarPermisosRol(id);
     }
@@ -217,6 +290,8 @@ export class AdminPermisologia implements OnInit, OnDestroy {
   selectModulo(key: string) {
     this.selectedModuloKey = key;
     this.showModuloDropdown = false;
+    this.moduloIndex = -1;
+    this.moduloFiltro = this.toTitleCase(this.getModuloNombre(key));
   }
 
   getModuloNombre(key: string): string {
@@ -234,6 +309,8 @@ export class AdminPermisologia implements OnInit, OnDestroy {
     this.showRolDropdown = false;
     this.showSedeDropdown = false;
     this.showModuloDropdown = false;
+    this.rolFiltro = '';
+    this.moduloFiltro = '';
     this.modalTrigger = trigger || null;
     this.showModal = true;
   }
@@ -248,6 +325,8 @@ export class AdminPermisologia implements OnInit, OnDestroy {
     this.showRolDropdown = false;
     this.showSedeDropdown = false;
     this.showModuloDropdown = false;
+    this.rolFiltro = '';
+    this.moduloFiltro = '';
     this.modalTrigger = trigger || null;
     this.showModal = true;
 

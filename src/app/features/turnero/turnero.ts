@@ -397,9 +397,6 @@ export class TurneroComponent implements OnInit, OnDestroy {
       let continuar = true;
       try {
         continuar = hablar();
-        if (continuar) {
-          console.log('[Turnero v7] Anuncio repetido (ciclo de 10s) para', a.idAtencion);
-        }
       } catch (e) {
         console.error('[Turnero v7] Error en anuncio repetido:', e);
       }
@@ -903,9 +900,8 @@ export class TurneroComponent implements OnInit, OnDestroy {
     // El contador de instancias detecta turneros duplicados en la misma pestaña.
     try {
       (window as any).__turnero_instancias = ((window as any).__turnero_instancias || 0) + 1;
-      console.log(`[Turnero v7] Guardia anti-doble activa (instancia #${(window as any).__turnero_instancias}): un anuncio cada 10s anclado al contador del médico.`);
     } catch {
-      console.log('[Turnero v7] Guardia anti-doble activa: un anuncio cada 10s anclado al contador del médico.');
+      // El contador de instancias es solo informativo; el turnero funciona igual sin él.
     }
     const validarSede = (sedeUrl: string | undefined): boolean => {
       // Modo kiosco: la sede puede venir directa en la URL (/turnero/1,
@@ -1247,7 +1243,6 @@ private verificarUltimoLlamado() {
               const anclaLocal = this.inicioMsActual - this.deltaRelojMs;
               const elapsed = Date.now() - anclaLocal;
               if (esMismoLlamado && elapsed >= -3000 && elapsed < 120000) {
-                console.log(`[Turnero v7] Ciclo anclado (polling): próximo anuncio en la siguiente marca de 10s (contador ≈ ${Math.max(0, Math.round((120000 - elapsed) / 1000))}s).`);
                 // Reanudar en la SIGUIENTE marca de la grilla, NO disparar el
                 // tick inmediato (el primer anuncio ya sonó antes de la recarga).
                 data.inicio_inmediato = false;

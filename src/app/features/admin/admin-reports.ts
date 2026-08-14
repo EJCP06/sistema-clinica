@@ -254,7 +254,6 @@ export class AdminReports implements OnInit, OnDestroy {
     this.cargando = true;
     this.apiService.getReporteDiario(this.fechaDesde, this.fechaHasta).subscribe({
       next: (rep: ReporteDiarioDTO) => {
-        console.log('Reporte diario recibido:', rep);
         this.turnosOriginal = rep.turnos ?? [];
         this.turnos = rep.turnos ?? [];
         this.currentPage = 1;
