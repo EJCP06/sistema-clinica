@@ -13,6 +13,21 @@
  */
 const rateLimit = require('express-rate-limit');
 
+/**
+ * Extrae una IP válida para el rate limiter. Bajo IIS/iisnode (o proxies)
+ * la IP puede llegar como "[::1]:61401" (IPv6 con puerto) o como
+ * "::ffff:127.0.0.1" (IPv4 mapeada), formato que express-rate-limit v8
+ * rechaza con ERR_ERL_INVALID_IP_ADDRESS. Esta función limpia esos casos.
+ */
+const obtenerIpCliente = (req) => {
+  const ip = req.ip || req.socket?.remoteAddress || 'desconocido';
+  return String(ip)
+    .replace(/^\[|\]$/g, '') // quitar corchetes: [::1] -> ::1
+    .replace(/^::ffff:/, '')  // normalizar IPv4 mapeada: ::ffff:127.0.0.1 -> 127.0.0.1
+    .replace(/:\d+$/, '')    // quitar puerto al final: [::1]:61401 -> ::1
+    || 'desconocido';
+};
+
 // Límite general de la API (no aplica a /turnero/*, que consulta el estado constantemente).
 const apiLimiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 60000,
@@ -20,6 +35,7 @@ const apiLimiter = rateLimit({
   message: { mensaje: 'Demasiadas solicitudes. Intente de nuevo más tarde.' },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: obtenerIpCliente,
   skip: (req) => (req.originalUrl || req.path).includes('/turnero/'),
 });
 
@@ -30,6 +46,7 @@ const loginLimiter = rateLimit({
   message: { mensaje: 'Demasiados intentos de inicio de sesión. Intente de nuevo en 5 minutos.' },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: obtenerIpCliente,
   requestWasSuccessful: (req, res) => res.statusCode < 400,
 });
 
@@ -40,6 +57,7 @@ const otpLimiter = rateLimit({
   message: { mensaje: 'Demasiados intentos de verificación. Intente de nuevo en 15 minutos.' },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: obtenerIpCliente,
 });
 
 module.exports = { apiLimiter, loginLimiter, otpLimiter };
