@@ -133,7 +133,11 @@ const login = async (req, res) => {
     }
 
   } catch (error) {
-      res.status(500).json({ mensaje: 'Error interno' });
+    logErrorSafe('Error en login', error);
+    if (process.env.NODE_ENV !== 'production') {
+      return res.status(500).json({ mensaje: 'Error interno', detalle: error?.message || String(error) });
+    }
+    return res.status(500).json({ mensaje: 'Error interno' });
   }
 };
 
