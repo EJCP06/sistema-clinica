@@ -162,17 +162,17 @@
           <div class="space-y-1 shrink-0 rol-dropdown-container relative">
             <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Rol <span class="text-rose-500">*</span></label>
             <div class="relative">
-              <button type="button" (click)="showRolDropdown = !showRolDropdown" class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600">
-                <span [class.text-slate-400]="!selectedRoleId">{{ selectedRoleId ? toTitleCase(getRolNombre(selectedRoleId)) : 'Seleccione...' }}</span>
-                <lucide-icon [name]="ChevronDown" class="w-4 h-4 text-slate-400 shrink-0" [class.rotate-180]="showRolDropdown"></lucide-icon>
-              </button>
-              <div *ngIf="showRolDropdown" class="absolute z-[100] w-full mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600">
+              <input type="text" [ngModel]="rolFiltro" (input)="onRolInput($event)" (keydown)="onRolKeydown($event)" (focus)="showRolDropdown = true" [class.border-blue-600]="showRolDropdown" placeholder="Buscar rol..." autocomplete="off" class="w-full px-4 py-2.5 pr-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white placeholder:text-slate-400" />
+              <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                <lucide-icon [name]="ChevronDown" class="w-4 h-4 text-slate-400" [class.rotate-180]="showRolDropdown"></lucide-icon>
+              </div>
+              <div *ngIf="showRolDropdown" class="absolute z-[100] w-full mt-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600">
                 <div class="max-h-48 overflow-y-auto custom-scrollbar p-1">
-                  <div *ngFor="let rol of roles" (click)="selectRol(rol.id)" class="px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors rounded-lg flex items-center justify-between" [class.bg-blue-50]="selectedRoleId === rol.id" [class.dark:bg-blue-500/10]="selectedRoleId === rol.id">
+                  <div *ngFor="let rol of rolesConFiltro; let i = index" (click)="selectRol(rol.id)" class="px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors rounded-lg flex items-center justify-between" [class.bg-blue-50]="selectedRoleId === rol.id" [class.dark:bg-blue-500/10]="selectedRoleId === rol.id" [class.bg-blue-100]="rolIndex === i">
                     <span class="font-bold text-slate-700 dark:text-slate-300">{{ toTitleCase(rol.nombre) }}</span>
                     <lucide-icon *ngIf="selectedRoleId === rol.id" [name]="CheckCircle2" class="w-3.5 h-3.5 text-blue-600"></lucide-icon>
                   </div>
-                  <div *ngIf="roles.length === 0" class="px-4 py-4 text-xs text-slate-400 italic text-center">NO HAY DATOS</div>
+                  <div *ngIf="rolesConFiltro.length === 0" class="px-4 py-4 text-xs text-slate-400 italic text-center">SIN RESULTADOS</div>
                 </div>
               </div>
             </div>
@@ -206,17 +206,17 @@
           <div class="space-y-1 shrink-0 modulo-dropdown-container relative">
             <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Módulo <span class="text-rose-500">*</span></label>
             <div class="relative">
-              <button type="button" (click)="showModuloDropdown = !showModuloDropdown" class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600">
-                <span [class.text-slate-400]="!selectedModuloKey">{{ selectedModuloKey ? toTitleCase(getModuloNombre(selectedModuloKey)) : 'Seleccione...' }}</span>
-                <lucide-icon [name]="ChevronDown" class="w-4 h-4 text-slate-400 shrink-0" [class.rotate-180]="showModuloDropdown"></lucide-icon>
-              </button>
-              <div *ngIf="showModuloDropdown" class="absolute z-[100] w-full mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600">
+              <input type="text" [ngModel]="moduloFiltro" (input)="onModuloInput($event)" (keydown)="onModuloKeydown($event)" (focus)="showModuloDropdown = true" [class.border-blue-600]="showModuloDropdown" placeholder="Buscar módulo..." autocomplete="off" class="w-full px-4 py-2.5 pr-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white placeholder:text-slate-400" />
+              <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                <lucide-icon [name]="ChevronDown" class="w-4 h-4 text-slate-400" [class.rotate-180]="showModuloDropdown"></lucide-icon>
+              </div>
+              <div *ngIf="showModuloDropdown" class="absolute z-[100] w-full mt-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600">
                 <div class="max-h-[84px] overflow-y-auto custom-scrollbar p-1">
-                  <div *ngFor="let rec of recursos" (click)="selectModulo(rec.key)" class="px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors rounded-lg flex items-center justify-between" [class.bg-blue-50]="selectedModuloKey === rec.key" [class.dark:bg-blue-500/10]="selectedModuloKey === rec.key">
+                  <div *ngFor="let rec of modulosConFiltro; let i = index" (click)="selectModulo(rec.key)" class="px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors rounded-lg flex items-center justify-between" [class.bg-blue-50]="selectedModuloKey === rec.key" [class.dark:bg-blue-500/10]="selectedModuloKey === rec.key" [class.bg-blue-100]="moduloIndex === i">
                     <span class="font-bold text-slate-700 dark:text-slate-300">{{ toTitleCase(rec.nombre) }}</span>
                     <lucide-icon *ngIf="selectedModuloKey === rec.key" [name]="CheckCircle2" class="w-3.5 h-3.5 text-blue-600"></lucide-icon>
                   </div>
-                  <div *ngIf="recursos.length === 0" class="px-4 py-4 text-xs text-slate-400 italic text-center">NO HAY DATOS</div>
+                  <div *ngIf="modulosConFiltro.length === 0" class="px-4 py-4 text-xs text-slate-400 italic text-center">SIN RESULTADOS</div>
                 </div>
               </div>
             </div>

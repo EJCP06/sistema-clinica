@@ -288,6 +288,109 @@ const runMigrations = async () => {
     ON "Historial_Atencion" ("id_atencion", "id_estado")
   `);
 
+  // Permisos de APS / Laboratorio / Imágenes: estos módulos ven, editan y
+  // retiran pacientes (eliminar = retirar), pero NO crean (eso es de admisión).
+  // Se otorgan ver/editar/eliminar (+marcar_ausente en APS para que el retiro
+  // funcione en el backend) y se elimina la acción 'crear' de esos módulos.
+  // Idempotente (ON CONFLICT DO NOTHING).
+  try {
+    await pool.query(`
+      DO $$
+      DECLARE
+        v_id_rol INT;
+        v_id_rec INT;
+        v_id_acc INT;
+        sede RECORD;
+        asignacion RECORD;
+        acciones TEXT[];
+        accion TEXT;
+      BEGIN
+        FOR sede IN SELECT id_sede FROM "Sedes" LOOP
+          FOR asignacion IN
+            SELECT 'aps' AS recurso, rol_key
+            FROM (VALUES ('analista'), ('coordinador'), ('administrador')) AS r(rol_key)
+            UNION ALL
+            SELECT 'laboratorio', rol_key
+            FROM (VALUES ('laboratorio'), ('administrador')) AS r(rol_key)
+            UNION ALL
+            SELECT 'imagenes', rol_key
+            FROM (VALUES ('imagenes'), ('administrador')) AS r(rol_key)
+          LOOP
+            SELECT id_recurso INTO v_id_rec FROM "Recursos" WHERE key = asignacion.recurso;
+            IF v_id_rec IS NULL THEN
+              INSERT INTO "Recursos" (key, nombre) VALUES (asignacion.recurso, asignacion.recurso)
+              ON CONFLICT (key) DO UPDATE SET key = EXCLUDED.key
+              RETURNING id_recurso INTO v_id_rec;
+            END IF;
+            SELECT id_rol INTO v_id_rol FROM "Roles" WHERE key = asignacion.rol_key AND id_sede = sede.id_sede;
+            IF v_id_rol IS NOT NULL AND v_id_rec IS NOT NULL THEN
+              IF asignacion.recurso = 'aps' THEN
+                acciones := ARRAY['ver', 'editar', 'eliminar', 'marcar_ausente'];
+              ELSE
+                acciones := ARRAY['ver', 'editar', 'eliminar'];
+              END IF;
+              FOREACH accion IN ARRAY acciones LOOP
+                SELECT id_accion INTO v_id_acc FROM "Acciones" WHERE key = accion;
+                IF v_id_acc IS NULL THEN
+                  INSERT INTO "Acciones" (key, nombre) VALUES (accion, accion)
+                  ON CONFLICT (key) DO UPDATE SET key = EXCLUDED.key
+                  RETURNING id_accion INTO v_id_acc;
+                END IF;
+                INSERT INTO "Roles_Recursos_Acciones" (id_rol, id_recurso, id_accion)
+                VALUES (v_id_rol, v_id_rec, v_id_acc) ON CONFLICT DO NOTHING;
+              END LOOP;
+            END IF;
+          END LOOP;
+        END LOOP;
+
+        -- APS / Laboratorio / Imágenes no crean pacientes: quitar 'crear'.
+        DELETE FROM "Roles_Recursos_Acciones" rra
+        USING "Roles" r, "Recursos" rec, "Acciones" acc
+        WHERE rra.id_rol = r.id_rol
+          AND rra.id_recurso = rec.id_recurso
+          AND rra.id_accion = acc.id_accion
+          AND rec.key IN ('aps', 'laboratorio', 'imagenes')
+          AND acc.key = 'crear';
+      END $$;
+    `);
+  } catch (errPerm) {
+    logger.warn('Aviso: no se pudieron actualizar los permisos de los roles operativos', { error: errPerm.message });
+  }
+
+  // ====================================================================
+  // MÚLTIPLES ESPECIALIDADES POR MÉDICO (tabla puente N:M)
+  // ====================================================================
+  // Un médico puede tener varias especialidades. "Usuario_Especialidad"
+  // guarda la relación N:M; "Usuarios.id_especialidad" se mantiene como la
+  // especialidad PRINCIPAL (login, turnero y notificaciones la siguen usando).
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS "Usuario_Especialidad" (
+        "id_usuario" INTEGER NOT NULL REFERENCES "Usuarios"("id_usuario") ON DELETE CASCADE,
+        "id_especialidad" INTEGER NOT NULL REFERENCES "Especialidades"("id_especialidad") ON DELETE CASCADE,
+        "activo" BOOLEAN NOT NULL DEFAULT TRUE,
+        PRIMARY KEY ("id_usuario", "id_especialidad")
+      )
+    `);
+    // Para instalaciones existentes: agrega la columna si no existe
+    await pool.query(`
+      ALTER TABLE "Usuario_Especialidad" ADD COLUMN IF NOT EXISTS "activo" BOOLEAN NOT NULL DEFAULT TRUE
+    `);
+    // Migrar lo existente: la especialidad actual de cada usuario pasa a la tabla
+    await pool.query(`
+      INSERT INTO "Usuario_Especialidad" ("id_usuario", "id_especialidad")
+      SELECT u.id_usuario, u.id_especialidad FROM "Usuarios" u
+      WHERE u.id_especialidad IS NOT NULL
+      ON CONFLICT DO NOTHING
+    `);
+    // Lo ya existente queda activo por defecto (la columna default TRUE)
+    await pool.query(`
+      UPDATE "Usuario_Especialidad" SET "activo" = TRUE WHERE "activo" IS NULL
+    `);
+  } catch (errEsp) {
+    logger.warn('Aviso: no se pudo crear la tabla de especialidades por médico', { error: errEsp.message });
+  }
+
   logger.info('Base de datos inicializada correctamente');
 };
 

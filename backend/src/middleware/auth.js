@@ -60,6 +60,12 @@ const authMiddleware = async (req, res, next) => {
               r.activo AS rol_activo,
               esp.activo AS esp_activo,
               COALESCE(
+                (SELECT COUNT(*)
+                 FROM "Usuario_Especialidad" ue
+                 INNER JOIN "Especialidades" e2 ON ue.id_especialidad = e2.id_especialidad
+                 WHERE ue.id_usuario = u.id_usuario AND ue.activo = TRUE AND e2.activo = TRUE), 0
+              )::int AS esp_activas_count,
+              COALESCE(
                 (SELECT json_agg(rec.key || ':' || acc.key)
                  FROM "Roles_Recursos_Acciones" rra
                  INNER JOIN "Recursos" rec ON rra.id_recurso = rec.id_recurso
@@ -80,7 +86,10 @@ const authMiddleware = async (req, res, next) => {
     if (usuario.rol_activo === false) {
       return res.status(401).json({ mensaje: 'Sesión inválida. Tu rol ha sido desactivado.' });
     }
-    if (usuario.id_especialidad != null && usuario.esp_activo === false) {
+    // Múltiples especialidades: la sesión es válida si el usuario tiene al
+    // menos UNA especialidad activa (no solo la principal).
+    const esMedicoConEspecialidad = usuario.id_especialidad != null || Number(usuario.esp_activas_count) > 0;
+    if (esMedicoConEspecialidad && Number(usuario.esp_activas_count) === 0) {
       return res.status(401).json({ mensaje: 'Sesión inválida. Tu especialidad ha sido desactivada.' });
     }
     if (usuario.sesion_token && decoded.sesion_token && !timingSafeCompare(usuario.sesion_token, decoded.sesion_token)) {

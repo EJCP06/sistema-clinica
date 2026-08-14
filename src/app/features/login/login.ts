@@ -5,7 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { ThemeService } from '@core/services/theme.service';
 import { SwalService } from '../../core/services/swal.service';
-import { LucideAngularModule, Eye, EyeOff, LogIn, Activity, User, Lock, Sun, Moon, CircleX, KeyRound, ArrowLeft, MonitorSpeaker, Mail, Shield, Clock, CircleCheck } from 'lucide-angular';
+import { LucideAngularModule, Eye, EyeOff, LogIn, Activity, User, Lock, Sun, Moon, CircleX, KeyRound, ArrowLeft, MonitorSpeaker, Mail, Shield, Clock, CircleCheck, Stethoscope } from 'lucide-angular';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -36,6 +36,7 @@ export class Login implements OnDestroy {
   readonly Shield = Shield;
   readonly Clock = Clock;
   readonly CheckCircle2 = CircleCheck;
+  readonly Stethoscope = Stethoscope;
 
   private readonly auth = inject(AuthService);
   private readonly themeService = inject(ThemeService);
@@ -48,6 +49,12 @@ export class Login implements OnDestroy {
   cargando = false;
   mostrarResetPassword = false;
   initialTransitionDisabled = true;
+
+  // Selector de especialidad (médicos con varias especialidades activas)
+  mostrarSelectorEspecialidad = false;
+  especialidadesParaElegir: { id: number; nombre: string }[] = [];
+  espSeleccionada: number | null = null;
+  cargandoSelector = false;
 
   recuperacionEmail = '';
   recuperacionCedula = '';
@@ -281,6 +288,21 @@ export class Login implements OnDestroy {
         this.swal.error('Error al cargar datos del usuario');
         return;
       }
+      // Médico con varias especialidades ACTIVAS: se le pregunta con cuál entrar
+      const activas = Array.isArray(usuario.especialidades_activas) ? usuario.especialidades_activas : [];
+      if (activas.length > 1) {
+        this.especialidadesParaElegir = activas;
+        this.espSeleccionada = Number(usuario.id_especialidad) || activas[0].id;
+        this.cargando = false;
+        this.mostrarSelectorEspecialidad = true;
+        return;
+      }
+      this.navegarAlInicio();
+    }
+
+    /** Navega a la ruta inicial del usuario (tras login o tras elegir especialidad). */
+    private navegarAlInicio() {
+      this.mostrarSelectorEspecialidad = false;
       const rutaInicial = this.auth.obtenerRutaInicial();
       if (rutaInicial === '/login') {
         this.cargando = false;
@@ -288,6 +310,20 @@ export class Login implements OnDestroy {
         this.router.navigate(['/login']);
         return;
       }
+      this.cargando = false;
       this.router.navigateByUrl(rutaInicial);
+    }
+
+    /** Acepta la especialidad elegida: pide token nuevo y navega. */
+    confirmarEspecialidad() {
+      if (!this.espSeleccionada) return;
+      this.cargandoSelector = true;
+      this.auth.seleccionarEspecialidad(this.espSeleccionada).subscribe({
+        next: () => this.navegarAlInicio(),
+        error: (err: any) => {
+          this.cargandoSelector = false;
+          this.swal.error(err.error?.mensaje || 'Error al seleccionar la especialidad');
+        }
+      });
     }
   }

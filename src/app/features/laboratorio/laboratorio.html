@@ -14,6 +14,508 @@
     >
     </app-header>
 
+    <!-- MODAL: EDICIÓN DE PACIENTE (igual que admisión de pacientes) -->
+    <div
+      *ngIf="mostrarRegistro"
+      class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+      (keydown.escape)="cerrarModalRegistro()"
+    >
+      <div
+        class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-300"
+        (mousedown)="cerrarModalRegistro()"
+      ></div>
+      <div
+        class="bg-white dark:bg-slate-900 rounded-[32px] shadow-2xl w-full max-w-4xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] md:max-h-none"
+      >
+        <!-- HEADER -->
+        <div
+          class="bg-blue-600 p-6 text-white flex items-center justify-between shrink-0 border-b border-blue-500/50"
+        >
+          <div class="flex items-center gap-3">
+            <div
+              class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shadow-inner hidden sm:flex"
+            >
+              <lucide-icon [name]="UserPlus" class="w-5 h-5 text-white"></lucide-icon>
+            </div>
+            <div>
+              <h2
+                id="modal-title"
+                class="text-lg md:text-xl font-black tracking-tight text-white leading-tight"
+              >
+                Editar Paciente
+              </h2>
+              <p
+                class="text-blue-200/80 text-[9px] md:text-[10px] uppercase font-bold tracking-widest mt-0.5"
+              >
+                Modificación de Datos
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            (click)="cerrarModalRegistro()"
+            class="p-2 hover:bg-white/10 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            aria-label="Cerrar modal"
+          >
+            <lucide-icon [name]="XCircle" class="w-5 h-5 text-white"></lucide-icon>
+          </button>
+        </div>
+
+        <div class="p-4 md:p-8 flex-1 overflow-y-auto md:overflow-visible">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-6">
+            <!-- FILA 1: PRIMER NOMBRE | SEGUNDO NOMBRE -->
+            <div class="space-y-1.5">
+              <label
+                class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                >Primer Nombre <span class="text-rose-500">*</span></label
+              >
+              <input
+                type="text"
+                [(ngModel)]="nuevoPaciente.primer_nombre"
+                (keypress)="soloLetras($event)"
+                (blur)="trimCampo($event)"
+                placeholder="Ej: Juan"
+                class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
+              />
+            </div>
+            <div class="space-y-1.5">
+              <label
+                class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                >Segundo Nombre</label
+              >
+              <input
+                type="text"
+                [(ngModel)]="nuevoPaciente.segundo_nombre"
+                (keypress)="soloLetras($event)"
+                (blur)="trimCampo($event)"
+                placeholder="Ej: Jose"
+                class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
+              />
+            </div>
+
+            <!-- FILA 2: PRIMER APELLIDO | SEGUNDO APELLIDO -->
+            <div class="space-y-1.5">
+              <label
+                class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                >Primer Apellido <span class="text-rose-500">*</span></label
+              >
+              <input
+                type="text"
+                [(ngModel)]="nuevoPaciente.primer_apellido"
+                (keypress)="soloLetras($event)"
+                (blur)="trimCampo($event)"
+                placeholder="Ej: Perez"
+                class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
+              />
+            </div>
+            <div class="space-y-1.5">
+              <label
+                class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                >Segundo Apellido</label
+              >
+              <input
+                type="text"
+                [(ngModel)]="nuevoPaciente.segundo_apellido"
+                (keypress)="soloLetras($event)"
+                (blur)="trimCampo($event)"
+                placeholder="Ej: Rodriguez"
+                class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
+              />
+            </div>
+
+            <!-- FILA: CÉDULA | FECHA DE NACIMIENTO | TELÉFONO -->
+            <div class="col-span-full grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-6">
+              <div class="space-y-1.5">
+                <label
+                  class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                  >Cédula <span class="text-rose-500">*</span></label
+                >
+                <div class="flex gap-2">
+                  <input
+                    type="text"
+                    inputmode="numeric"
+                    [(ngModel)]="nuevoPaciente.cedula"
+                    (keypress)="soloNumeros($event)"
+                    placeholder="Ej: 13894759"
+                    class="flex-1 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
+                  />
+                </div>
+              </div>
+              <div class="space-y-1.5">
+                <label
+                  class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                  >Fecha de Nacimiento <span class="text-rose-500">*</span></label
+                >
+                <input
+                  type="text"
+                  inputmode="numeric"
+                  [value]="nuevoPaciente.fecha_nacimiento"
+                  (input)="onFechaNacimientoInput($event)"
+                  placeholder="DD/MM/YYYY"
+                  class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
+                />
+              </div>
+              <div class="space-y-1.5">
+                <label
+                  class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                  >Teléfono</label
+                >
+                <input
+                  type="text"
+                  inputmode="numeric"
+                  [(ngModel)]="nuevoPaciente.telefono"
+                  (keypress)="soloNumeros($event)"
+                  placeholder="Ej: 04141118228"
+                  class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
+                />
+              </div>
+            </div>
+
+            <!-- FILA 4: RESPONSABLE DE PAGO -->
+            <div class="col-span-full space-y-1.5">
+              <label
+                class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                >Responsable de Pago <span class="text-rose-500">*</span></label
+              >
+              <div class="flex flex-col sm:flex-row gap-3">
+                <label
+                  class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border rounded-xl cursor-pointer transition-all"
+                  [class.border-blue-600]="seleccion.id_responsable === 1"
+                  [class.bg-blue-50]="seleccion.id_responsable === 1"
+                  [class.dark:bg-blue-950]="seleccion.id_responsable === 1"
+                  [class.border-slate-200]="seleccion.id_responsable !== 1"
+                  [class.dark:border-slate-700]="seleccion.id_responsable !== 1"
+                >
+                  <input
+                    type="radio"
+                    name="responsable"
+                    [value]="1"
+                    [checked]="seleccion.id_responsable === 1"
+                    (change)="selectPayer(1)"
+                    class="w-4 h-4 text-blue-600"
+                  />
+                  <span class="text-sm font-bold text-slate-700 dark:text-white">Particular</span>
+                </label>
+                <label
+                  class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border rounded-xl cursor-pointer transition-all"
+                  [class.border-blue-600]="seleccion.id_responsable === 2"
+                  [class.bg-blue-50]="seleccion.id_responsable === 2"
+                  [class.dark:bg-blue-950]="seleccion.id_responsable === 2"
+                  [class.border-slate-200]="seleccion.id_responsable !== 2"
+                  [class.dark:border-slate-700]="seleccion.id_responsable !== 2"
+                >
+                  <input
+                    type="radio"
+                    name="responsable"
+                    [value]="2"
+                    [checked]="seleccion.id_responsable === 2"
+                    (change)="selectPayer(2)"
+                    class="w-4 h-4 text-blue-600"
+                  />
+                  <span class="text-sm font-bold text-slate-700 dark:text-white">Aseguradora</span>
+                </label>
+              </div>
+            </div>
+            <div
+              *ngIf="seleccion.id_responsable === 2"
+              class="col-span-full space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300"
+            >
+              <label
+                class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                >Nombre de la Aseguradora <span class="text-rose-500">*</span></label
+              >
+              <div class="relative aseguradora-dropdown-container">
+                <input
+                  type="text"
+                  [ngModel]="aseguradoraFiltro"
+                  (input)="onAseguradoraInput($event)"
+                  (keydown)="onAseguradoraKeydown($event)"
+                  (focus)="showAseguradoraDropdown = true"
+                  [class.border-blue-600]="showAseguradoraDropdown"
+                  placeholder="Buscar aseguradora..."
+                  autocomplete="off"
+                  class="w-full px-4 py-2.5 pr-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white placeholder:text-slate-400"
+                />
+                <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                  <lucide-icon
+                    [name]="ChevronDown"
+                    class="w-4 h-4 text-slate-400"
+                    [class.rotate-180]="showAseguradoraDropdown"
+                  ></lucide-icon>
+                </div>
+                <div
+                  *ngIf="showAseguradoraDropdown"
+                  class="absolute z-[115] w-full mt-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600"
+                >
+                  <div class="p-1.5 max-h-48 overflow-y-auto space-y-1">
+                    <div
+                      *ngFor="let asig of aseguradorasFiltradas; let i = index"
+                      (click)="selectAseguradora(asig.id_cliente)"
+                      class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
+                      [class.bg-blue-50]="seleccion.id_cliente === asig.id_cliente"
+                      [class.bg-blue-100]="aseguradoraIndex === i"
+                    >
+                      <span
+                        class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
+                        >{{ asig.aseguradora }}</span
+                      >
+                      <lucide-icon
+                        *ngIf="seleccion.id_cliente === asig.id_cliente"
+                        [name]="CheckCircle2"
+                        class="w-4 h-4 text-blue-600"
+                      ></lucide-icon>
+                    </div>
+                    <div
+                      *ngIf="aseguradorasFiltradas.length === 0"
+                      class="px-4 py-4 text-xs text-slate-400 italic text-center"
+                    >
+                      SIN RESULTADOS
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Servicio: full width -->
+            <div class="col-span-full space-y-1.5">
+              <label
+                class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                >Servicio <span class="text-rose-500">*</span></label
+              >
+              <div class="flex flex-col sm:flex-row gap-3">
+                <label
+                  class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border rounded-xl cursor-pointer transition-all"
+                  [class.border-blue-600]="categoriaServicio === 'Consulta'"
+                  [class.bg-blue-50]="categoriaServicio === 'Consulta'"
+                  [class.dark:bg-blue-950]="categoriaServicio === 'Consulta'"
+                  [class.border-slate-200]="categoriaServicio !== 'Consulta'"
+                  [class.dark:border-slate-700]="categoriaServicio !== 'Consulta'"
+                >
+                  <input
+                    type="radio"
+                    name="servicio"
+                    value="Consulta"
+                    [checked]="categoriaServicio === 'Consulta'"
+                    (change)="selectCategoria('Consulta')"
+                    class="w-4 h-4 text-blue-600"
+                  />
+                  <span class="text-sm font-bold text-slate-700 dark:text-white">Consulta</span>
+                </label>
+                <label
+                  class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border rounded-xl cursor-pointer transition-all"
+                  [class.border-blue-600]="categoriaServicio === 'Laboratorio'"
+                  [class.bg-blue-50]="categoriaServicio === 'Laboratorio'"
+                  [class.dark:bg-blue-950]="categoriaServicio === 'Laboratorio'"
+                  [class.border-slate-200]="categoriaServicio !== 'Laboratorio'"
+                  [class.dark:border-slate-700]="categoriaServicio !== 'Laboratorio'"
+                >
+                  <input
+                    type="radio"
+                    name="servicio"
+                    value="Laboratorio"
+                    [checked]="categoriaServicio === 'Laboratorio'"
+                    (change)="selectCategoria('Laboratorio')"
+                    class="w-4 h-4 text-blue-600"
+                  />
+                  <span class="text-sm font-bold text-slate-700 dark:text-white">Laboratorio</span>
+                </label>
+                <label
+                  class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border rounded-xl cursor-pointer transition-all"
+                  [class.border-blue-600]="categoriaServicio === 'Imágenes'"
+                  [class.bg-blue-50]="categoriaServicio === 'Imágenes'"
+                  [class.dark:bg-blue-950]="categoriaServicio === 'Imágenes'"
+                  [class.border-slate-200]="categoriaServicio !== 'Imágenes'"
+                  [class.dark:border-slate-700]="categoriaServicio !== 'Imágenes'"
+                >
+                  <input
+                    type="radio"
+                    name="servicio"
+                    value="Imágenes"
+                    [checked]="categoriaServicio === 'Imágenes'"
+                    (change)="selectCategoria('Imágenes')"
+                    class="w-4 h-4 text-blue-600"
+                  />
+                  <span class="text-sm font-bold text-slate-700 dark:text-white">Imágenes</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Especialidad + Médico: lado a lado, solo cuando Consulta -->
+            <div
+              *ngIf="categoriaServicio === 'Consulta'"
+              class="col-span-full grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6 animate-in fade-in slide-in-from-top-2 duration-300"
+            >
+              <div class="space-y-1.5">
+                <label
+                  class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                  >Especialidad <span class="text-rose-500">*</span></label
+                >
+                <div class="relative especialidad-dropdown-container">
+                  <input
+                    type="text"
+                    [ngModel]="especialidadFiltro"
+                    (input)="onEspecialidadInput($event)"
+                    (keydown)="onEspecialidadKeydown($event)"
+                  (focus)="showEspecialidadDropdown = true"
+                  [class.border-blue-600]="showEspecialidadDropdown"
+                  placeholder="Buscar especialidad..."
+                    autocomplete="off"
+                    class="w-full px-4 py-2.5 pr-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white placeholder:text-slate-400"
+                  />
+                  <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                    <lucide-icon
+                      [name]="ChevronDown"
+                      class="w-4 h-4 text-slate-400"
+                      [class.rotate-180]="showEspecialidadDropdown"
+                    ></lucide-icon>
+                  </div>
+                  <div
+                    *ngIf="showEspecialidadDropdown"
+                    class="absolute z-[110] w-full mt-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600"
+                  >
+                    <div class="p-1.5 max-h-24 overflow-y-auto space-y-1">
+                      <div
+                        *ngFor="let s of especialidadesFiltradas; let i = index"
+                        (click)="selectEspecialidad(s)"
+                        class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
+                        [class.bg-blue-50]="
+                          (categoriaServicio === 'Consulta'
+                            ? seleccion.id_especialidad
+                            : seleccion.id_servicio) === (s.id_especialidad || s.id)
+                        "
+                        [class.bg-blue-100]="especialidadIndex === i"
+                      >
+                        <span
+                          class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
+                          >{{ s.nombre || s.nombre_servicio }}</span
+                        >
+                        <lucide-icon
+                          *ngIf="
+                            (categoriaServicio === 'Consulta'
+                              ? seleccion.id_especialidad
+                              : seleccion.id_servicio) === (s.id_especialidad || s.id)
+                          "
+                          [name]="CheckCircle2"
+                          class="w-4 h-4 text-blue-600"
+                        ></lucide-icon>
+                      </div>
+                      <div
+                        *ngIf="especialidadesFiltradas.length === 0"
+                        class="px-4 py-4 text-xs text-slate-400 italic text-center"
+                      >
+                        SIN RESULTADOS
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="space-y-1.5">
+                <label
+                  class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                  >Médico</label
+                >
+                <div class="relative medico-dropdown-container">
+                  <input
+                    type="text"
+                    [ngModel]="medicoFiltro"
+                    (input)="onMedicoInput($event)"
+                    (keydown)="onMedicoKeydown($event)"
+                  (focus)="showMedicoDropdown = true"
+                  [class.border-blue-600]="showMedicoDropdown"
+                  [disabled]="!seleccion.id_especialidad"
+                  placeholder="Buscar médico..."
+                    autocomplete="off"
+                    class="w-full px-4 py-2.5 pr-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white placeholder:text-slate-400 disabled:opacity-60"
+                  />
+                  <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                    <lucide-icon
+                      [name]="ChevronDown"
+                      class="w-4 h-4 text-slate-400"
+                      [class.rotate-180]="showMedicoDropdown"
+                    ></lucide-icon>
+                  </div>
+                  <div
+                    *ngIf="showMedicoDropdown"
+                    class="absolute z-[110] w-full mt-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600"
+                  >
+                    <div class="p-1.5 max-h-24 overflow-y-auto space-y-1">
+                      <div
+                        *ngFor="let m of medicosConFiltro; let i = index"
+                        (click)="selectMedico(m)"
+                        class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
+                        [class.bg-blue-50]="seleccion.id_medico === (m.id_usuario || m.id)"
+                        [class.bg-blue-100]="medicoIndex === i"
+                      >
+                        <div class="flex flex-col">
+                          <span
+                            class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
+                            >{{ m.nombre }} {{ m.apellido }}</span
+                          >
+                        </div>
+                        <lucide-icon
+                          *ngIf="seleccion.id_medico === (m.id_usuario || m.id)"
+                          [name]="CheckCircle2"
+                          class="w-4 h-4 text-blue-600"
+                        ></lucide-icon>
+                      </div>
+                      <div
+                        *ngIf="medicosConFiltro.length === 0"
+                        class="px-4 py-4 text-xs text-slate-400 italic text-center"
+                      >
+                        SIN RESULTADOS
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  *ngIf="seleccion.id_consultorio"
+                  class="text-[11px] font-bold text-blue-600 px-1 -mt-3"
+                >
+                  Consultorio: {{ getMedicoConsultorio() }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div
+          class="p-4 md:p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 shrink-0 sticky bottom-0 z-10"
+        >
+          <button
+            type="button"
+            [disabled]="isSaving"
+            (click)="cerrarModalRegistro()"
+            class="px-6 md:px-8 py-3.5 md:py-4 bg-slate-500 hover:bg-slate-600 text-white font-black text-[11px] uppercase tracking-[2px] rounded-xl md:rounded-[20px] transition-all disabled:opacity-50 shadow-lg shadow-slate-500/20 dark:shadow-slate-950/50"
+          >
+            CANCELAR
+          </button>
+          <button
+            type="button"
+            [disabled]="isSaving"
+            (click)="guardarPaciente()"
+            class="px-6 md:px-10 py-3.5 md:py-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-[11px] uppercase tracking-[2px] rounded-xl md:rounded-[20px] shadow-lg shadow-blue-600/20 dark:shadow-blue-950/50 transition-all flex items-center gap-3 disabled:opacity-50"
+          >
+            <span *ngIf="!isSaving" class="flex items-center gap-2">GUARDAR</span>
+            <div
+              *ngIf="isSaving"
+              class="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-700"
+            >
+              <div
+                class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"
+              ></div>
+              <span class="animate-pulse">guardando...</span>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="flex-1 overflow-y-auto custom-scrollbar px-4 pt-4 pb-4 md:px-8 md:pt-8 md:pb-8 flex flex-col">
 
       <!-- HISTORIAL / PANTALLA DE CONTROL LABORATORIO -->
@@ -22,8 +524,9 @@
           class="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex-1 flex flex-col"
         >
           <!-- BUSCADOR DENTRO DE LA TABLA -->
-          <div class="flex items-center gap-2 px-4 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-800">
-            <div class="relative search-filter-container shrink-0">
+          <div class="flex flex-col gap-2 px-4 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-800 sm:flex-row sm:items-center">
+            <div class="flex items-center gap-2 flex-1 min-w-0">
+              <div class="relative search-filter-container shrink-0">
               <button
                 type="button"
                 (click)="toggleSearchFilterDropdown()"
@@ -111,12 +614,13 @@
                 placeholder="Buscar paciente registrado..."
                 class="w-full pl-14 pr-10 py-3 text-sm focus:outline-none font-medium bg-slate-100 dark:bg-slate-800 rounded-2xl text-slate-900 dark:text-white"
               />
+              </div>
             </div>
             <button
               *ngIf="puedeLlamar"
               (click)="llamarSiguienteRegistrado()"
               [disabled]="!hayRegistradosEnCola"
-              class="shrink-0 flex items-center gap-2 px-4 py-3 text-[10px] font-black uppercase tracking-wider rounded-2xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none transition-all"
+              class="shrink-0 w-full sm:w-auto justify-center flex items-center gap-2 px-4 py-3 text-[10px] font-black uppercase tracking-wider rounded-2xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none transition-all"
               title="Llamar al siguiente paciente registrado"
             >
               <lucide-icon [name]="Volume2" class="w-4 h-4"></lucide-icon>
@@ -170,6 +674,15 @@
                     <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.fecha_creacion | date:'h:mm a' }}</td>
                     <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center border-b border-slate-100/30 dark:border-slate-800/10">
                       <div class="flex items-center justify-center gap-2">
+                        <button
+                          *ngIf="a.id_estado_actual === 1 && tienePermiso('laboratorio:editar')"
+                          (click)="editarFila(a, $event.target)"
+                          aria-label="Editar paciente"
+                          title="Editar paciente"
+                          class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl focus:outline-none"
+                        >
+                          <lucide-icon [name]="Edit2" class="w-4 h-4"></lucide-icon>
+                        </button>
                         <button *ngIf="a.id_estado_actual === 1 && tienePermiso('laboratorio_registrar_caja')" (click)="enviarAPresupuesto(a.id_atencion)" aria-label="¿Ya se creó el presupuesto?" title="¿Ya se creó el presupuesto?" class="p-2 text-amber-500 hover:bg-amber-50 rounded-xl transition-all">
                           <lucide-icon [name]="FileText" class="w-4 h-4"></lucide-icon>
                         </button>
@@ -180,7 +693,7 @@
                           <lucide-icon [name]="Undo2" class="w-4 h-4"></lucide-icon>
                         </button>
                         <button
-                          *ngIf="(a.id_estado_actual === 2 || a.id_estado_actual === 3 || a.id_estado_actual === 8 || a.id_estado_actual === 7)"
+                          *ngIf="tienePermiso('laboratorio:eliminar') && (a.id_estado_actual === 1 || a.id_estado_actual === 2 || a.id_estado_actual === 3 || a.id_estado_actual === 8 || a.id_estado_actual === 7)"
                           (click)="marcarAusente(a)"
                           class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl focus:outline-none"
                           title="Marcar como ausente"

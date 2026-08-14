@@ -194,6 +194,104 @@ nuevoPaciente: any = {
   showMedicoDropdown: boolean = false;
   showAseguradoraDropdown: boolean = false;
 
+  // ---- Autocomplete de los selects del modal (escribir para filtrar) ----
+  aseguradoraFiltro: string = '';
+  especialidadFiltro: string = '';
+  medicoFiltro: string = '';
+  aseguradoraIndex: number = -1;
+  especialidadIndex: number = -1;
+  medicoIndex: number = -1;
+
+  get aseguradorasFiltradas(): any[] {
+    const q = (this.aseguradoraFiltro || '').trim().toLowerCase();
+    return this.aseguradoras.filter((a: any) => !q || (a.aseguradora || '').toLowerCase().includes(q));
+  }
+
+  get especialidadesFiltradas(): any[] {
+    const q = (this.especialidadFiltro || '').trim().toLowerCase();
+    return this.getEspecialidades().filter((s: any) => !q || (s.nombre || s.nombre_servicio || '').toLowerCase().includes(q));
+  }
+
+  get medicosConFiltro(): any[] {
+    const q = (this.medicoFiltro || '').trim().toLowerCase();
+    return this.medicosFiltrados.filter((m: any) => !q || ((m.nombre || '') + ' ' + (m.apellido || '')).toLowerCase().includes(q));
+  }
+
+  onAseguradoraInput(event: Event) {
+    this.aseguradoraFiltro = (event.target as HTMLInputElement).value;
+    this.showAseguradoraDropdown = true;
+    this.aseguradoraIndex = -1;
+  }
+
+  onAseguradoraKeydown(event: KeyboardEvent) {
+    const list = this.aseguradorasFiltradas;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.showAseguradoraDropdown = true;
+      if (list.length) this.aseguradoraIndex = (this.aseguradoraIndex + 1) % list.length;
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (list.length) this.aseguradoraIndex = (this.aseguradoraIndex - 1 + list.length) % list.length;
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      if (this.showAseguradoraDropdown && list[this.aseguradoraIndex]) {
+        this.selectAseguradora(list[this.aseguradoraIndex].id_cliente);
+      }
+    } else if (event.key === 'Escape') {
+      this.showAseguradoraDropdown = false;
+    }
+  }
+
+  onEspecialidadInput(event: Event) {
+    this.especialidadFiltro = (event.target as HTMLInputElement).value;
+    this.showEspecialidadDropdown = true;
+    this.especialidadIndex = -1;
+  }
+
+  onEspecialidadKeydown(event: KeyboardEvent) {
+    const list = this.especialidadesFiltradas;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.showEspecialidadDropdown = true;
+      if (list.length) this.especialidadIndex = (this.especialidadIndex + 1) % list.length;
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (list.length) this.especialidadIndex = (this.especialidadIndex - 1 + list.length) % list.length;
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      if (this.showEspecialidadDropdown && list[this.especialidadIndex]) {
+        this.selectEspecialidad(list[this.especialidadIndex]);
+      }
+    } else if (event.key === 'Escape') {
+      this.showEspecialidadDropdown = false;
+    }
+  }
+
+  onMedicoInput(event: Event) {
+    this.medicoFiltro = (event.target as HTMLInputElement).value;
+    this.showMedicoDropdown = true;
+    this.medicoIndex = -1;
+  }
+
+  onMedicoKeydown(event: KeyboardEvent) {
+    const list = this.medicosConFiltro;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.showMedicoDropdown = true;
+      if (list.length) this.medicoIndex = (this.medicoIndex + 1) % list.length;
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (list.length) this.medicoIndex = (this.medicoIndex - 1 + list.length) % list.length;
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      if (this.showMedicoDropdown && list[this.medicoIndex]) {
+        this.selectMedico(list[this.medicoIndex]);
+      }
+    } else if (event.key === 'Escape') {
+      this.showMedicoDropdown = false;
+    }
+  }
+
   isSaving: boolean = false;
   private inicioGuardado: number = 0;
   private readonly MIN_GUARDADO = 800;
@@ -430,7 +528,6 @@ nuevoPaciente: any = {
     this.api.getServicios().subscribe({
       next: (data: any) => {
         this.servicios = data;
-        console.log('Servicios cargados:', this.servicios.length);
       },
       error: (err: any) => console.error('Error cargando servicios:', err),
     });
@@ -438,7 +535,6 @@ nuevoPaciente: any = {
     this.espService.getAllEspecialidades().subscribe({
       next: (data: any) => {
         this.especialidades = data;
-        console.log('Especialidades cargadas:', this.especialidades.length);
         if (this.especialidades.length === 0) {
           console.warn('¡ADVERTENCIA: No se cargaron especialidades!');
         }
@@ -458,7 +554,6 @@ nuevoPaciente: any = {
     this.api.getPersonal('medico').subscribe({
       next: (data: any) => {
         this.medicos = data;
-        console.log('Médicos cargados:', this.medicos.length);
       },
       error: (err: any) => console.error('Error cargando médicos:', err),
     });
@@ -466,7 +561,6 @@ nuevoPaciente: any = {
     this.api.getConsultorios().subscribe({
       next: (data: any) => {
         this.consultorios = data;
-        console.log('Consultorios cargados:', this.consultorios.length);
       },
       error: (err: any) => console.error('Error cargando consultorios:', err),
     });
@@ -669,6 +763,9 @@ nuevoPaciente: any = {
       nombre_medico_label: '',
     };
     this.categoriaServicio = '';
+    this.aseguradoraFiltro = '';
+    this.especialidadFiltro = '';
+    this.medicoFiltro = '';
 
     if (this.cedulaBusqueda && this.cedulaBusqueda.trim().length > 0) {
       const val = this.cedulaBusqueda.trim();
@@ -752,6 +849,9 @@ nuevoPaciente: any = {
       nombre_servicio_label: '',
       nombre_medico_label: '',
     };
+    this.aseguradoraFiltro = '';
+    this.especialidadFiltro = '';
+    this.medicoFiltro = '';
   }
 
   private finalizarGuardado(accion?: () => void) {
@@ -766,6 +866,12 @@ nuevoPaciente: any = {
   registrarYContinuar() {
     if (this.isAseguradorasView) {
       this.procesarAseguradora();
+      return;
+    }
+
+    const fechaNacimiento = (this.nuevoPaciente.fecha_nacimiento || '').toString().trim();
+    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(fechaNacimiento)) {
+      this.swal.warning('La fecha de nacimiento es obligatoria (formato DD/MM/YYYY)');
       return;
     }
 
@@ -1014,6 +1120,9 @@ nuevoPaciente: any = {
     this.seleccion.nombre_medico_label = '';
     this.seleccion.nombre_servicio_label = '';
     this.categoriaServicio = '';
+    this.aseguradoraFiltro = '';
+    this.especialidadFiltro = '';
+    this.medicoFiltro = '';
   }
 
   toggleAseguradoraDropdown() {
@@ -1023,6 +1132,9 @@ nuevoPaciente: any = {
   selectAseguradora(id: number) {
     this.seleccion.id_cliente = id;
     this.showAseguradoraDropdown = false;
+    this.aseguradoraIndex = -1;
+    const asig = this.aseguradoras.find((a) => a.id_cliente === id);
+    this.aseguradoraFiltro = asig ? asig.aseguradora : '';
   }
 
   getNombreAseguradoraSeleccionada(id: any): string {
@@ -1080,6 +1192,7 @@ nuevoPaciente: any = {
       .toLowerCase();
   }
 
+
   selectCategoria(categoria: string) {
     if (this.categoriaServicio === categoria) {
       this.showServiceDropdown = false;
@@ -1094,6 +1207,8 @@ nuevoPaciente: any = {
     this.seleccion.id_consultorio = null;
     this.seleccion.nombre_medico_label = '';
     this.seleccion.nombre_servicio_label = '';
+    this.especialidadFiltro = '';
+    this.medicoFiltro = '';
 
     if (categoria !== 'Consulta') {
       const normalizedSearch = this.normalizeString(categoria);
@@ -1130,6 +1245,8 @@ nuevoPaciente: any = {
       this.seleccion.id_especialidad = null;
       this.seleccion.nombre_servicio_label = item.nombre || item.nombre_servicio || '';
     }
+    this.especialidadFiltro = item.nombre || item.nombre_servicio || '';
+    this.especialidadIndex = -1;
       this.showEspecialidadDropdown = false;
     }
 
@@ -1158,9 +1275,15 @@ nuevoPaciente: any = {
 
   get medicosFiltrados(): any[] {
     if (!this.seleccion.id_especialidad) return [];
+    const target = Number(this.seleccion.id_especialidad);
     return this.medicos.filter((m: any) => {
-      const espId = m.id_especialidad || m.especialidad_id;
-      return espId == this.seleccion.id_especialidad;
+      // Especialidad inactiva para este médico: no aparece en esa especialidad
+      const inactivas = Array.isArray(m.especialidades_inactivas) ? m.especialidades_inactivas.map(Number) : [];
+      if (inactivas.includes(target)) return false;
+      const espId = Number(m.id_especialidad || m.especialidad_id);
+      if (espId === target) return true;
+      const extra = m.especialidades;
+      return Array.isArray(extra) && extra.some((e: any) => Number(e) === target);
     });
   }
 
@@ -1172,6 +1295,8 @@ nuevoPaciente: any = {
     this.seleccion.id_medico = m.id_usuario || m.id;
     this.seleccion.id_consultorio = m.id_consultorio || m.consultorio_id || null;
     this.seleccion.nombre_medico_label = ((m.nombre || '') + ' ' + (m.apellido || '')).trim();
+    this.medicoFiltro = this.seleccion.nombre_medico_label;
+    this.medicoIndex = -1;
     this.showMedicoDropdown = false;
   }
 
@@ -1238,14 +1363,20 @@ nuevoPaciente: any = {
 
       this.categoriaServicio = this.getServicioCategoria(fila.nombre_servicio);
 
+      const asig = this.aseguradoras.find((a) => a.id_cliente === fila.id_cliente);
+      this.aseguradoraFiltro = asig ? asig.aseguradora : '';
+
       if (fila.id_especialidad) {
         const esp = this.especialidades.find(
           (e) => (e.id_especialidad || e.id) === fila.id_especialidad,
         );
         if (esp) {
           this.seleccion.nombre_especialidad_label = esp.nombre;
+          this.especialidadFiltro = esp.nombre;
         }
       }
+
+      this.medicoFiltro = fila.nombre_medico || (fila.id_medico ? this.getNombreMedicoLabel(fila.id_medico) : '');
     }
   }
 

@@ -186,7 +186,7 @@
                   <div class="space-y-1.5">
                     <label
                       class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
-                      >Fecha de Nacimiento</label
+                      >Fecha de Nacimiento <span class="text-rose-500">*</span></label
                     >
                     <input
                       type="text"
@@ -194,7 +194,7 @@
                       [value]="nuevoPaciente.fecha_nacimiento"
                       (input)="onFechaNacimientoInput($event)"
                       placeholder="DD/MM/YYYY"
-                      class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white font-mono"
+                      class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
                     />
                   </div>
                   <div class="space-y-1.5">
@@ -270,32 +270,35 @@
                       >Nombre de la Aseguradora <span class="text-rose-500">*</span></label
                     >
                     <div class="relative aseguradora-dropdown-container">
-                      <button
-                        type="button"
-                        (click)="toggleAseguradoraDropdown()"
-                        class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white"
-                      >
-                        <span
-                          class="lowercase first-letter:uppercase"
-                          [class.text-slate-400]="!seleccion.id_cliente"
-                          >{{ getNombreAseguradoraSeleccionada(seleccion.id_cliente) }}</span
-                        >
+                      <input
+                        type="text"
+                        [ngModel]="aseguradoraFiltro"
+                        (input)="onAseguradoraInput($event)"
+                        (keydown)="onAseguradoraKeydown($event)"
+                        (focus)="showAseguradoraDropdown = true"
+                        [class.border-blue-600]="showAseguradoraDropdown"
+                        placeholder="Buscar aseguradora..."
+                        autocomplete="off"
+                        class="w-full px-4 py-2.5 pr-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white placeholder:text-slate-400"
+                      />
+                      <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
                         <lucide-icon
                           [name]="ChevronDown"
                           class="w-4 h-4 text-slate-400"
                           [class.rotate-180]="showAseguradoraDropdown"
                         ></lucide-icon>
-                      </button>
+                      </div>
                       <div
                         *ngIf="showAseguradoraDropdown"
-                        class="absolute z-[115] w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600"
+                        class="absolute z-[115] w-full mt-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600"
                       >
                         <div class="p-1.5 max-h-48 overflow-y-auto space-y-1">
                           <div
-                            *ngFor="let asig of aseguradoras"
+                            *ngFor="let asig of aseguradorasFiltradas; let i = index"
                             (click)="selectAseguradora(asig.id_cliente)"
                             class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
                             [class.bg-blue-50]="seleccion.id_cliente === asig.id_cliente"
+                            [class.bg-blue-100]="aseguradoraIndex === i"
                           >
                             <span
                               class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
@@ -308,10 +311,10 @@
                             ></lucide-icon>
                           </div>
                           <div
-                            *ngIf="aseguradoras.length === 0"
+                            *ngIf="aseguradorasFiltradas.length === 0"
                             class="px-4 py-4 text-xs text-slate-400 italic text-center"
                           >
-                            NO HAY DATOS
+                            SIN RESULTADOS
                           </div>
                         </div>
                       </div>
@@ -396,34 +399,32 @@
                         >Especialidad <span class="text-rose-500">*</span></label
                       >
                       <div class="relative especialidad-dropdown-container">
-                        <button
-                          type="button"
-                          (click)="toggleEspecialidadDropdown()"
+                        <input
+                          type="text"
+                          [ngModel]="especialidadFiltro"
+                          (input)="onEspecialidadInput($event)"
+                          (keydown)="onEspecialidadKeydown($event)"
+                          (focus)="showEspecialidadDropdown = true"
+                          [class.border-blue-600]="showEspecialidadDropdown"
                           [disabled]="filaEnEdicion && filaEnEdicion.id_estado_actual !== 1"
-                          class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white"
-                        >
-                          <span
-                            class="lowercase first-letter:uppercase"
-                            [class.text-slate-400]="!seleccion.id_servicio"
-                            >{{
-                              categoriaServicio === 'Consulta' && seleccion.nombre_especialidad_label
-                                ? seleccion.nombre_especialidad_label
-                                : getNombreServicioLabel(seleccion.id_servicio)
-                            }}</span
-                          >
+                          placeholder="Buscar especialidad..."
+                          autocomplete="off"
+                          class="w-full px-4 py-2.5 pr-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white placeholder:text-slate-400 disabled:opacity-60"
+                        />
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
                           <lucide-icon
                             [name]="ChevronDown"
                             class="w-4 h-4 text-slate-400"
                             [class.rotate-180]="showEspecialidadDropdown"
                           ></lucide-icon>
-                        </button>
+                        </div>
                         <div
                           *ngIf="showEspecialidadDropdown"
-                          class="absolute z-[110] w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600"
+                          class="absolute z-[110] w-full mt-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600"
                         >
                           <div class="p-1.5 max-h-24 overflow-y-auto space-y-1">
                             <div
-                              *ngFor="let s of getEspecialidades()"
+                              *ngFor="let s of especialidadesFiltradas; let i = index"
                               (click)="selectEspecialidad(s)"
                               class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
                               [class.bg-blue-50]="
@@ -431,6 +432,7 @@
                                   ? seleccion.id_especialidad
                                   : seleccion.id_servicio) === (s.id_especialidad || s.id)
                               "
+                              [class.bg-blue-100]="especialidadIndex === i"
                             >
                               <span
                                 class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
@@ -447,10 +449,10 @@
                               ></lucide-icon>
                             </div>
                             <div
-                              *ngIf="getEspecialidades().length === 0"
+                              *ngIf="especialidadesFiltradas.length === 0"
                               class="px-4 py-4 text-xs text-slate-400 italic text-center"
                             >
-                              NO HAY DATOS
+                              SIN RESULTADOS
                             </div>
                           </div>
                         </div>
@@ -463,40 +465,39 @@
                         >Médico</label
                       >
                       <div class="relative medico-dropdown-container">
-                        <button
-                          type="button"
-                          (click)="toggleMedicoDropdown()"
+                        <input
+                          type="text"
+                          [ngModel]="medicoFiltro"
+                          (input)="onMedicoInput($event)"
+                          (keydown)="onMedicoKeydown($event)"
+                          (focus)="showMedicoDropdown = true"
+                          [class.border-blue-600]="showMedicoDropdown"
                           [disabled]="
                             !seleccion.id_especialidad ||
                             (filaEnEdicion && filaEnEdicion.id_estado_actual !== 1)
                           "
-                          class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-left flex justify-between items-center transition-all focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white"
-                        >
-                          <span
-                            class="lowercase first-letter:uppercase"
-                            [class.text-slate-400]="!seleccion.id_medico"
-                            >{{
-                              seleccion.id_medico
-                                ? getNombreMedicoLabel(seleccion.id_medico)
-                                : 'Seleccione...'
-                            }}</span
-                          >
+                          placeholder="Buscar médico..."
+                          autocomplete="off"
+                          class="w-full px-4 py-2.5 pr-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white placeholder:text-slate-400 disabled:opacity-60"
+                        />
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
                           <lucide-icon
                             [name]="ChevronDown"
                             class="w-4 h-4 text-slate-400"
                             [class.rotate-180]="showMedicoDropdown"
                           ></lucide-icon>
-                        </button>
+                        </div>
                         <div
                           *ngIf="showMedicoDropdown"
-                          class="absolute z-[110] w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600"
+                          class="absolute z-[110] w-full mt-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600"
                         >
                           <div class="p-1.5 max-h-24 overflow-y-auto space-y-1">
                             <div
-                              *ngFor="let m of medicosFiltrados"
+                              *ngFor="let m of medicosConFiltro; let i = index"
                               (click)="selectMedico(m)"
                               class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
                               [class.bg-blue-50]="seleccion.id_medico === (m.id_usuario || m.id)"
+                              [class.bg-blue-100]="medicoIndex === i"
                             >
                               <div class="flex flex-col">
                                 <span
@@ -511,10 +512,10 @@
                               ></lucide-icon>
                             </div>
                             <div
-                              *ngIf="medicosFiltrados.length === 0"
+                              *ngIf="medicosConFiltro.length === 0"
                               class="px-4 py-4 text-xs text-slate-400 italic text-center"
                             >
-                              NO HAY DATOS
+                              SIN RESULTADOS
                             </div>
                           </div>
                         </div>

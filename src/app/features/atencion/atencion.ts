@@ -136,7 +136,6 @@ export class Atencion implements OnInit, OnDestroy {
 
   /** Inicializa el componente: determina tipo (médico/lab/imágenes), carga estado y suscripciones. */
   ngOnInit() {
-    this.diagnosticarVoces();
     this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
       const qTipo = params['tipo'];
       if (qTipo && ['medico', 'laboratorio', 'imagenes'].includes(qTipo)) {
@@ -171,18 +170,6 @@ export class Atencion implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.detenerTemporizador();
-  }
-
-  private diagnosticarVoces() {
-    if (!('speechSynthesis' in window)) return;
-    const voces = window.speechSynthesis.getVoices();
-    if (voces.length > 0) {
-      console.log('Voces disponibles:', voces.map(v => ({ name: v.name, lang: v.lang, gender: '' })));
-    }
-    window.speechSynthesis.onvoiceschanged = () => {
-      const voces = window.speechSynthesis.getVoices();
-      console.log('Voces disponibles:', voces.map(v => v.name + ' (' + v.lang + ')'));
-    };
   }
 
   /** Consulta el estado actual del consultorio/turno activo del médico autenticado. */

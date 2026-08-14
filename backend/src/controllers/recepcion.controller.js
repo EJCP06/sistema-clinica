@@ -49,8 +49,10 @@ const marcarAusente = async (req, res) => {
     }
 
     const idEstadoActual = atencion.id_estado_actual;
-    
-    if (![2, 3, 7, 8].includes(idEstadoActual)) {
+
+    // Estado 1 (Registrado) también es retirable: APS, Laboratorio e Imágenes
+    // muestran el botón de retiro en la fila recién registrada.
+    if (![1, 2, 3, 7, 8].includes(idEstadoActual)) {
       return res.status(400).json({ mensaje: 'Solo se pueden retirar pacientes en estados válidos' });
     }
 

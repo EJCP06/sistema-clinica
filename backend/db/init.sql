@@ -7,6 +7,7 @@ CREATE DATABASE IF NOT EXISTS "clinica_colas";
 
 -- ELIMINAR TABLAS EXISTENTES (orden inverso de dependencias)
 DROP TABLE IF EXISTS "Historial_Atencion" CASCADE;
+DROP TABLE IF EXISTS "Usuario_Especialidad" CASCADE;
 DROP TABLE IF EXISTS "Especialidad_Consultorio" CASCADE;
 DROP TABLE IF EXISTS "Atencion" CASCADE;
 DROP TABLE IF EXISTS "Pacientes" CASCADE;
@@ -194,6 +195,14 @@ CREATE TABLE "Especialidad_Consultorio" (
   "id_especialidad" INTEGER NOT NULL REFERENCES "Especialidades"("id_especialidad") ON DELETE CASCADE,
   "id_consultorio" INTEGER NOT NULL REFERENCES "Consultorios"("id_consultorio") ON DELETE CASCADE,
   PRIMARY KEY ("id_especialidad", "id_consultorio")
+);
+
+-- JUNCTION: USUARIO <-> ESPECIALIDAD (un médico puede tener varias)
+CREATE TABLE "Usuario_Especialidad" (
+  "id_usuario" INTEGER NOT NULL REFERENCES "Usuarios"("id_usuario") ON DELETE CASCADE,
+  "id_especialidad" INTEGER NOT NULL REFERENCES "Especialidades"("id_especialidad") ON DELETE CASCADE,
+  "activo" BOOLEAN NOT NULL DEFAULT TRUE,
+  PRIMARY KEY ("id_usuario", "id_especialidad")
 );
 
 -- HISTORIAL DE ATENCIONES
@@ -402,6 +411,10 @@ BEGIN
     PERFORM asignar_permiso_por_sede('medico', sede.id_sede, 'atencion_medica', '*');
 
     -- Coordinador
+    PERFORM asignar_permiso_por_sede('coordinador', sede.id_sede, 'aps', 'ver');
+    PERFORM asignar_permiso_por_sede('coordinador', sede.id_sede, 'aps', 'editar');
+    PERFORM asignar_permiso_por_sede('coordinador', sede.id_sede, 'aps', 'eliminar');
+    PERFORM asignar_permiso_por_sede('coordinador', sede.id_sede, 'aps', 'marcar_ausente');
     PERFORM asignar_permiso_por_sede('coordinador', sede.id_sede, 'aps', 'enviar_presupuesto');
     PERFORM asignar_permiso_por_sede('coordinador', sede.id_sede, 'aps', 'solicitar_clave');
     PERFORM asignar_permiso_por_sede('coordinador', sede.id_sede, 'aps', 'enviar_sala_espera');
@@ -410,6 +423,10 @@ BEGIN
     PERFORM asignar_permiso_por_sede('coordinador', sede.id_sede, 'admision', 'marcar_ausente');
 
     -- Analista
+    PERFORM asignar_permiso_por_sede('analista', sede.id_sede, 'aps', 'ver');
+    PERFORM asignar_permiso_por_sede('analista', sede.id_sede, 'aps', 'editar');
+    PERFORM asignar_permiso_por_sede('analista', sede.id_sede, 'aps', 'eliminar');
+    PERFORM asignar_permiso_por_sede('analista', sede.id_sede, 'aps', 'marcar_ausente');
     PERFORM asignar_permiso_por_sede('analista', sede.id_sede, 'aps', 'enviar_presupuesto');
     PERFORM asignar_permiso_por_sede('analista', sede.id_sede, 'aps', 'solicitar_clave');
     PERFORM asignar_permiso_por_sede('analista', sede.id_sede, 'aps', 'enviar_sala_espera');
@@ -419,10 +436,14 @@ BEGIN
 
     -- Laboratorio
     PERFORM asignar_permiso_por_sede('laboratorio', sede.id_sede, 'laboratorio', '*');
+    PERFORM asignar_permiso_por_sede('laboratorio', sede.id_sede, 'laboratorio', 'editar');
+    PERFORM asignar_permiso_por_sede('laboratorio', sede.id_sede, 'laboratorio', 'eliminar');
     PERFORM asignar_permiso_por_sede('laboratorio', sede.id_sede, 'llamado', 'laboratorio');
 
     -- Imagenes
     PERFORM asignar_permiso_por_sede('imagenes', sede.id_sede, 'imagenes', '*');
+    PERFORM asignar_permiso_por_sede('imagenes', sede.id_sede, 'imagenes', 'editar');
+    PERFORM asignar_permiso_por_sede('imagenes', sede.id_sede, 'imagenes', 'eliminar');
     PERFORM asignar_permiso_por_sede('imagenes', sede.id_sede, 'llamado', 'imagenes');
 
     -- Enfermero

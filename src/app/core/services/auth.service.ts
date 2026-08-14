@@ -202,6 +202,32 @@ export class AuthService implements OnDestroy {
       );
   }
 
+  /**
+   * Selecciona con cuál especialidad entra el médico cuando tiene varias
+   * activas. El backend valida que la especialidad sea de las activas del
+   * usuario y devuelve un access token nuevo con esa especialidad en sesión.
+   */
+  seleccionarEspecialidad(idEspecialidad: number): Observable<any> {
+    return this.http.post<{ mensaje: string, token: string, usuario: any }>(
+      `${environment.apiUrl}/auth/seleccionar-especialidad`,
+      { id_especialidad: idEspecialidad },
+      { withCredentials: true }
+    ).pipe(
+      tap(response => {
+        const usuario: Usuario = {
+          ...response.usuario,
+          nombre: response.usuario.nombre || response.usuario.username
+        };
+        sessionStorage.setItem(this.TOKEN_KEY, response.token);
+        sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(usuario));
+        sessionStorage.setItem(this.FECHA_KEY, this.fechaHoy());
+        this.api.actualizarSocketToken(response.token);
+        this.usuarioSubject.next(usuario);
+      }),
+      catchError(err => throwError(() => err))
+    );
+  }
+
   refreshSession(): Observable<{ token: string; usuario: any } | null> {
     return this.http.post<{ token: string; usuario: any }>(
       `${environment.apiUrl}/auth/refresh`, {}, { withCredentials: true }

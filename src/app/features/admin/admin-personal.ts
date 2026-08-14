@@ -119,6 +119,109 @@ export class AdminPersonal implements OnInit {
   showSedeDropdown = false;
   showSearchFilterDropdown = false;
 
+  /** Especialidades seleccionadas del médico (la primera es la principal). */
+  especialidadesSel: number[] = [];
+  /** Especialidades del médico que están INACTIVAS (no puede entrar con ellas). */
+  especialidadesInactivas: number[] = [];
+
+  // ---- Autocomplete de los selects del modal (escribir para filtrar) ----
+  rolFiltro: string = '';
+  espFiltro: string = '';
+  conFiltro: string = '';
+  rolIndex: number = -1;
+  espIndex: number = -1;
+  conIndex: number = -1;
+
+  get rolesConFiltro(): RolDTO[] {
+    const q = (this.rolFiltro || '').trim().toLowerCase();
+    return this.rolesPorSede.filter(r => !q || (r.nombre || '').toLowerCase().includes(q) || (r.key || '').toLowerCase().includes(q));
+  }
+
+  get especialidadesConFiltro(): EspecialidadDTO[] {
+    const q = (this.espFiltro || '').trim().toLowerCase();
+    return this.especialidades.filter(e => !q || (e.nombre || '').toLowerCase().includes(q));
+  }
+
+  get consultoriosConFiltro(): ConsultorioDTO[] {
+    const q = (this.conFiltro || '').trim().toLowerCase();
+    return this.consultoriosDelServicio.filter(c => !q || (c.nombre || '').toLowerCase().includes(q));
+  }
+
+  onRolInput(event: Event) {
+    this.rolFiltro = (event.target as HTMLInputElement).value;
+    this.showRolDropdown = true;
+    this.rolIndex = -1;
+  }
+
+  onRolKeydown(event: KeyboardEvent) {
+    const list = this.rolesConFiltro;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.showRolDropdown = true;
+      if (list.length) this.rolIndex = (this.rolIndex + 1) % list.length;
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (list.length) this.rolIndex = (this.rolIndex - 1 + list.length) % list.length;
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      if (this.showRolDropdown && list[this.rolIndex]) {
+        this.selectRol(list[this.rolIndex].key);
+      }
+    } else if (event.key === 'Escape') {
+      this.showRolDropdown = false;
+    }
+  }
+
+  onEspInput(event: Event) {
+    this.espFiltro = (event.target as HTMLInputElement).value;
+    this.showMedicoEspDropdown = true;
+    this.espIndex = -1;
+  }
+
+  onEspKeydown(event: KeyboardEvent) {
+    const list = this.especialidadesConFiltro;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.showMedicoEspDropdown = true;
+      if (list.length) this.espIndex = (this.espIndex + 1) % list.length;
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (list.length) this.espIndex = (this.espIndex - 1 + list.length) % list.length;
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      if (this.showMedicoEspDropdown && list[this.espIndex]) {
+        this.toggleMedicoEsp(list[this.espIndex]);
+      }
+    } else if (event.key === 'Escape') {
+      this.showMedicoEspDropdown = false;
+    }
+  }
+
+  onConInput(event: Event) {
+    this.conFiltro = (event.target as HTMLInputElement).value;
+    this.showMedicoConDropdown = true;
+    this.conIndex = -1;
+  }
+
+  onConKeydown(event: KeyboardEvent) {
+    const list = this.consultoriosConFiltro;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.showMedicoConDropdown = true;
+      if (list.length) this.conIndex = (this.conIndex + 1) % list.length;
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (list.length) this.conIndex = (this.conIndex - 1 + list.length) % list.length;
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      if (this.showMedicoConDropdown && list[this.conIndex]) {
+        this.selectMedicoCon(list[this.conIndex]);
+      }
+    } else if (event.key === 'Escape') {
+      this.showMedicoConDropdown = false;
+    }
+  }
+
   showModalPersonal = false;
   private modalTrigger: HTMLElement | null = null;
 
@@ -255,6 +358,31 @@ export class AdminPersonal implements OnInit {
         id_sede: '',
       };
     }
+
+    // Especialidades múltiples: se precargan desde el backend (especialidades)
+    // o, si no vienen, desde la principal (id_especialidad).
+    const espIds = user
+      ? (Array.isArray((user as any).especialidades) && (user as any).especialidades.length
+          ? (user as any).especialidades.map(Number)
+          : (user.id_especialidad ? [Number(user.id_especialidad)] : []))
+      : [];
+    this.especialidadesSel = espIds;
+    this.especialidadesInactivas = user
+      ? (Array.isArray((user as any).especialidades_inactivas)
+          ? (user as any).especialidades_inactivas.map(Number)
+          : [])
+      : [];
+    if (espIds.length && !this.formPersonal.especialidad_id) {
+      this.formPersonal.especialidad_id = espIds[0];
+    }
+
+    // Prefill de los autocompletes según los valores cargados
+    // (la especialidad ahora es multi-selección: se muestran chips abajo)
+    this.espFiltro = '';
+    const conSel = this.consultorios.find(c => c.id == this.formPersonal.consultorio_id);
+    this.conFiltro = conSel ? conSel.nombre : '';
+    this.rolFiltro = this.formPersonal.rol ? this.getRolLabel(this.formPersonal.rol) : '';
+
     this.abrirModalPersonal(trigger);
   }
 
@@ -313,6 +441,8 @@ export class AdminPersonal implements OnInit {
         ? (this.formPersonal.servicio_id ? Number(this.formPersonal.servicio_id) : null) : null,
       id_especialidad: rol === 'medico'
         ? (this.formPersonal.especialidad_id ? Number(this.formPersonal.especialidad_id) : null) : null,
+      especialidades: rol === 'medico' ? this.especialidadesSel.map(Number) : [],
+      especialidades_inactivas: rol === 'medico' ? this.especialidadesInactivas.map(Number) : [],
       status: !!this.formPersonal.activo,
     };
     const call = this.isEditing && this.editingId !== null
@@ -357,6 +487,7 @@ export class AdminPersonal implements OnInit {
     return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   }
 
+
   get personalFiltrados() {
     return this.todoPersonal.filter((p) => {
       const query = this.normalize(this.searchQuery || '');
@@ -387,11 +518,66 @@ export class AdminPersonal implements OnInit {
     this.showMedicoEspDropdown = false;
   }
 
-  selectMedicoEsp(esp: EspecialidadDTO) {
-    this.formPersonal.especialidad_id = esp.id ?? '';
-    this.formPersonal.servicio_id = esp.id_servicio ?? '';
-    this.formPersonal.consultorio_id = '';
-    this.showMedicoEspDropdown = false;
+  /**
+   * Marca/desmarca una especialidad del médico (multi-selección). La primera
+   * seleccionada es la PRINCIPAL (define servicio y consultorios sugeridos).
+   * El listado queda abierto para seguir marcando más.
+   */
+  toggleMedicoEsp(esp: EspecialidadDTO) {
+    const id = Number(esp.id ?? esp.id_especialidad);
+    const idx = this.especialidadesSel.indexOf(id);
+    const principalAnterior = this.especialidadesSel[0];
+    if (idx >= 0) {
+      this.especialidadesSel.splice(idx, 1);
+      // Al desmarcar, también sale de la lista de inactivas
+      const inaIdx = this.especialidadesInactivas.indexOf(id);
+      if (inaIdx >= 0) this.especialidadesInactivas.splice(inaIdx, 1);
+    } else {
+      this.especialidadesSel.push(id);
+      // Nueva especialidad marcada: queda ACTIVA por defecto
+      const inaIdx = this.especialidadesInactivas.indexOf(id);
+      if (inaIdx >= 0) this.especialidadesInactivas.splice(inaIdx, 1);
+    }
+    const principal = this.especialidadesSel[0];
+    this.formPersonal.especialidad_id = principal ?? '';
+    if (principal !== principalAnterior) {
+      // Cambió la principal: actualiza el servicio y limpia el consultorio
+      this.formPersonal.servicio_id = principal
+        ? (esp.id_servicio ?? this.formPersonal.servicio_id)
+        : '';
+      this.formPersonal.consultorio_id = '';
+      this.conFiltro = '';
+    }
+    this.espIndex = -1;
+    this.espFiltro = '';
+  }
+
+  /** Marca/desmarca una especialidad como ACTIVA (puede entrar con ella). */
+  toggleEspActiva(esp: EspecialidadDTO) {
+    const id = Number(esp.id ?? esp.id_especialidad);
+    const inaIdx = this.especialidadesInactivas.indexOf(id);
+    if (inaIdx >= 0) {
+      this.especialidadesInactivas.splice(inaIdx, 1);
+    } else {
+      this.especialidadesInactivas.push(id);
+    }
+    // Si la PRINCIPAL quedó inactiva, la principal pasa a la primera activa
+    const principal = this.especialidadesSel[0];
+    if (principal !== undefined && this.especialidadesInactivas.includes(principal)) {
+      const nuevaPrincipal = this.especialidadesSel.find(e => !this.especialidadesInactivas.includes(e));
+      this.formPersonal.especialidad_id = nuevaPrincipal ?? '';
+    }
+  }
+
+  /** ¿La especialidad está activa para este médico? */
+  espActiva(esp: EspecialidadDTO): boolean {
+    const id = Number(esp.id ?? esp.id_especialidad);
+    return !this.especialidadesInactivas.includes(id);
+  }
+
+  esEspSel(esp: EspecialidadDTO): boolean {
+    const id = Number(esp.id ?? esp.id_especialidad);
+    return this.especialidadesSel.includes(id);
   }
 
   get consultoriosDelServicio() {
@@ -404,6 +590,8 @@ export class AdminPersonal implements OnInit {
   selectMedicoCon(con: ConsultorioDTO) {
     this.formPersonal.consultorio_id = con.id ?? '';
     this.showMedicoConDropdown = false;
+    this.conIndex = -1;
+    this.conFiltro = con.nombre || '';
   }
 
   toggleSedeDropdown() {
@@ -424,6 +612,8 @@ export class AdminPersonal implements OnInit {
   selectRol(rol: string) {
     this.formPersonal.rol = rol;
     this.showRolDropdown = false;
+    this.rolIndex = -1;
+    this.rolFiltro = this.getRolLabel(rol);
   }
 
   tienePermiso(permiso: string): boolean { return this.auth.tienePermiso(permiso); }

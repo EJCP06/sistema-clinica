@@ -1,5 +1,8 @@
 const ACCIONES_ESPECIALES_POR_VISTA = {
   admision: ['asignar_turno'],
+  // editar/eliminar NO van aquí a propósito: deben comportarse como casillas
+  // normales de la permisología (se pueden marcar/desmarcar libremente), igual
+  // que ver/crear/editar/eliminar de admisión. Solo van las acciones invisibles.
   aps: ['enviar_presupuesto', 'solicitar_clave', 'enviar_sala_espera', 'aprobar_clave', 'reincorporar'],
   laboratorio: ['registrar_caja', 'pasar_sala_espera', 'marcar_ausente', 'reincorporar'],
   imagenes: ['registrar_caja', 'pasar_sala_espera', 'marcar_ausente', 'reincorporar'],

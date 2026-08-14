@@ -2,6 +2,7 @@
  * Rutas de autenticación (módulo público).
  *
  * - POST /login               -> Inicio de sesión (protegido por loginLimiter)
+ * - POST /seleccionar-especialidad -> Elige con cuál especialidad entra el médico
  * - POST /refresh             -> Renovación de access token vía refresh token
  * - POST /logout              -> Cierre de sesión
  * - GET  /verify              -> Valida si la sesión actual sigue siendo válida
@@ -61,6 +62,7 @@ router.get('/verify', authMiddleware, async (req, res) => {
   }
 });
 
+router.post('/seleccionar-especialidad', authMiddleware, authController.seleccionarEspecialidad);
 router.post('/refresh', authController.refrescarToken);
 router.put('/cambiar-password', authMiddleware, [
   body('newPassword').isLength({ min: 8 }).withMessage('La nueva contraseña debe tener al menos 8 caracteres'),

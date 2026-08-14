@@ -18,6 +18,8 @@ export interface Usuario {
   servicio_id?: number;
   id_especialidad?: number;
   especialidad_nombre?: string;
+  /** Especialidades ACTIVAS del médico con las que puede entrar (id + nombre). */
+  especialidades_activas?: { id: number; nombre: string }[];
   id_sede?: number;
 }
 
