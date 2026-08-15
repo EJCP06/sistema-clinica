@@ -40,6 +40,8 @@ import {
   Moon,
   Upload,
   Info,
+  ClipboardList,
+  Building2,
 } from 'lucide-angular';
 import { PaginationComponent } from '../../shared/components/pagination/pagination';
 import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
@@ -88,6 +90,8 @@ export class AdminPersonal implements OnInit {
   readonly LogOut = LogOut;
   readonly Sun = Sun;
   readonly Moon = Moon;
+  readonly ClipboardList = ClipboardList;
+  readonly Building2 = Building2;
   readonly Upload = Upload;
   readonly Info = Info;
 
@@ -115,22 +119,25 @@ export class AdminPersonal implements OnInit {
 
   showRolDropdown = false;
   showMedicoEspDropdown = false;
-  showMedicoConDropdown = false;
   showSedeDropdown = false;
   showSearchFilterDropdown = false;
+  /** Modal "Asignar consultorios" (consultorio de CADA especialidad del médico). */
+  showEspConModal = false;
+  /** Botón "Listo" del modal de consultorios mostrando "guardando...". */
+  guardandoEspCon = false;
 
   /** Especialidades seleccionadas del médico (la primera es la principal). */
   especialidadesSel: number[] = [];
   /** Especialidades del médico que están INACTIVAS (no puede entrar con ellas). */
   especialidadesInactivas: number[] = [];
+  /** Consultorio de CADA especialidad del médico: { [idEspecialidad]: idConsultorio }. */
+  especialidadesConsultorios: Record<number, number | null> = {};
 
   // ---- Autocomplete de los selects del modal (escribir para filtrar) ----
   rolFiltro: string = '';
   espFiltro: string = '';
-  conFiltro: string = '';
   rolIndex: number = -1;
   espIndex: number = -1;
-  conIndex: number = -1;
 
   get rolesConFiltro(): RolDTO[] {
     const q = (this.rolFiltro || '').trim().toLowerCase();
@@ -142,9 +149,125 @@ export class AdminPersonal implements OnInit {
     return this.especialidades.filter(e => !q || (e.nombre || '').toLowerCase().includes(q));
   }
 
-  get consultoriosConFiltro(): ConsultorioDTO[] {
-    const q = (this.conFiltro || '').trim().toLowerCase();
-    return this.consultoriosDelServicio.filter(c => !q || (c.nombre || '').toLowerCase().includes(q));
+  /**
+   * Texto visible del select de especialidades: las seleccionadas separadas
+   * por comas (ej: "cardiologia, alergologia"). Mientras el dropdown está
+   * abierto solo se muestra lo que se escribe para filtrar; al cerrarse
+   * (o al editar a un médico) vuelven a verse las comas.
+   */
+  get espDisplay(): string {
+    if ((this.espFiltro || '').trim()) return this.espFiltro;
+    if (this.showMedicoEspDropdown) return '';
+    return this.especialidadesSel
+      .map(id => this.especialidades.find(e => e.id === Number(id))?.nombre)
+      .filter(Boolean)
+      .join(', ');
+  }
+
+  /** Consultorios que pueden asignarse a UNA especialidad (los suyos, o todos si no tiene). */
+  consultoriosDeEsp(esp: EspecialidadDTO): ConsultorioDTO[] {
+    const ids = esp.consultorios_ids;
+    if (!ids || ids.length === 0) return this.consultorios;
+    return this.consultorios.filter(c => ids.includes(c.id));
+  }
+
+  // ---- Dropdowns de consultorio por especialidad (mini-modal) ----
+  /** Dropdown abierto por especialidad: { [idEspecialidad]: boolean }. */
+  espConDropdownAbiertos: Record<number, boolean> = {};
+  /** Texto de filtro escrito en el consultorio de cada especialidad. */
+  espConFiltros: Record<number, string> = {};
+
+  espConId(esp: EspecialidadDTO): number {
+    return Number(esp.id ?? esp.id_especialidad);
+  }
+
+  /** Valor actual del consultorio asignado a una especialidad. */
+  espConValor(esp: EspecialidadDTO): number | null {
+    const id = this.espConId(esp);
+    const v = this.especialidadesConsultorios[id];
+    return v == null ? null : v;
+  }
+
+  /** Nombre del consultorio asignado a una especialidad. */
+  espConNombre(esp: EspecialidadDTO): string {
+    const v = this.espConValor(esp);
+    if (v == null) return '';
+    const con = this.consultorios.find(c => c.id === Number(v));
+    return con ? con.nombre : '';
+  }
+
+  /** Texto visible del input: lo que se escribe para filtrar, o el consultorio elegido. */
+  espConDisplay(esp: EspecialidadDTO): string {
+    const filtro = this.espConFiltros[this.espConId(esp)];
+    if (filtro) return filtro;
+    return this.espConNombre(esp);
+  }
+
+  /** Consultorios de la especialidad filtrados por el texto escrito. */
+  espConFiltrados(esp: EspecialidadDTO): ConsultorioDTO[] {
+    const q = (this.espConFiltros[this.espConId(esp)] || '').trim().toLowerCase();
+    return this.consultoriosDeEsp(esp).filter(c => !q || (c.nombre || '').toLowerCase().includes(q));
+  }
+
+  onEspConInput(esp: EspecialidadDTO, event: Event) {
+    this.espConFiltros[this.espConId(esp)] = (event.target as HTMLInputElement).value;
+    this.espConDropdownAbiertos[this.espConId(esp)] = true;
+  }
+
+  /** Abre/cierra el dropdown de consultorio de una especialidad. */
+  toggleEspConDropdown(esp: EspecialidadDTO) {
+    const id = this.espConId(esp);
+    this.espConDropdownAbiertos[id] = !this.espConDropdownAbiertos[id];
+  }
+
+  /** Selecciona el consultorio de una especialidad y cierra su dropdown. */
+  selectEspConsultorio(esp: EspecialidadDTO, con: ConsultorioDTO) {
+    const id = this.espConId(esp);
+    this.especialidadesConsultorios[id] = con.id ?? null;
+    this.espConDropdownAbiertos[id] = false;
+    this.espConFiltros[id] = '';
+  }
+
+  /** Cierra el dropdown de una especialidad y limpia su filtro. */
+  cerrarEspConDropdown(esp: EspecialidadDTO) {
+    const id = this.espConId(esp);
+    this.espConDropdownAbiertos[id] = false;
+    this.espConFiltros[id] = '';
+  }
+
+  /** Especialidades seleccionadas con sus datos (para el modal de consultorios). */
+  get especialidadesSeleccionadas(): EspecialidadDTO[] {
+    return this.especialidades.filter((e) => {
+      const id = Number(e.id ?? e.id_especialidad);
+      return this.especialidadesSel.includes(id);
+    });
+  }
+
+  abrirEspConModal() {
+    this.showEspConModal = true;
+    this.showMedicoEspDropdown = false;
+    this.espConDropdownAbiertos = {};
+    this.espConFiltros = {};
+  }
+
+  cerrarEspConModal() {
+    this.showEspConModal = false;
+    this.espConDropdownAbiertos = {};
+    this.espConFiltros = {};
+    this.guardandoEspCon = false;
+  }
+
+  /**
+   * Botón "Listo": muestra "guardando..." (igual que el botón GUARDAR)
+   * durante un momento y luego cierra el modal. Los consultorios ya quedaron
+   * guardados en memoria; el cierre con animación es solo feedback visual.
+   */
+  finalizarEspConModal() {
+    if (this.guardandoEspCon) return;
+    this.guardandoEspCon = true;
+    setTimeout(() => {
+      this.cerrarEspConModal();
+    }, 800);
   }
 
   onRolInput(event: Event) {
@@ -194,31 +317,6 @@ export class AdminPersonal implements OnInit {
       }
     } else if (event.key === 'Escape') {
       this.showMedicoEspDropdown = false;
-    }
-  }
-
-  onConInput(event: Event) {
-    this.conFiltro = (event.target as HTMLInputElement).value;
-    this.showMedicoConDropdown = true;
-    this.conIndex = -1;
-  }
-
-  onConKeydown(event: KeyboardEvent) {
-    const list = this.consultoriosConFiltro;
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      this.showMedicoConDropdown = true;
-      if (list.length) this.conIndex = (this.conIndex + 1) % list.length;
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      if (list.length) this.conIndex = (this.conIndex - 1 + list.length) % list.length;
-    } else if (event.key === 'Enter') {
-      event.preventDefault();
-      if (this.showMedicoConDropdown && list[this.conIndex]) {
-        this.selectMedicoCon(list[this.conIndex]);
-      }
-    } else if (event.key === 'Escape') {
-      this.showMedicoConDropdown = false;
     }
   }
 
@@ -321,6 +419,12 @@ export class AdminPersonal implements OnInit {
     this.showPassword = false;
     this.isEditing = !!user;
     this.editingId = user?.id || user?.id_usuario || null;
+    // Cerrar los dropdowns de los autocompletes y el mini-modal de consultorios:
+    // al abrir el modal las especialidades seleccionadas deben verse como texto
+    // (ej: "cardiologia, alergologia") y no con el dropdown abierto.
+    this.showMedicoEspDropdown = false;
+    this.showRolDropdown = false;
+    this.showEspConModal = false;
     if (user) {
       this.formPersonal = {
         rol: user.rol || 'medico',
@@ -372,15 +476,21 @@ export class AdminPersonal implements OnInit {
           ? (user as any).especialidades_inactivas.map(Number)
           : [])
       : [];
+    // Consultorio POR especialidad (viene del backend como { idEsp: idConsultorio })
+    this.especialidadesConsultorios = {};
+    const consMap = (user as any)?.especialidades_consultorios;
+    if (consMap && typeof consMap === 'object' && !Array.isArray(consMap)) {
+      for (const [k, v] of Object.entries(consMap)) {
+        if (v != null) this.especialidadesConsultorios[Number(k)] = Number(v);
+      }
+    }
     if (espIds.length && !this.formPersonal.especialidad_id) {
       this.formPersonal.especialidad_id = espIds[0];
     }
 
     // Prefill de los autocompletes según los valores cargados
-    // (la especialidad ahora es multi-selección: se muestran chips abajo)
+    // (la especialidad ahora es multi-selección: se ven separadas por comas)
     this.espFiltro = '';
-    const conSel = this.consultorios.find(c => c.id == this.formPersonal.consultorio_id);
-    this.conFiltro = conSel ? conSel.nombre : '';
     this.rolFiltro = this.formPersonal.rol ? this.getRolLabel(this.formPersonal.rol) : '';
 
     this.abrirModalPersonal(trigger);
@@ -435,14 +545,20 @@ export class AdminPersonal implements OnInit {
       email: this.formPersonal.email ? this.formPersonal.email.toLowerCase().trim() : null,
       password: this.formPersonal.password ? this.formPersonal.password.replace(/\s/g, '') : null,
       id_sede: this.formPersonal.id_sede ? Number(this.formPersonal.id_sede) : 1,
+      // El consultorio de Usuarios se mantiene sincronizado con el de la
+      // especialidad PRINCIPAL (respaldo para módulos que aún lo leen).
       id_consultorio: rol === 'medico'
-        ? (this.formPersonal.consultorio_id ? Number(this.formPersonal.consultorio_id) : null) : null,
+        ? (this.especialidadesConsultorios[Number(this.formPersonal.especialidad_id)]
+            ? Number(this.especialidadesConsultorios[Number(this.formPersonal.especialidad_id)])
+            : null) : null,
       id_servicio: rol === 'medico'
         ? (this.formPersonal.servicio_id ? Number(this.formPersonal.servicio_id) : null) : null,
       id_especialidad: rol === 'medico'
         ? (this.formPersonal.especialidad_id ? Number(this.formPersonal.especialidad_id) : null) : null,
       especialidades: rol === 'medico' ? this.especialidadesSel.map(Number) : [],
       especialidades_inactivas: rol === 'medico' ? this.especialidadesInactivas.map(Number) : [],
+      // Consultorio de CADA especialidad: { idEsp: idConsultorio }
+      especialidades_consultorios: rol === 'medico' ? this.especialidadesConsultorios : {},
       status: !!this.formPersonal.activo,
     };
     const call = this.isEditing && this.editingId !== null
@@ -510,12 +626,6 @@ export class AdminPersonal implements OnInit {
 
   toggleMedicoEspDropdown() {
     this.showMedicoEspDropdown = !this.showMedicoEspDropdown;
-    this.showMedicoConDropdown = false;
-  }
-
-  toggleMedicoConDropdown() {
-    this.showMedicoConDropdown = !this.showMedicoConDropdown;
-    this.showMedicoEspDropdown = false;
   }
 
   /**
@@ -529,9 +639,11 @@ export class AdminPersonal implements OnInit {
     const principalAnterior = this.especialidadesSel[0];
     if (idx >= 0) {
       this.especialidadesSel.splice(idx, 1);
-      // Al desmarcar, también sale de la lista de inactivas
+      // Al desmarcar, también sale de la lista de inactivas y se descarta
+      // su consultorio por especialidad
       const inaIdx = this.especialidadesInactivas.indexOf(id);
       if (inaIdx >= 0) this.especialidadesInactivas.splice(inaIdx, 1);
+      delete this.especialidadesConsultorios[id];
     } else {
       this.especialidadesSel.push(id);
       // Nueva especialidad marcada: queda ACTIVA por defecto
@@ -541,38 +653,13 @@ export class AdminPersonal implements OnInit {
     const principal = this.especialidadesSel[0];
     this.formPersonal.especialidad_id = principal ?? '';
     if (principal !== principalAnterior) {
-      // Cambió la principal: actualiza el servicio y limpia el consultorio
+      // Cambió la principal: actualiza el servicio sugerido
       this.formPersonal.servicio_id = principal
         ? (esp.id_servicio ?? this.formPersonal.servicio_id)
         : '';
-      this.formPersonal.consultorio_id = '';
-      this.conFiltro = '';
     }
     this.espIndex = -1;
     this.espFiltro = '';
-  }
-
-  /** Marca/desmarca una especialidad como ACTIVA (puede entrar con ella). */
-  toggleEspActiva(esp: EspecialidadDTO) {
-    const id = Number(esp.id ?? esp.id_especialidad);
-    const inaIdx = this.especialidadesInactivas.indexOf(id);
-    if (inaIdx >= 0) {
-      this.especialidadesInactivas.splice(inaIdx, 1);
-    } else {
-      this.especialidadesInactivas.push(id);
-    }
-    // Si la PRINCIPAL quedó inactiva, la principal pasa a la primera activa
-    const principal = this.especialidadesSel[0];
-    if (principal !== undefined && this.especialidadesInactivas.includes(principal)) {
-      const nuevaPrincipal = this.especialidadesSel.find(e => !this.especialidadesInactivas.includes(e));
-      this.formPersonal.especialidad_id = nuevaPrincipal ?? '';
-    }
-  }
-
-  /** ¿La especialidad está activa para este médico? */
-  espActiva(esp: EspecialidadDTO): boolean {
-    const id = Number(esp.id ?? esp.id_especialidad);
-    return !this.especialidadesInactivas.includes(id);
   }
 
   esEspSel(esp: EspecialidadDTO): boolean {
@@ -580,24 +667,9 @@ export class AdminPersonal implements OnInit {
     return this.especialidadesSel.includes(id);
   }
 
-  get consultoriosDelServicio() {
-    if (!this.formPersonal.especialidad_id) return this.consultorios;
-    const esp = this.especialidades.find(e => e.id === Number(this.formPersonal.especialidad_id));
-    if (!esp || !esp.consultorios_ids || esp.consultorios_ids.length === 0) return this.consultorios;
-    return this.consultorios.filter((c) => esp.consultorios_ids!.includes(c.id));
-  }
-
-  selectMedicoCon(con: ConsultorioDTO) {
-    this.formPersonal.consultorio_id = con.id ?? '';
-    this.showMedicoConDropdown = false;
-    this.conIndex = -1;
-    this.conFiltro = con.nombre || '';
-  }
-
   toggleSedeDropdown() {
     this.showSedeDropdown = !this.showSedeDropdown;
     this.showMedicoEspDropdown = false;
-    this.showMedicoConDropdown = false;
   }
 
   selectSede(id: number) {
@@ -717,9 +789,13 @@ export class AdminPersonal implements OnInit {
     const target = event.target as HTMLElement;
     if (!target.closest('.search-filter-container')) this.showSearchFilterDropdown = false;
     if (!target.closest('.medico-esp-container')) this.showMedicoEspDropdown = false;
-    if (!target.closest('.medico-con-container')) this.showMedicoConDropdown = false;
     if (!target.closest('.rol-dropdown-container')) this.showRolDropdown = false;
     if (!target.closest('.sede-dropdown-container')) this.showSedeDropdown = false;
+    if (!target.closest('.esp-con-dropdown')) {
+      // Cerrar todos los dropdowns de consultorio del mini-modal
+      this.espConDropdownAbiertos = {};
+      this.espConFiltros = {};
+    }
   }
 
   soloLetras(event: KeyboardEvent) {

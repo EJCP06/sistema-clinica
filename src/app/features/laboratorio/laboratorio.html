@@ -616,16 +616,6 @@
               />
               </div>
             </div>
-            <button
-              *ngIf="puedeLlamar"
-              (click)="llamarSiguienteRegistrado()"
-              [disabled]="!hayRegistradosEnCola"
-              class="shrink-0 w-full sm:w-auto justify-center flex items-center gap-2 px-4 py-3 text-[10px] font-black uppercase tracking-wider rounded-2xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none transition-all"
-              title="Llamar al siguiente paciente registrado"
-            >
-              <lucide-icon [name]="Volume2" class="w-4 h-4"></lucide-icon>
-              Llamar
-            </button>
           </div>
           <div *ngIf="cargando" class="flex flex-col items-center justify-center py-16 bg-white dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800/80 rounded-[32px]">
             <div class="w-8 h-8 border-[3px] border-blue-600/30 border-t-blue-600 rounded-full animate-spin"></div>
@@ -674,6 +664,18 @@
                     <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-white uppercase text-center">{{ a.fecha_creacion | date:'h:mm a' }}</td>
                     <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center border-b border-slate-100/30 dark:border-slate-800/10">
                       <div class="flex items-center justify-center gap-2">
+                        <button *ngIf="a.id_estado_actual === 1 && tienePermiso('laboratorio_registrar_caja')" (click)="enviarAPresupuesto(a.id_atencion)" aria-label="¿Ya se creó el presupuesto?" title="¿Ya se creó el presupuesto?" class="p-2 text-amber-500 hover:bg-amber-50 rounded-xl transition-all">
+                          <lucide-icon [name]="FileText" class="w-4 h-4"></lucide-icon>
+                        </button>
+                        <button
+                          *ngIf="a.id_estado_actual === 1 && puedeLlamar"
+                          (click)="llamarPaciente(a)"
+                          aria-label="Llamar al paciente"
+                          title="Llamar al paciente"
+                          class="p-2 text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
+                        >
+                          <lucide-icon [name]="Megaphone" class="w-4 h-4"></lucide-icon>
+                        </button>
                         <button
                           *ngIf="a.id_estado_actual === 1 && tienePermiso('laboratorio:editar')"
                           (click)="editarFila(a, $event.target)"
@@ -682,9 +684,6 @@
                           class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl focus:outline-none"
                         >
                           <lucide-icon [name]="Edit2" class="w-4 h-4"></lucide-icon>
-                        </button>
-                        <button *ngIf="a.id_estado_actual === 1 && tienePermiso('laboratorio_registrar_caja')" (click)="enviarAPresupuesto(a.id_atencion)" aria-label="¿Ya se creó el presupuesto?" title="¿Ya se creó el presupuesto?" class="p-2 text-amber-500 hover:bg-amber-50 rounded-xl transition-all">
-                          <lucide-icon [name]="FileText" class="w-4 h-4"></lucide-icon>
                         </button>
                         <button *ngIf="a.id_estado_actual === 2 && tienePermiso('laboratorio_pasar_sala_espera')" (click)="enviarACaja(a.id_atencion)" aria-label="Enviar a sala de espera" title="Enviar a Sala de Espera" class="p-2 text-teal-500 hover:bg-teal-50 rounded-xl transition-all">
                           <lucide-icon [name]="CheckCircle2" class="w-4 h-4"></lucide-icon>

@@ -1293,7 +1293,17 @@ nuevoPaciente: any = {
 
   selectMedico(m: any) {
     this.seleccion.id_medico = m.id_usuario || m.id;
-    this.seleccion.id_consultorio = m.id_consultorio || m.consultorio_id || null;
+    // Consultorio según la especialidad del turno: el médico puede tener uno
+    // DISTINTO por especialidad (mapeo { idEsp: idConsultorio } del backend).
+    let consultorio = m.id_consultorio || m.consultorio_id || null;
+    const target = this.seleccion.id_especialidad ? Number(this.seleccion.id_especialidad) : null;
+    if (target != null) {
+      const consMap = m.especialidades_consultorios;
+      if (consMap && typeof consMap === 'object' && consMap[target] != null) {
+        consultorio = Number(consMap[target]);
+      }
+    }
+    this.seleccion.id_consultorio = consultorio;
     this.seleccion.nombre_medico_label = ((m.nombre || '') + ' ' + (m.apellido || '')).trim();
     this.medicoFiltro = this.seleccion.nombre_medico_label;
     this.medicoIndex = -1;

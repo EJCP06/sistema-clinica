@@ -11,21 +11,24 @@
  *
  * Los mensajes de error van en español para el usuario final.
  */
-const rateLimit = require('express-rate-limit');
+const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 
 /**
  * Extrae una IP válida para el rate limiter. Bajo IIS/iisnode (o proxies)
  * la IP puede llegar como "[::1]:61401" (IPv6 con puerto) o como
- * "::ffff:127.0.0.1" (IPv4 mapeada), formato que express-rate-limit v8
- * rechaza con ERR_ERL_INVALID_IP_ADDRESS. Esta función limpia esos casos.
+ * "::ffff:127.0.0.1" (IPv4 mapeada). Se limpia ese formato y luego se
+ * delega en ipKeyGenerator de express-rate-limit para que maneje las
+ * direcciones IPv6 correctamente (evita ERR_ERL_KEY_GEN_IPV6 y que los
+ * usuarios IPv6 puedan saltarse el límite cambiando su dirección).
  */
 const obtenerIpCliente = (req) => {
   const ip = req.ip || req.socket?.remoteAddress || 'desconocido';
-  return String(ip)
-    .replace(/^\[|\]$/g, '') // quitar corchetes: [::1] -> ::1
-    .replace(/^::ffff:/, '')  // normalizar IPv4 mapeada: ::ffff:127.0.0.1 -> 127.0.0.1
-    .replace(/:\d+$/, '')    // quitar puerto al final: [::1]:61401 -> ::1
-    || 'desconocido';
+  let limpia = String(ip);
+  if (limpia.startsWith('[')) {
+    const cierre = limpia.indexOf(']:');
+    if (cierre !== -1) limpia = limpia.slice(1, cierre); // [::1]:61401 -> ::1
+  }
+  return ipKeyGenerator(limpia);
 };
 
 // Límite general de la API (no aplica a /turnero/*, que consulta el estado constantemente).

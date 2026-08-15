@@ -216,6 +216,8 @@ export interface PersonalDTO {
   especialidades?: number[];
   /** IDs de las especialidades del usuario que están INACTIVAS (no puede entrar con ellas). */
   especialidades_inactivas?: number[];
+  /** Consultorio de CADA especialidad del usuario: { [idEspecialidad]: idConsultorio }. */
+  especialidades_consultorios?: Record<number, number>;
   id_sede?: number;
   status?: boolean;
   activo?: boolean;

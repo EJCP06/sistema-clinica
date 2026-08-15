@@ -617,16 +617,6 @@
               />
               </div>
             </div>
-            <button
-              *ngIf="puedeLlamar"
-              (click)="llamarSiguienteRegistrado()"
-              [disabled]="!hayRegistradosEnCola"
-              class="shrink-0 w-full sm:w-auto justify-center flex items-center gap-2 px-4 py-3 text-[10px] font-black uppercase tracking-wider rounded-2xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none transition-all"
-              title="Llamar al siguiente paciente registrado"
-            >
-              <lucide-icon [name]="Volume2" class="w-4 h-4"></lucide-icon>
-              Llamar
-            </button>
           </div>
           <div *ngIf="cargando" class="flex flex-col items-center justify-center py-16 bg-white dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800/80 rounded-[32px]">
             <div class="w-8 h-8 border-[3px] border-blue-600/30 border-t-blue-600 rounded-full animate-spin"></div>
@@ -727,15 +717,6 @@
                       >
                         <div class="flex items-center justify-center gap-2">
                           <button
-                            *ngIf="a.id_estado_actual === 1 && tienePermiso('imagenes:editar')"
-                            (click)="editarFila(a, $event.target)"
-                            aria-label="Editar paciente"
-                            title="Editar paciente"
-                            class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl focus:outline-none"
-                          >
-                            <lucide-icon [name]="Edit2" class="w-4 h-4"></lucide-icon>
-                          </button>
-                          <button
                             *ngIf="
                               a.id_estado_actual === 1 && tienePermiso('imagenes_registrar_caja')
                             "
@@ -745,6 +726,24 @@
                             class="p-2 text-amber-500 hover:bg-amber-50 rounded-xl transition-all"
                           >
                             <lucide-icon [name]="FileText" class="w-4 h-4"></lucide-icon>
+                          </button>
+                          <button
+                            *ngIf="a.id_estado_actual === 1 && puedeLlamar"
+                            (click)="llamarPaciente(a)"
+                            aria-label="Llamar al paciente"
+                            title="Llamar al paciente"
+                            class="p-2 text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
+                          >
+                            <lucide-icon [name]="Megaphone" class="w-4 h-4"></lucide-icon>
+                          </button>
+                          <button
+                            *ngIf="a.id_estado_actual === 1 && tienePermiso('imagenes:editar')"
+                            (click)="editarFila(a, $event.target)"
+                            aria-label="Editar paciente"
+                            title="Editar paciente"
+                            class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl focus:outline-none"
+                          >
+                            <lucide-icon [name]="Edit2" class="w-4 h-4"></lucide-icon>
                           </button>
                           <button
                             *ngIf="
