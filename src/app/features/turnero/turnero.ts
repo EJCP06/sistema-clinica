@@ -544,8 +544,15 @@ export class TurneroComponent implements OnInit, OnDestroy {
     const c = a.consultorio.toLowerCase();
     if (a.destinoInmediato) {
       // Botones "Llamar" de módulos (APS / clave / laboratorio / imágenes):
-      // anuncio único genérico, sin variantes por servicio.
-      texto = `Paciente ${nombreCompleto}, por favor acérquese a la recepción`;
+      // anuncio de disparo inmediato, con la recepción del módulo destino.
+      const destinoModulo = (a.consultorio || '').toLowerCase();
+      if (destinoModulo.includes('laboratorio')) {
+        texto = `Paciente ${nombreCompleto}, acérquese a la recepción de laboratorio`;
+      } else if (destinoModulo.includes('imagen')) {
+        texto = `Paciente ${nombreCompleto}, acérquese a la recepción de imágenes`;
+      } else {
+        texto = `Paciente ${nombreCompleto}, acérquese a la recepción de ape ese`;
+      }
     } else if (c.includes('laboratorio')) {
       texto = `Paciente ${nombreCompleto}, diríjase a laboratorio`;
     } else if (c.includes('imágenes') || c.includes('imagenes')) {
@@ -555,7 +562,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
     } else if (c.startsWith('consultorio')) {
       texto = `Paciente ${nombreCompleto}, diríjase al ${destinoConsultorio}`;
     } else if (this.esAnuncioAPS(a.consultorio)) {
-      texto = `Paciente ${nombreCompleto}, por favor acérquese a la recepción`;
+      texto = `Paciente ${nombreCompleto}, acérquese a la recepción de ape ese`;
     }
     const ahora = Date.now();
     // Deduplicación local por instancia (complemento a la guardia global):
@@ -701,8 +708,15 @@ export class TurneroComponent implements OnInit, OnDestroy {
     const c = a.consultorio.toLowerCase();
     if (a.destinoInmediato) {
       // Botones "Llamar" de módulos (APS / clave / laboratorio / imágenes):
-      // anuncio único genérico, sin variantes por servicio.
-      texto = `Paciente ${nombreCompleto}, por favor acérquese a la recepción`;
+      // anuncio de disparo inmediato, con la recepción del módulo destino.
+      const destinoModulo = (a.consultorio || '').toLowerCase();
+      if (destinoModulo.includes('laboratorio')) {
+        texto = `Paciente ${nombreCompleto}, acérquese a la recepción de laboratorio`;
+      } else if (destinoModulo.includes('imagen')) {
+        texto = `Paciente ${nombreCompleto}, acérquese a la recepción de imágenes`;
+      } else {
+        texto = `Paciente ${nombreCompleto}, acérquese a la recepción de ape ese`;
+      }
     } else if (c.includes('laboratorio')) {
       texto = `Paciente ${nombreCompleto}, diríjase a laboratorio`;
     } else if (c.includes('imágenes') || c.includes('imagenes')) {
@@ -712,7 +726,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
     } else if (c.startsWith('consultorio')) {
       texto = `Paciente ${nombreCompleto}, diríjase al ${destinoConsultorio}`;
     } else if (this.esAnuncioAPS(a.consultorio)) {
-      texto = `Paciente ${nombreCompleto}, por favor acérquese a la recepción`;
+      texto = `Paciente ${nombreCompleto}, acérquese a la recepción de ape ese`;
     }
     return texto;
   }
@@ -1523,7 +1537,8 @@ private verificarUltimoLlamado() {
    * Selecciona la mejor voz en español disponible EN ESTE MOMENTO.
    * Re-consulta `getVoices()` en cada llamada (en Android la lista se carga
    * de forma asíncrona y las referencias guardadas pueden quedar obsoletas).
-   * Prefiere: femenina es-MX → es-MX → femenina es-* → cualquier es-*.
+   * Prefiere: femenina es-419 → es-419 → femenina es-MX → es-MX → femenina es-* → cualquier es-*.
+   * es-419 es el código ISO para español latinoaméricano general.
    * Devuelve null si NO existe ninguna voz en español (típico en móviles
    * sin el paquete de voz española instalado).
    */
@@ -1545,12 +1560,18 @@ private verificarUltimoLlamado() {
       const nameLower = v.name.toLowerCase();
       return femaleKeywords.some(keyword => nameLower.includes(keyword));
     };
+    const es419 = (v: SpeechSynthesisVoice) => {
+      const langLower = v.lang.toLowerCase();
+      return langLower === 'es-419' || langLower === 'es_419';
+    };
     const esMX = (v: SpeechSynthesisVoice) => {
       const langLower = v.lang.toLowerCase();
       return langLower === 'es-mx' || langLower === 'es_mx';
     };
 
-    return voces.find(v => esMX(v) && esFemale(v))
+    return voces.find(v => es419(v) && esFemale(v))
+        || voces.find(es419)
+        || voces.find(v => esMX(v) && esFemale(v))
         || voces.find(esMX)
         || voces.find(esFemale)
         || voces.find(v => v.lang.toLowerCase().startsWith('es'))
@@ -1560,10 +1581,12 @@ private verificarUltimoLlamado() {
   /**
    * Aplica a la utterance la mejor voz en español disponible.
    *
-   * Si NO existe ninguna voz en español, NO se fuerza `utterance.lang`:
-   * en Android, pedir un idioma (p. ej. 'es-MX') que no tiene voz instalada
-   * hace que Chrome deletree el texto letra por letra. Sin `lang`, el
-   * navegador usa su voz por defecto y lee la frase de corrido.
+   * Si NO existe ninguna voz en español, se fuerza `utterance.lang = 'es-419'`
+   * (español latinoaméricano general) para que el navegador use su voz por
+   * defecto con acento latino. En Android, si el paquete de voz latino no está
+   * instalado, Chrome puede deletrear el texto letra por letra; en ese caso
+   * el usuario debe instalar el paquete de voz español desde la configuración
+   * del sistema.
    *
    * Tampoco se asigna nunca una voz de OTRO idioma (p. ej. una voz en
    * inglés leyendo español): esa mezcla es justo lo que provoca que los
@@ -1574,8 +1597,9 @@ private verificarUltimoLlamado() {
     if (voz) {
       utterance.voice = voz;
       utterance.lang = voz.lang;
+    } else {
+      utterance.lang = 'es-419';
     }
-    // Sin voz en español → no se toca utterance.lang (evita el deletreo).
   }
 
   /**

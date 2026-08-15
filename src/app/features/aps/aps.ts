@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize, interval } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronDown, Undo2, KeyRound, DollarSign, Trash2, Volume2, Megaphone, Edit2, UserPlus, XCircle } from 'lucide-angular';
+import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronDown, Undo2, KeyRound, DollarSign, Trash2, Megaphone, Edit2, UserPlus, XCircle } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '@core/services/auth.service';
 import { SwalService } from '../../core/services/swal.service';
@@ -38,7 +38,6 @@ export class ApsComponent implements OnInit, OnDestroy {
   readonly KeyRound = KeyRound;
   readonly DollarSign = DollarSign;
   readonly Trash2 = Trash2;
-  readonly Volume2 = Volume2;
   readonly Megaphone = Megaphone;
   readonly Edit2 = Edit2;
   readonly UserPlus = UserPlus;
@@ -199,10 +198,6 @@ export class ApsComponent implements OnInit, OnDestroy {
   responsables: any[] = [];
   medicos: any[] = [];
   consultorios: any[] = [];
-
-  get hayRegistradosEnCola(): boolean {
-    return this.ultimasAdmisiones.some(a => Number(a.id_estado_actual) === 1);
-  }
 
   get admisionesFiltradas(): AdmisionDTO[] {
     return this.ultimasAdmisiones.filter(a => {
@@ -369,14 +364,12 @@ export class ApsComponent implements OnInit, OnDestroy {
   onSearchChange(value: string | undefined) {
   }
 
-  llamarSiguienteRegistrado() {
-    const cola = this.ultimasAdmisiones
-      .filter(a => Number(a.id_estado_actual) === 1)
-      .sort((a, b) => new Date(a.fecha_creacion).getTime() - new Date(b.fecha_creacion).getTime());
-
-    if (cola.length === 0) return;
-
-    const paciente = cola[0];
+  /**
+   * Llamado individual: anuncia por voz al paciente específico (el que el
+   * analista eligió en la fila). Así cada analista llama a SU paciente y no
+   * siempre al primero de la cola.
+   */
+  llamarPaciente(paciente: any) {
     this.api.post(`recepcion/atencion/${paciente.id_atencion}/llamar-aps`, {}).subscribe({
       next: () => {},
       error: (err) => this.swal.error(err.error?.mensaje || 'Error al llamar paciente')

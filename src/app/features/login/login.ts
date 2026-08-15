@@ -251,7 +251,10 @@ export class Login implements OnDestroy {
       }
       this.cargando = true;
       const inicio = Date.now();
-      const MIN_CARGANDO = 800;
+      // Tiempo mínimo de la animación "Cargando...": si el servidor responde
+      // muy rápido, el botón igual muestra el spinner un instante visible y
+      // después aparece el modal (o se entra al sistema).
+      const MIN_CARGANDO = 200;
 
       this.auth.login(this.cedula, this.password).subscribe({
         next: () => this.procesarLogin(inicio),
@@ -279,8 +282,8 @@ export class Login implements OnDestroy {
 
     private async procesarLogin(inicio: number) {
       const elapsed = Date.now() - inicio;
-      if (elapsed < 800) {
-        await new Promise(r => setTimeout(r, 800 - elapsed));
+      if (elapsed < 200) {
+        await new Promise(r => setTimeout(r, 200 - elapsed));
       }
       const usuario = this.auth.usuarioActual;
       if (!usuario) {
@@ -310,19 +313,41 @@ export class Login implements OnDestroy {
         this.router.navigate(['/login']);
         return;
       }
-      this.cargando = false;
-      this.router.navigateByUrl(rutaInicial);
+      // Mantener "Cargando..." hasta que la navegación termine: el botón nunca
+      // debe volver a "Iniciar Sesión" antes de entrar al sistema.
+      this.router.navigateByUrl(rutaInicial).finally(() => {
+        this.cargando = false;
+      });
+    }
+
+    /**
+     * Cierra el selector de especialidad (X, click fuera o Escape): cancela
+     * el login y limpia la sesión para que el usuario vuelva a intentarlo.
+     */
+    cerrarSelectorEspecialidad() {
+      this.mostrarSelectorEspecialidad = false;
+      this.auth.logout();
     }
 
     /** Acepta la especialidad elegida: pide token nuevo y navega. */
     confirmarEspecialidad() {
       if (!this.espSeleccionada) return;
       this.cargandoSelector = true;
+      const inicio = Date.now();
+      // Misma duración mínima de "Cargando..." que los botones de crear/guardar.
+      const MIN_CARGANDO_SELECTOR = 800;
+
       this.auth.seleccionarEspecialidad(this.espSeleccionada).subscribe({
-        next: () => this.navegarAlInicio(),
+        next: () => {
+          const restante = Math.max(0, MIN_CARGANDO_SELECTOR - (Date.now() - inicio));
+          setTimeout(() => this.navegarAlInicio(), restante);
+        },
         error: (err: any) => {
-          this.cargandoSelector = false;
-          this.swal.error(err.error?.mensaje || 'Error al seleccionar la especialidad');
+          const restante = Math.max(0, MIN_CARGANDO_SELECTOR - (Date.now() - inicio));
+          setTimeout(() => {
+            this.cargandoSelector = false;
+            this.swal.error(err.error?.mensaje || 'Error al seleccionar la especialidad');
+          }, restante);
         }
       });
     }

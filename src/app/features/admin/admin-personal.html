@@ -329,7 +329,7 @@
           <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Correo</label>
           <input [(ngModel)]="formPersonal.email" placeholder="Ej: clinicacaracas@gmail.com" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
         </div>
-        <div class="lg:col-span-2 space-y-1.5">
+        <div *ngIf="formPersonal.rol === 'medico'" class="lg:col-span-2 space-y-1.5">
           <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Sede <span class="text-rose-500">*</span></label>
           <div class="flex flex-col sm:flex-row gap-3">
             <label
@@ -357,7 +357,7 @@
           <div class="lg:col-span-2 space-y-1.5">
             <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Especialidades <span class="text-rose-500">*</span></label>
             <div class="relative medico-esp-container">
-              <input type="text" [ngModel]="espFiltro" (input)="onEspInput($event)" (keydown)="onEspKeydown($event)" (focus)="showMedicoEspDropdown = true" [class.border-blue-600]="showMedicoEspDropdown" placeholder="Seleccione..." autocomplete="off" class="w-full px-4 py-2.5 pr-10 bg-white border border-slate-200 rounded-xl text-sm font-medium shadow-sm transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 placeholder:text-slate-400" />
+              <input type="text" [ngModel]="espDisplay" (input)="onEspInput($event)" (keydown)="onEspKeydown($event)" (focus)="showMedicoEspDropdown = true" [class.border-blue-600]="showMedicoEspDropdown" placeholder="Seleccione..." autocomplete="off" class="w-full px-4 py-2.5 pr-10 bg-white border border-slate-200 rounded-xl text-sm font-medium shadow-sm transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 placeholder:text-slate-400" />
               <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
                 <lucide-icon [name]="ChevronDown" class="w-4 h-4 text-slate-400" [class.rotate-180]="showMedicoEspDropdown"></lucide-icon>
               </div>
@@ -371,42 +371,47 @@
                       </div>
                     </div>
                     <span class="lowercase first-letter:uppercase font-bold flex-1">{{ s.nombre }}</span>
-                    <!-- Interruptor Activa/Inactiva: solo para especialidades marcadas -->
-                    <span *ngIf="esEspSel(s)" (click)="$event.stopPropagation(); toggleEspActiva(s)" class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-black cursor-pointer select-none transition-colors" [ngClass]="espActiva(s) ? 'bg-teal-50 text-teal-600' : 'bg-slate-100 text-slate-400'">
-                      <span class="w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center transition-colors" [ngClass]="espActiva(s) ? 'bg-teal-500 border-teal-500' : 'bg-white border-slate-300'">
-                        <svg *ngIf="espActiva(s)" class="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
-                      </span>
-                      {{ espActiva(s) ? 'Activa' : 'Inactiva' }}
-                    </span>
                   </div>
                   <div *ngIf="especialidadesConFiltro.length === 0" class="px-4 py-4 text-xs text-slate-400 italic text-center">SIN RESULTADOS</div>
                 </div>
               </div>
             </div>
-            <p class="text-[10px] text-slate-400 ml-1">Puedes marcar varias. La primera es la principal. Usa <span class="text-teal-500 font-bold">Activa</span>/<span class="text-slate-400 font-bold">Inactiva</span> para elegir con cuál puede entrar.</p>
-          </div>
-          <div class="lg:col-span-2 space-y-1.5">
-            <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Consultorio</label>
-            <div class="relative medico-con-container">
-              <input type="text" [ngModel]="conFiltro" (input)="onConInput($event)" (keydown)="onConKeydown($event)" (focus)="showMedicoConDropdown = true" [class.border-blue-600]="showMedicoConDropdown" placeholder="Buscar consultorio..." autocomplete="off" class="w-full px-4 py-2.5 pr-10 bg-white border border-slate-200 rounded-xl text-sm font-medium shadow-sm transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 placeholder:text-slate-400" />
-              <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-                <lucide-icon [name]="ChevronDown" class="w-4 h-4 text-slate-400" [class.rotate-180]="showMedicoConDropdown"></lucide-icon>
-              </div>
-              <div *ngIf="showMedicoConDropdown" class="absolute z-[100] w-full mt-3 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600">
-                <div class="max-h-[5.5rem] overflow-y-auto custom-scrollbar p-1">
-                  <div *ngFor="let c of consultoriosConFiltro; let i = index" (click)="selectMedicoCon(c)" class="px-4 py-2 text-sm hover:bg-slate-50 cursor-pointer transition-colors rounded-lg flex items-center justify-between" [class.bg-blue-50]="formPersonal.consultorio_id === c.id" [class.bg-blue-100]="conIndex === i">
-                    <span class="lowercase first-letter:uppercase font-bold">{{ c.nombre }}</span>
-                    <lucide-icon *ngIf="formPersonal.consultorio_id === c.id" [name]="CheckCircle2" class="w-3.5 h-3.5 text-blue-600"></lucide-icon>
-                  </div>
-                  <div *ngIf="consultoriosConFiltro.length === 0" class="px-4 py-4 text-xs text-slate-400 italic text-center">SIN RESULTADOS</div>
-                </div>
-              </div>
-            </div>
           </div>
         </ng-container>
-        <div class="lg:col-span-2 flex flex-col sm:flex-row gap-6">
+        <div class="lg:col-span-4 flex flex-col sm:flex-row gap-6">
+          <div *ngIf="formPersonal.rol !== 'medico'" class="flex-1 space-y-1.5">
+            <label class="min-h-[28px] text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Sede <span class="text-rose-500">*</span></label>
+            <div class="flex flex-col sm:flex-row gap-2">
+              <label
+                *ngFor="let s of sedes"
+                class="flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 bg-white dark:bg-slate-800 border rounded-xl cursor-pointer transition-all"
+                [class.border-blue-600]="formPersonal.id_sede == s.id_sede"
+                [class.bg-blue-50]="formPersonal.id_sede == s.id_sede"
+                [class.dark:bg-blue-950]="formPersonal.id_sede == s.id_sede"
+                [class.border-slate-200]="formPersonal.id_sede != s.id_sede"
+                [class.dark:border-slate-700]="formPersonal.id_sede != s.id_sede"
+              >
+                <input
+                  type="radio"
+                  name="sedePersonal"
+                  [value]="s.id_sede"
+                  [checked]="formPersonal.id_sede == s.id_sede"
+                  (change)="selectSede(s.id_sede)"
+                  class="w-4 h-4 text-blue-600"
+                />
+                <span class="text-sm font-bold text-slate-700 dark:text-white">{{ s.nombre }}</span>
+              </label>
+            </div>
+          </div>
+          <div *ngIf="formPersonal.rol === 'medico'" class="flex-1 space-y-1.5">
+            <label class="min-h-[28px] text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Consultorios</label>
+            <button type="button" (click)="abrirEspConModal()" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-black uppercase tracking-widest text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 border border-blue-200 dark:border-blue-500/20 rounded-xl transition-all">
+              <lucide-icon [name]="ClipboardList" class="w-4 h-4 shrink-0"></lucide-icon>
+              Asignar consultorios
+            </button>
+          </div>
           <div class="flex-1 space-y-1.5">
-            <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">{{ isEditing ? 'Nueva Contraseña (Opcional)' : 'Contraseña' }}<span *ngIf="!isEditing" class="text-rose-500"> *</span></label>
+            <label class="min-h-[28px] text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">{{ isEditing ? 'Nueva Contraseña (Opcional)' : 'Contraseña' }}<span *ngIf="!isEditing" class="text-rose-500"> *</span></label>
             <div class="relative">
               <input [type]="showPassword ? 'text' : 'password'" [(ngModel)]="formPersonal.password" placeholder="••••••••" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all pr-10" />
               <button type="button" (click)="showPassword = !showPassword" aria-label="Mostrar u ocultar contraseña" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -415,7 +420,7 @@
             </div>
           </div>
           <div class="space-y-1.5">
-            <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1 mb-1">Estado</label>
+            <label class="min-h-[28px] text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Estado</label>
             <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-4 py-2.5 h-[42px]">
               <label class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" [(ngModel)]="formPersonal.activo" class="sr-only peer" />
@@ -436,6 +441,64 @@
           <span class="animate-pulse">{{ isEditing ? 'guardando...' : 'creando...' }}</span>
         </div>
       </button>
+    </div>
+  </div>
+
+  <!-- Mini-modal: Asignar el consultorio de CADA especialidad del médico -->
+  <div *ngIf="showEspConModal" class="fixed inset-0 z-[160] flex items-center justify-center p-4" role="dialog" aria-modal="true" (keydown.escape)="cerrarEspConModal()">
+    <div class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-300" (click)="cerrarEspConModal()"></div>
+    <div class="relative bg-white dark:bg-slate-900 rounded-[24px] shadow-2xl w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 dark:border-slate-800">
+      <div class="bg-blue-600 p-6 text-white flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center"><lucide-icon [name]="Building2" class="w-5 h-5 text-white"></lucide-icon></div>
+          <div>
+            <h3 class="text-lg font-black tracking-tight text-white">Consultorios por especialidad</h3>
+            <p class="text-blue-100 text-[10px] uppercase font-bold tracking-widest mt-0.5">Asigna el consultorio de cada una</p>
+          </div>
+        </div>
+        <button type="button" (click)="cerrarEspConModal()" aria-label="Cerrar" class="p-2 hover:bg-white/10 rounded-lg transition-colors">
+          <lucide-icon [name]="XCircle" class="w-5 h-5 text-white"></lucide-icon>
+        </button>
+      </div>
+      <div class="p-6 space-y-4">
+        <div *ngFor="let esp of especialidadesSeleccionadas" class="flex items-center justify-between gap-4 px-5 py-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+          <span class="lowercase first-letter:uppercase font-black text-sm text-slate-800 dark:text-white">{{ esp.nombre }}</span>
+          <div class="relative flex-1 max-w-[280px] esp-con-dropdown">
+            <input
+              type="text"
+              [ngModel]="espConDisplay(esp)"
+              [ngModelOptions]="{ standalone: true }"
+              (input)="onEspConInput(esp, $event)"
+              (focus)="espConDropdownAbiertos[espConId(esp)] = true"
+              [class.border-blue-600]="espConDropdownAbiertos[espConId(esp)]"
+              placeholder="Seleccione..."
+              autocomplete="off"
+              class="w-full px-3 py-2 pr-9 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium shadow-sm transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 placeholder:text-slate-400"
+            />
+            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <lucide-icon [name]="ChevronDown" class="w-4 h-4 text-slate-400" [class.rotate-180]="espConDropdownAbiertos[espConId(esp)]"></lucide-icon>
+            </div>
+            <div *ngIf="espConDropdownAbiertos[espConId(esp)]" class="absolute z-[120] w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600">
+              <div class="max-h-20 overflow-y-auto custom-scrollbar p-1">
+                <div *ngFor="let c of espConFiltrados(esp)" (click)="selectEspConsultorio(esp, c)" class="px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-md flex items-center justify-between" [class.bg-blue-50]="espConValor(esp) === c.id">
+                  <span class="lowercase first-letter:uppercase font-bold">{{ c.nombre }}</span>
+                  <lucide-icon *ngIf="espConValor(esp) === c.id" [name]="CheckCircle2" class="w-3.5 h-3.5 text-blue-600"></lucide-icon>
+                </div>
+                <div *ngIf="espConFiltrados(esp).length === 0" class="px-3 py-4 text-xs text-slate-400 italic text-center">SIN RESULTADOS</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button type="button" (click)="finalizarEspConModal()" [disabled]="guardandoEspCon" class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-black py-3.5 rounded-xl shadow-lg shadow-blue-600/20 transition-all text-[11px] uppercase tracking-widest flex items-center justify-center gap-3">
+          <span *ngIf="!guardandoEspCon" class="flex items-center gap-2">
+            Listo
+          </span>
+          <div *ngIf="guardandoEspCon" class="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-700">
+            <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            <span class="animate-pulse">guardando...</span>
+          </div>
+        </button>
+      </div>
     </div>
   </div>
 </div>

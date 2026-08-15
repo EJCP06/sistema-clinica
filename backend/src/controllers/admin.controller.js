@@ -390,6 +390,7 @@ const crearPersonal = async (req, res) => {
       id_especialidad,
       especialidades,
       especialidades_inactivas,
+      especialidades_consultorios,
       username,
       status,
       id_sede,
@@ -424,6 +425,10 @@ const crearPersonal = async (req, res) => {
       id_especialidad: id_especialidad || null,
       especialidades: Array.isArray(especialidades) ? especialidades.map(Number) : [],
       especialidadesInactivas: Array.isArray(especialidades_inactivas) ? especialidades_inactivas.map(Number) : [],
+      // Mapa { idEspecialidad: idConsultorio } con el consultorio de CADA especialidad
+      especialidadesConsultorios: (especialidades_consultorios && typeof especialidades_consultorios === 'object')
+        ? especialidades_consultorios
+        : {},
       sede: sedeFinal,
       status: status !== false,
     });
@@ -473,7 +478,8 @@ const actualizarPersonal = async (req, res) => {
       'cedula', 'primer_nombre', 'segundo_nombre', 'primer_apellido',
       'segundo_apellido', 'telefono', 'email', 'password_hash',
       'rol', 'id_consultorio', 'id_servicio', 'id_especialidad',
-      'especialidades', 'especialidades_inactivas', 'status', 'id_sede',
+      'especialidades', 'especialidades_inactivas', 'especialidades_consultorios',
+      'status', 'id_sede',
     ];
     const safeFields = {};
     for (const key of Object.keys(fields)) {

@@ -197,6 +197,11 @@ export class AuthService implements OnDestroy {
           sessionStorage.setItem(this.FECHA_KEY, this.fechaHoy());
           this.api.actualizarSocketToken(response.token);
           this.usuarioSubject.next(usuario);
+          // El login ya validó credenciales contra el servidor y trae los datos
+          // completos: marcar la sesión como verificada para que el guard NO
+          // llame a /auth/verify justo después (si esa llamada extra fallaba,
+          // expulsaba al usuario de vuelta al login en silencio).
+          this.sessionVerified = true;
         }),
         catchError(err => throwError(() => err))
       );
@@ -223,6 +228,9 @@ export class AuthService implements OnDestroy {
         sessionStorage.setItem(this.FECHA_KEY, this.fechaHoy());
         this.api.actualizarSocketToken(response.token);
         this.usuarioSubject.next(usuario);
+        // Igual que en el login: la sesión ya quedó verificada al elegir la
+        // especialidad, el guard no necesita re-verificar contra el servidor.
+        this.sessionVerified = true;
       }),
       catchError(err => throwError(() => err))
     );

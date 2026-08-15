@@ -202,6 +202,7 @@ CREATE TABLE "Usuario_Especialidad" (
   "id_usuario" INTEGER NOT NULL REFERENCES "Usuarios"("id_usuario") ON DELETE CASCADE,
   "id_especialidad" INTEGER NOT NULL REFERENCES "Especialidades"("id_especialidad") ON DELETE CASCADE,
   "activo" BOOLEAN NOT NULL DEFAULT TRUE,
+  "id_consultorio" INTEGER REFERENCES "Consultorios"("id_consultorio") ON DELETE SET NULL,
   PRIMARY KEY ("id_usuario", "id_especialidad")
 );
 

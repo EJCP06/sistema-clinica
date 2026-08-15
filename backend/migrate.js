@@ -376,6 +376,11 @@ const runMigrations = async () => {
     await pool.query(`
       ALTER TABLE "Usuario_Especialidad" ADD COLUMN IF NOT EXISTS "activo" BOOLEAN NOT NULL DEFAULT TRUE
     `);
+    // Consultorio POR especialidad del médico (un médico puede atender cada
+    // especialidad en un consultorio distinto). NULL = aún sin asignar.
+    await pool.query(`
+      ALTER TABLE "Usuario_Especialidad" ADD COLUMN IF NOT EXISTS "id_consultorio" INTEGER REFERENCES "Consultorios"("id_consultorio") ON DELETE SET NULL
+    `);
     // Migrar lo existente: la especialidad actual de cada usuario pasa a la tabla
     await pool.query(`
       INSERT INTO "Usuario_Especialidad" ("id_usuario", "id_especialidad")

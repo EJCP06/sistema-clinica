@@ -105,7 +105,11 @@ const login = async (req, res) => {
       rol: usuario.rol,
       permisos: permisosArr,
       servicio_id: usuario.servicio_id,
-      consultorio_id: usuario.consultorio_id,
+      // El consultorio de la sesión es el de la especialidad con la que entra
+      // (cada especialidad del médico puede tener un consultorio distinto).
+      consultorio_id: espSesion && espSesion.id_consultorio != null
+        ? Number(espSesion.id_consultorio)
+        : usuario.consultorio_id,
       id_sede: usuario.id_sede,
       id_especialidad: espSesion ? Number(espSesion.id) : usuario.id_especialidad,
       especialidad_nombre: espSesion ? espSesion.nombre : usuario.especialidad_nombre,
@@ -276,7 +280,10 @@ const seleccionarEspecialidad = async (req, res) => {
       rol: usuario.rol,
       permisos: permisosArr,
       servicio_id: usuario.servicio_id,
-      consultorio_id: usuario.consultorio_id,
+      // Consultorio de la especialidad ELEGIDA por el médico en este login.
+      consultorio_id: elegida.id_consultorio != null
+        ? Number(elegida.id_consultorio)
+        : usuario.consultorio_id,
       id_sede: usuario.id_sede,
       id_especialidad: Number(elegida.id),
       especialidad_nombre: elegida.nombre,
@@ -393,7 +400,10 @@ const refrescarToken = async (req, res) => {
       rol: usuario.rol,
       permisos: permisosArr2,
       servicio_id: usuario.servicio_id,
-      consultorio_id: usuario.consultorio_id,
+      // Consultorio de la especialidad de la sesión (por si cambió al refrescar).
+      consultorio_id: espSesion && espSesion.id_consultorio != null
+        ? Number(espSesion.id_consultorio)
+        : usuario.consultorio_id,
       id_sede: usuario.id_sede,
       id_especialidad: espSesion ? Number(espSesion.id) : usuario.id_especialidad,
       especialidad_nombre: espSesion ? espSesion.nombre : usuario.especialidad_nombre,

@@ -45,7 +45,7 @@ const findByCedula = async (cedula) => {
            ) as permisos,
            COALESCE(
              (SELECT json_agg(
-                      json_build_object('id', ue.id_especialidad, 'nombre', e2.nombre)
+                      json_build_object('id', ue.id_especialidad, 'nombre', e2.nombre, 'id_consultorio', ue.id_consultorio)
                       ORDER BY (ue.id_especialidad = u.id_especialidad) DESC, ue.id_especialidad
                     )
               FROM "Usuario_Especialidad" ue
@@ -79,7 +79,7 @@ const findManyByCedula = async (cedula) => {
            ) as permisos,
            COALESCE(
              (SELECT json_agg(
-                      json_build_object('id', ue.id_especialidad, 'nombre', e2.nombre)
+                      json_build_object('id', ue.id_especialidad, 'nombre', e2.nombre, 'id_consultorio', ue.id_consultorio)
                       ORDER BY (ue.id_especialidad = u.id_especialidad) DESC, ue.id_especialidad
                     )
               FROM "Usuario_Especialidad" ue
@@ -190,7 +190,16 @@ const getPersonal = async (sede, rolKey) => {
            WHERE ue.id_usuario = u.id_usuario AND ue.activo = FALSE
          ) x),
         '[]'::json
-      ) AS especialidades_inactivas
+      ) AS especialidades_inactivas,
+      COALESCE(
+        (SELECT json_object_agg(x.id_especialidad::text, x.id_consultorio)
+         FROM (
+           SELECT ue.id_especialidad, ue.id_consultorio
+           FROM "Usuario_Especialidad" ue
+           WHERE ue.id_usuario = u.id_usuario
+         ) x),
+        '{}'::json
+      ) AS especialidades_consultorios
     FROM "Usuarios" u
     LEFT JOIN "Roles" r ON u.id_rol = r.id_rol
     LEFT JOIN "Consultorios" c ON u.id_consultorio = c.id_consultorio
@@ -233,7 +242,7 @@ const crearPersonal = async (data) => {
     [data.cedula, data.primer_nombre, data.segundo_nombre, data.primer_apellido, data.segundo_apellido, data.telefono, data.email, data.password_hash, idRol, data.id_consultorio, data.id_servicio, data.id_especialidad, data.sede, data.status],
   );
   const idUsuario = result.rows[0].id_usuario;
-  await sincronizarEspecialidades(idUsuario, data.especialidades, data.especialidadesInactivas);
+  await sincronizarEspecialidades(idUsuario, data.especialidades, data.especialidadesInactivas, data.especialidadesConsultorios);
   return result.rows[0];
 };
 
@@ -244,18 +253,22 @@ const crearPersonal = async (data) => {
  *
  * @param {number} idUsuario - ID del usuario
  * @param {Array<number>|null|undefined} especialidades - IDs de especialidades
+ * @param {Array<number>|null|undefined} especialidadesInactivas - IDs inactivas
+ * @param {Object|null|undefined} especialidadesConsultorios - Mapa { idEspecialidad: idConsultorio }
  */
-const sincronizarEspecialidades = async (idUsuario, especialidades, especialidadesInactivas) => {
+const sincronizarEspecialidades = async (idUsuario, especialidades, especialidadesInactivas, especialidadesConsultorios) => {
   if (idUsuario === null || idUsuario === undefined) return;
   await pool.query('DELETE FROM "Usuario_Especialidad" WHERE id_usuario = $1', [idUsuario]);
   const valores = Array.isArray(especialidades)
     ? [...new Set(especialidades.map(Number).filter(Boolean))]
     : [];
   const inactivas = new Set((Array.isArray(especialidadesInactivas) ? especialidadesInactivas : []).map(Number));
+  const consultorios = especialidadesConsultorios || {};
   for (const espId of valores) {
+    const idConsultorio = consultorios[espId] != null ? Number(consultorios[espId]) : null;
     await pool.query(
-      'INSERT INTO "Usuario_Especialidad" (id_usuario, id_especialidad, activo) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
-      [idUsuario, espId, !inactivas.has(espId)],
+      'INSERT INTO "Usuario_Especialidad" (id_usuario, id_especialidad, activo, id_consultorio) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING',
+      [idUsuario, espId, !inactivas.has(espId), idConsultorio],
     );
   }
 };
@@ -267,9 +280,11 @@ const actualizarPersonal = async (id, sede, fields) => {
   let idx = 1;
 
   // "especialidades" (array) no es una columna: se sincroniza en la tabla
-  // puente después del UPDATE. Lo mismo para "especialidades_inactivas".
+  // puente después del UPDATE. Lo mismo para "especialidades_inactivas" y
+  // "especialidades_consultorios" (consultorio POR especialidad).
   let especialidades = null;
   let especialidadesInactivas = null;
+  let especialidadesConsultorios = null;
   if (fields.especialidades !== undefined) {
     especialidades = fields.especialidades;
     delete fields.especialidades;
@@ -278,9 +293,16 @@ const actualizarPersonal = async (id, sede, fields) => {
     especialidadesInactivas = fields.especialidades_inactivas;
     delete fields.especialidades_inactivas;
   }
+  if (fields.especialidades_consultorios !== undefined) {
+    especialidadesConsultorios = fields.especialidades_consultorios;
+    delete fields.especialidades_consultorios;
+  }
 
   for (const key of keys) {
-    if (key === 'especialidades') continue;
+    // "especialidades", "especialidades_inactivas" y
+    // "especialidades_consultorios" no son columnas de "Usuarios": se
+    // sincronizan en la tabla puente después del UPDATE.
+    if (key === 'especialidades' || key === 'especialidades_inactivas' || key === 'especialidades_consultorios') continue;
     if (key === 'rol') {
       // El rol debe resolverse en la sede NUEVA del usuario (si viene en el
       // mismo guardado) y no en la sede del admin que edita: si se usaba la
@@ -309,7 +331,7 @@ const actualizarPersonal = async (id, sede, fields) => {
   );
 
   if (especialidades !== null) {
-    await sincronizarEspecialidades(id, especialidades, especialidadesInactivas);
+    await sincronizarEspecialidades(id, especialidades, especialidadesInactivas, especialidadesConsultorios);
   }
 };
 

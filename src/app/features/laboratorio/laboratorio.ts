@@ -3,7 +3,7 @@ import { interval } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronDown, Undo2, DollarSign, XCircle, Trash2, Volume2, Edit2, UserPlus } from 'lucide-angular';
+import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronDown, Undo2, DollarSign, XCircle, Trash2, Megaphone, Edit2, UserPlus } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { SwalService } from '../../core/services/swal.service';
@@ -38,7 +38,7 @@ export class LaboratorioComponent implements OnInit, OnDestroy {
   readonly DollarSign = DollarSign;
   readonly XCircle = XCircle;
   readonly Trash2 = Trash2;
-  readonly Volume2 = Volume2;
+  readonly Megaphone = Megaphone;
   readonly Edit2 = Edit2;
   readonly UserPlus = UserPlus;
 
@@ -218,10 +218,6 @@ export class LaboratorioComponent implements OnInit, OnDestroy {
     return Array(this.pageSize).fill(0);
   }
 
-  get hayRegistradosEnCola(): boolean {
-    return this.ultimasAdmisiones.some(a => Number(a.id_estado_actual) === 1);
-  }
-
   get puedeLlamar(): boolean {
     return this.auth.tieneRol(['analista', 'coordinador', 'administrador', 'laboratorio']);
   }
@@ -369,18 +365,11 @@ export class LaboratorioComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Llama por voz al siguiente paciente registrado de la cola filtrada de
-   * esta vista (particulares de laboratorio): el anuncio suena al instante
-   * en el turnero y se repite en cada pulsación, sin cambiar el estado.
+   * Llamado individual: anuncia por voz al paciente específico (el que el
+   * usuario eligió en la fila). Así cada analista llama a SU paciente y no
+   * siempre al primero de la cola.
    */
-  llamarSiguienteRegistrado() {
-    const cola = this.ultimasAdmisiones
-      .filter(a => Number(a.id_estado_actual) === 1)
-      .sort((a, b) => new Date(a.fecha_creacion).getTime() - new Date(b.fecha_creacion).getTime());
-
-    if (cola.length === 0) return;
-
-    const paciente = cola[0];
+  llamarPaciente(paciente: any) {
     this.api.post(`recepcion/atencion/${paciente.id_atencion}/llamar-laboratorio`, {}).subscribe({
       next: () => {},
       error: (err) => this.swal.error(err.error?.mensaje || 'Error al llamar paciente')
