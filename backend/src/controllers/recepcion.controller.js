@@ -5,6 +5,7 @@ const sharedRepo = require('../repositories/shared.repository');
 const historialRepo = require('../repositories/historial.repository');
 const espRepo = require('../repositories/especialidad.repository');
 const pool = require('../config/db');
+const ttsService = require('../services/tts.service');
 
 const getSede = (req) => {
   const sede = req.usuario?.id_sede;
@@ -424,13 +425,18 @@ const actualizarEstadoAtencion = async (req, res) => {
  * llamado (paciente de aseguradora en Espera de Clave con clave aprobada):
  * ambos deben sonar AL INSTANTE y repetirse en cada pulsación del botón.
  *
+ * Pre-sintetiza el audio con Piper y adjunta la URL de descarga en el
+ * evento para que TODOS los turneros reproduzcan el mismo WAV
+ * simultáneamente (sincronización perfecta).
+ *
  * @param {object} io - Servidor Socket.IO (req.io)
  * @param {object} admision - Atención con datos del paciente
  * @param {number} sede - Identificador de la sede
+ * @param {string} consultorio - Destino del llamado
  */
-const emitirLlamadoNuevo = (io, admision, sede, consultorio = 'APS') => {
+const emitirLlamadoNuevo = async (io, admision, sede, consultorio = 'APS') => {
   const ahoraServidor = Date.now();
-  io.emit('nuevo-llamado', {
+  const payload = {
     tipo: 'llamado',
     id_atencion: Number(admision.id_atencion),
     turno: admision.numero,
@@ -439,14 +445,34 @@ const emitirLlamadoNuevo = (io, admision, sede, consultorio = 'APS') => {
     apellido: admision.apellido || '',
     id_sede: sede,
     server_now: ahoraServidor,
-    // La voz debe salir AL INSTANTE al pulsar "Llamar": sin margen de
-    // sincronización (inicio_ms en el pasado inmediato => el turnero
-    // habla apenas recibe el evento).
     inicio_ms: ahoraServidor,
-    // Indica al turnero que si el mismo paciente ya está anunciado
-    // (segunda pulsación del botón), la voz se repite de inmediato.
     forzar: true,
-  });
+  };
+
+  // Pre-sintetizar audio con Piper para que todos los turneros reproduzcan
+  // el mismo WAV al recibir el evento (sincronización perfecta entre pantallas).
+  try {
+    const nombreCompleto = [admision.nombre, admision.apellido].filter(Boolean).join(' ').trim();
+    const nombreNatural = nombreCompleto.split(/\s+/).map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join(' ');
+    const consultorioLower = (consultorio || '').toLowerCase();
+    let texto = `Paciente ${nombreNatural}`;
+    if (consultorioLower.includes('laboratorio')) {
+      texto += ', acérquese a la recepción de laboratorio';
+    } else if (consultorioLower.includes('imagen')) {
+      texto += ', acérquese a la recepción de imágenes';
+    } else if (consultorioLower === 'aps' || consultorioLower.includes('aps')) {
+      texto += ', acérquese a la recepción de APS';
+    } else {
+      texto += `, diríjase al consultorio ${consultorio}`;
+    }
+    const nombreArchivo = `tts_${Date.now()}`;
+    await ttsService.generarAudio(texto, nombreArchivo);
+    payload.audio_url = `/api/tts/audio/${nombreArchivo}.wav`;
+  } catch (err) {
+    logger.warn(`TTS pre-síntesis falló (el turnero usará fallback): ${err.message}`);
+  }
+
+  io.emit('nuevo-llamado', payload);
 };
 
 /**

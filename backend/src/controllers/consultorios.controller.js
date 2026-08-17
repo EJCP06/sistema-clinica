@@ -121,7 +121,16 @@ const llamarSiguiente = async (req, res) => {
     }
     
     const idEspecialidad = req.usuario.id_especialidad;
-    const turno = await atencionRepo.getEnEsperaPorServicio(client, servicioId, req.usuario.id_sede, idEspecialidad);
+    // El médico solo llama a SUS pacientes (los que admisión registró con su
+    // id_medico). Laboratorio/Imágenes no tienen médico asignado: sin filtro.
+    const esMedico = rol !== 'laboratorio' && rol !== 'imagenes';
+    const turno = await atencionRepo.getEnEsperaPorServicio(
+      client,
+      servicioId,
+      req.usuario.id_sede,
+      idEspecialidad,
+      esMedico ? req.usuario.id : null,
+    );
 
     if (!turno) {
       await client.query('ROLLBACK');

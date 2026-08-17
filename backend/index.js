@@ -159,22 +159,30 @@ const startServer = async () => {
 
     await pool.query('UPDATE "Usuarios" SET sesion_token = NULL');
 
+    // Pre-calentar el worker de Piper TTS ANTES de aceptar peticiones:
+    // carga el modelo ONNX (~4-5s) para que el primer llamado del turnero
+    // salga al instante, sin esperar el arranque del subproceso en plena llamada.
+    const piperWorker = require('./src/services/piperWorker');
+    if (piperWorker.disponible()) {
+      const fs = require('fs');
+      const os = require('os');
+      const path = require('path');
+      const rutaPrecalentamiento = path.join(os.tmpdir(), `piper_precal_${process.pid}.wav`);
+      try {
+        await piperWorker.sintetizar('Bienvenido', rutaPrecalentamiento);
+        logger.info('TTS Piper precalentado y listo');
+      } catch (err) {
+        logger.warn(`TTS Piper no se pudo precalentar: ${err.message}`);
+      } finally {
+        try { fs.unlinkSync(rutaPrecalentamiento); } catch { /* ya no existe */ }
+      }
+    }
+
     server.listen(PORT, () => {
       logger.info(`Servidor backend corriendo en http://localhost:${PORT}`);
-      // Pre-calentar el worker de Piper TTS en segundo plano: carga el modelo
-      // ONNX (~4-5s) para que el PRIMER anuncio del turnero también salga casi
-      // al instante, sin esperar el arranque del subproceso en plena llamada.
-      const piperWorker = require('./src/services/piperWorker');
-      if (piperWorker.disponible()) {
-        const fs = require('fs');
-        const os = require('os');
-        const path = require('path');
-        const rutaPrecalentamiento = path.join(os.tmpdir(), `piper_precal_${process.pid}.wav`);
-        piperWorker.sintetizar('Bienvenido', rutaPrecalentamiento)
-          .then(() => logger.info('TTS Piper precalentado y listo'))
-          .catch((err) => logger.warn(`TTS Piper no se pudo precalentar: ${err.message}`))
-          .finally(() => { try { fs.unlinkSync(rutaPrecalentamiento); } catch { /* ya no existe */ } });
-      }
+      // Limpiar WAVs temporales del TTS pre-sintetizado cada 60s
+      const ttsService = require('./src/services/tts.service');
+      setInterval(() => ttsService.limpiarArchivosAntiguos(60000), 60000);
     });
 
   } catch (err) {

@@ -192,6 +192,7 @@ const getTodosLosTurnos = async (sede) => {
       e.nombre_estado as estado,
       a.id_especialidad,
       a.id_consultorio,
+      a.id_medico,
       a.id_servicio,
       a.id_sede,
       a.id_estado_actual,
@@ -310,7 +311,7 @@ const reincorporarPaciente = async (client, id) => {
  * @param {number} [idEspecialidad] - Filtro opcional de especialidad
  * @returns {Promise<object|null>} Próximo paciente en espera o null si no hay
  */
-const getEnEsperaPorServicio = async (client, servicioId, sede, idEspecialidad) => {
+const getEnEsperaPorServicio = async (client, servicioId, sede, idEspecialidad, idMedico = null) => {
   let query = `
     SELECT a.id_atencion as id, a.numero, e.nombre_estado as estado, p.primer_nombre as nombre_paciente, p.primer_apellido as apellido_paciente, p.cedula as documento_paciente, p.telefono as telefono_paciente, a.hora_llegada,
            esp.piso as especialidad_piso
@@ -324,6 +325,14 @@ const getEnEsperaPorServicio = async (client, servicioId, sede, idEspecialidad) 
   if (idEspecialidad) {
     query += ` AND a.id_especialidad = $3`;
     params.push(idEspecialidad);
+  }
+  // El médico solo llama a SUS pacientes (los que admisión registró con su
+  // id_medico). Si no hay ninguno asignado, puede llamar a los de su
+  // especialidad sin médico asignado (null).
+  if (idMedico) {
+    const idx = params.length + 1;
+    query += ` AND (a.id_medico = $${idx} OR a.id_medico IS NULL)`;
+    params.push(idMedico);
   }
   // FOR UPDATE OF a: bloquea SOLO las filas de "Atencion" (el lado no
   // nulable). PostgreSQL no permite bloquear el lado nulable de un outer

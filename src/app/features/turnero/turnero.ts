@@ -45,6 +45,8 @@ interface AnuncioActivo {
   timerId: any | null;
   speakTimerId: any | null;
   ultimaVozMs: number;
+  /** URL del audio pre-sintetizado por el servidor (para sincronización entre pantallas). */
+  audioUrl?: string;
 }
 
 const SALAS: Record<SalaMode, SalaConfig> = {
@@ -319,6 +321,22 @@ export class TurneroComponent implements OnInit, OnDestroy {
   /** Audio element for server-side TTS playback. Null when nothing is playing. */
   private audioServidor: HTMLAudioElement | null = null;
   /**
+   * true mientras hay una síntesis del servidor en vuelo (fetch POST /api/tts
+   * en curso, antes de que exista el elemento <audio>). Cierra la ventana en
+   * la que el motor parece libre pero ya hay una voz "comprometida": sin esto,
+   * dos llamados (p. ej. el ciclo de 10s del doctor A y un llamado nuevo del
+   * doctor B) arrancan su fetch a la vez y el que termina ÚLTIMO mata el audio
+   * del otro — la voz de B no sonaba hasta que A entraba en atención.
+   */
+  private sintetizandoTTS: boolean = false;
+
+  /** Indica si el motor de voz está ocupado (audio del servidor sonando, síntesis en vuelo o Web Speech hablando). */
+  private motorVozOcupado(): boolean {
+    return this.audioServidor !== null ||
+      this.sintetizandoTTS ||
+      ('speechSynthesis' in window && window.speechSynthesis.speaking);
+  }
+  /**
    * Generación de voz: se incrementa cada vez que se detiene un anuncio o
    * se inicia uno nuevo. Los callbacks de audio (onEnd/onError) del anuncio
    * ANTERIOR capturan la generación en la que nacieron; si al dispararse la
@@ -380,6 +398,12 @@ export class TurneroComponent implements OnInit, OnDestroy {
     const hablar = (): boolean => {
       if (!this.anunciosActivos.has(a.idAtencion)) {
         return false; // Fue detenido/retirado
+      }
+      // Prioridad: si es ciclo médico (no megáfono) y hay megáfonos en cola,
+      // NO tocamos y re-agendamos para la siguiente marca de 10s.
+      const esMegafono = a.destinoInmediato || this.esAnuncioAPS(a.consultorio);
+      if (!esMegafono && this.colaVoz.some(x => x.destinoInmediato || this.esAnuncioAPS(x.consultorio))) {
+        return true; // Tick consumido; se re-agendará en el siguiente ciclo
       }
       const anunciado = this.reproducirAudio(a);
       return anunciado;
@@ -477,6 +501,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       timerId: null,
       speakTimerId: null,
       ultimaVozMs: 0,
+      audioUrl: data.audio_url || undefined,
     };
     this.anunciosActivos.set(id, anuncio);
     this.iniciarRepeticionAnuncio(anuncio);
@@ -485,13 +510,27 @@ export class TurneroComponent implements OnInit, OnDestroy {
     this.ultimoLlamadoProcesadoHora = data.inicio_ms || data.server_now || Date.now();
   }
 
-  /**
-   * ¿Este llamado es de APS? El backend emite `consultorio: 'APS'` para los
-   * botones "Llamar" de APS. Los anuncios APS son de disparo único e
-   * inmediato (sin grilla de 10s ni espera de marca).
-   */
   private esAnuncioAPS(consultorio: string): boolean {
     return consultorio.trim().toLowerCase() === 'aps';
+  }
+
+  /**
+   * Detiene SOLO los ciclos de médicos (grilla 10s), NO los megáfonos (destinoInmediato/APS).
+   * Se usa cuando llega un megáfono: los ciclos médicos esperan su turno.
+   */
+  private detenerSoloCiclosMedicos(): void {
+    for (const [id, a] of this.anunciosActivos) {
+      const esMegafono = a.destinoInmediato || this.esAnuncioAPS(a.consultorio);
+      if (!esMegafono) {
+        if (a.timerId) { clearTimeout(a.timerId); a.timerId = null; }
+        if (a.speakTimerId) { clearTimeout(a.speakTimerId); a.speakTimerId = null; }
+        this.anunciosActivos.delete(id);
+        const idx = this.colaVoz.findIndex(x => x.idAtencion === id);
+        if (idx >= 0) this.colaVoz.splice(idx, 1);
+      }
+    }
+    ultimoAnuncioGlobal = null;
+    limpiarGuardiaGlobalAntiDoble();
   }
 
   /**
@@ -523,14 +562,8 @@ export class TurneroComponent implements OnInit, OnDestroy {
    */
   private reanunciarInmediato(data: any): void {
     const id = data.id_atencion;
-    // ANTI VOZ DOBLE del megáfono: el camino `forzar` limpia la guardia
-    // anti-doble para permitir re-llamar en cada pulsación, pero eso también
-    // deja pasar un MISMO evento entregado dos veces (socket duplicado o dos
-    // instancias del turnero en la misma pestaña) → la voz se decía dos veces
-    // seguidas. Marcador compartido a nivel de ventana: si este mismo llamado
-    // ya se re-anunció hace <2.5s, es un duplicado y se ignora. Un re-click
-    // real de una persona tarda más de 2.5s, así que sigue sonando en cada
-    // pulsación como antes.
+    // ANTI VOZ DOBLE del megáfono: si este mismo llamado ya se re-anunció
+    // hace <2.5s, es un duplicado y se ignora.
     try {
       const ultimoMegafono = (window as any).__turnero_megafono_ultimo;
       const ahoraMegafono = Date.now();
@@ -539,31 +572,21 @@ export class TurneroComponent implements OnInit, OnDestroy {
       }
       (window as any).__turnero_megafono_ultimo = { id, ts: ahoraMegafono };
     } catch {
-      // Almacenamiento no disponible: se ignora (el dedup queda solo en memoria).
+      // Almacenamiento no disponible: se ignora.
     }
-    // Detiene TODOS los anuncios activos (no solo este id): si otro paciente
-    // está sonando, su timer debe morir o al dispararse re-anunciaría al
-    // paciente anterior (y como el TTS del servidor estaría ocupado con el
-    // nuevo, el viejo saldría por el fallback con la voz del navegador).
-    this.detenerRepeticion();
-    // Resetea la memoria local anti-doble para que el MISMO texto suene YA
+    // Resetea la memoria local anti-doble para que el texto suene cuando
+    // toque (no se bloquea por haber sonado recientemente el mismo paciente).
     this.ultimoIdAnunciado = null;
     this.ultimaVezAnunciado = 0;
+    ultimoAnuncioGlobal = null;
+    limpiarGuardiaGlobalAntiDoble();
     // Evita que el polling re-anuncie este mismo llamado
     this.ultimoLlamadoProcesadoId = id;
     this.ultimoLlamadoProcesadoHora = data.inicio_ms || data.server_now || Date.now();
-    // Si otra locución está sonando, se corta para que la voz salga al instante
-    const hablando = this.audioServidor !== null || ('speechSynthesis' in window && window.speechSynthesis.speaking);
-    if (hablando) {
-      this.detenerAudioServidor();
-      window.speechSynthesis.cancel();
-      // Chrome ignora speak() inmediatamente después de cancel(): se espera el
-      // mínimo (~40ms) para que el motor quede libre antes de recrear el
-      // anuncio y que la voz salga lo antes posible al pulsar el megáfono.
-      setTimeout(() => this.crearAnuncio(data), 40);
-    } else {
-      this.crearAnuncio(data);
-    }
+    // Detener SOLO ciclos médicos (grilla 10s) para que el megáfono
+    // tenga prioridad inmediata. Otros megáfonos ya están en colaVoz.
+    this.detenerSoloCiclosMedicos();
+    this.crearAnuncio(data);
   }
 
   /**
@@ -621,30 +644,43 @@ export class TurneroComponent implements OnInit, OnDestroy {
     }
     this.persistirAnuncioEnSesion(a);
     // Guardia global anti-doble
-    const hablandoAhora = this.audioServidor !== null || ('speechSynthesis' in window && window.speechSynthesis.speaking);
+    const hablandoAhora = this.motorVozOcupado();
     const bloqueaDoble = !!ultimoAnuncioGlobal && ultimoAnuncioGlobal.texto === texto && (
       hablandoAhora || (ultimoAnuncioGlobal.sonado && ahora - ultimoAnuncioGlobal.ts < VENTANA_ANTIDOBLE_MS)
     );
     if (bloqueaDoble) {
       return false;
     }
-    ultimoAnuncioGlobal = { texto, ts: ahora, sonado: false };
-    // Si el motor está ocupado (otra voz sonando), encolar y salir: sonará en onend
+    // Si el motor está ocupado (otra voz sonando o sintetizando), encolar y
+    // salir: sonará cuando el motor se libere (onend procesa la cola).
+    // IMPORTANTE: al ENCOLAR no se reclama ultimoAnuncioGlobal. Si se fijara
+    // aquí (con sonado:false), el onExito del anuncio en curso (p. ej. el
+    // ciclo de 10s del doctor A) marcaría ESE registro como "sonado" y el
+    // dedup bloquearía al encolado (doctor B) para siempre: la voz de B no
+    // sonaba hasta que el paciente de A entraba en atención.
     if (hablandoAhora) {
       if (!this.colaVoz.some(x => x.idAtencion === a.idAtencion)) {
         this.colaVoz.push(a);
       }
       return true; // Tick consumido, se re-agendará en su ciclo
     }
+    ultimoAnuncioGlobal = { texto, ts: ahora, sonado: false };
     // Watchdog de seguridad
     if (a.speakTimerId) {
       clearTimeout(a.speakTimerId);
       a.speakTimerId = null;
     }
+    // RESERVAR el motor DESDE aquí (antes del retraso de sincronización):
+    // entre este punto y el disparo real de reproducirTexto pueden pasar
+    // hasta ~300ms, y sin la reserva otro llamado (p. ej. el tick de 10s del
+    // doctor A) pasaría también el check de motor libre, arrancaría su fetch
+    // a la vez y el que termina último mataría el audio de este paciente.
+    this.sintetizandoTTS = true;
     const onExito = () => {
       this.sonidoConfirmado = true;
       if (ultimoAnuncioGlobal) ultimoAnuncioGlobal.sonado = true;
       this.quitarListenersDesbloqueo();
+      this.sintetizandoTTS = false;
       if (a.speakTimerId) {
         clearTimeout(a.speakTimerId);
         a.speakTimerId = null;
@@ -654,6 +690,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
     };
     const onError = (msg?: string) => {
       if (msg) console.warn(msg);
+      this.sintetizandoTTS = false;
       if (a.speakTimerId) {
         clearTimeout(a.speakTimerId);
         a.speakTimerId = null;
@@ -668,7 +705,11 @@ export class TurneroComponent implements OnInit, OnDestroy {
     }
     a.speakTimerId = setTimeout(() => {
       a.speakTimerId = null;
-      this.reproducirTexto(texto, onExito, onError);
+      this.reproducirTexto(texto, onExito, onError, a.audioUrl);
+      // Solo el primer uso del audio pre-sintetizado: las repeticiones usan
+      // el flujo normal (POST /api/tts) porque el WAV temporal puede haber
+      // sido eliminado por el cleanup.
+      a.audioUrl = undefined;
     }, retrasoSpeak);
     return true;
   }
@@ -683,7 +724,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
         // Reproducir inmediatamente (sin delay de grilla)
         const ahora = Date.now();
         const texto = this.construirTexto(next);
-        const estaHablando = this.audioServidor !== null || ('speechSynthesis' in window && window.speechSynthesis.speaking);
+        const estaHablando = this.motorVozOcupado();
         const bloqueaDoble = !!ultimoAnuncioGlobal && ultimoAnuncioGlobal.texto === texto && (
           estaHablando || (ultimoAnuncioGlobal.sonado && ahora - ultimoAnuncioGlobal.ts < VENTANA_ANTIDOBLE_MS)
         );
@@ -691,15 +732,18 @@ export class TurneroComponent implements OnInit, OnDestroy {
           continue; // Saltar este, siguiente de la cola
         }
         ultimoAnuncioGlobal = { texto, ts: ahora, sonado: false };
+        this.sintetizandoTTS = true;
         const onExito = () => {
           this.sonidoConfirmado = true;
           if (ultimoAnuncioGlobal) ultimoAnuncioGlobal.sonado = true;
           this.quitarListenersDesbloqueo();
+          this.sintetizandoTTS = false;
           next.ultimaVozMs = Date.now();
           this.procesarColaVoz();
         };
         const onError = (msg?: string) => {
           if (msg) console.warn(msg);
+          this.sintetizandoTTS = false;
           this.procesarColaVoz();
         };
         this.reproducirTexto(texto, onExito, onError);
@@ -726,7 +770,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       } else if (destinoModulo.includes('imagen')) {
         texto = `Paciente ${nombreCompleto}, acérquese a la recepción de imágenes`;
       } else {
-        texto = `Paciente ${nombreCompleto}, acérquese a la recepción de ape ese`;
+        texto = `Paciente ${nombreCompleto}, acérquese a la recepción de APS`;
       }
     } else if (c.includes('laboratorio')) {
       texto = `Paciente ${nombreCompleto}, diríjase a laboratorio`;
@@ -737,7 +781,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
     } else if (c.startsWith('consultorio')) {
       texto = `Paciente ${nombreCompleto}, diríjase al ${destinoConsultorio}`;
     } else if (this.esAnuncioAPS(a.consultorio)) {
-      texto = `Paciente ${nombreCompleto}, acérquese a la recepción de ape ese`;
+      texto = `Paciente ${nombreCompleto}, acérquese a la recepción de APS`;
     }
     return texto;
   }
@@ -748,6 +792,12 @@ export class TurneroComponent implements OnInit, OnDestroy {
    * use Web Speech API como respaldo.
    */
   private async reproducirConServidor(texto: string, onEnd: () => void, onError: () => void): Promise<boolean> {
+    // Marca el motor como ocupado DESDE el inicio del fetch (no solo cuando
+    // el <audio> ya existe): cierra la ventana en la que dos llamados (p. ej.
+    // el ciclo de 10s del doctor A y un llamado nuevo del doctor B) creen que
+    // el motor está libre, arranquen su fetch a la vez y el que termina
+    // último mate el audio del otro.
+    this.sintetizandoTTS = true;
     try {
       const resp = await fetch('/api/tts', {
         method: 'POST',
@@ -756,12 +806,14 @@ export class TurneroComponent implements OnInit, OnDestroy {
       });
       if (!resp.ok) {
         this.ttsServidorDisponible = false;
+        this.sintetizandoTTS = false;
         return false;
       }
       this.ttsServidorDisponible = true;
       const blob = await resp.blob();
       const url = URL.createObjectURL(blob);
-      // Detener audio anterior si existe
+      // Detener audio anterior si existe (defensa: con la marca de síntesis
+      // en vuelo el turnero ya no debería llegar aquí con otro audio sonando)
       if (this.audioServidor) {
         this.audioServidor.pause();
         this.audioServidor.src = '';
@@ -778,12 +830,14 @@ export class TurneroComponent implements OnInit, OnDestroy {
       const generacion = this.generacionVoz;
       audio.onended = () => {
         URL.revokeObjectURL(url);
+        this.sintetizandoTTS = false;
         if (this.audioServidor === audio) this.audioServidor = null;
         if (generacion !== this.generacionVoz) return;
         onEnd();
       };
       audio.onerror = () => {
         URL.revokeObjectURL(url);
+        this.sintetizandoTTS = false;
         if (this.audioServidor === audio) this.audioServidor = null;
         if (generacion !== this.generacionVoz) return;
         onError();
@@ -800,10 +854,12 @@ export class TurneroComponent implements OnInit, OnDestroy {
         return true;
       } catch {
         // Autoplay bloqueado: notificar al caller para que use fallback
+        this.sintetizandoTTS = false;
         onError();
         return false;
       }
     } catch {
+      this.sintetizandoTTS = false;
       return false;
     }
   }
@@ -812,6 +868,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
    * Cancela la reproducción del audio del servidor TTS.
    */
   private detenerAudioServidor(): void {
+    this.sintetizandoTTS = false;
     if (this.audioServidor) {
       this.audioServidor.pause();
       this.audioServidor.src = '';
@@ -822,8 +879,15 @@ export class TurneroComponent implements OnInit, OnDestroy {
   /**
    * Reproduce un texto usando el servidor TTS (node-edge-tts) con fallback
    * a Web Speech API del navegador.
+   * Si se proporciona audioUrl, reproduce ese WAV directamente (audio
+   * pre-sintetizado por el servidor para sincronización entre pantallas).
    */
-  private reproducirTexto(texto: string, onExito: () => void, onError: (msg?: string) => void): void {
+  private reproducirTexto(texto: string, onExito: () => void, onError: (msg?: string) => void, audioUrl?: string): void {
+    // Si hay audio pre-sintetizado, reproducirlo directamente (más rápido y sincronizado)
+    if (audioUrl) {
+      this.reproducirAudioURL(audioUrl, onExito, onError);
+      return;
+    }
     // Si ya se detectó que el servidor no está disponible, ir directo al fallback
     if (this.ttsServidorDisponible === false) {
       this.reproducirTextoNavegador(texto, onExito, onError);
@@ -833,6 +897,46 @@ export class TurneroComponent implements OnInit, OnDestroy {
       // Fallback a Web Speech API si el servidor no responde
       this.reproducirTextoNavegador(texto, onExito, onError);
     });
+  }
+
+  /**
+   * Reproduce un audio pre-sintetizado desde una URL (WAV servido por el backend).
+   * Se usa cuando el servidor pre-generó el audio antes de emitir el socket,
+   * para que todos los turneros reproduzcan el mismo WAV simultáneamente.
+   */
+  private reproducirAudioURL(url: string, onEnd: () => void, onError: () => void): void {
+    try {
+      if (this.audioServidor) {
+        this.audioServidor.pause();
+        this.audioServidor.src = '';
+        URL.revokeObjectURL(this.audioServidor.src);
+        this.audioServidor = null;
+      }
+      const audio = new Audio(url);
+      this.audioServidor = audio;
+      const generacion = this.generacionVoz;
+      audio.onended = () => {
+        if (this.audioServidor === audio) this.audioServidor = null;
+        if (generacion !== this.generacionVoz) return;
+        onEnd();
+      };
+      audio.onerror = () => {
+        if (this.audioServidor === audio) this.audioServidor = null;
+        if (generacion !== this.generacionVoz) return;
+        onError();
+      };
+      this.ultimoDisparoVozMs = Date.now();
+      try {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
+        audio.play();
+      } catch {
+        onError();
+      }
+    } catch {
+      onError();
+    }
   }
 
   /**
@@ -894,6 +998,11 @@ export class TurneroComponent implements OnInit, OnDestroy {
         // Sacar de la cola si estaba esperando
         const idx = this.colaVoz.findIndex(x => x.idAtencion === idAtencion);
         if (idx >= 0) this.colaVoz.splice(idx, 1);
+        // Si este anuncio había reservado el motor y nunca llegó a sonar
+        // (timer cancelado antes de disparar), liberar la reserva para que el
+        // siguiente anuncio en cola (p. ej. el paciente del doctor B) pueda
+        // sonar de inmediato.
+        this.sintetizandoTTS = false;
       }
     } else {
       // Detener todos
@@ -1218,7 +1327,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
 
   private desbloquearAudio() {
     if (this.sonidoConfirmado) return;
-    const estaHablando = this.audioServidor !== null || ('speechSynthesis' in window && window.speechSynthesis.speaking);
+    const estaHablando = this.motorVozOcupado();
     if (estaHablando) {
       return;
     }

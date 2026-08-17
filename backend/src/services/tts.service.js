@@ -49,9 +49,10 @@ function aplicarDiccionario(texto) {
  * Genera un archivo WAV con la síntesis de voz del texto proporcionado.
  *
  * @param {string} texto - Texto a convertir en voz
+ * @param {string} [nombrePersonalizado] - Nombre del archivo (sin extensión). Si se omite se genera uno automático.
  * @returns {Promise<string>} Ruta del archivo WAV generado
  */
-async function generarAudio(texto) {
+async function generarAudio(texto, nombrePersonalizado) {
   if (!texto || typeof texto !== 'string' || texto.trim().length === 0) {
     throw new Error('El texto no puede estar vacío');
   }
@@ -69,7 +70,7 @@ async function generarAudio(texto) {
   }
 
   const textoFinal = aplicarDiccionario(texto.trim());
-  const nombreArchivo = `tts_${Date.now()}.wav`;
+  const nombreArchivo = nombrePersonalizado ? `${nombrePersonalizado}.wav` : `tts_${Date.now()}.wav`;
   const rutaArchivo = path.join(TEMP_DIR, nombreArchivo);
 
   try {
@@ -129,4 +130,56 @@ function limpiarArchivo(rutaArchivo) {
   }
 }
 
-module.exports = { generarAudio, limpiarArchivo, aplicarDiccionario };
+/**
+ * Retorna la ruta absoluta de un archivo temporal de audio generado.
+ * Útil para que el controller construya la URL de descarga.
+ */
+function rutaAudioTemporal(nombreArchivo) {
+  return path.join(TEMP_DIR, nombreArchivo);
+}
+
+/**
+ * Sirve un archivo WAV previamente generado como respuesta HTTP.
+ * @param {import('express').Response} res
+ * @param {string} rutaArchivo - Ruta absoluta del WAV
+ * @returns {boolean} true si se sirvió, false si no existía
+ */
+function servirAudio(res, rutaArchivo) {
+  if (!rutaArchivo || !fs.existsSync(rutaArchivo)) {
+    return false;
+  }
+  res.setHeader('Content-Type', 'audio/wav');
+  res.setHeader('Cache-Control', 'public, max-age=30');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  const stream = fs.createReadStream(rutaArchivo);
+  stream.pipe(res);
+  stream.on('error', () => {
+    if (!res.headersSent) {
+      res.status(500).end();
+    }
+  });
+  return true;
+}
+
+/**
+ * Elimina archivos temporales TTS más viejos que maxAgeMs (default 60s).
+ * Ejecutar periódicamente para evitar acumulación de WAVs.
+ */
+function limpiarArchivosAntiguos(maxAgeMs = 60000) {
+  try {
+    if (!fs.existsSync(TEMP_DIR)) return;
+    const ahora = Date.now();
+    const archivos = fs.readdirSync(TEMP_DIR).filter(f => f.startsWith('tts_') && f.endsWith('.wav'));
+    for (const archivo of archivos) {
+      const ruta = path.join(TEMP_DIR, archivo);
+      try {
+        const stat = fs.statSync(ruta);
+        if (ahora - stat.mtimeMs > maxAgeMs) {
+          fs.unlinkSync(ruta);
+        }
+      } catch { /* ignorar */ }
+    }
+  } catch { /* ignorar */ }
+}
+
+module.exports = { generarAudio, limpiarArchivo, aplicarDiccionario, rutaAudioTemporal, servirAudio, limpiarArchivosAntiguos };
