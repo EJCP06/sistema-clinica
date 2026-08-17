@@ -46,6 +46,7 @@ class PiperWorker {
 
   _rutaWorker() {
     const candidatas = [
+      path.join(__dirname, '..', '..', 'scripts', 'piper_worker.py'),
       path.join(__dirname, '..', 'scripts', 'piper_worker.py'),
       path.join(ROOT, 'backend', 'scripts', 'piper_worker.py'),
     ];
