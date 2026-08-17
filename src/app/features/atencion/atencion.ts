@@ -444,6 +444,16 @@ export class Atencion implements OnInit, OnDestroy {
     const cid = usuario?.consultorio_id;
     const eid = usuario?.id_especialidad;
     const sid = usuario?.servicio_id;
+    const mid = usuario?.id;
+
+    // Un turno es del médico logueado SOLO si admisión lo registró con su
+    // id_medico. No hay fallback por especialidad/consultorio: si hay otro
+    // médico con la misma especialidad, ese paciente NO le pertenece y no
+    // debe verlo.
+    const esMiTurno = (t: any) => {
+      const turnoMedico = t.id_medico != null ? Number(t.id_medico) : null;
+      return turnoMedico != null && Number(mid) === turnoMedico;
+    };
 
     this.apiService.getTurnos().subscribe({
       next: (turnos: TurnoDTO[]) => {
@@ -478,14 +488,10 @@ export class Atencion implements OnInit, OnDestroy {
             return dateB - dateA;
           });
           this.totalAtendidosHoy = this.turnosAtendidos.length;
-        } else if (eid && cid) {
-          this.turnosAtendidos = turnosNormalizados.filter(t => {
-            const turnoEspId = t.id_especialidad ? Number(t.id_especialidad) : null;
-            const turnoConId = t.id_consultorio ? Number(t.id_consultorio) : null;
-            const esDeMiEspecialidad = turnoEspId === Number(eid);
-            const esDeMiConsultorio = turnoConId === Number(cid);
-            return esDeMiEspecialidad && esDeMiConsultorio && estadoValido(t.estado);
-          }).sort((a, b) => {
+        } else if (eid || cid || mid) {
+          this.turnosAtendidos = turnosNormalizados.filter(t =>
+            esMiTurno(t) && estadoValido(t.estado)
+          ).sort((a, b) => {
             const dateA = new Date(a.updated_at || a.hora_llegada).getTime();
             const dateB = new Date(b.updated_at || b.hora_llegada).getTime();
             return dateB - dateA;
@@ -503,43 +509,21 @@ export class Atencion implements OnInit, OnDestroy {
         }
 
         const miServicioId = sid ? Number(sid) : null;
-
-        if (miServicioId) {
-          this.turnosEnEspera = turnosNormalizados.filter(t => {
-            const turnoServId = t.id_servicio ? Number(t.id_servicio) : null;
-            const estadoMayus = (t.estado || '').toUpperCase();
-            return turnoServId === miServicioId && estadoMayus === 'SALA DE ESPERA';
-          }).length;
-        } else if (this.tipo === 'laboratorio') {
-          this.turnosEnEspera = turnosNormalizados.filter(t => {
-            const estadoMayus = (t.estado || '').toUpperCase();
-            return (t.nombre_servicio || '').toLowerCase().includes('laboratorio') && estadoMayus === 'SALA DE ESPERA';
-          }).length;
-        } else if (this.tipo === 'imagenes') {
-          this.turnosEnEspera = turnosNormalizados.filter(t => {
-            const estadoMayus = (t.estado || '').toUpperCase();
-            return ((t.nombre_servicio || '').toLowerCase().includes('imágenes') || (t.nombre_servicio || '').toLowerCase().includes('imagenes')) && estadoMayus === 'SALA DE ESPERA';
-          }).length;
-        } else if (eid) {
-          const miEspecialidadId = Number(eid);
-          this.turnosEnEspera = turnosNormalizados.filter(t => {
-            const turnoEspId = t.id_especialidad ? Number(t.id_especialidad) : null;
-            const estadoMayus = (t.estado || '').toUpperCase();
-            return turnoEspId === miEspecialidadId && estadoMayus === 'SALA DE ESPERA';
-          }).length;
-        }
-
         const esEstadoEspera = (estado: string) => {
           const e = (estado || '').toUpperCase();
           return e === 'SALA DE ESPERA' || e === 'LLAMADO' || e === 'EN_ATENCION';
         };
         const turnoActualId = this.turnoActual?.id;
 
-        if (miServicioId) {
-          this.turnosEnEsperaLista = turnosNormalizados.filter(t => {
-            const turnoServId = t.id_servicio ? Number(t.id_servicio) : null;
-            return turnoServId === miServicioId && esEstadoEspera(t.estado) && t.id !== turnoActualId;
-          }).sort((a, b) => new Date(a.hora_llegada).getTime() - new Date(b.hora_llegada).getTime());
+        if (this.tipo === 'medico') {
+          // MÉDICO: SIEMPRE filtra por id_medico (solo SUS pacientes). NO usar
+          // el filtro por servicio (miServicioId) aquí: el médico tiene un
+          // servicio_id asignado (Consulta) y si filtráramos por servicio
+          // vería TODOS los pacientes del servicio, incluidos los de otros
+          // médicos de la misma especialidad.
+          this.turnosEnEsperaLista = turnosNormalizados.filter(t =>
+            esMiTurno(t) && esEstadoEspera(t.estado) && t.id !== turnoActualId
+          ).sort((a, b) => new Date(a.hora_llegada).getTime() - new Date(b.hora_llegada).getTime());
         } else if (this.tipo === 'laboratorio') {
           this.turnosEnEsperaLista = turnosNormalizados.filter(t =>
             (t.nombre_servicio || '').toLowerCase().includes('laboratorio') && esEstadoEspera(t.estado) && t.id !== turnoActualId
@@ -548,21 +532,18 @@ export class Atencion implements OnInit, OnDestroy {
           this.turnosEnEsperaLista = turnosNormalizados.filter(t =>
             ((t.nombre_servicio || '').toLowerCase().includes('imágenes') || (t.nombre_servicio || '').toLowerCase().includes('imagenes')) && esEstadoEspera(t.estado) && t.id !== turnoActualId
           ).sort((a, b) => new Date(a.hora_llegada).getTime() - new Date(b.hora_llegada).getTime());
-        } else if (eid && cid) {
-          const miEsp = Number(eid);
-          const miCon = Number(cid);
+        } else if (miServicioId) {
           this.turnosEnEsperaLista = turnosNormalizados.filter(t => {
-            const turnoEspId = t.id_especialidad ? Number(t.id_especialidad) : null;
-            const turnoConId = t.id_consultorio ? Number(t.id_consultorio) : null;
-            return turnoEspId === miEsp && turnoConId === miCon && esEstadoEspera(t.estado) && t.id !== turnoActualId;
+            const turnoServId = t.id_servicio ? Number(t.id_servicio) : null;
+            return turnoServId === miServicioId && esEstadoEspera(t.estado) && t.id !== turnoActualId;
           }).sort((a, b) => new Date(a.hora_llegada).getTime() - new Date(b.hora_llegada).getTime());
-        } else if (cid) {
-          this.turnosEnEsperaLista = turnosNormalizados.filter(t =>
-            t.id_consultorio == cid && esEstadoEspera(t.estado) && t.id !== turnoActualId
-          ).sort((a, b) => new Date(a.hora_llegada).getTime() - new Date(b.hora_llegada).getTime());
         } else {
           this.turnosEnEsperaLista = [];
         }
+
+        // El card "en espera" y la tabla de pacientes en espera SIEMPRE
+        // coinciden: el card muestra la cantidad de filas de la misma lista.
+        this.turnosEnEspera = this.turnosEnEsperaLista.length;
 
         this.tiempoPromedioConsulta = '12 min';
       },

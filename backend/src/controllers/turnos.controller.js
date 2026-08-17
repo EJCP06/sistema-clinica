@@ -27,6 +27,7 @@ const getTodosLosTurnos = async (req, res) => {
       hora_llegada: r.hora_llegada,
       id_especialidad: r.id_especialidad,
       id_consultorio: r.id_consultorio,
+      id_medico: r.id_medico,
       id_servicio: r.id_servicio,
       id_sede: r.id_sede,
       id_estado_actual: r.id_estado_actual,

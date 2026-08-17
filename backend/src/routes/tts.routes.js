@@ -6,13 +6,31 @@
  * (ver rateLimiter.js).
  *
  * Endpoints:
- *   POST /        -> Genera audio MP3 a partir de texto
+ *   POST /        -> Genera audio WAV a partir de texto
+ *   GET  /audio/:archivo -> Sirve un WAV pre-generado (para sincronización)
  *   GET  /health  -> Verifica que el servicio TTS esté disponible
  */
 const express = require('express');
 const router = express.Router();
 const logger = require('../config/logger');
 const ttsService = require('../services/tts.service');
+
+/**
+ * GET /api/tts/audio/:archivo
+ * Sirve un archivo WAV previamente generado por Piper.
+ * Se usa para que todos los turneros reproduzcan el mismo audio
+ * simultáneamente (pre-sintetizado por el controller antes del socket emit).
+ */
+router.get('/audio/:archivo', (req, res) => {
+  const { archivo } = req.params;
+  if (!archivo || !/^[a-zA-Z0-9_-]+\.wav$/.test(archivo)) {
+    return res.status(400).json({ mensaje: 'Nombre de archivo inválido' });
+  }
+  const rutaArchivo = ttsService.rutaAudioTemporal(archivo);
+  if (!ttsService.servirAudio(res, rutaArchivo)) {
+    return res.status(404).json({ mensaje: 'Audio no encontrado' });
+  }
+});
 
 /**
  * POST /api/tts
