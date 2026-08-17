@@ -161,6 +161,20 @@ const startServer = async () => {
 
     server.listen(PORT, () => {
       logger.info(`Servidor backend corriendo en http://localhost:${PORT}`);
+      // Pre-calentar el worker de Piper TTS en segundo plano: carga el modelo
+      // ONNX (~4-5s) para que el PRIMER anuncio del turnero también salga casi
+      // al instante, sin esperar el arranque del subproceso en plena llamada.
+      const piperWorker = require('./src/services/piperWorker');
+      if (piperWorker.disponible()) {
+        const fs = require('fs');
+        const os = require('os');
+        const path = require('path');
+        const rutaPrecalentamiento = path.join(os.tmpdir(), `piper_precal_${process.pid}.wav`);
+        piperWorker.sintetizar('Bienvenido', rutaPrecalentamiento)
+          .then(() => logger.info('TTS Piper precalentado y listo'))
+          .catch((err) => logger.warn(`TTS Piper no se pudo precalentar: ${err.message}`))
+          .finally(() => { try { fs.unlinkSync(rutaPrecalentamiento); } catch { /* ya no existe */ } });
+      }
     });
 
   } catch (err) {
@@ -195,6 +209,7 @@ const medicoRoutes = require('./src/routes/medico.routes');
 const especialidadesRoutes = require('./src/routes/especialidades.routes');
 const turneroRoutes = require('./src/routes/turnero.routes');
 const recuperacionRoutes = require('./src/routes/recuperacion.routes');
+const ttsRoutes = require('./src/routes/tts.routes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/auth/recuperacion', recuperacionRoutes);
@@ -206,6 +221,7 @@ app.use('/api/recepcion', recepcionRoutes);
 app.use('/api/medico', medicoRoutes);
 app.use('/api/especialidades', especialidadesRoutes);
 app.use('/api/turnero', turneroRoutes);
+app.use('/api/tts', ttsRoutes);
 
 // Endpoint de desarrollo: generar token JWT para un usuario por ID
 // (solo disponible fuera de producción; NO exponer en despliegues reales).

@@ -1,22 +1,34 @@
 /**
- * Desbloquea la síntesis de voz del navegador.
+ * Desbloquea la síntesis de voz del navegador y el Audio HTML5.
  *
  * Los navegadores (especialmente Chrome) bloquean `speechSynthesis.speak()`
- * hasta que el usuario interactúa con la página. Hablar un texto en silencio
- * dentro de un gesto de usuario (click/touch/keydown) desbloquea el motor
- * para llamadas posteriores que vienen de contextos asíncronos
- * (eventos de socket, timers, polling, etc.).
+ * y `audio.play()` hasta que el usuario interactúa con la página. Hablar un
+ * texto en silencio y reproducir un audio silencioso dentro de un gesto de
+ * usuario (click/touch/keydown) desbloquea ambos motores para llamadas
+ * posteriores que vienen de contextos asíncronos (eventos de socket, timers,
+ * polling, etc.).
  */
 export function desbloquearVozNavegador() {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+  if (typeof window === 'undefined') return;
+
+  // Desbloquear speechSynthesis
+  if ('speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(' ');
+      utterance.volume = 0;
+      utterance.rate = 1;
+      window.speechSynthesis.speak(utterance);
+    } catch {
+    }
+  }
+
+  // Desbloquear HTML5 Audio (para Piper TTS)
   try {
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(' ');
-    utterance.volume = 0;
-    utterance.rate = 1;
-    window.speechSynthesis.speak(utterance);
+    const silent = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+    silent.volume = 0;
+    silent.play().catch(() => {});
   } catch {
-    // Si el navegador no permite el desbloqueo, se ignora silenciosamente.
   }
 }
 

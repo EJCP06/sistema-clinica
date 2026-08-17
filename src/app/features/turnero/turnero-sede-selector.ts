@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { LucideAngularModule, Building2, Monitor, ArrowLeft } from 'lucide-angular';
+import { LucideAngularModule, Building2, ArrowLeft } from 'lucide-angular';
 import { desbloquearVozNavegador } from './voz.util';
 
 @Component({
@@ -25,7 +25,7 @@ import { desbloquearVozNavegador } from './voz.util';
         </button>
         <button (click)="ir(2)"
           class="flex items-center gap-4 px-10 py-8 bg-slate-800 hover:bg-blue-700 rounded-2xl border-2 border-slate-700 hover:border-blue-500 transition-all duration-200 text-left">
-          <lucide-icon [img]="Monitor" class="w-10 h-10 text-emerald-400 shrink-0"></lucide-icon>
+          <lucide-icon [img]="Building2" class="w-10 h-10 text-emerald-400 shrink-0"></lucide-icon>
           <div class="text-2xl font-black">Santa Mónica</div>
         </button>
       </div>
@@ -35,7 +35,6 @@ import { desbloquearVozNavegador } from './voz.util';
 /** Selector de sede para el tablero turnero público. */
 export class TurneroSedeSelector {
   readonly Building2 = Building2;
-  readonly Monitor = Monitor;
   readonly ArrowLeft = ArrowLeft;
   private router = inject(Router);
 

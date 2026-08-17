@@ -281,19 +281,26 @@ export class Login implements OnDestroy {
     }
 
     private async procesarLogin(inicio: number) {
-      const elapsed = Date.now() - inicio;
-      if (elapsed < 200) {
-        await new Promise(r => setTimeout(r, 200 - elapsed));
-      }
       const usuario = this.auth.usuarioActual;
       if (!usuario) {
+        // Sin datos: esperar la duración estándar antes del error
+        const elapsed = Date.now() - inicio;
+        if (elapsed < 800) await new Promise(r => setTimeout(r, 800 - elapsed));
         this.cargando = false;
         this.swal.error('Error al cargar datos del usuario');
         return;
       }
-      // Médico con varias especialidades ACTIVAS: se le pregunta con cuál entrar
+      // Médico con varias especialidades ACTIVAS: se le pregunta con cuál
+      // entrar. El "Cargando..." dura MENOS (200ms) para que el modal de
+      // especialidad aparezca rápido.
       const activas = Array.isArray(usuario.especialidades_activas) ? usuario.especialidades_activas : [];
-      if (activas.length > 1) {
+      const esMedicoConSelector = activas.length > 1;
+      const duracionCargando = esMedicoConSelector ? 100 : 800;
+      const elapsed = Date.now() - inicio;
+      if (elapsed < duracionCargando) {
+        await new Promise(r => setTimeout(r, duracionCargando - elapsed));
+      }
+      if (esMedicoConSelector) {
         this.especialidadesParaElegir = activas;
         this.espSeleccionada = Number(usuario.id_especialidad) || activas[0].id;
         this.cargando = false;
