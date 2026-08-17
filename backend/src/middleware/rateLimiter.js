@@ -39,7 +39,10 @@ const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: obtenerIpCliente,
-  skip: (req) => (req.originalUrl || req.path).includes('/turnero/'),
+  skip: (req) => {
+    const url = req.originalUrl || req.path;
+    return url.includes('/turnero/') || url.includes('/tts');
+  },
 });
 
 // Protege el endpoint de login contra fuerza bruta; el contador se resetea tras un login exitoso.

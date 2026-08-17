@@ -316,6 +316,18 @@ export class TurneroComponent implements OnInit, OnDestroy {
   // pisarse (la voz nunca interrumpe: espera a que el motor quede libre).
   private anunciosActivos = new Map<number, AnuncioActivo>();
   private colaVoz: AnuncioActivo[] = [];
+  /** Audio element for server-side TTS playback. Null when nothing is playing. */
+  private audioServidor: HTMLAudioElement | null = null;
+  /**
+   * Generación de voz: se incrementa cada vez que se detiene un anuncio o
+   * se inicia uno nuevo. Los callbacks de audio (onEnd/onError) del anuncio
+   * ANTERIOR capturan la generación en la que nacieron; si al dispararse la
+   * generación ya cambió, se ignoran. Esto evita que el audio viejo (o su
+   * fallback con la voz del navegador) suene encima del anuncio nuevo.
+   */
+  private generacionVoz: number = 0;
+  /** Whether server TTS is available (checked on first use). */
+  private ttsServidorDisponible: boolean | null = null;
 
   /**
    * Calcula el retardo hasta la siguiente marca de 10s de la grilla del llamado.
@@ -384,7 +396,10 @@ export class TurneroComponent implements OnInit, OnDestroy {
     if (esDestino) {
       delay = this.retardoHastaInicioAnuncio(a, 0);
     } else if (a.primerTickInmediato) {
-      delay = this.retardoHastaInicioAnuncio(a, 300);
+      // "Llamar al Siguiente": la voz sale YA (sin espera). El backend manda
+      // `inicio_ms` en el pasado inmediato del clic, así que con minMs 0 el
+      // retardo queda en 0 y el anuncio se dispara apenas llega el evento.
+      delay = this.retardoHastaInicioAnuncio(a, 0);
       a.primerTickInmediato = false;
     } else {
       delay = this.retardoHastaSiguienteMarca(a, 500);
@@ -508,8 +523,29 @@ export class TurneroComponent implements OnInit, OnDestroy {
    */
   private reanunciarInmediato(data: any): void {
     const id = data.id_atencion;
-    // Limpia timers, cola y guardias anti-doble (global y de ventana)
-    this.detenerRepeticion(id);
+    // ANTI VOZ DOBLE del megáfono: el camino `forzar` limpia la guardia
+    // anti-doble para permitir re-llamar en cada pulsación, pero eso también
+    // deja pasar un MISMO evento entregado dos veces (socket duplicado o dos
+    // instancias del turnero en la misma pestaña) → la voz se decía dos veces
+    // seguidas. Marcador compartido a nivel de ventana: si este mismo llamado
+    // ya se re-anunció hace <2.5s, es un duplicado y se ignora. Un re-click
+    // real de una persona tarda más de 2.5s, así que sigue sonando en cada
+    // pulsación como antes.
+    try {
+      const ultimoMegafono = (window as any).__turnero_megafono_ultimo;
+      const ahoraMegafono = Date.now();
+      if (ultimoMegafono && ultimoMegafono.id === id && ahoraMegafono - ultimoMegafono.ts < 2500) {
+        return;
+      }
+      (window as any).__turnero_megafono_ultimo = { id, ts: ahoraMegafono };
+    } catch {
+      // Almacenamiento no disponible: se ignora (el dedup queda solo en memoria).
+    }
+    // Detiene TODOS los anuncios activos (no solo este id): si otro paciente
+    // está sonando, su timer debe morir o al dispararse re-anunciaría al
+    // paciente anterior (y como el TTS del servidor estaría ocupado con el
+    // nuevo, el viejo saldría por el fallback con la voz del navegador).
+    this.detenerRepeticion();
     // Resetea la memoria local anti-doble para que el MISMO texto suene YA
     this.ultimoIdAnunciado = null;
     this.ultimaVezAnunciado = 0;
@@ -517,12 +553,14 @@ export class TurneroComponent implements OnInit, OnDestroy {
     this.ultimoLlamadoProcesadoId = id;
     this.ultimoLlamadoProcesadoHora = data.inicio_ms || data.server_now || Date.now();
     // Si otra locución está sonando, se corta para que la voz salga al instante
-    const hablando = 'speechSynthesis' in window && window.speechSynthesis.speaking;
+    const hablando = this.audioServidor !== null || ('speechSynthesis' in window && window.speechSynthesis.speaking);
     if (hablando) {
+      this.detenerAudioServidor();
       window.speechSynthesis.cancel();
-      // Chrome ignora speak() inmediatamente después de cancel(): se espera
-      // ~120ms para que el motor quede libre antes de recrear el anuncio.
-      setTimeout(() => this.crearAnuncio(data), 120);
+      // Chrome ignora speak() inmediatamente después de cancel(): se espera el
+      // mínimo (~40ms) para que el motor quede libre antes de recrear el
+      // anuncio y que la voz salga lo antes posible al pulsar el megáfono.
+      setTimeout(() => this.crearAnuncio(data), 40);
     } else {
       this.crearAnuncio(data);
     }
@@ -551,7 +589,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       } else if (destinoModulo.includes('imagen')) {
         texto = `Paciente ${nombreCompleto}, acérquese a la recepción de imágenes`;
       } else {
-        texto = `Paciente ${nombreCompleto}, acérquese a la recepción de ape ese`;
+        texto = `Paciente ${nombreCompleto}, acérquese a la recepción de APS`;
       }
     } else if (c.includes('laboratorio')) {
       texto = `Paciente ${nombreCompleto}, diríjase a laboratorio`;
@@ -562,7 +600,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
     } else if (c.startsWith('consultorio')) {
       texto = `Paciente ${nombreCompleto}, diríjase al ${destinoConsultorio}`;
     } else if (this.esAnuncioAPS(a.consultorio)) {
-      texto = `Paciente ${nombreCompleto}, acérquese a la recepción de ape ese`;
+      texto = `Paciente ${nombreCompleto}, acérquese a la recepción de APS`;
     }
     const ahora = Date.now();
     // Deduplicación local por instancia (complemento a la guardia global):
@@ -583,7 +621,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
     }
     this.persistirAnuncioEnSesion(a);
     // Guardia global anti-doble
-    const hablandoAhora = 'speechSynthesis' in window && window.speechSynthesis.speaking;
+    const hablandoAhora = this.audioServidor !== null || ('speechSynthesis' in window && window.speechSynthesis.speaking);
     const bloqueaDoble = !!ultimoAnuncioGlobal && ultimoAnuncioGlobal.texto === texto && (
       hablandoAhora || (ultimoAnuncioGlobal.sonado && ahora - ultimoAnuncioGlobal.ts < VENTANA_ANTIDOBLE_MS)
     );
@@ -603,15 +641,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       clearTimeout(a.speakTimerId);
       a.speakTimerId = null;
     }
-    const utterance = new SpeechSynthesisUtterance(texto);
-    this.aplicarVoz(utterance);
-    utterance.rate = 0.9;
-    utterance.onstart = () => {
-      this.sonidoConfirmado = true;
-      if (ultimoAnuncioGlobal) ultimoAnuncioGlobal.sonado = true;
-      this.quitarListenersDesbloqueo();
-    };
-    utterance.onend = () => {
+    const onExito = () => {
       this.sonidoConfirmado = true;
       if (ultimoAnuncioGlobal) ultimoAnuncioGlobal.sonado = true;
       this.quitarListenersDesbloqueo();
@@ -622,15 +652,11 @@ export class TurneroComponent implements OnInit, OnDestroy {
       a.ultimaVozMs = Date.now();
       this.procesarColaVoz();
     };
-    utterance.onerror = (e) => {
-      console.warn('SpeechSynthesis error:', e.error);
+    const onError = (msg?: string) => {
+      if (msg) console.warn(msg);
       if (a.speakTimerId) {
         clearTimeout(a.speakTimerId);
         a.speakTimerId = null;
-      }
-      // NO reintentar aquí: la repetición cada 10s lo re-anunciará
-      if (e.error === 'interrupted' || e.error === 'canceled') {
-        return;
       }
       this.procesarColaVoz();
     };
@@ -642,11 +668,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
     }
     a.speakTimerId = setTimeout(() => {
       a.speakTimerId = null;
-      if (window.speechSynthesis.paused) {
-        window.speechSynthesis.resume();
-      }
-      this.ultimoDisparoVozMs = Date.now();
-      window.speechSynthesis.speak(utterance);
+      this.reproducirTexto(texto, onExito, onError);
     }, retrasoSpeak);
     return true;
   }
@@ -659,39 +681,28 @@ export class TurneroComponent implements OnInit, OnDestroy {
       const next = this.colaVoz.shift()!;
       if (this.anunciosActivos.has(next.idAtencion)) {
         // Reproducir inmediatamente (sin delay de grilla)
-        const utterance = new SpeechSynthesisUtterance(this.construirTexto(next));
-        this.aplicarVoz(utterance);
-        utterance.rate = 0.9;
         const ahora = Date.now();
         const texto = this.construirTexto(next);
-        // Guardia global para la cola también
+        const estaHablando = this.audioServidor !== null || ('speechSynthesis' in window && window.speechSynthesis.speaking);
         const bloqueaDoble = !!ultimoAnuncioGlobal && ultimoAnuncioGlobal.texto === texto && (
-          window.speechSynthesis.speaking || (ultimoAnuncioGlobal.sonado && ahora - ultimoAnuncioGlobal.ts < VENTANA_ANTIDOBLE_MS)
+          estaHablando || (ultimoAnuncioGlobal.sonado && ahora - ultimoAnuncioGlobal.ts < VENTANA_ANTIDOBLE_MS)
         );
         if (bloqueaDoble) {
           continue; // Saltar este, siguiente de la cola
         }
         ultimoAnuncioGlobal = { texto, ts: ahora, sonado: false };
-        utterance.onstart = () => {
-          this.sonidoConfirmado = true;
-          if (ultimoAnuncioGlobal) ultimoAnuncioGlobal.sonado = true;
-          this.quitarListenersDesbloqueo();
-        };
-        utterance.onend = () => {
+        const onExito = () => {
           this.sonidoConfirmado = true;
           if (ultimoAnuncioGlobal) ultimoAnuncioGlobal.sonado = true;
           this.quitarListenersDesbloqueo();
           next.ultimaVozMs = Date.now();
           this.procesarColaVoz();
         };
-        utterance.onerror = (e) => {
-          console.warn('SpeechSynthesis error (cola):', e.error);
-          if (e.error === 'interrupted' || e.error === 'canceled') return;
+        const onError = (msg?: string) => {
+          if (msg) console.warn(msg);
           this.procesarColaVoz();
         };
-        if (window.speechSynthesis.paused) window.speechSynthesis.resume();
-        this.ultimoDisparoVozMs = Date.now();
-        window.speechSynthesis.speak(utterance);
+        this.reproducirTexto(texto, onExito, onError);
         return; // Solo uno a la vez; onend continuará la cola
       }
     }
@@ -729,6 +740,125 @@ export class TurneroComponent implements OnInit, OnDestroy {
       texto = `Paciente ${nombreCompleto}, acérquese a la recepción de ape ese`;
     }
     return texto;
+  }
+
+  /**
+   * Reproduce audio generado por el backend (node-edge-tts).
+   * Si el backend no está disponible, retorna false para que el caller
+   * use Web Speech API como respaldo.
+   */
+  private async reproducirConServidor(texto: string, onEnd: () => void, onError: () => void): Promise<boolean> {
+    try {
+      const resp = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texto }),
+      });
+      if (!resp.ok) {
+        this.ttsServidorDisponible = false;
+        return false;
+      }
+      this.ttsServidorDisponible = true;
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      // Detener audio anterior si existe
+      if (this.audioServidor) {
+        this.audioServidor.pause();
+        this.audioServidor.src = '';
+        URL.revokeObjectURL(this.audioServidor.src);
+        this.audioServidor = null;
+      }
+      const audio = new Audio(url);
+      this.audioServidor = audio;
+      // Captura la generación actual: si al terminar (o fallar) este audio ya
+      // se anunció OTRO paciente (generación cambiada), estos callbacks se
+      // ignoran. Sin esto, el onEnd del audio viejo disparaba procesarColaVoz
+      // y el anuncio anterior volvía a sonar (con la voz del navegador por el
+      // fallback) encima del paciente nuevo.
+      const generacion = this.generacionVoz;
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        if (this.audioServidor === audio) this.audioServidor = null;
+        if (generacion !== this.generacionVoz) return;
+        onEnd();
+      };
+      audio.onerror = () => {
+        URL.revokeObjectURL(url);
+        if (this.audioServidor === audio) this.audioServidor = null;
+        if (generacion !== this.generacionVoz) return;
+        onError();
+      };
+      this.ultimoDisparoVozMs = Date.now();
+      try {
+        // Antes de sonar el audio del servidor (Piper) se corta cualquier voz
+        // del navegador que haya quedado hablando de un anuncio anterior; así
+        // no se escucha la voz de la PC de fondo encima de la de Piper.
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
+        await audio.play();
+        return true;
+      } catch {
+        // Autoplay bloqueado: notificar al caller para que use fallback
+        onError();
+        return false;
+      }
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Cancela la reproducción del audio del servidor TTS.
+   */
+  private detenerAudioServidor(): void {
+    if (this.audioServidor) {
+      this.audioServidor.pause();
+      this.audioServidor.src = '';
+      this.audioServidor = null;
+    }
+  }
+
+  /**
+   * Reproduce un texto usando el servidor TTS (node-edge-tts) con fallback
+   * a Web Speech API del navegador.
+   */
+  private reproducirTexto(texto: string, onExito: () => void, onError: (msg?: string) => void): void {
+    // Si ya se detectó que el servidor no está disponible, ir directo al fallback
+    if (this.ttsServidorDisponible === false) {
+      this.reproducirTextoNavegador(texto, onExito, onError);
+      return;
+    }
+    this.reproducirConServidor(texto, onExito, () => {
+      // Fallback a Web Speech API si el servidor no responde
+      this.reproducirTextoNavegador(texto, onExito, onError);
+    });
+  }
+
+  /**
+   * Reproduce un texto usando la Web Speech API del navegador (fallback).
+   */
+  private reproducirTextoNavegador(texto: string, onExito: () => void, onError: (msg?: string) => void): void {
+    if (!('speechSynthesis' in window)) {
+      onError('SpeechSynthesis no soportado');
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(texto);
+    this.aplicarVoz(utterance);
+    utterance.rate = 0.9;
+    utterance.onstart = () => {
+      onExito();
+    };
+    utterance.onend = () => {
+      onExito();
+    };
+    utterance.onerror = (e) => {
+      if (e.error === 'interrupted' || e.error === 'canceled') return;
+      onError(`SpeechSynthesis error: ${e.error}`);
+    };
+    if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+    this.ultimoDisparoVozMs = Date.now();
+    window.speechSynthesis.speak(utterance);
   }
 
   /**
@@ -773,9 +903,12 @@ export class TurneroComponent implements OnInit, OnDestroy {
       }
       this.anunciosActivos.clear();
       this.colaVoz.length = 0;
+      this.detenerAudioServidor();
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
+      // Invalida los callbacks de audio en vuelo del anuncio anterior
+      this.generacionVoz++;
     }
     // Reiniciar guardias para permitir re-llamado inmediato del mismo paciente
     ultimoAnuncioGlobal = null;
@@ -973,6 +1106,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
     // se escuchaban dos voces encimadas. Se cancela la voz al abandonar la
     // página (beforeunload/pagehide cubren la recarga en todos los navegadores).
     this.beforeUnloadHandler = () => {
+      this.detenerAudioServidor();
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
@@ -1083,85 +1217,55 @@ export class TurneroComponent implements OnInit, OnDestroy {
   }
 
   private desbloquearAudio() {
-    // Si el audio ya fue confirmado en ESTA carga de página (onstart recibido),
-    // los clicks posteriores son inofensivos: no hay que volver a desbloquear
-    // ni cancelar nada (cancelar cortaría una locución en curso).
     if (this.sonidoConfirmado) return;
-    // Si una locución YA se está reproduciendo en este momento, el click no
-    // debe cortarla ni re-anunciar: en Chrome/Windows onstart no siempre
-    // dispara, así que sonidoConfirmado puede seguir en false mientras la
-    // voz suena, y un click aquí cancelaba la locución y la volvía a decir
-    // desde el principio (el "recarga y suena otra vez" que escuchabas).
-    if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
+    const estaHablando = this.audioServidor !== null || ('speechSynthesis' in window && window.speechSynthesis.speaking);
+    if (estaHablando) {
       return;
     }
-    // Tras un F5 el flag de sessionStorage sigue en 'true' pero el navegador
-    // reinició la activación de audio: hay que volver a desbloquear dentro
-    // del gesto del usuario.
     this.audioDesbloqueado = true;
     try {
       sessionStorage.setItem('turnero_audio_unlocked', 'true');
     } catch {
-      // Almacenamiento no disponible: el flag queda activo solo en memoria.
     }
     desbloquearVozNavegador();
 
-    // Buscar un anuncio activo que NUNCA haya sonado (ultimaVozMs === 0)
-    // o cuya última voz fue hace >8s (posible autoplay bloqueado).
-    // El click fuerza ese anuncio inmediatamente (sin esperar marca de 10s).
     const ahora = Date.now();
     let forzado = false;
     for (const a of this.anunciosActivos.values()) {
       const nuncaSono = a.ultimaVozMs === 0;
       const haceTiempo = a.ultimaVozMs > 0 && ahora - a.ultimaVozMs > 8000;
       if (nuncaSono || haceTiempo) {
-        // Forzar ahora: cancelar speakTimerId pendiente y hablar ya
         if (a.speakTimerId) {
           clearTimeout(a.speakTimerId);
           a.speakTimerId = null;
         }
-        // Reproducir inmediatamente (sin delay de grilla)
         const texto = this.construirTexto(a);
-        // Guardia global
         const bloqueaDoble = !!ultimoAnuncioGlobal && ultimoAnuncioGlobal.texto === texto && (
-          window.speechSynthesis.speaking || (ultimoAnuncioGlobal.sonado && ahora - ultimoAnuncioGlobal.ts < VENTANA_ANTIDOBLE_MS)
+          estaHablando || (ultimoAnuncioGlobal.sonado && ahora - ultimoAnuncioGlobal.ts < VENTANA_ANTIDOBLE_MS)
         );
         if (!bloqueaDoble) {
           ultimoAnuncioGlobal = { texto, ts: ahora, sonado: false };
-          const utterance = new SpeechSynthesisUtterance(texto);
-          this.aplicarVoz(utterance);
-          utterance.rate = 0.9;
-          utterance.onstart = () => {
-            this.sonidoConfirmado = true;
-            if (ultimoAnuncioGlobal) ultimoAnuncioGlobal.sonado = true;
-            this.quitarListenersDesbloqueo();
-          };
-          utterance.onend = () => {
+          const onExito = () => {
             this.sonidoConfirmado = true;
             if (ultimoAnuncioGlobal) ultimoAnuncioGlobal.sonado = true;
             this.quitarListenersDesbloqueo();
             a.ultimaVozMs = Date.now();
             this.procesarColaVoz();
           };
-          utterance.onerror = (e) => {
-            console.warn('SpeechSynthesis error (click):', e.error);
-            if (e.error === 'interrupted' || e.error === 'canceled') return;
+          const onError = (msg?: string) => {
+            if (msg) console.warn(msg);
             this.procesarColaVoz();
           };
-          if (window.speechSynthesis.paused) window.speechSynthesis.resume();
-          this.ultimoDisparoVozMs = Date.now();
-          window.speechSynthesis.speak(utterance);
+          this.reproducirTexto(texto, onExito, onError);
           forzado = true;
-          break; // Solo uno por click
+          break;
         }
       }
     }
 
     if (!forzado) {
-      // Si no hubo nada que forzar, procesar cola normal (llamados en espera)
       this.procesarColaVoz();
     }
-    // Si hubo un llamado mientras el audio estaba bloqueado, polling lo anunciará
     this.verificarUltimoLlamado();
   }
 

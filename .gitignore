@@ -48,3 +48,7 @@ __screenshots__/
 Thumbs.db
 .aider*
 .env
+
+# Piper TTS (modelos y entorno virtual)
+/piper
+/temp

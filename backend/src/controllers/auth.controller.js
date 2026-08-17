@@ -70,21 +70,26 @@ const login = async (req, res) => {
     }
     const espSesion = especialidadesActivas[0] || null;
 
-    // Desconectar sockets previos del mismo usuario — el último login siempre gana
-    let socketsPrevios = [];
-    try {
-      const sockets = await Promise.race([
-        req.io.fetchSockets(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
-      ]);
-      for (const socket of sockets) {
-        if (socket.usuario && Number(socket.usuario.id) === Number(usuario.id)) {
-          socketsPrevios.push(socket);
-        }
+    // Desconectar sockets previos del mismo usuario — el último login siempre
+    // gana. IMPORTANTE: esto se hace en SEGUNDO PLANO (sin await), porque
+    // fetchSockets() puede tardar con muchos clientes conectados (turneros,
+    // recepción, etc.) y retrasa la respuesta del login — y con ella, el
+    // modal de selección de especialidad. El cierre de los sockets viejos
+    // ocurre igual, solo que un instante después de responder.
+    const desconectarSocketsPrevios = () => {
+      try {
+        req.io.fetchSockets().then((sockets) => {
+          for (const socket of sockets) {
+            if (socket.usuario && Number(socket.usuario.id) === Number(usuario.id)) {
+              socket.disconnect(true);
+            }
+          }
+        }).catch(() => { /* Si falla, continuar igual */ });
+      } catch {
+        /* Si fetchSockets falla, continuar igual */
       }
-    } catch {
-      /* Si fetchSockets falla o tarda más de 3s, continuar igual */
-    }
+    };
+    desconectarSocketsPrevios();
 
     const sesionToken = crypto.randomUUID();
     await usuarioRepo.actualizarSesionToken(usuario.id, sesionToken);
@@ -131,10 +136,6 @@ const login = async (req, res) => {
       usuario: payload
     });
 
-    // Notificar y desconectar sockets viejos DESPUÉS de que el nuevo login ya respondió
-    for (const socket of socketsPrevios) {
-      socket.disconnect(true);
-    }
 
   } catch (error) {
     logErrorSafe('Error en login', error);
