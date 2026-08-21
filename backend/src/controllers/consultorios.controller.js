@@ -4,6 +4,7 @@ const servicioRepo = require('../repositories/servicio.repository');
 const atencionRepo = require('../repositories/atencion.repository');
 const consultorioRepo = require('../repositories/consultorio.repository');
 const historialRepo = require('../repositories/historial.repository');
+const ttsService = require('../services/tts.service');
 
 /**
  * Obtiene el estado actual del consultorio o servicio del médico
@@ -162,7 +163,7 @@ const llamarSiguiente = async (req, res) => {
       // de repetición cada 10s anclado a la grilla del consultorio.
       // `server_now` permite que el cliente estime el desfase de su reloj.
       const ahoraServidor = Date.now();
-      req.io.emit('nuevo-llamado', { 
+      const payload = {
         tipo: 'llamado',
         id_atencion: turno.id,
         turno: turno.numero, 
@@ -179,7 +180,32 @@ const llamarSiguiente = async (req, res) => {
         server_now: ahoraServidor,
         inicio_ms: ahoraServidor,
         inicio_inmediato: true
-      });
+      };
+
+      // Pre-sintetizar audio con Piper para que el turnero reproduzca el WAV
+      // directamente (sin necesidad de POST /api/tts que compite en la cola de
+      // PiperWorker con las llamadas de laboratorio/imágenes). Así la voz del
+      // médico siempre está lista, sin importar si lab/imag está ocupando el worker.
+      try {
+        const nombreCompleto = [turno.nombre_paciente, turno.apellido_paciente].filter(Boolean).join(' ').trim();
+        const nombreNatural = nombreCompleto.split(/\s+/).map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join(' ');
+        const consultorioLower = (servicioNombre || '').toLowerCase();
+        let texto = `Paciente ${nombreNatural},`;
+        if (consultorioLower.includes('laboratorio')) {
+          texto += ' diríjase a la recepción de laboratorio';
+        } else if (consultorioLower.includes('imagen')) {
+          texto += ' diríjase a la recepción de imágenes';
+        } else {
+          texto += ` diríjase al consultorio ${servicioNombre}`;
+        }
+        const nombreArchivo = `tts_${Date.now()}`;
+        await ttsService.generarAudio(texto, nombreArchivo, { prioridad: 'alta' });
+        payload.audio_url = `/api/tts/audio/${nombreArchivo}.wav`;
+      } catch (err) {
+        logger.warn(`TTS pre-síntesis falló en llamarSiguiente (el turnero usará fallback): ${err.message}`);
+      }
+
+      req.io.emit('nuevo-llamado', payload);
     }
 
     res.json({
@@ -360,9 +386,124 @@ const liberarConsultorio = async (req, res) => {
   }
 };
 
+/**
+ * Llama a un paciente ESPECÍFICO por ID desde la tabla de espera.
+ * A diferencia de llamarSiguiente (que toma el primero de la cola),
+ * este recibe el id_atencion directamente.
+ *
+ * Usado por laboratorio e imágenes desde la vista de atención:
+ * el megáfono en cada fila de la tabla de espera.
+ */
+const llamarEspecifico = async (req, res) => {
+  const { id } = req.params;
+  const consultorioId = req.usuario.consultorio_id;
+  const rol = req.usuario.rol;
+
+  if (!id || isNaN(Number(id))) {
+    return res.status(400).json({ mensaje: 'ID de atención inválido' });
+  }
+
+  if (!req.usuario || !req.usuario.id_sede) {
+    return res.status(400).json({ mensaje: 'Datos de usuario insuficientes' });
+  }
+
+  // 1) Obtener la atención específica primero, para saber su servicio
+  const turno = await atencionRepo.getAdmisionById(Number(id), req.usuario.id_sede);
+  if (!turno) {
+    return res.status(404).json({ mensaje: 'Atención no encontrada' });
+  }
+  if (Number(turno.id_estado_actual) !== 3) {
+    return res.status(400).json({ mensaje: 'El paciente debe estar en Sala de Espera para ser llamado' });
+  }
+
+  // 2) Resolver el nombre del servicio a partir del turno (no del usuario).
+  //    Esto funciona para cualquier rol: admin, coordinador, analista,
+  //    laboratorio o imágenes.
+  const servicioNombre = turno.nombre_servicio || (rol === 'laboratorio' ? 'Laboratorio' : 'Imágenes');
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    await atencionRepo.llamarAtencion(client, turno.id, consultorioId || null);
+    await historialRepo.insert(client, turno.id, 4);
+
+    if (consultorioId) {
+      await consultorioRepo.setEstadoFisico(client, consultorioId, 'OCUPADO');
+    }
+
+    await client.query('COMMIT');
+
+    if (req.io) {
+      const ahoraServidor = Date.now();
+      const payload = {
+        tipo: 'llamado',
+        id_atencion: turno.id,
+        turno: turno.numero,
+        consultorio: servicioNombre,
+        piso: turno.especialidad_piso || null,
+        paciente: turno.nombre,
+        apellido: turno.apellido || '',
+        id_sede: req.usuario.id_sede,
+        server_now: ahoraServidor,
+        inicio_ms: ahoraServidor,
+        forzar: true,
+      };
+
+      // Pre-sintetizar audio con Piper (mismo patrón que emitirLlamadoNuevo)
+      try {
+        const nombreCompleto = [turno.nombre, turno.apellido].filter(Boolean).join(' ').trim();
+        const nombreNatural = nombreCompleto.split(/\s+/).map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join(' ');
+        const consultorioLower = (servicioNombre || '').toLowerCase();
+        let texto = `Paciente ${nombreNatural},`;
+        if (consultorioLower.includes('laboratorio')) {
+          texto += ' diríjase a laboratorio';
+        } else if (consultorioLower.includes('imagen')) {
+          texto += ' diríjase a imágenes';
+        } else if (consultorioLower === 'aps' || consultorioLower.includes('aps')) {
+          texto += ' diríjase a la recepción de APS';
+        } else {
+          texto += ` diríjase a la recepción de ${servicioNombre}`;
+        }
+        const nombreArchivo = `tts_${Date.now()}`;
+        await ttsService.generarAudio(texto, nombreArchivo, { prioridad: 'alta' });
+        payload.audio_url = `/api/tts/audio/${nombreArchivo}.wav`;
+      } catch (err) {
+        logger.warn(`TTS pre-síntesis falló (el turnero usará fallback): ${err.message}`);
+      }
+
+      req.io.emit('nuevo-llamado', payload);
+    }
+
+    res.json({
+      mensaje: 'Paciente llamado exitosamente',
+      turno: {
+        id: turno.id,
+        numero: turno.numero,
+        estado: 'LLAMADO',
+        hora_llegada: turno.fecha_creacion,
+        paciente: {
+          nombre: turno.nombre,
+          apellido: turno.apellido,
+          documento: turno.cedula,
+          telefono: turno.telefono
+        }
+      }
+    });
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    logger.error('Error en llamarEspecifico:', error);
+    res.status(500).json({ mensaje: 'Error al procesar el llamado' });
+  } finally {
+    client.release();
+  }
+};
+
 module.exports = {
   obtenerMiEstado,
   llamarSiguiente,
+  llamarEspecifico,
   iniciarAtencion,
   finalizarAtencion,
   liberarConsultorio,

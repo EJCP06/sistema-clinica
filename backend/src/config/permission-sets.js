@@ -32,9 +32,6 @@ module.exports = {
     'atencion_medica:iniciar', 'atencion_medica:marcar_ausente', 'atencion_medica:finalizar',
     'atencion_medica:*'
   ],
-  COORDINADOR_AYUDA: [
-    'admision:marcar_ausente'
-  ],
   RECURSOS_ADMIN: [
     'admision', 'aps', 'laboratorio', 'imagenes', 'aseguradoras',
     'personal', 'roles', 'especialidades', 'permisologia', 'llamado', 'reportes'

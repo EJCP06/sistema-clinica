@@ -45,7 +45,8 @@ const getUltimasAdmisiones = async (sede) => {
       rp.nombre as modalidad_pago,
       a.id_responsable,
       esp.nombre as nombre_especialidad,
-      u.primer_nombre || ' ' || u.primer_apellido as nombre_medico
+      u.primer_nombre || ' ' || u.primer_apellido as nombre_medico,
+      (SELECT h.fecha_hora FROM "Historial_Atencion" h WHERE h.id_atencion = a.id_atencion AND h.id_estado = 4 ORDER BY h.fecha_hora DESC LIMIT 1) as hora_llamado
     FROM "Atencion" a
     JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
     JOIN "Servicio" s ON a.id_servicio = s.id_servicio
@@ -674,7 +675,7 @@ const limpiarEstadosPendientes = async () => {
     await client.query('BEGIN');
 
     const result = await client.query(
-      `UPDATE "Atencion" SET id_estado_actual = 7
+      `UPDATE "Atencion" SET id_estado_actual = 9
        WHERE hora_llegada::date < CURRENT_DATE
          AND id_estado_actual IN (1, 2, 3, 4, 5, 8)
        RETURNING id_atencion, numero, id_estado_actual`,
@@ -682,7 +683,7 @@ const limpiarEstadosPendientes = async () => {
 
     for (const row of result.rows) {
       await client.query(
-        'INSERT INTO "Historial_Atencion" (id_atencion, id_estado) VALUES ($1, 7)',
+        'INSERT INTO "Historial_Atencion" (id_atencion, id_estado) VALUES ($1, 9)',
         [row.id_atencion],
       );
     }
@@ -694,7 +695,7 @@ const limpiarEstadosPendientes = async () => {
     await client.query('COMMIT');
 
     if (result.rowCount > 0) {
-      console.log(`[Limpieza diaria] ${result.rowCount} paciente(s) marcado(s) como ausente(s) del día anterior.`);
+      console.log(`[Limpieza diaria] ${result.rowCount} paciente(s) retirado(s) del día anterior.`);
     }
   } catch (error) {
     await client.query('ROLLBACK');

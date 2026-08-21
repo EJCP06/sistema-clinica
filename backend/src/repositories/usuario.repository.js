@@ -99,6 +99,10 @@ const actualizarSesionToken = async (id, token) => {
   await pool.query('UPDATE "Usuarios" SET sesion_token = $1 WHERE id_usuario = $2', [token, id]);
 };
 
+const actualizarSesionTokenSiCoincide = async (id, tokenActual) => {
+  await pool.query('UPDATE "Usuarios" SET sesion_token = NULL WHERE id_usuario = $1 AND sesion_token = $2', [id, tokenActual]);
+};
+
 const findById = async (id) => {
   const result = await pool.query(`
     SELECT u.id_usuario as id, u.cedula, u.password_hash, r.key as rol, u.id_rol,
@@ -389,6 +393,7 @@ module.exports = {
   findByCedulaSimple,
   findByCedulaSede,
   actualizarSesionToken,
+  actualizarSesionTokenSiCoincide,
   updatePasswordByCedula,
   updatePassword,
   findByCedulaAndEmail,

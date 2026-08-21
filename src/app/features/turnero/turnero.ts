@@ -42,11 +42,15 @@ interface AnuncioActivo {
   /** Llamado del médico ("Llamar al Siguiente"): el primer anuncio sale ya y el ciclo de 10s continúa. */
   primerTickInmediato: boolean;
   inicioMs: number | null;
+  /** Grilla anclada al momento de la creación: `inicioMs - deltaRelojMs`. Se calcula UNA vez y NO cambia con el tiempo para evitar deriva. */
+  baseLocal: number;
   timerId: any | null;
   speakTimerId: any | null;
   ultimaVozMs: number;
   /** URL del audio pre-sintetizado por el servidor (para sincronización entre pantallas). */
   audioUrl?: string;
+  /** true cuando el ciclo se pausó temporalmente (ej. llegó un megáfono). Se reanuda al terminar el megáfono. */
+  pausado?: boolean;
 }
 
 const SALAS: Record<SalaMode, SalaConfig> = {
@@ -297,7 +301,12 @@ export class TurneroComponent implements OnInit, OnDestroy {
    */
   consultorioConPiso(t: TurnoDTO): string {
     const nombre = (t.consultorio_nombre || '').trim();
-    if (!nombre) return 'Consultorio';
+    if (!nombre) {
+      // Para pacientes de laboratorio/imagenes no hay consultorio fisico:
+      // mostrar el nombre del servicio (ej. "Laboratorio", "Imagenes").
+      const svc = (t.nombre_servicio || '').trim();
+      return svc || 'Consultorio';
+    }
     const piso = (t.especialidad_piso || t.consultorio_piso || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
     const digitos = nombre.match(/\d+/);
     if (piso && digitos) {
@@ -355,7 +364,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
     if (!a.inicioMs || !Number.isFinite(a.inicioMs)) {
       return Math.max(minMs, 10000);
     }
-    const baseLocal = a.inicioMs - this.deltaRelojMs;
+    const baseLocal = a.baseLocal;
     const ahora = Date.now();
     const desfase = ahora - baseLocal;
     if (desfase >= VENTANA_LLAMADO_MS) return null;
@@ -379,7 +388,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
     if (!a.inicioMs || !Number.isFinite(a.inicioMs)) {
       return Math.max(minMs, 500);
     }
-    const baseLocal = a.inicioMs - this.deltaRelojMs;
+    const baseLocal = a.baseLocal;
     const ahora = Date.now();
     const desfase = ahora - baseLocal;
     if (desfase >= VENTANA_LLAMADO_MS) return null;
@@ -398,6 +407,12 @@ export class TurneroComponent implements OnInit, OnDestroy {
     const hablar = (): boolean => {
       if (!this.anunciosActivos.has(a.idAtencion)) {
         return false; // Fue detenido/retirado
+      }
+      // Si el anuncio está pausado (llegó un megáfono), no hablar y
+      // re-agendar para el siguiente tick. Se reanudará cuando el megáfono
+      // termine (reanudarCiclosPausados).
+      if (a.pausado) {
+        return true; // Tick consumido; se re-agendará en el siguiente ciclo
       }
       // Prioridad: si es ciclo médico (no megáfono) y hay megáfonos en cola,
       // NO tocamos y re-agendamos para la siguiente marca de 10s.
@@ -444,6 +459,13 @@ export class TurneroComponent implements OnInit, OnDestroy {
       // así que no se re-agenda.
       if (continuar && !esDestino) {
         this.iniciarRepeticionAnuncio(a);
+      } else if (this.colaVoz.some(x => x.idAtencion === a.idAtencion)) {
+        // El megáfono quedó ENCOLADO esperando que el motor se libere (p. ej.
+        // el ciclo de 10s del doctor A está sonando). NO se borra de
+        // anunciosActivos: procesarColaVoz lo sacará y reproducirá apenas
+        // termine la voz en curso. Si se borrara aquí, procesarColaVoz lo
+        // saltaría (anunciosActivos.has = false) y la voz del megáfono no
+        // sonaría hasta que el paciente del doctor entrara en atención.
       } else {
         this.anunciosActivos.delete(a.idAtencion);
       }
@@ -498,6 +520,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       // el primer anuncio sale ya y el ciclo de 10s de la grilla continúa.
       primerTickInmediato: data.inicio_inmediato === true,
       inicioMs: data.inicio_ms ?? this.inicioMsActual,
+      baseLocal: (data.inicio_ms ?? this.inicioMsActual) - this.deltaRelojMs,
       timerId: null,
       speakTimerId: null,
       ultimaVozMs: 0,
@@ -515,8 +538,10 @@ export class TurneroComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Detiene SOLO los ciclos de médicos (grilla 10s), NO los megáfonos (destinoInmediato/APS).
-   * Se usa cuando llega un megáfono: los ciclos médicos esperan su turno.
+   * Pausa SOLO los ciclos de médicos (grilla 10s), NO los megáfonos (destinoInmediato/APS).
+   * Se usa cuando llega un megáfono: los ciclos médicos se pausan y se reanudan
+   * cuando el megáfono termina (en procesarColaVoz). A diferencia de borrarlos,
+   * pausarlos permite que su ciclo de 10s continúe después del megáfono.
    */
   private detenerSoloCiclosMedicos(): void {
     for (const [id, a] of this.anunciosActivos) {
@@ -524,13 +549,26 @@ export class TurneroComponent implements OnInit, OnDestroy {
       if (!esMegafono) {
         if (a.timerId) { clearTimeout(a.timerId); a.timerId = null; }
         if (a.speakTimerId) { clearTimeout(a.speakTimerId); a.speakTimerId = null; }
-        this.anunciosActivos.delete(id);
+        a.pausado = true;
         const idx = this.colaVoz.findIndex(x => x.idAtencion === id);
         if (idx >= 0) this.colaVoz.splice(idx, 1);
       }
     }
     ultimoAnuncioGlobal = null;
     limpiarGuardiaGlobalAntiDoble();
+  }
+
+  /**
+   * Reanuda los ciclos de médicos que se pausaron al llegar un megáfono.
+   * Se llama cuando el megáfono termina de sonar y la cola de voz queda vacía.
+   */
+  private reanudarCiclosPausados(): void {
+    for (const [id, a] of this.anunciosActivos) {
+      if (a.pausado) {
+        a.pausado = false;
+        this.iniciarRepeticionAnuncio(a);
+      }
+    }
   }
 
   /**
@@ -583,9 +621,10 @@ export class TurneroComponent implements OnInit, OnDestroy {
     // Evita que el polling re-anuncie este mismo llamado
     this.ultimoLlamadoProcesadoId = id;
     this.ultimoLlamadoProcesadoHora = data.inicio_ms || data.server_now || Date.now();
-    // Detener SOLO ciclos médicos (grilla 10s) para que el megáfono
-    // tenga prioridad inmediata. Otros megáfonos ya están en colaVoz.
-    this.detenerSoloCiclosMedicos();
+    // NOTA: NO se llama detenerSoloCiclosMedicos aquí para que el ciclo
+    // de 10s del médico CONTINÚE sin interrupciones. El megáfono se
+    // encola en colaVoz y suena cuando el motor se libere. Así el médico
+    // nunca deja de sonar mientras lab/imag llaman pacientes.
     this.crearAnuncio(data);
   }
 
@@ -605,25 +644,27 @@ export class TurneroComponent implements OnInit, OnDestroy {
     const c = a.consultorio.toLowerCase();
     if (a.destinoInmediato) {
       // Botones "Llamar" de módulos (APS / clave / laboratorio / imágenes):
-      // anuncio de disparo inmediato, con la recepción del módulo destino.
+      // anuncio de disparo inmediato. El texto DEBE coincidir con el generado
+      // por emitirLlamadoNuevo en el backend (salaEspera=true) para evitar
+      // doble voz cuando el WAV pre-sintetizado falla y se usa POST /api/tts.
       const destinoModulo = (a.consultorio || '').toLowerCase();
       if (destinoModulo.includes('laboratorio')) {
-        texto = `Paciente ${nombreCompleto}, acérquese a la recepción de laboratorio`;
+        texto = `Paciente ${nombreCompleto}, diríjase a laboratorio`;
       } else if (destinoModulo.includes('imagen')) {
-        texto = `Paciente ${nombreCompleto}, acérquese a la recepción de imágenes`;
+        texto = `Paciente ${nombreCompleto}, diríjase a imágenes`;
       } else {
-        texto = `Paciente ${nombreCompleto}, acérquese a la recepción de APS`;
+        texto = `Paciente ${nombreCompleto}, diríjase a la recepción de APS`;
       }
     } else if (c.includes('laboratorio')) {
-      texto = `Paciente ${nombreCompleto}, diríjase a laboratorio`;
+      texto = `Paciente ${nombreCompleto}, diríjase a la recepción de laboratorio`;
     } else if (c.includes('imágenes') || c.includes('imagenes')) {
-      texto = `Paciente ${nombreCompleto}, diríjase a imágenes`;
+      texto = `Paciente ${nombreCompleto}, diríjase a la recepción de imágenes`;
     } else if (c.includes('consulta')) {
       texto = `Paciente ${nombreCompleto}, diríjase a consulta`;
     } else if (c.startsWith('consultorio')) {
       texto = `Paciente ${nombreCompleto}, diríjase al ${destinoConsultorio}`;
     } else if (this.esAnuncioAPS(a.consultorio)) {
-      texto = `Paciente ${nombreCompleto}, acérquese a la recepción de APS`;
+      texto = `Paciente ${nombreCompleto}, diríjase a la recepción de APS`;
     }
     const ahora = Date.now();
     // Deduplicación local por instancia (complemento a la guardia global):
@@ -697,11 +738,10 @@ export class TurneroComponent implements OnInit, OnDestroy {
       }
       this.procesarColaVoz();
     };
-    // Sincronización con inicio_ms del servidor
+    // Sincronización con inicio_ms del servidor (usa baseLocal anclado)
     let retrasoSpeak = 300;
     if (a.inicioMs && Number.isFinite(a.inicioMs)) {
-      const objetivoLocal = a.inicioMs - this.deltaRelojMs;
-      retrasoSpeak = Math.max(0, objetivoLocal - Date.now());
+      retrasoSpeak = Math.max(0, a.baseLocal - Date.now());
     }
     a.speakTimerId = setTimeout(() => {
       a.speakTimerId = null;
@@ -733,23 +773,33 @@ export class TurneroComponent implements OnInit, OnDestroy {
         }
         ultimoAnuncioGlobal = { texto, ts: ahora, sonado: false };
         this.sintetizandoTTS = true;
+        // Los megáfonos (destinoInmediato/APS) son de disparo único: al
+        // reproducirlos desde la cola se liberan de anunciosActivos, igual
+        // que cuando suenan directo. Los ciclos del médico NO se tocan (su
+        // ciclo de 10s sigue re-agendando y debe permanecer en el mapa).
+        const esAnuncioUnico = next.destinoInmediato || this.esAnuncioAPS(next.consultorio);
         const onExito = () => {
           this.sonidoConfirmado = true;
           if (ultimoAnuncioGlobal) ultimoAnuncioGlobal.sonado = true;
           this.quitarListenersDesbloqueo();
           this.sintetizandoTTS = false;
+          if (esAnuncioUnico) this.anunciosActivos.delete(next.idAtencion);
           next.ultimaVozMs = Date.now();
           this.procesarColaVoz();
         };
         const onError = (msg?: string) => {
           if (msg) console.warn(msg);
           this.sintetizandoTTS = false;
+          if (esAnuncioUnico) this.anunciosActivos.delete(next.idAtencion);
           this.procesarColaVoz();
         };
         this.reproducirTexto(texto, onExito, onError);
         return; // Solo uno a la vez; onend continuará la cola
       }
     }
+    // Cuando la cola queda vacía (el último megáfono terminó de sonar),
+    // reanudar los ciclos de médicos que se pausaron al llegar el megáfono.
+    this.reanudarCiclosPausados();
   }
 
   /**
@@ -763,25 +813,27 @@ export class TurneroComponent implements OnInit, OnDestroy {
     const c = a.consultorio.toLowerCase();
     if (a.destinoInmediato) {
       // Botones "Llamar" de módulos (APS / clave / laboratorio / imágenes):
-      // anuncio de disparo inmediato, con la recepción del módulo destino.
+      // anuncio de disparo inmediato. El texto DEBE coincidir con el generado
+      // por emitirLlamadoNuevo en el backend (salaEspera=true) para evitar
+      // doble voz cuando el WAV pre-sintetizado falla y se usa POST /api/tts.
       const destinoModulo = (a.consultorio || '').toLowerCase();
       if (destinoModulo.includes('laboratorio')) {
-        texto = `Paciente ${nombreCompleto}, acérquese a la recepción de laboratorio`;
+        texto = `Paciente ${nombreCompleto}, diríjase a laboratorio`;
       } else if (destinoModulo.includes('imagen')) {
-        texto = `Paciente ${nombreCompleto}, acérquese a la recepción de imágenes`;
+        texto = `Paciente ${nombreCompleto}, diríjase a imágenes`;
       } else {
-        texto = `Paciente ${nombreCompleto}, acérquese a la recepción de APS`;
+        texto = `Paciente ${nombreCompleto}, diríjase a la recepción de APS`;
       }
     } else if (c.includes('laboratorio')) {
-      texto = `Paciente ${nombreCompleto}, diríjase a laboratorio`;
+      texto = `Paciente ${nombreCompleto}, diríjase a la recepción de laboratorio`;
     } else if (c.includes('imágenes') || c.includes('imagenes')) {
-      texto = `Paciente ${nombreCompleto}, diríjase a imágenes`;
+      texto = `Paciente ${nombreCompleto}, diríjase a la recepción de imágenes`;
     } else if (c.includes('consulta')) {
       texto = `Paciente ${nombreCompleto}, diríjase a consulta`;
     } else if (c.startsWith('consultorio')) {
       texto = `Paciente ${nombreCompleto}, diríjase al ${destinoConsultorio}`;
     } else if (this.esAnuncioAPS(a.consultorio)) {
-      texto = `Paciente ${nombreCompleto}, acérquese a la recepción de APS`;
+      texto = `Paciente ${nombreCompleto}, diríjase a la recepción de APS`;
     }
     return texto;
   }
@@ -1466,12 +1518,13 @@ private verificarUltimoLlamado() {
             // siguiente marca de 10s.
             if (this.ultimoIdAnunciado === data.id_atencion && this.ultimaVezAnunciado > 0 && this.inicioMsActual) {
               const esMismoLlamado = this.ultimoAnuncioInicioMs !== null && Number.isFinite(this.ultimoAnuncioInicioMs) &&
-                !!data.inicio_ms && Math.abs(data.inicio_ms - this.ultimoAnuncioInicioMs) < 2000;
+                !!data.inicio_ms && Math.abs(data.inicio_ms - this.ultimoAnuncioInicioMs) < 5000;
               const anclaLocal = this.inicioMsActual - this.deltaRelojMs;
               const elapsed = Date.now() - anclaLocal;
               if (esMismoLlamado && elapsed >= -3000 && elapsed < 120000) {
-                // Reanudar en la SIGUIENTE marca de la grilla, NO disparar el
-                // tick inmediato (el primer anuncio ya sonó antes de la recarga).
+                // Reanudar usando el inicio_ms ORIGINAL (guardado en sessionStorage)
+                // para que la grilla de 10s siga alineada con el ciclo anterior.
+                data.inicio_ms = this.ultimoAnuncioInicioMs!;
                 data.inicio_inmediato = false;
                 this.procesarLlamado(data);
                 terminar();

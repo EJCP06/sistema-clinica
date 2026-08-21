@@ -449,10 +449,18 @@ export class Atencion implements OnInit, OnDestroy {
     // Un turno es del médico logueado SOLO si admisión lo registró con su
     // id_medico. No hay fallback por especialidad/consultorio: si hay otro
     // médico con la misma especialidad, ese paciente NO le pertenece y no
-    // debe verlo.
+    // debe verlo. Además, si el médico tiene VARIAS especialidades (p. ej.
+    // cardiología y alergología), el turno también debe ser de la especialidad
+    // con la que entró en sesión: los pacientes de cardiología NO se ven
+    // cuando la sesión es de alergología. Los turnos sin especialidad
+    // (legado/registros antiguos) se conservan para no romper datos viejos.
     const esMiTurno = (t: any) => {
       const turnoMedico = t.id_medico != null ? Number(t.id_medico) : null;
-      return turnoMedico != null && Number(mid) === turnoMedico;
+      if (turnoMedico == null || Number(mid) !== turnoMedico) return false;
+      const espSesion = eid != null ? Number(eid) : null;
+      const espTurno = t.id_especialidad != null ? Number(t.id_especialidad) : null;
+      if (espSesion != null && espTurno != null) return espSesion === espTurno;
+      return true;
     };
 
     this.apiService.getTurnos().subscribe({

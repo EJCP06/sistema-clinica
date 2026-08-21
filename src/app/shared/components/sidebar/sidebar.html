@@ -108,14 +108,7 @@
           <span class="font-bold text-[13px] uppercase tracking-wider">Atención Laboratorio</span>
         </button>
 
-        <button 
-          *ngIf="rol === 'laboratorio'"
-          (click)="navigate('atencion-laboratorio')"
-          class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
-        >
-          <lucide-icon [name]="FlaskConical" class="w-5 h-5 text-slate-400 dark:text-slate-400"></lucide-icon>
-          <span class="font-bold text-[13px] uppercase tracking-wider">Llamado Laboratorio</span>
-        </button>
+
 
         <button 
           *ngIf="tienePermiso('imagenes:ver')"
@@ -126,14 +119,7 @@
           <span class="font-bold text-[13px] uppercase tracking-wider">Atención Imágenes</span>
         </button>
 
-        <button 
-          *ngIf="rol === 'imagenes'"
-          (click)="navigate('atencion-imagenes')"
-          class="w-full flex items-center gap-4 px-5 py-3 rounded-2xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200 group text-left"
-        >
-          <lucide-icon [name]="Image" class="w-5 h-5 text-slate-400 dark:text-slate-400"></lucide-icon>
-          <span class="font-bold text-[13px] uppercase tracking-wider">Llamado Imágenes</span>
-        </button>
+
 
         <button 
           *ngIf="tienePermiso('atencion_medica:ver')"

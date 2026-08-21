@@ -42,10 +42,6 @@ const { logErrorSafe } = require('./src/utils/sanitize');
 let swaggerUi = null, swaggerSpec = null;
 try { swaggerUi = require('swagger-ui-express'); swaggerSpec = require('./src/config/swagger'); } catch { logger.warn('Swagger no disponible — instala con: npm install swagger-jsdoc swagger-ui-express'); }
 
-// Redis es OPCIONAL: si no está disponible, se usa un cache dummy (no-op)
-// para que la API funcione sin Redis (ver src/config/cache.js).
-let cache = { get: () => null, set: () => {}, del: () => {}, close: () => {} };
-try { cache = require('./src/config/cache'); } catch { /* Redis opcional */ }
 
 dotenv.config({ path: path.join(__dirname, '.env') });
 
@@ -213,7 +209,6 @@ const turnosRoutes = require('./src/routes/turnos.routes');
 const consultoriosRoutes = require('./src/routes/consultorios.routes');
 const recepcionRoutes = require('./src/routes/recepcion.routes');
 const sharedRoutes = require('./src/routes/shared.routes');
-const medicoRoutes = require('./src/routes/medico.routes');
 const especialidadesRoutes = require('./src/routes/especialidades.routes');
 const turneroRoutes = require('./src/routes/turnero.routes');
 const recuperacionRoutes = require('./src/routes/recuperacion.routes');
@@ -226,7 +221,6 @@ app.use('/api/shared', sharedRoutes);
 app.use('/api/turnos', turnosRoutes);
 app.use('/api/consultorios', consultoriosRoutes);
 app.use('/api/recepcion', recepcionRoutes);
-app.use('/api/medico', medicoRoutes);
 app.use('/api/especialidades', especialidadesRoutes);
 app.use('/api/turnero', turneroRoutes);
 app.use('/api/tts', ttsRoutes);
@@ -336,7 +330,6 @@ const gracefulShutdown = async (signal) => {
   logger.info(`${signal} recibido, cerrando servidor...`);
   // La auditoría usa el pool compartido de PostgreSQL: se cierra junto con
   // pool.end() abajo, no hay recurso dedicado que liberar.
-  await cache.close();
   io.close();
   server.close(() => {
     pool.end(() => process.exit(0));

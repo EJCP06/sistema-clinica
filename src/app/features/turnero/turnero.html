@@ -145,7 +145,7 @@
                       >{{ t.estado || '' }}</span>
                     </div>
                     <div *ngIf="t.id_estado_actual === 4" class="flex flex-col items-center gap-0 me-2 md:me-4">
-                      <span class="text-[8px] md:text-[10px] font-bold text-white uppercase tracking-wider">CONSULTORIO</span>
+                      <span class="text-[8px] md:text-[10px] font-bold text-white uppercase tracking-wider">{{ t.consultorio_nombre ? 'CONSULTORIO' : 'DESTINO' }}</span>
                       <span class="text-sm md:text-xl font-black text-white uppercase tracking-widest">{{ consultorioConPiso(t) }}</span>
                     </div>
                   </div>

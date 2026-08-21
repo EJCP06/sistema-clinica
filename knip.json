@@ -1,0 +1,10 @@
+{
+  "entry": [
+    "src/main.ts!",
+    "backend/index.js!"
+  ],
+  "project": [
+    "src/**/*.{ts,html,css}",
+    "backend/**/*.js"
+  ]
+}
