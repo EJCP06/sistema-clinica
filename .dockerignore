@@ -13,7 +13,6 @@ README.md
 .vscode
 .angular
 src
-public
 proxy.conf.js
 angular.json
 tailwind.config.js
