@@ -21,11 +21,23 @@ import re
 import sys
 import wave
 
-from piper import PiperVoice, espeakbridge
-from piper.config import SynthesisConfig
+from piper import PiperVoice
+try:
+    from piper import espeakbridge
+except ImportError:
+    espeakbridge = None
+try:
+    from piper.config import SynthesisConfig
+except ImportError:
+    SynthesisConfig = None
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
-_ESPEAK_DATA = os.path.join(_DIR, '..', '..', 'piper', 'piper-env', 'Lib', 'site-packages', 'piper', 'espeak-ng-data')
+# Detectar raíz: probar 2 niveles (local: backend/scripts → project)
+# y 1 nivel (IIS: scripts → project). Se queda con el que tenga piper/.
+_project_root = os.path.join(_DIR, '..', '..')
+if not os.path.isdir(os.path.join(_project_root, 'piper')):
+    _project_root = os.path.join(_DIR, '..')
+_ESPEAK_DATA = os.path.join(_project_root, 'piper', 'piper-env', 'Lib', 'site-packages', 'piper', 'espeak-ng-data')
 
 MODELO = os.environ.get('PIPER_MODEL')
 SENTENCE_SILENCE = float(os.environ.get('PIPER_SENTENCE_SILENCE', '0.2'))
@@ -61,6 +73,8 @@ def phonemizar_texto(texto):
     Esto permite que espeak-ng corrija la pronunciación de nombres
     automáticamente, sin necesidad de un diccionario manual."""
     global _espeak_listo
+    if espeakbridge is None:
+        return texto
     try:
         if not _espeak_listo:
             espeakbridge.initialize(_ESPEAK_DATA)
@@ -110,10 +124,13 @@ def phonemizar_texto(texto):
 
 def generar_wav(voz, texto, ruta):
     """Sintetiza `texto` y escribe un WAV de 16 bits PCM en `ruta`."""
-    config = SynthesisConfig(length_scale=1.15)
     texto_procesado = phonemizar_texto(texto)
     with wave.open(ruta, 'wb') as wav_file:
-        voz.synthesize_wav(texto_procesado, wav_file, syn_config=config)
+        if SynthesisConfig is not None:
+            config = SynthesisConfig(length_scale=1.15)
+            voz.synthesize_wav(texto_procesado, wav_file, syn_config=config)
+        else:
+            voz.synthesize_wav(texto_procesado, wav_file)
     return True
 
 

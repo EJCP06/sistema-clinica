@@ -17,7 +17,12 @@ const logger = require('../config/logger');
 const piperWorker = require('./piperWorker');
 const DICCIONARIO = require('../config/diccionario');
 
-const ROOT = path.resolve(__dirname, '..', '..', '..');
+// Detectar raíz del proyecto: probar 3 niveles (local: backend/src/services → project)
+// y 2 niveles (IIS: src/services → project). Se queda con el que tenga la carpeta piper/.
+let ROOT = path.resolve(__dirname, '..', '..', '..');
+if (!fs.existsSync(path.join(ROOT, 'piper'))) {
+  ROOT = path.resolve(__dirname, '..', '..');
+}
 
 // PIPER_PYTHON / PIPER_MODEL pueden venir con rutas relativas ("./piper/...")
 // o absolutas según cómo arranque el backend (local, IIS, etc.). Las relativas
