@@ -34,7 +34,7 @@ router.get('/audio/:archivo', (req, res) => {
 
 /**
  * POST /api/tts
- * Body: { "texto": "Paciente Juan Pérez, diríjase al consultorio 3" }
+ * Body: { "texto": "Paciente Juan Pérez diríjase al consultorio 3" }
  * Response: Audio WAV (Content-Type: audio/wav)
  */
 router.post('/', async (req, res) => {

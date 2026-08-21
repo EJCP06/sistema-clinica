@@ -666,15 +666,24 @@
                       <div class="flex items-center justify-center gap-2">
                         <button *ngIf="a.id_estado_actual === 1 && tienePermiso('laboratorio_registrar_caja')" (click)="enviarAPresupuesto(a.id_atencion)" aria-label="¿Ya se creó el presupuesto?" title="¿Ya se creó el presupuesto?" class="p-2 text-amber-500 hover:bg-amber-50 rounded-xl transition-all">
                           <lucide-icon [name]="FileText" class="w-4 h-4"></lucide-icon>
-                        </button>
-                        <button
-                          *ngIf="a.id_estado_actual === 1 && puedeLlamar"
-                          (click)="llamarPaciente(a)"
-                          aria-label="Llamar al paciente"
-                          title="Llamar al paciente"
-                          class="p-2 text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
-                        >
+                        </button>                        <button *ngIf="a.id_estado_actual === 1 && puedeLlamar" (click)="llamarPaciente(a)" aria-label="Llamar al paciente" title="Llamar al paciente" class="p-2 text-blue-500 hover:bg-blue-50 rounded-xl transition-all">
                           <lucide-icon [name]="Megaphone" class="w-4 h-4"></lucide-icon>
+                        </button>
+                        <button *ngIf="a.id_estado_actual === 3 && puedeLlamar" (click)="llamarPacienteSalaEspera(a)" aria-label="Llamar al paciente" title="Llamar al paciente" class="p-2 text-blue-500 hover:bg-blue-50 rounded-xl transition-all">
+                          <lucide-icon [name]="Megaphone" class="w-4 h-4"></lucide-icon>
+                        </button>
+                        <!-- Estado 4 (LLAMADO): countdown + Play + Ausente -->
+                        <ng-container *ngIf="a.id_estado_actual === 4">
+                          <span *ngIf="getCountdown(a.id_atencion) > 20" class="text-sm font-black tabular-nums mr-1" style="color: #2563eb !important;">{{ getCountdown(a.id_atencion) }}s</span><span *ngIf="getCountdown(a.id_atencion) <= 20" class="text-sm font-black tabular-nums mr-1 animate-pulse" style="color: #ef4444 !important;">{{ getCountdown(a.id_atencion) }}s</span>
+                          <button *ngIf="tienePermiso('laboratorio:editar')" (click)="iniciarAtencionLab(a)" aria-label="Iniciar atención" title="Iniciar Atención" class="p-2 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all">
+                            <lucide-icon [name]="Play" class="w-4 h-4"></lucide-icon>
+                          </button>
+                          <button *ngIf="tienePermiso('laboratorio:eliminar')" (click)="marcarAusente7(a)" aria-label="Marcar ausente" title="Marcar como ausente" class="p-2 text-orange-500 hover:bg-orange-50 rounded-xl transition-all">
+                            <lucide-icon [name]="UserX" class="w-4 h-4"></lucide-icon>
+                          </button>
+                        </ng-container>
+                        <button *ngIf="a.id_estado_actual === 5 && tienePermiso('laboratorio:editar')" (click)="finalizarAtencionLab(a)" aria-label="Finalizar atención" title="Finalizar Atención" class="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-all">
+                          <lucide-icon [name]="Square" class="w-4 h-4"></lucide-icon>
                         </button>
                         <button
                           *ngIf="a.id_estado_actual === 1 && tienePermiso('laboratorio:editar')"
@@ -695,7 +704,7 @@
                           *ngIf="tienePermiso('laboratorio:eliminar') && (a.id_estado_actual === 1 || a.id_estado_actual === 2 || a.id_estado_actual === 3 || a.id_estado_actual === 8 || a.id_estado_actual === 7)"
                           (click)="marcarAusente(a)"
                           class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl focus:outline-none"
-                          title="Marcar como ausente"
+                          title="Retirar paciente"
                         >
                           <lucide-icon [name]="Trash2" class="w-4 h-4"></lucide-icon>
                         </button>

@@ -328,6 +328,17 @@ export class AuthService implements OnDestroy {
           ...res.usuario,
           nombre: res.usuario.nombre || res.usuario.username,
         };
+        if (usuarioActual?.especialidades_activas && usuarioActual.especialidades_activas.length > 1) {
+          usuario.id_especialidad = usuarioActual.id_especialidad;
+          usuario.especialidad_nombre = usuarioActual.especialidad_nombre;
+          usuario.especialidades_activas = usuarioActual.especialidades_activas;
+          const espSel = usuarioActual.especialidades_activas.find(
+            e => e.id === usuarioActual.id_especialidad
+          );
+          if (espSel?.id_consultorio) {
+            usuario.consultorio_id = espSel.id_consultorio;
+          }
+        }
         sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(usuario));
         this.usuarioSubject.next(usuario);
       }),
@@ -387,6 +398,25 @@ export class AuthService implements OnDestroy {
       });
     }
     this.limpiarSesion();
+  }
+
+  logoutRapido() {
+    const token = this.getToken();
+    if (token) {
+      fetch(`${environment.apiUrl}/auth/logout`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        keepalive: true,
+        credentials: 'include',
+      });
+    }
+    this.limpiarSesionSinNavegar();
+    if (this.router.url !== '/login') {
+      this.router.navigate(['/login']);
+    }
   }
 
   private limpiarSesion() {

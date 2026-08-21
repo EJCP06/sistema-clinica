@@ -333,7 +333,7 @@ export class Login implements OnDestroy {
      */
     cerrarSelectorEspecialidad() {
       this.mostrarSelectorEspecialidad = false;
-      this.auth.logout();
+      this.auth.logoutRapido();
     }
 
     /** Acepta la especialidad elegida: pide token nuevo y navega. */
@@ -341,8 +341,7 @@ export class Login implements OnDestroy {
       if (!this.espSeleccionada) return;
       this.cargandoSelector = true;
       const inicio = Date.now();
-      // Misma duración mínima de "Cargando..." que los botones de crear/guardar.
-      const MIN_CARGANDO_SELECTOR = 800;
+      const MIN_CARGANDO_SELECTOR = 200;
 
       this.auth.seleccionarEspecialidad(this.espSeleccionada).subscribe({
         next: () => {

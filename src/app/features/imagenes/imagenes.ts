@@ -1,9 +1,9 @@
 import { Component, OnInit, OnDestroy, HostListener, ElementRef, inject, DestroyRef } from '@angular/core';
-import { interval } from 'rxjs';
+import { interval, timer, Subscription } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronDown, Undo2, DollarSign, XCircle, Trash2, Megaphone, Edit2, UserPlus } from 'lucide-angular';
+import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronDown, Undo2, DollarSign, XCircle, Trash2, Megaphone, Edit2, UserPlus, UserX, Play, Square } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { SwalService } from '../../core/services/swal.service';
@@ -41,6 +41,19 @@ export class ImagenesComponent implements OnInit, OnDestroy {
   readonly Megaphone = Megaphone;
   readonly Edit2 = Edit2;
   readonly UserPlus = UserPlus;
+  readonly UserX = UserX;
+  readonly Play = Play;
+  readonly Square = Square;
+
+  // ---- Countdown de estado LLAMADO (4) ----
+  private countdowns = new Map<number, number>();
+  private countdownSubs = new Map<number, Subscription>();
+  private voiceSubs = new Map<number, Subscription>();
+  private countdownStarts = new Map<number, number>();
+  private admisionCountdown = new Map<number, any>();
+  readonly COUNTDOWN_TOTAL = 120;
+  readonly VOZ_INTERVALO = 10000;
+  private _tick = 0;
 
   pageSize = 9;
   currentPage = 1;
@@ -288,17 +301,39 @@ export class ImagenesComponent implements OnInit, OnDestroy {
           }
         }
       } else if (event.tipo === 'liberacion' || event.tipo === 'retirado') {
-        this.cargarUltimasAdmisiones();
-      } else if (event.tipo === 'estado-cambiado') {
-        if ([6, 9].includes(Number(event.id_estado_nuevo))) {
-          const id = Number(event.id_atencion);
-          if (!isNaN(id)) {
-            this.ultimasAdmisiones = this.ultimasAdmisiones.filter(x => x.id_atencion !== id);
+        this.cargarUltimasAdmisiones();        } else if (event.tipo === 'estado-cambiado') {
+          const nuevoEstado = Number(event.id_estado_nuevo);
+          const idAtencion = Number(event.id_atencion);
+          if ([6, 9].includes(nuevoEstado)) {
+            if (!isNaN(idAtencion)) {
+              this.stopCountdown(idAtencion);
+              this.ultimasAdmisiones = this.ultimasAdmisiones.filter(x => x.id_atencion !== idAtencion);
+            } else {
+              this.cargarUltimasAdmisiones();
+            }
+          } else if (nuevoEstado === 4) {
+            // Paciente pasó a LLAMADO: reiniciar countdown en exactamente 120s.
+            const adm = this.ultimasAdmisiones.find(x => x.id_atencion === idAtencion);
+            if (adm) {
+              adm.id_estado_actual = 4;
+              adm.nombre_estado = 'LLAMADO';
+              this.stopCountdown(idAtencion);
+              this.startCountdown(adm, this.COUNTDOWN_TOTAL);
+            }
+          } else if (nuevoEstado === 5) {
+            this.stopCountdown(idAtencion);
+            const adm = this.ultimasAdmisiones.find(x => x.id_atencion === idAtencion);
+            if (adm) {
+              adm.id_estado_actual = 5;
+              adm.nombre_estado = 'EN ATENCION';
+            }
+          } else if (nuevoEstado === 7) {
+            this.stopCountdown(idAtencion);
+            this.cargarUltimasAdmisiones();
           } else {
             this.cargarUltimasAdmisiones();
           }
-        }
-      } else {
+        } else if (event.tipo !== 'llamado') {
         this.cargarUltimasAdmisiones();
       }
 
@@ -310,6 +345,7 @@ export class ImagenesComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.stopAllCountdowns();
   }
 
   toggleSearchFilterDropdown() {
@@ -349,6 +385,11 @@ export class ImagenesComponent implements OnInit, OnDestroy {
           if (esImagenes) return esParticular;
           return false;
         });
+        for (const a of this.ultimasAdmisiones) {
+          if (Number(a.id_estado_actual) === 4) {
+            this.startCountdown(a);
+          }
+        }
         this.cargando = false;
       },
       error: () => { this.cargando = false; console.error('Error cargando ultimas admisiones'); }
@@ -368,7 +409,20 @@ export class ImagenesComponent implements OnInit, OnDestroy {
   llamarPaciente(paciente: any) {
     this.api.post(`recepcion/atencion/${paciente.id_atencion}/llamar-imagenes`, {}).subscribe({
       next: () => {},
-      error: (err) => this.swal.error(err.error?.mensaje || 'Error al llamar paciente')
+      error: () => {} // Silencioso
+    });
+  }
+
+  /** Llama por voz a un paciente en SALA DE ESPERA (estado 3) desde la tabla. Cambia a estado 4. */
+  llamarPacienteSalaEspera(paciente: any) {
+    this.api.post(`recepcion/atencion/${paciente.id_atencion}/llamar-imagenes-se`, {}).subscribe({
+      next: () => {
+        paciente.id_estado_actual = 4;
+        paciente.nombre_estado = 'LLAMADO';
+        paciente.hora_llamado = new Date().toISOString();
+        this.startCountdown(paciente);
+      },
+      error: () => {} // Silencioso
     });
   }
 
@@ -424,6 +478,115 @@ export class ImagenesComponent implements OnInit, OnDestroy {
         this.swal.error('Error al retirar paciente');
       },
     });
+  }
+
+  /** Marca un paciente como AUSENTE (estado 7) — distinto de retirar (estado 9). */
+  async marcarAusente7(admision: any) {
+    const result = await this.swal.confirm(`¿Marcar turno ${admision.numero} como AUSENTE?`);
+    if (!result.isConfirmed) return;
+    this.api.put(`recepcion/atencion/${admision.id_atencion}/marcar-ausente-real`, {}).subscribe({
+      next: () => {
+        this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== admision.id_atencion);
+        this.api.cambios$.next({ id_atencion: admision.id_atencion });
+
+      },
+      error: (err) => {
+        this.swal.error(err.error?.mensaje || 'Error al marcar ausente');
+      },
+    });
+  }
+
+  /** Pasa un paciente de LLAMADO (4) a EN ATENCIÓN (5). */
+  iniciarAtencionImg(admision: any) {
+    this.stopCountdown(admision.id_atencion);
+    this.api.put(`recepcion/atencion/${admision.id_atencion}/estado`, { id_estado_nuevo: 5 }).subscribe({
+      next: () => {
+        admision.id_estado_actual = 5;
+        admision.nombre_estado = 'EN ATENCION';
+      },
+      error: (err) => this.swal.error(err.error?.mensaje || 'Error al iniciar atención')
+    });
+  }
+
+  /** Finaliza la atención: pasa de EN ATENCIÓN (5) a ATENDIDO (6). */
+  finalizarAtencionImg(admision: any) {
+    this.stopCountdown(admision.id_atencion);
+    this.api.put(`recepcion/atencion/${admision.id_atencion}/estado`, { id_estado_nuevo: 6 }).subscribe({
+      next: () => {
+        this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== admision.id_atencion);
+      },
+      error: (err) => this.swal.error(err.error?.mensaje || 'Error al finalizar atención')
+    });
+  }
+
+  // ===================== COUNTDOWN DE LLAMADO (estado 4) =====================
+
+  getCountdown(idAtencion: number): number {
+    void this._tick;
+    return this.countdowns.get(idAtencion) ?? 0;
+  }
+
+  /** Inicia el countdown de 120s + voz cada 10s para un paciente en estado 4.
+   *  Usa timestamp absoluto para ser inmune al drift de setInterval. */
+  private startCountdown(admision: any, forceSeconds?: number) {
+    const id = Number(admision.id_atencion);
+    if (this.countdownSubs.has(id)) return;
+
+    const nowMs = Date.now();
+    const total = forceSeconds ?? this.COUNTDOWN_TOTAL;
+    let offsetSec = 0;
+    if (!forceSeconds && admision.hora_llamado) {
+      offsetSec = Math.floor((nowMs - new Date(admision.hora_llamado).getTime()) / 1000);
+      offsetSec = Math.min(offsetSec, total);
+    }
+    const startMs = nowMs - (offsetSec * 1000);
+    this.countdownStarts.set(id, startMs);
+    this.countdowns.set(id, total - offsetSec);
+    this.admisionCountdown.set(id, admision);
+
+    const sub = interval(1000).subscribe(() => {
+      const elapsed = Math.floor((Date.now() - this.countdownStarts.get(id)!) / 1000);
+      const remaining = Math.max(0, total - elapsed);
+      this.countdowns.set(id, remaining);
+      this._tick = Date.now();
+      if (remaining <= 0) {
+        const adm = this.admisionCountdown.get(id);
+        this.stopCountdown(id);
+        if (adm) {
+          this.api.put(`recepcion/atencion/${id}/marcar-ausente-real`, {}).subscribe({
+            next: () => {
+              this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== id);
+              this.api.cambios$.next({ id_atencion: id });
+            },
+            error: () => {}
+          });
+        }
+      }
+    });
+    this.countdownSubs.set(id, sub);
+
+    const voiceSub = timer(this.VOZ_INTERVALO - 2000, this.VOZ_INTERVALO).subscribe(() => {
+      this.api.post(`recepcion/atencion/${id}/llamar-imagenes-se`, {}).subscribe({
+        next: () => {},
+        error: () => {}
+      });
+    });
+    this.voiceSubs.set(id, voiceSub);
+  }
+
+  private stopCountdown(idAtencion: number) {
+    const s1 = this.countdownSubs.get(idAtencion);
+    if (s1) { s1.unsubscribe(); this.countdownSubs.delete(idAtencion); }
+    const s2 = this.voiceSubs.get(idAtencion);
+    if (s2) { s2.unsubscribe(); this.voiceSubs.delete(idAtencion); }
+    this.countdowns.delete(idAtencion);
+    this.countdownStarts.delete(idAtencion);
+    this.admisionCountdown.delete(idAtencion);
+    this._tick = Date.now();
+  }
+
+  private stopAllCountdowns() {
+    for (const id of this.countdownSubs.keys()) this.stopCountdown(id);
   }
 
   // ===================== MODAL DE EDICIÓN DE PACIENTE =====================

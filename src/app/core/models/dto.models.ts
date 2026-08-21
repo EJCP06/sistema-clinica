@@ -56,6 +56,7 @@ export interface AdmisionDTO {
   fecha_creacion: string;
   hora_llegada?: string;
   hora_salida?: string;
+  hora_llamado?: string;
 }
 
 /** Datos del paciente (incluye ambos nombres y apellidos). */

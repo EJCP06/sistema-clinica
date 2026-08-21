@@ -41,6 +41,7 @@ const DICCIONARIO = {
   'YARELBIS': 'Yarelbis',
   'YERIDIANA': 'Yeridiana',
   'YULIMAR': 'Yulimar',
+  'EDWARD': 'Eduar',
 };
 
 module.exports = DICCIONARIO;

@@ -244,19 +244,9 @@ const seleccionarEspecialidad = async (req, res) => {
   }
 
   try {
-    const usuario = await usuarioRepo.findByCedula(req.usuario.cedula);
-    if (!usuario) {
-      return res.status(404).json({ mensaje: 'Usuario no encontrado' });
-    }
-    if (usuario.status === false) {
-      return res.status(403).json({ mensaje: 'Su usuario se encuentra inactivo. Contacte al administrador.' });
-    }
-    if (usuario.rol_activo === false) {
-      return res.status(403).json({ mensaje: 'Su rol se encuentra inactivo. Contacte al administrador.' });
-    }
-
-    const especialidadesActivas = Array.isArray(usuario.especialidades_activas)
-      ? usuario.especialidades_activas
+    const decoded = req.usuario;
+    const especialidadesActivas = Array.isArray(decoded.especialidades_activas)
+      ? decoded.especialidades_activas
       : [];
     const elegida = especialidadesActivas.find(
       (e) => Number(e.id) === Number(id_especialidad),
@@ -267,33 +257,32 @@ const seleccionarEspecialidad = async (req, res) => {
 
     let permisosArr;
     try {
-      permisosArr = Array.isArray(usuario.permisos) ? usuario.permisos : (usuario.permisos ? JSON.parse(usuario.permisos) : []);
+      permisosArr = Array.isArray(decoded.permisos) ? decoded.permisos : (decoded.permisos ? JSON.parse(decoded.permisos) : []);
     } catch (e) {
       permisosArr = [];
     }
 
     const payload = {
-      id: usuario.id,
-      id_rol: usuario.id_rol,
-      cedula: usuario.cedula,
-      nombre: usuario.nombre,
-      apellido: usuario.apellido,
-      rol: usuario.rol,
+      id: decoded.id,
+      id_rol: decoded.id_rol,
+      cedula: decoded.cedula,
+      nombre: decoded.nombre,
+      apellido: decoded.apellido,
+      rol: decoded.rol,
       permisos: permisosArr,
-      servicio_id: usuario.servicio_id,
-      // Consultorio de la especialidad ELEGIDA por el médico en este login.
+      servicio_id: decoded.servicio_id,
       consultorio_id: elegida.id_consultorio != null
         ? Number(elegida.id_consultorio)
-        : usuario.consultorio_id,
-      id_sede: usuario.id_sede,
+        : decoded.consultorio_id,
+      id_sede: decoded.id_sede,
       id_especialidad: Number(elegida.id),
       especialidad_nombre: elegida.nombre,
       especialidades_activas: especialidadesActivas,
-      sesion_token: usuario.sesion_token,
+      sesion_token: decoded.sesion_token,
     };
 
     const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
-    auditar({ userId: usuario.id, accion: 'login', recurso: 'auth', detalle: { especialidad: elegida.nombre }, ip: req.ip });
+    auditar({ userId: decoded.id, accion: 'login', recurso: 'auth', detalle: { especialidad: elegida.nombre }, ip: req.ip });
 
     res.json({
       mensaje: 'Especialidad seleccionada',
@@ -316,19 +305,20 @@ const seleccionarEspecialidad = async (req, res) => {
  */
 const cerrarSesion = async (req, res) => {
   try {
-    await usuarioRepo.actualizarSesionToken(req.usuario.id, null);
+    await usuarioRepo.actualizarSesionTokenSiCoincide(req.usuario.id, req.usuario.sesion_token);
     await refreshTokenRepo.revokeAllUserTokens(req.usuario.id);
     res.clearCookie('refresh_token', { ...COOKIE_OPTIONS });
 
     if (req.io) {
       try {
-        const sockets = await req.io.fetchSockets();
-        for (const socket of sockets) {
-          if (socket.usuario && Number(socket.usuario.id) === Number(req.usuario.id)) {
-          socket.emit('sesion-cerrada');
-          socket.disconnect(true);
+        req.io.fetchSockets().then((sockets) => {
+          for (const socket of sockets) {
+            if (socket.usuario && Number(socket.usuario.id) === Number(req.usuario.id)) {
+              socket.emit('sesion-cerrada');
+              socket.disconnect(true);
+            }
           }
-        }
+        }).catch(() => {});
       } catch { /* Ignorar errores de socket */ }
     }
 
@@ -381,7 +371,22 @@ const refrescarToken = async (req, res) => {
       res.clearCookie('refresh_token', { ...COOKIE_OPTIONS });
       return res.status(401).json({ mensaje: 'Especialidad desactivada' });
     }
-    const espSesion = especialidadesActivas[0] || null;
+    let idEspActual = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const decoded = jwt.decode(authHeader.slice(7));
+        if (decoded && decoded.id_especialidad) {
+          idEspActual = Number(decoded.id_especialidad);
+        }
+      } catch {}
+    }
+    let espSesion;
+    if (idEspActual && especialidadesActivas.some(e => Number(e.id) === idEspActual)) {
+      espSesion = especialidadesActivas.find(e => Number(e.id) === idEspActual);
+    } else {
+      espSesion = especialidadesActivas[0] || null;
+    }
 
     const sesionToken = usuario.sesion_token;
 

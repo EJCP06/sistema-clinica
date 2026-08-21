@@ -200,6 +200,14 @@ export class ApiService {
     );
   }
 
+  /** Llama a un paciente específico por ID desde la tabla de espera. */
+  llamarEspecifico(idAtencion: number): Observable<LlamarSiguienteResponseDTO> {
+    return this.http.post<LlamarSiguienteResponseDTO>(
+      `${this.base}/consultorios/llamar-especifico/${idAtencion}`,
+      {},
+    );
+  }
+
   /** Marca el inicio formal de la atención del paciente actual. */
   iniciarAtencion(): Observable<ApiResponse> {
     return this.http.post<ApiResponse>(`${this.base}/consultorios/iniciar-atencion`, {});

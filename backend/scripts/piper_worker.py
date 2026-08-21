@@ -17,21 +17,103 @@ al instante porque el modelo ya está en memoria.
 """
 import json
 import os
+import re
 import sys
 import wave
 
-from piper import PiperVoice
+from piper import PiperVoice, espeakbridge
+from piper.config import SynthesisConfig
+
+_DIR = os.path.dirname(os.path.abspath(__file__))
+_ESPEAK_DATA = os.path.join(_DIR, '..', '..', 'piper', 'piper-env', 'Lib', 'site-packages', 'piper', 'espeak-ng-data')
 
 MODELO = os.environ.get('PIPER_MODEL')
 SENTENCE_SILENCE = float(os.environ.get('PIPER_SENTENCE_SILENCE', '0.2'))
 
+_espeak_listo = False
+
+# Palabras comunes en español que NO necesitan fonemización.
+# Si una palabra está aquí, se deja como texto plano.
+# Solo las palabras FUERA de esta lista se envuelven en [[ fonemas ]].
+_PALABRAS_COMUNES = {
+    'la', 'el', 'los', 'las', 'un', 'una', 'uno', 'del', 'al', 'a', 'de',
+    'en', 'por', 'con', 'para', 'se', 'su', 'sus', 'es', 'y', 'o', 'que',
+    'no', 'lo', 'le', 'me', 'te', 'nos', 'les', 'da', 'ha', 'hay',
+    'este', 'esta', 'estos', 'estas', 'ese', 'esa', 'esos', 'esas',
+    'como', 'mas', 'muy', 'bien', 'ya', 'si', 'fue', 'ser', 'tiene',
+    'puede', 'tiene', 'hay', 'todo', 'todos', 'toda', 'todas',
+    # Palabras del turnero
+    'paciente', 'dirijase', 'diríjase', 'consultorio', 'laboratorio',
+    'imagenes', 'imágenes', 'recepcion', 'recepción', 'sala', 'espera',
+    'numero', 'número', 'turno', 'doctor', 'doctora', 'especialidad',
+    'clinica', 'clínica', 'hospital', 'medico', 'médico', 'medica',
+    'atencion', 'atención', 'cita', 'historia', 'examen', 'resultado',
+    'greso', 'egreso', 'emergencia', 'urgencia',
+    'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez',
+    'once', 'doce', 'trece', 'catorce', 'quince', 'veinte',
+    'aps', 'seguro', 'particular', 'privado',
+}
+
+
+def phonemizar_texto(texto):
+    """Convierte cada palabra del texto a fonemas IPA y la envuelve en [[ ]].
+    Las palabras comunes del diccionario se dejan como texto plano.
+    Esto permite que espeak-ng corrija la pronunciación de nombres
+    automáticamente, sin necesidad de un diccionario manual."""
+    global _espeak_listo
+    try:
+        if not _espeak_listo:
+            espeakbridge.initialize(_ESPEAK_DATA)
+            espeakbridge.set_voice('es')
+            _espeak_listo = True
+
+        # Tokenizar: separar palabras y puntuación/espacios
+        tokens = re.findall(r"[\wáéíóúñüÁÉÍÓÚÑÜ]+|[^\wáéíóúñüÁÉÍÓÚÑÜ]+", texto)
+        resultado = []
+        phoneme_buffer = []  # Buffer para unir fonemas consecutivos
+
+        def flush_phonemes():
+            """Vacía el buffer de fonemas en un solo bloque [[ ]]."""
+            if phoneme_buffer:
+                resultado.append('[[ ' + ' '.join(phoneme_buffer) + ' ]]')
+                phoneme_buffer.clear()
+
+        for token in tokens:
+            # Si es puntuación o espacio: verificar si hay buffer de fonemas activo
+            if not re.match(r'[\wáéíóúñüÁÉÍÓÚÑÜ]', token):
+                if phoneme_buffer and token.strip() == '':
+                    pass  # Espacio entre palabras fonemizadas: omitir, se une con join
+                else:
+                    # Puntuación o separador: vaciar buffer y agregar tal cual
+                    flush_phonemes()
+                    resultado.append(token)
+                continue
+            # Si es palabra común: vaciar buffer de fonemas y agregar como texto
+            if token.lower() in _PALABRAS_COMUNES:
+                flush_phonemes()
+                resultado.append(token)
+                continue
+            # Palabra desconocida (probable nombre): fonemizar y agregar al buffer
+            clauses = espeakbridge.get_phonemes(token)
+            fonemas = ''.join([p + t for p, t, _ in clauses]).strip()
+            if fonemas:
+                phoneme_buffer.append(fonemas)
+            else:
+                flush_phonemes()
+                resultado.append(token)
+
+        flush_phonemes()  # Vaciar lo que quede al final
+        return ''.join(resultado)
+    except Exception:
+        return texto
+
 
 def generar_wav(voz, texto, ruta):
     """Sintetiza `texto` y escribe un WAV de 16 bits PCM en `ruta`."""
-    # Nota: en piper 1.7.0 el silencio entre frases lo maneja internamente
-    # el modelo (ya no existe `sentence_silence` en SynthesisConfig).
+    config = SynthesisConfig(length_scale=1.15)
+    texto_procesado = phonemizar_texto(texto)
     with wave.open(ruta, 'wb') as wav_file:
-        voz.synthesize_wav(texto, wav_file)
+        voz.synthesize_wav(texto_procesado, wav_file, syn_config=config)
     return True
 
 
@@ -42,6 +124,7 @@ def main():
 
     # Cargar el modelo una sola vez (esto es lo que tarda ~4-5s)
     voz = PiperVoice.load(MODELO)
+    sys.stderr.write('modelo Piper cargado\n')
 
     # Señal de listo: el proceso arrancó y el modelo está cargado
     sys.stdout.write(json.dumps({'tipo': 'listo'}) + '\n')

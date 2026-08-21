@@ -87,10 +87,59 @@ const marcarAusente = async (req, res) => {
     logger.error(error);
     if (error.code === '23505') {
       return res.status(400).json({ mensaje: 'Ya existe una atención con ese estado' });
+    }    res.status(500).json({ mensaje: 'Error al marcar paciente como ausente' });
+  }
+};
+
+/**
+ * Marca un paciente como AUSENTE (estado 7). Diferente de marcarAusente
+ * que retira (estado 9). El ausente puede reincorporarse después.
+ */
+const marcarAusente7 = async (req, res) => {
+  const sede = getSede(req);
+  if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
+
+  try {
+    const { id } = req.params;
+    const atencion = await atencionRepo.getAtencionEstado(id, sede);
+    if (!atencion) {
+      return res.status(404).json({ mensaje: 'Atención no encontrada' });
     }
+
+    const idEstadoActual = atencion.id_estado_actual;
+    if (![1, 2, 3, 4].includes(idEstadoActual)) {
+      return res.status(400).json({ mensaje: 'Solo se pueden marcar ausente pacientes en estados Registrado, Presupuesto, Sala de Espera o Llamado' });
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const result = await atencionRepo.marcarAusente(client, id, 7);
+      await client.query('COMMIT');
+
+      if (result && req.io) {
+        const admision = await atencionRepo.getAdmisionById(id, sede);
+        req.io.emit('estado-actualizado', { tipo: 'ausente', id_atencion: Number(id), admision, id_sede: sede });
+      }
+
+      if (result) {
+        await historialRepo.insertSinTransaccion(id, 7);
+      }
+
+      res.json({ mensaje: 'Paciente marcado como ausente' });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    logger.error(error);
     res.status(500).json({ mensaje: 'Error al marcar paciente como ausente' });
   }
 };
+
+
 
 /**
  * Obtiene las últimas admisiones (turnos) registradas en la sede.
@@ -434,7 +483,7 @@ const actualizarEstadoAtencion = async (req, res) => {
  * @param {number} sede - Identificador de la sede
  * @param {string} consultorio - Destino del llamado
  */
-const emitirLlamadoNuevo = async (io, admision, sede, consultorio = 'APS') => {
+const emitirLlamadoNuevo = async (io, admision, sede, consultorio = 'APS', salaEspera = false) => {
   const ahoraServidor = Date.now();
   const payload = {
     tipo: 'llamado',
@@ -455,15 +504,15 @@ const emitirLlamadoNuevo = async (io, admision, sede, consultorio = 'APS') => {
     const nombreCompleto = [admision.nombre, admision.apellido].filter(Boolean).join(' ').trim();
     const nombreNatural = nombreCompleto.split(/\s+/).map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join(' ');
     const consultorioLower = (consultorio || '').toLowerCase();
-    let texto = `Paciente ${nombreNatural}`;
+    let texto = `Paciente ${nombreNatural},`;
     if (consultorioLower.includes('laboratorio')) {
-      texto += ', acérquese a la recepción de laboratorio';
+      texto += salaEspera ? ' diríjase a laboratorio' : ' diríjase a la recepción de laboratorio';
     } else if (consultorioLower.includes('imagen')) {
-      texto += ', acérquese a la recepción de imágenes';
+      texto += salaEspera ? ' diríjase a imágenes' : ' diríjase a la recepción de imágenes';
     } else if (consultorioLower === 'aps' || consultorioLower.includes('aps')) {
-      texto += ', acérquese a la recepción de APS';
+      texto += ' diríjase a la recepción de APS';
     } else {
-      texto += `, diríjase al consultorio ${consultorio}`;
+      texto += ` diríjase al consultorio ${consultorio}`;
     }
     const nombreArchivo = `tts_${Date.now()}`;
     await ttsService.generarAudio(texto, nombreArchivo);
@@ -552,6 +601,88 @@ const llamarImagenes = (req, res) =>
   llamarDestino(req, res, 'IMAGENES', 1, 'El paciente debe estar en estado Registrado para ser llamado');
 
 /**
+ * Llamado por voz desde la tabla de SALA DE ESPERA en Laboratorio.
+ * Acepta estado 3 (Sala de Espera) o 4 (LLAMADO).
+ * Si es 3, cambia a 4. Si ya es 4, solo re-anuncia la voz.
+ */
+const llamarLaboratorioSalaEspera = async (req, res) => {
+  const sede = getSede(req);
+  if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
+
+  try {
+    const { id } = req.params;
+    const admision = await atencionRepo.getAdmisionById(id, sede);
+    if (!admision) {
+      return res.status(404).json({ mensaje: 'Atención no encontrada' });
+    }
+    const estado = Number(admision.id_estado_actual);
+    if (estado !== 3 && estado !== 4) {
+      return res.status(400).json({ mensaje: 'El paciente debe estar en Sala de Espera o Llamado para ser llamado' });
+    }
+
+    // Si está en estado 3, cambiar a 4 (LLAMADO)
+    if (estado === 3) {
+      await atencionRepo.actualizarEstadoAtencion(id, sede, 4);
+      if (req.io) {
+        req.io.emit('estado-actualizado', { tipo: 'estado-cambiado', id_atencion: id, id_estado_nuevo: 4, id_sede: sede });
+      }
+      await historialRepo.insertSinTransaccion(id, 4);
+    }
+
+    // Emitir voz en el turnero (siempre, para re-anunciar)
+    if (req.io) {
+      await emitirLlamadoNuevo(req.io, admision, sede, 'LABORATORIO', true);
+    }
+
+    res.json({ mensaje: 'Paciente llamado correctamente' });
+  } catch (error) {
+    logger.error(error);
+    res.status(500).json({ mensaje: 'Error al llamar paciente' });
+  }
+};
+
+/**
+ * Llamado por voz desde la tabla de SALA DE ESPERA en Imágenes.
+ * Acepta estado 3 (Sala de Espera) o 4 (LLAMADO).
+ * Si es 3, cambia a 4. Si ya es 4, solo re-anuncia la voz.
+ */
+const llamarImagenesSalaEspera = async (req, res) => {
+  const sede = getSede(req);
+  if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
+
+  try {
+    const { id } = req.params;
+    const admision = await atencionRepo.getAdmisionById(id, sede);
+    if (!admision) {
+      return res.status(404).json({ mensaje: 'Atención no encontrada' });
+    }
+    const estado = Number(admision.id_estado_actual);
+    if (estado !== 3 && estado !== 4) {
+      return res.status(400).json({ mensaje: 'El paciente debe estar en Sala de Espera o Llamado para ser llamado' });
+    }
+
+    // Si está en estado 3, cambiar a 4 (LLAMADO)
+    if (estado === 3) {
+      await atencionRepo.actualizarEstadoAtencion(id, sede, 4);
+      if (req.io) {
+        req.io.emit('estado-actualizado', { tipo: 'estado-cambiado', id_atencion: id, id_estado_nuevo: 4, id_sede: sede });
+      }
+      await historialRepo.insertSinTransaccion(id, 4);
+    }
+
+    // Emitir voz en el turnero (siempre, para re-anunciar)
+    if (req.io) {      await emitirLlamadoNuevo(req.io, admision, sede, 'IMAGENES', true);
+    }
+
+
+    res.json({ mensaje: 'Paciente llamado correctamente' });
+  } catch (error) {
+    logger.error(error);
+    res.status(500).json({ mensaje: 'Error al llamar paciente' });
+  }
+};
+
+/**
  * Genera un nuevo turno (atención) para un paciente y servicio dados.
  * El número de turno sale de una secuencia atómica por día (sede + servicio)
  * dentro de la misma transacción: es imposible que dos turnos repitan número.
@@ -630,4 +761,7 @@ module.exports = {
   llamarClaveAPS,
   llamarLaboratorio,
   llamarImagenes,
+  llamarLaboratorioSalaEspera,
+  llamarImagenesSalaEspera,
+  marcarAusente7,
 };

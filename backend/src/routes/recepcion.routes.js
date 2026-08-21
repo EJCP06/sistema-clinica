@@ -66,6 +66,10 @@ router.post('/atencion/:id/llamar-clave', permitirLlamado(rolesModulos), ctrl.ll
 router.post('/atencion/:id/llamar-laboratorio', permitirLlamado([...rolesModulos, 'laboratorio']), ctrl.llamarLaboratorio);
 router.post('/atencion/:id/llamar-imagenes', permitirLlamado([...rolesModulos, 'imagenes']), ctrl.llamarImagenes);
 
+// Llamado por voz desde Sala de Espera (estado 3) — anuncia sin cambiar estado.
+router.post('/atencion/:id/llamar-laboratorio-se', permitirLlamado([...rolesModulos, 'laboratorio']), ctrl.llamarLaboratorioSalaEspera);
+router.post('/atencion/:id/llamar-imagenes-se', permitirLlamado([...rolesModulos, 'imagenes']), ctrl.llamarImagenesSalaEspera);
+
 router.use(perm(
   'ADMISION_TOTAL',
   'LABORATORIO_TOTAL',
@@ -108,5 +112,11 @@ router.put('/atencion/:id/marcar_ausente', (req, res, next) => {
   if (req.usuario && req.usuario.rol === 'coordinador') return next();
   perm('*:marcar_ausente', 'laboratorio:*', 'imagenes:*')(req, res, next);
 }, ctrl.marcarAusente);
+
+// Marcar como AUSENTE (estado 7) — distinto de retirar (estado 9)
+router.put('/atencion/:id/marcar-ausente-real', (req, res, next) => {
+  if (req.usuario && req.usuario.rol === 'coordinador') return next();
+  perm('*:marcar_ausente', 'laboratorio:*', 'imagenes:*')(req, res, next);
+}, ctrl.marcarAusente7);
 
 module.exports = router;

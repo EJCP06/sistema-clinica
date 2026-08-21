@@ -52,7 +52,7 @@ function aplicarDiccionario(texto) {
  * @param {string} [nombrePersonalizado] - Nombre del archivo (sin extensión). Si se omite se genera uno automático.
  * @returns {Promise<string>} Ruta del archivo WAV generado
  */
-async function generarAudio(texto, nombrePersonalizado) {
+async function generarAudio(texto, nombrePersonalizado, opts = {}) {
   if (!texto || typeof texto !== 'string' || texto.trim().length === 0) {
     throw new Error('El texto no puede estar vacío');
   }
@@ -81,11 +81,11 @@ async function generarAudio(texto, nombrePersonalizado) {
     // "quiet"). Si el worker falla, se reintenta UNA vez con el subproceso
     // clásico antes de rendirse.
     try {
-      await piperWorker.sintetizar(textoFinal, rutaArchivo);
+      await piperWorker.sintetizar(textoFinal, rutaArchivo, opts);
     } catch (errWorker) {
       logger.warn(`TTS worker falló, reintentando subproceso: ${errWorker.message}`);
       await new Promise((resolve, reject) => {
-        const comando = `"${PIPER_PYTHON}" -m piper -m "${PIPER_MODEL}" -f "${rutaArchivo}" --sentence-silence ${PIPER_SENTENCE_SILENCE}`;
+        const comando = `"${PIPER_PYTHON}" -m piper -m "${PIPER_MODEL}" -f "${rutaArchivo}" --sentence-silence ${PIPER_SENTENCE_SILENCE} --length-scale 1.15`;
         const child = exec(comando, {
           timeout: 15000,
           windowsHide: true,

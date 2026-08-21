@@ -42,6 +42,11 @@ router.post('/llamar-siguiente', permMiddleware(
   'laboratorio:*', 'imagenes:*'
 ), consultoriosController.llamarSiguiente);
 
+router.post('/llamar-especifico/:id', permMiddleware(
+  'atencion_medica:llamar_siguiente', 'llamado:laboratorio', 'llamado:imagenes',
+  'laboratorio:*', 'imagenes:*'
+), consultoriosController.llamarEspecifico);
+
 router.post('/iniciar-atencion', permMiddleware(
   'atencion_medica:llamar_siguiente', 'atencion_medica:liberar_consultorio',
   'laboratorio:registrar_caja', 'laboratorio:pasar_sala_espera', 'laboratorio:marcar_ausente', 'laboratorio:reincorporar',

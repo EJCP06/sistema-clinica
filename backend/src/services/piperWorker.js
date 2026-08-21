@@ -170,9 +170,13 @@ class PiperWorker {
 
   _desencolar() {
     // El worker procesa en serie (un synth a la vez): solo se envía si no hay
-    // ninguno en vuelo.
+    // ninguno en vuelo. Las peticiones de alta prioridad (llamadas de médico)
+    // se procesan ANTES que las normales (lab/imag) para que la voz del médico
+    // nunca quede bloqueada detrás de un ciclo repetitivo.
     if (!this.ready || this.enVuelo) return;
-    const pendiente = this.cola.find((p) => !p.enviado);
+    // Buscar primero entre los de alta prioridad, luego entre los normales
+    const pendiente = this.cola.find((p) => !p.enviado && p.prioridad === 'alta')
+      || this.cola.find((p) => !p.enviado);
     if (!pendiente) return;
     pendiente.enviado = true;
     this.enVuelo = true;
@@ -185,16 +189,27 @@ class PiperWorker {
 
   /**
    * Sintetiza `texto` y escribe el WAV en `ruta`.
+   * @param {string} texto - Texto a sintetizar
+   * @param {string} ruta - Ruta del archivo WAV de salida
+   * @param {object} [opts] - Opciones adicionales
+   * @param {string} [opts.prioridad='normal'] - 'alta' para llamadas de médico, 'normal' para lab/imag
    * @returns {Promise<void>}
    */
-  sintetizar(texto, ruta) {
+  sintetizar(texto, ruta, opts = {}) {
+    const prioridad = opts.prioridad || 'normal';
     return new Promise((resolve, reject) => {
       const id = ++this.idContador;
-      const pendiente = { id, texto, ruta, resolve, reject, enviado: false };
+      const pendiente = { id, texto, ruta, prioridad, resolve, reject, enviado: false };
 
       const timer = setTimeout(() => {
         this.cola = this.cola.filter((p) => p.id !== id);
         reject(new Error('Timeout generando audio con Piper'));
+        // Si el worker se colgó, matarlo y reiniciar para que
+        // siguientes peticiones no queden bloqueadas para siempre.
+        if (this.enVuelo) {
+          logger.warn('[piper-worker] Timeout: matando worker colgado para reiniciar');
+          this._matar();
+        }
       }, TIEMPO_ESPERA_MS);
       pendiente.timer = timer;
 

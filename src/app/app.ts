@@ -7,7 +7,6 @@ import { AuthService } from '@core/services/auth.service';
   selector: 'app-root',
   imports: [RouterOutlet],
   templateUrl: './app.html',
-  styleUrl: './app.css',
 })
 /**
  * Componente raíz de la aplicación (bootstrap en src/main.ts).
