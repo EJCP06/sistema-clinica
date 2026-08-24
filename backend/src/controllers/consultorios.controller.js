@@ -7,6 +7,22 @@ const historialRepo = require('../repositories/historial.repository');
 const ttsService = require('../services/tts.service');
 
 /**
+ * Formatea el nombre del consultorio antepuesto el piso (ej. "02" + piso
+ * "M" → "M02", "01" + piso "1" → "101"). Para piso de letra (M, S)
+ * se conserva el cero para que se lea "eme cero dos" en la voz.
+ */
+function formatearConsultorioConPiso(nombre, piso) {
+  const nombreLimpio = (nombre || '').trim();
+  const pisoLimpio = (piso || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const digitos = nombreLimpio.match(/\d+/);
+  if (pisoLimpio && digitos) {
+    const numero = /^\d+$/.test(pisoLimpio) ? digitos[0] : digitos[0].replace(/^0+/, '');
+    return nombreLimpio.replace(digitos[0], `${pisoLimpio}${numero}`);
+  }
+  return nombreLimpio.replace(/\b0+(\d+)\b/g, '$1');
+}
+
+/**
  * Obtiene el estado actual del consultorio o servicio del médico
  * autenticado. Para roles "laboratorio" e "imagenes" opera a nivel
  * de servicio; para el resto a nivel de consultorio físico.
@@ -196,7 +212,8 @@ const llamarSiguiente = async (req, res) => {
         } else if (consultorioLower.includes('imagen')) {
           texto += ' diríjase a la recepción de imágenes';
         } else {
-          texto += ` diríjase al consultorio ${servicioNombre}`;
+          const consultorioConPiso = formatearConsultorioConPiso(servicioNombre, turno.especialidad_piso || consultorioPiso);
+          texto += ` diríjase al consultorio ${consultorioConPiso}`;
         }
         const nombreArchivo = `tts_${Date.now()}`;
         await ttsService.generarAudio(texto, nombreArchivo, { prioridad: 'alta' });
