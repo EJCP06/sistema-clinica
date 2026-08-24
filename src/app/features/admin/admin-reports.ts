@@ -352,7 +352,7 @@ export class AdminReports implements OnInit, OnDestroy {
       t.estado || '',
       t.servicio_nombre || '',
       fmtTime(t.hora_llegada),
-      fmtSalida(t.hora_fin_atencion),
+      this.getHoraSalida(t),
     ]);
 
     if (turnosData.length > 0) {
