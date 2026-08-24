@@ -83,6 +83,7 @@ const getAdmisionById = async (id, sede) => {
       rp.nombre as modalidad_pago,
       a.id_responsable,
       esp.nombre as nombre_especialidad,
+      esp.piso as especialidad_piso,
       u.primer_nombre || ' ' || u.primer_apellido as nombre_medico
     FROM "Atencion" a
     JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
