@@ -93,8 +93,12 @@ export class AuthService implements OnDestroy {
               Swal.fire({
                 icon: 'info',
                 title: 'Permisos actualizados',
-                text: 'Tus permisos han sido actualizados.',
+                text: 'Tus permisos han sido actualizados. Serás redirigido al inicio de sesión.',
                 confirmButtonColor: '#2563eb',
+                allowOutsideClick: false,
+                willClose: () => {
+                  this.emergencyLogout();
+                },
               });
             },
             error: () => {},
@@ -108,8 +112,12 @@ export class AuthService implements OnDestroy {
             Swal.fire({
               icon: 'info',
               title: 'Datos actualizados',
-              text: 'Tu rol ha sido modificado. Tus datos han sido actualizados.',
+              text: 'Tu rol ha sido modificado. Tus datos han sido actualizados. Serás redirigido al inicio de sesión.',
               confirmButtonColor: '#2563eb',
+              allowOutsideClick: false,
+              willClose: () => {
+                this.emergencyLogout();
+              },
             });
           },
         });

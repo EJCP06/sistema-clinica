@@ -70,6 +70,7 @@
                 <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Cédula</th>
                 <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Rol</th>
                 <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Teléfono</th>
+                <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Correo</th>
                 <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Sede</th>
                 <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Estado</th>
                 <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Acciones</th>
@@ -85,6 +86,7 @@
                     <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [ngClass]="getRolBadgeClass(p.rol)">{{ getRolLabel(p.rol) }}</span>
                   </td>
                   <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 font-bold uppercase text-center">{{ p.telefono || 'SIN ASIGNAR' }}</td>
+                  <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 font-bold text-center">{{ p.email || 'SIN ASIGNAR' }}</td>
                   <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 dark:text-slate-400 font-bold text-center">{{ getSedeLabel(p.id_sede) }}</td>
                   <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-white uppercase text-center">
                     <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [ngClass]="p.activo ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'">{{ p.activo ? 'Activo' : 'Inactivo' }}</span>
@@ -99,12 +101,12 @@
               </ng-container>
               <ng-container *ngIf="personalFiltrados.length > 0">
                 <ng-container *ngFor="let _ of personalFiltrados | fillers: currentPage : pageSize">
-                  <tr><td colspan="8" class="h-[52px] md:h-[64px]"></td></tr>
+                  <tr><td colspan="9" class="h-[52px] md:h-[64px]"></td></tr>
                 </ng-container>
               </ng-container>
               <ng-container *ngIf="personalFiltrados.length === 0">
                 <tr *ngFor="let _ of fillersVacios; let i = index">
-                  <td colspan="8" class="h-[52px] md:h-[64px] relative">
+                  <td colspan="9" class="h-[52px] md:h-[64px] relative">
                     <div *ngIf="i === 3" class="absolute inset-0 flex flex-col items-center justify-center">
                       <div class="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center mb-2">
                         <lucide-icon [name]="Search" class="w-5 h-5 text-slate-500 opacity-60"></lucide-icon>
@@ -131,38 +133,40 @@
 <!-- Modal de Previsualización Importación Personal -->
 <div *ngIf="showPreviewModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
   <div class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" (click)="showPreviewModal = false"></div>
-  <div class="bg-white rounded-[32px] shadow-2xl w-full max-w-4xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 flex flex-col max-h-[90vh] md:h-[75vh]">
+  <div class="bg-white dark:bg-slate-900 rounded-[32px] shadow-2xl w-full max-w-4xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh]">
     <div class="bg-emerald-600 p-4 md:p-6 text-white flex items-center justify-between border-b border-emerald-500/50 shrink-0">
       <h2 class="text-lg md:text-xl font-black tracking-tight text-white truncate">Vista Previa de Importación</h2>
       <button (click)="showPreviewModal = false" class="p-2 hover:bg-white/10 rounded-lg transition-colors shrink-0"><lucide-icon [name]="XCircle" class="w-5 h-5 text-white"></lucide-icon></button>
     </div>
     <div class="p-4 md:p-8 flex-1 overflow-y-auto min-h-0">
       <div class="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
-        <table class="w-full text-left text-sm min-w-[600px] md:min-w-0">
+        <table class="w-full text-left text-sm min-w-[700px] md:min-w-0">
           <thead>
-            <tr class="bg-slate-50 text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
+            <tr class="bg-slate-50 dark:bg-slate-800 text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
               <th class="px-3 md:px-4 py-2 md:py-3">Nombre</th>
               <th class="px-3 md:px-4 py-2 md:py-3">Apellido</th>
               <th class="px-3 md:px-4 py-2 md:py-3">Cédula</th>
               <th class="px-3 md:px-4 py-2 md:py-3">Rol</th>
               <th class="px-3 md:px-4 py-2 md:py-3">Teléfono</th>
               <th class="px-3 md:px-4 py-2 md:py-3">Sede</th>
+              <th class="px-3 md:px-4 py-2 md:py-3">Correo</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100">
-            <tr *ngFor="let row of previewData" class="hover:bg-slate-50">
-              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-700">{{ (row.primer_nombre || '') + (row.segundo_nombre ? ' ' + row.segundo_nombre : '') }}</td>
-              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-700">{{ (row.primer_apellido || '') + (row.segundo_apellido ? ' ' + row.segundo_apellido : '') }}</td>
-              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-700">{{ row.cedula || '' }}</td>
-              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-700">{{ row.rol || '' }}</td>
-              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-700">{{ row.telefono || '' }}</td>
-              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-700">{{ row.sede || '' }}</td>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+            <tr *ngFor="let row of previewData" class="hover:bg-slate-50 dark:hover:bg-slate-800">
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-700 dark:text-slate-200">{{ (row.primer_nombre || '') + (row.segundo_nombre ? ' ' + row.segundo_nombre : '') }}</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-700 dark:text-slate-200">{{ (row.primer_apellido || '') + (row.segundo_apellido ? ' ' + row.segundo_apellido : '') }}</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-700 dark:text-slate-200">{{ row.cedula || '' }}</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-700 dark:text-slate-200">{{ row.rol || '' }}</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-700 dark:text-slate-200">{{ row.telefono || '' }}</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-700 dark:text-slate-200">{{ row.sede || '' }}</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-700 dark:text-slate-200">{{ row.email || '' }}</td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
-    <div class="p-4 md:p-6 bg-slate-50 border-t border-slate-100 flex flex-row justify-end gap-3 shrink-0 sticky bottom-0 z-10">
+    <div class="p-4 md:p-6 bg-slate-50 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 flex flex-row justify-end gap-3 shrink-0 sticky bottom-0 z-10">
       <button (click)="showPreviewModal = false" class="px-6 md:px-8 py-3.5 md:py-4 bg-slate-500 hover:bg-slate-600 text-white font-black text-[11px] uppercase tracking-[2px] rounded-xl md:rounded-[20px] transition-all disabled:opacity-50 shadow-lg shadow-slate-500/20 dark:shadow-slate-950/50">Cancelar</button>
       <button [disabled]="isSaving" (click)="confirmarImportacion()" class="px-6 md:px-8 py-3.5 md:py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] uppercase tracking-[2px] rounded-xl md:rounded-[20px] shadow-lg shadow-emerald-600/20 dark:shadow-emerald-950/50 transition-all flex items-center gap-3 disabled:opacity-50">
         <span *ngIf="!isSaving" class="flex items-center gap-2">Confirmar Importación</span>
@@ -178,7 +182,7 @@
 <!-- Modal Formato Excel -->
 <div *ngIf="showExcelFormat" class="fixed inset-0 z-50 flex items-center justify-center p-4">
   <div class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" (click)="showExcelFormat = false"></div>
-  <div class="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 flex flex-col max-h-[90vh] md:max-h-none">
+  <div class="bg-white dark:bg-slate-900 rounded-[32px] shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh] md:max-h-none">
     <div class="bg-blue-600 p-6 text-white flex items-center justify-between border-b border-blue-500/50 shrink-0">
       <div class="flex items-center gap-3 min-w-0">
         <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0"><lucide-icon [name]="Info" class="w-6 h-6 text-white"></lucide-icon></div>
@@ -190,68 +194,73 @@
       <button (click)="showExcelFormat = false" class="p-2 hover:bg-white/10 rounded-lg transition-colors shrink-0"><lucide-icon [name]="XCircle" class="w-5 h-5 text-white"></lucide-icon></button>
     </div>
     <div class="p-4 md:p-8 flex-1 overflow-y-auto min-h-0">
-      <p class="text-slate-600 text-sm mb-4 md:mb-6">El archivo Excel debe tener las siguientes columnas en este orden:</p>
+      <p class="text-slate-600 dark:text-slate-300 text-sm mb-4 md:mb-6">El archivo Excel debe tener las siguientes columnas en este orden:</p>
       <div class="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
         <table class="w-full text-left text-sm min-w-[480px] md:min-w-0">
           <thead>
-            <tr class="bg-slate-50 text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
+            <tr class="bg-slate-50 dark:bg-slate-800 text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
               <th class="px-3 md:px-4 py-2 md:py-3">Columna</th>
               <th class="px-3 md:px-4 py-2 md:py-3">Descripción</th>
               <th class="px-3 md:px-4 py-2 md:py-3">Requerido</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100">
-            <tr class="hover:bg-slate-50">
-              <td class="px-3 md:px-4 py-2 md:py-3 font-bold text-slate-800">Primer Nombre</td>
-              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-600">Primer nombre del personal</td>
-              <td class="px-3 md:px-4 py-2 md:py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600">Requerido</span></td>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+              <td class="px-3 md:px-4 py-2 md:py-3 font-bold text-slate-800 dark:text-white">Primer Nombre</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-600 dark:text-slate-300">Primer nombre del personal</td>
+              <td class="px-3 md:px-4 py-2 md:py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400">Requerido</span></td>
             </tr>
-            <tr class="hover:bg-slate-50">
-              <td class="px-3 md:px-4 py-2 md:py-3 font-bold text-slate-800">Segundo Nombre</td>
-              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-600">Segundo nombre</td>
-              <td class="px-3 md:px-4 py-2 md:py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-500">Opcional</span></td>
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+              <td class="px-3 md:px-4 py-2 md:py-3 font-bold text-slate-800 dark:text-white">Segundo Nombre</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-600 dark:text-slate-300">Segundo nombre</td>
+              <td class="px-3 md:px-4 py-2 md:py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">Opcional</span></td>
             </tr>
-            <tr class="hover:bg-slate-50">
-              <td class="px-3 md:px-4 py-2 md:py-3 font-bold text-slate-800">Primer Apellido</td>
-              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-600">Primer apellido del personal</td>
-              <td class="px-3 md:px-4 py-2 md:py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600">Requerido</span></td>
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+              <td class="px-3 md:px-4 py-2 md:py-3 font-bold text-slate-800 dark:text-white">Primer Apellido</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-600 dark:text-slate-300">Primer apellido del personal</td>
+              <td class="px-3 md:px-4 py-2 md:py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400">Requerido</span></td>
             </tr>
-            <tr class="hover:bg-slate-50">
-              <td class="px-3 md:px-4 py-2 md:py-3 font-bold text-slate-800">Segundo Apellido</td>
-              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-600">Segundo apellido</td>
-              <td class="px-3 md:px-4 py-2 md:py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-500">Opcional</span></td>
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+              <td class="px-3 md:px-4 py-2 md:py-3 font-bold text-slate-800 dark:text-white">Segundo Apellido</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-600 dark:text-slate-300">Segundo apellido</td>
+              <td class="px-3 md:px-4 py-2 md:py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">Opcional</span></td>
             </tr>
-            <tr class="hover:bg-slate-50">
-              <td class="px-3 md:px-4 py-2 md:py-3 font-bold text-slate-800">Cédula</td>
-              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-600">Número de documento</td>
-              <td class="px-3 md:px-4 py-2 md:py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600">Requerido</span></td>
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+              <td class="px-3 md:px-4 py-2 md:py-3 font-bold text-slate-800 dark:text-white">Cédula</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-600 dark:text-slate-300">Número de documento</td>
+              <td class="px-3 md:px-4 py-2 md:py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400">Requerido</span></td>
             </tr>
-            <tr class="hover:bg-slate-50">
-              <td class="px-3 md:px-4 py-2 md:py-3 font-bold text-slate-800">Rol</td>
-              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-600">Médico, Recepcionista, Coordinador, etc.</td>
-              <td class="px-3 md:px-4 py-2 md:py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600">Requerido</span></td>
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+              <td class="px-3 md:px-4 py-2 md:py-3 font-bold text-slate-800 dark:text-white">Rol</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-600 dark:text-slate-300">Médico, Recepcionista, Coordinador, etc.</td>
+              <td class="px-3 md:px-4 py-2 md:py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400">Requerido</span></td>
             </tr>
-            <tr class="hover:bg-slate-50">
-              <td class="px-3 md:px-4 py-2 md:py-3 font-bold text-slate-800">Teléfono</td>
-              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-600">Número de contacto</td>
-              <td class="px-3 md:px-4 py-2 md:py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-500">Opcional</span></td>
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+              <td class="px-3 md:px-4 py-2 md:py-3 font-bold text-slate-800 dark:text-white">Teléfono</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-600 dark:text-slate-300">Número de contacto</td>
+              <td class="px-3 md:px-4 py-2 md:py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">Opcional</span></td>
             </tr>
-            <tr class="hover:bg-slate-50">
-              <td class="px-3 md:px-4 py-2 md:py-3 font-bold text-slate-800">Sede</td>
-              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-600">Plaza Sucre o Santa Mónica</td>
-              <td class="px-3 md:px-4 py-2 md:py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-600">Requerido</span></td>
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+              <td class="px-3 md:px-4 py-2 md:py-3 font-bold text-slate-800 dark:text-white">Sede</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-600 dark:text-slate-300">Plaza Sucre o Santa Mónica</td>
+              <td class="px-3 md:px-4 py-2 md:py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400">Requerido</span></td>
+            </tr>
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
+              <td class="px-3 md:px-4 py-2 md:py-3 font-bold text-slate-800 dark:text-white">Correo</td>
+              <td class="px-3 md:px-4 py-2 md:py-3 text-slate-600 dark:text-slate-300">Correo electrónico del personal</td>
+              <td class="px-3 md:px-4 py-2 md:py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">Opcional</span></td>
             </tr>
           </tbody>
         </table>
       </div>
-      <div class="mt-4 md:mt-6 p-3 md:p-4 bg-amber-50 border border-amber-200 rounded-xl">
-        <p class="text-amber-800 text-xs font-bold uppercase tracking-wider">Ejemplo de fila:</p>
-        <p class="text-amber-700 text-sm mt-1 font-mono break-all">Juan, Alberto, Pérez, López, 12345678, Médico, 04121234567, Plaza Sucre</p>
+      <div class="mt-4 md:mt-6 p-3 md:p-4 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl">
+        <p class="text-amber-800 dark:text-amber-300 text-xs font-bold uppercase tracking-wider">Ejemplo de fila:</p>
+        <p class="text-amber-700 dark:text-amber-200 text-sm mt-1 font-mono leading-relaxed">Juan, Alberto, Pérez, López, 12345678, Médico, 04121234567, Plaza Sucre,<br>juan@clinica.com</p>
       </div>
     </div>
-    <div class="p-4 md:p-6 bg-slate-50 border-t border-slate-100 flex flex-row justify-end gap-3 shrink-0 sticky bottom-0 z-10">
+    <div class="p-4 md:p-6 bg-slate-50 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 flex flex-row justify-end gap-3 shrink-0 sticky bottom-0 z-10">
       <button (click)="showExcelFormat = false" class="px-6 md:px-8 py-3.5 md:py-4 bg-slate-500 hover:bg-slate-600 text-white font-black text-[11px] uppercase tracking-[2px] rounded-xl md:rounded-[20px] transition-all disabled:opacity-50 shadow-lg shadow-slate-500/20 dark:shadow-slate-950/50">Cancelar</button>
-      <button [disabled]="isImporting" (click)="excelInput.value = ''; excelInput.click()" class="px-6 md:px-8 py-3.5 md:py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] uppercase tracking-[2px] rounded-xl md:rounded-[20px] shadow-lg shadow-emerald-600/20 dark:shadow-emerald-950/50 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+      <button [disabled]="isImporting" (click)="abrirSelectorExcel()" class="px-6 md:px-8 py-3.5 md:py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] uppercase tracking-[2px] rounded-xl md:rounded-[20px] shadow-lg shadow-emerald-600/20 dark:shadow-emerald-950/50 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
         <span *ngIf="!isImporting" class="flex items-center gap-2">
           <lucide-icon [name]="Upload" class="w-4 h-4"></lucide-icon>
           Subir Excel
@@ -268,7 +277,7 @@
 <!-- Personal Modal -->
 <div *ngIf="showModalPersonal" class="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-personal-title" (keydown.escape)="cerrarModalPersonal()">
   <div class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-300" (click)="cerrarModalPersonal()"></div>
-  <div class="bg-white rounded-[32px] shadow-2xl w-full max-w-4xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 flex flex-col max-h-[90vh] md:max-h-none">
+  <div class="bg-white dark:bg-slate-900 rounded-[32px] shadow-2xl w-full max-w-4xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh] md:max-h-none">
     <div class="bg-blue-600 p-6 text-white flex items-center justify-between border-b border-blue-500/50">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center"><lucide-icon [name]="UserCog" class="w-5 h-5 text-white"></lucide-icon></div>
@@ -283,36 +292,36 @@
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-6">
         <div class="space-y-1.5">
           <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Primer Nombre <span class="text-rose-500">*</span></label>
-          <input [(ngModel)]="formPersonal.primer_nombre" (keypress)="soloLetras($event)" (blur)="trimCampo($event)" placeholder="Ej: Juan" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
+          <input [(ngModel)]="formPersonal.primer_nombre" (keypress)="soloLetras($event)" (blur)="trimCampo($event)" placeholder="Ej: Juan" class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white" />
         </div>
         <div class="space-y-1.5">
           <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Segundo Nombre</label>
-          <input [(ngModel)]="formPersonal.segundo_nombre" (keypress)="soloLetras($event)" (blur)="trimCampo($event)" placeholder="Ej: Alberto" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
+          <input [(ngModel)]="formPersonal.segundo_nombre" (keypress)="soloLetras($event)" (blur)="trimCampo($event)" placeholder="Ej: Alberto" class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white" />
         </div>
         <div class="space-y-1.5">
           <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Primer Apellido <span class="text-rose-500">*</span></label>
-          <input [(ngModel)]="formPersonal.primer_apellido" (keypress)="soloLetras($event)" (blur)="trimCampo($event)" placeholder="Ej: Perez" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
+          <input [(ngModel)]="formPersonal.primer_apellido" (keypress)="soloLetras($event)" (blur)="trimCampo($event)" placeholder="Ej: Perez" class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white" />
         </div>
         <div class="space-y-1.5">
           <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Segundo Apellido</label>
-          <input [(ngModel)]="formPersonal.segundo_apellido" (keypress)="soloLetras($event)" (blur)="trimCampo($event)" placeholder="Ej: Lopez" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
+          <input [(ngModel)]="formPersonal.segundo_apellido" (keypress)="soloLetras($event)" (blur)="trimCampo($event)" placeholder="Ej: Lopez" class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white" />
         </div>
         <div class="lg:col-span-2 space-y-1.5">
           <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Cédula <span class="text-rose-500">*</span></label>
           <div class="flex gap-2">
-            <input [(ngModel)]="formPersonal.cedula" inputmode="numeric" (keypress)="soloNumeros($event)" placeholder="Ej: 13894759" class="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
+            <input [(ngModel)]="formPersonal.cedula" inputmode="numeric" (keypress)="soloNumeros($event)" placeholder="Ej: 13894759" class="flex-1 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white" />
           </div>
         </div>
         <div class="lg:col-span-2 space-y-1.5">
           <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Rol <span class="text-rose-500">*</span></label>
           <div class="relative rol-dropdown-container">
-            <input type="text" [ngModel]="rolFiltro" (input)="onRolInput($event)" (keydown)="onRolKeydown($event)" (focus)="showRolDropdown = true" [class.border-blue-600]="showRolDropdown" placeholder="Buscar rol..." autocomplete="off" class="w-full px-4 py-2.5 pr-10 bg-white border border-slate-200 rounded-xl text-sm font-medium transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 placeholder:text-slate-400" />
+            <input type="text" [ngModel]="rolFiltro" (input)="onRolInput($event)" (keydown)="onRolKeydown($event)" (focus)="showRolDropdown = true" [class.border-blue-600]="showRolDropdown" placeholder="Buscar rol..." autocomplete="off" class="w-full px-4 py-2.5 pr-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500" />
             <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
               <lucide-icon [name]="ChevronDown" class="w-4 h-4 text-slate-400" [class.rotate-180]="showRolDropdown"></lucide-icon>
             </div>
-            <div *ngIf="showRolDropdown" class="absolute z-[100] w-full mt-3 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600">
+            <div *ngIf="showRolDropdown" class="absolute z-[100] w-full mt-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600">
               <div class="max-h-48 overflow-y-auto custom-scrollbar p-1">
-                <div *ngFor="let r of rolesConFiltro; let i = index" (click)="selectRol(r.key)" class="px-4 py-2 text-sm hover:bg-slate-50 cursor-pointer transition-colors rounded-lg flex items-center justify-between" [class.bg-blue-50]="formPersonal.rol === r.key" [class.bg-blue-100]="rolIndex === i">
+                <div *ngFor="let r of rolesConFiltro; let i = index" (click)="selectRol(r.key)" class="px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between" [class.bg-blue-50]="formPersonal.rol === r.key" [class.dark:bg-blue-950]="formPersonal.rol === r.key" [class.bg-blue-100]="rolIndex === i">
                   <span class="font-bold">{{ toTitleCase(r.nombre) }}</span>
                   <lucide-icon *ngIf="formPersonal.rol === r.key" [name]="CheckCircle2" class="w-3.5 h-3.5 text-blue-600"></lucide-icon>
                 </div>
@@ -323,11 +332,11 @@
         </div>
         <div class="lg:col-span-2 space-y-1.5">
           <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Teléfono</label>
-          <input [(ngModel)]="formPersonal.telefono" inputmode="numeric" (keypress)="soloNumeros($event)" placeholder="Ej: 04141118228" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
+          <input [(ngModel)]="formPersonal.telefono" inputmode="numeric" (keypress)="soloNumeros($event)" placeholder="Ej: 04141118228" class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white" />
         </div>
         <div class="lg:col-span-2 space-y-1.5">
           <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Correo</label>
-          <input [(ngModel)]="formPersonal.email" placeholder="Ej: clinicacaracas@gmail.com" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium" />
+          <input [(ngModel)]="formPersonal.email" placeholder="Ej: clinicacaracas@gmail.com" class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white" />
         </div>
         <div *ngIf="formPersonal.rol === 'medico'" class="lg:col-span-2 space-y-1.5">
           <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Sede <span class="text-rose-500">*</span></label>
@@ -357,13 +366,13 @@
           <div class="lg:col-span-2 space-y-1.5">
             <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Especialidades <span class="text-rose-500">*</span></label>
             <div class="relative medico-esp-container">
-              <input type="text" [ngModel]="espDisplay" (input)="onEspInput($event)" (keydown)="onEspKeydown($event)" (focus)="showMedicoEspDropdown = true" [class.border-blue-600]="showMedicoEspDropdown" placeholder="Seleccione..." autocomplete="off" class="w-full px-4 py-2.5 pr-10 bg-white border border-slate-200 rounded-xl text-sm font-medium shadow-sm transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 placeholder:text-slate-400" />
+              <input type="text" [ngModel]="espDisplay" (input)="onEspInput($event)" (keydown)="onEspKeydown($event)" (focus)="showMedicoEspDropdown = true" [class.border-blue-600]="showMedicoEspDropdown" placeholder="Seleccione..." autocomplete="off" class="w-full px-4 py-2.5 pr-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium shadow-sm transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500" />
               <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
                 <lucide-icon [name]="ChevronDown" class="w-4 h-4 text-slate-400" [class.rotate-180]="showMedicoEspDropdown"></lucide-icon>
               </div>
-              <div *ngIf="showMedicoEspDropdown" class="absolute z-[100] w-full mt-3 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600">
+              <div *ngIf="showMedicoEspDropdown" class="absolute z-[100] w-full mt-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600">
                 <div class="max-h-48 overflow-y-auto custom-scrollbar p-1">
-                  <div *ngFor="let s of especialidadesConFiltro; let i = index" (click)="toggleMedicoEsp(s)" class="group/esp px-4 py-2 text-sm hover:bg-slate-50 cursor-pointer transition-colors rounded-lg flex items-center gap-3" [class.bg-blue-50]="esEspSel(s)" [class.bg-blue-100]="espIndex === i">
+                  <div *ngFor="let s of especialidadesConFiltro; let i = index" (click)="toggleMedicoEsp(s)" class="group/esp px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center gap-3" [class.bg-blue-50]="esEspSel(s)" [class.dark:bg-blue-950]="esEspSel(s)" [class.bg-blue-100]="espIndex === i">
                     <div class="relative shrink-0">
                       <input type="checkbox" [checked]="esEspSel(s)" class="peer sr-only">
                       <div class="w-5 h-5 rounded-md border-2 border-slate-300 group-hover/esp:border-blue-400 transition-all flex items-center justify-center peer-checked:bg-blue-600 peer-checked:border-blue-600">
@@ -413,7 +422,7 @@
           <div class="flex-1 space-y-1.5">
             <label class="min-h-[28px] text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">{{ isEditing ? 'Nueva Contraseña (Opcional)' : 'Contraseña' }}<span *ngIf="!isEditing" class="text-rose-500"> *</span></label>
             <div class="relative">
-              <input [type]="showPassword ? 'text' : 'password'" [(ngModel)]="formPersonal.password" placeholder="••••••••" class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all pr-10" />
+              <input [type]="showPassword ? 'text' : 'password'" [(ngModel)]="formPersonal.password" placeholder="••••••••" class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all pr-10 dark:text-white" />
               <button type="button" (click)="showPassword = !showPassword" aria-label="Mostrar u ocultar contraseña" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                 <lucide-icon [name]="showPassword ? EyeOff : Eye" class="w-4 h-4"></lucide-icon>
               </button>
@@ -421,7 +430,7 @@
           </div>
           <div class="space-y-1.5">
             <label class="min-h-[28px] text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Estado</label>
-            <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-4 py-2.5 h-[42px]">
+            <div class="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 h-[42px]">
               <label class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" [(ngModel)]="formPersonal.activo" class="sr-only peer" />
                 <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-500"></div>
@@ -432,7 +441,7 @@
         </div>
       </div>
     </div>
-    <div class="p-4 md:p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 shrink-0 sticky bottom-0 z-10">
+    <div class="p-4 md:p-6 bg-slate-50 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-3 shrink-0 sticky bottom-0 z-10">
       <button type="button" [disabled]="isSaving" (click)="showModalPersonal = false" class="px-6 md:px-8 py-3.5 md:py-4 bg-slate-500 hover:bg-slate-600 text-white font-black text-[11px] uppercase tracking-[2px] rounded-xl md:rounded-[20px] transition-all disabled:opacity-50 shadow-lg shadow-slate-500/20 dark:shadow-slate-950/50">CANCELAR</button>
       <button type="button" [disabled]="isSaving" (click)="guardarPersonal()" class="px-6 md:px-10 py-3.5 md:py-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-[11px] uppercase tracking-[2px] rounded-xl md:rounded-[20px] shadow-lg shadow-blue-600/20 dark:shadow-blue-950/50 transition-all flex items-center gap-3 disabled:opacity-50">
         <span *ngIf="!isSaving" class="flex items-center gap-2">{{ isEditing ? 'GUARDAR' : 'CREAR' }}</span>
