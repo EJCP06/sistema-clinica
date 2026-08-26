@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, HostListener, DestroyRef, ElementRef, ChangeDetectorRef, NgZone } from '@angular/core';
+import { Component, inject, OnInit, HostListener, DestroyRef, ElementRef, ChangeDetectorRef, NgZone, ViewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -823,6 +823,18 @@ export class AdminPersonal implements OnInit {
     input.dispatchEvent(new Event('input'));
   }
 
+  @ViewChild('excelInput') excelInputRef!: ElementRef<HTMLInputElement>;
+
+  abrirSelectorExcel() {
+    setTimeout(() => {
+      const el = this.excelInputRef?.nativeElement;
+      if (el) {
+        el.value = '';
+        el.click();
+      }
+    }, 50);
+  }
+
   importExcel(fileInput: HTMLInputElement) {
     const file = fileInput?.files?.[0];
     if (!file) return;
@@ -854,7 +866,8 @@ export class AdminPersonal implements OnInit {
             cedula: ['cedula', 'cédula', 'dni', 'identificación', 'documento'],
             rol: ['rol', 'cargo', 'puesto', 'rol usuario'],
             telefono: ['telefono', 'teléfono', 'tel', 'celular', 'contacto'],
-            sede: ['sede', 'sucursalmacen', 'id_sede', 'sede id']
+            sede: ['sede', 'sucursalmacen', 'id_sede', 'sede id'],
+            email: ['correo', 'email', 'e-mail', 'mail', 'correo electronico', 'correo electrónico']
           };
 
           const actualHeaders = Object.keys(rowsRaw[0]).map(h => 
@@ -915,23 +928,45 @@ export class AdminPersonal implements OnInit {
     this.inicioGuardado = Date.now();
 
     const mappedData = this.previewData.map(row => {
-      const mappedRow = { ...row };
+      const mappedRow: Record<string, unknown> = { ...row };
+      // username = cédula (igual que al crear manualmente)
+      const cedulaLimpia = (row.cedula || '').toString().replace(/\D/g, '');
+      mappedRow['username'] = cedulaLimpia;
+      // password inicial = cédula (el usuario debería cambiarlo después)
+      mappedRow['password'] = cedulaLimpia;
+      // limpiar cédula
+      mappedRow['cedula'] = cedulaLimpia;
+      // nombres en mayúsculas
+      if (mappedRow['primer_nombre']) mappedRow['primer_nombre'] = String(mappedRow['primer_nombre']).toUpperCase().trim();
+      if (mappedRow['segundo_nombre']) mappedRow['segundo_nombre'] = String(mappedRow['segundo_nombre']).toUpperCase().trim();
+      if (mappedRow['primer_apellido']) mappedRow['primer_apellido'] = String(mappedRow['primer_apellido']).toUpperCase().trim();
+      if (mappedRow['segundo_apellido']) mappedRow['segundo_apellido'] = String(mappedRow['segundo_apellido']).toUpperCase().trim();
+      // teléfono solo números
+      if (mappedRow['telefono']) mappedRow['telefono'] = String(mappedRow['telefono']).replace(/\D/g, '');
+      // sede
       if (row.sede !== undefined && row.sede !== null && row.sede !== '') {
         const sedeId = this.getSedeIdByName(row.sede);
-        if (sedeId) mappedRow.id_sede = sedeId;
+        if (sedeId) mappedRow['id_sede'] = sedeId;
       }
-      mappedRow.activo = true;
+      mappedRow['activo'] = true;
       return mappedRow;
     });
 
-    const rol = this.formPersonal.rol || 'medico';
+    // Usar el rol del Excel si existe, si no 'medico'
+    const rol = (mappedData[0]?.['rol'] as string) || 'medico';
     const body = { rows: mappedData, rol };
 
     this.apiService.importarPersonal(body).subscribe({
       next: (res: any) => {
         this.finalizarGuardado(() => {
           this.cargarPersonal();
-          this.swal.success(res.mensaje || `Importación exitosa: ${res.importados || this.previewData.length} registros`);
+          if (res.importados === 0 && res.errores > 0) {
+            this.swal.error(`No se pudo importar ningun registro. ${res.errores} error(es). Verifica que el Rol y la Sede del Excel coincidan con los del sistema.`);
+          } else if (res.errores > 0) {
+            this.swal.warning(`Importados: ${res.importados}, omitidos: ${res.omitidos}, errores: ${res.errores}.\n${res.mensaje || ''}`);
+          } else {
+            this.swal.success(res.mensaje || `Importacion exitosa: ${res.importados || this.previewData.length} registros`);
+          }
           this.showPreviewModal = false;
           this.previewData = [];
         });

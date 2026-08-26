@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, DestroyRef, ElementRef } from '@angular/core';
+import { Component, inject, OnInit, HostListener, DestroyRef, ElementRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -171,6 +171,14 @@ export class AdminRoles implements OnInit {
 
   get fillersVacios(): number[] {
     return Array(this.pageSize).fill(0);
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.search-filter-container')) {
+      this.showSearchFilterDropdown = false;
+    }
   }
 
   toggleSearchFilterDropdown(): void {

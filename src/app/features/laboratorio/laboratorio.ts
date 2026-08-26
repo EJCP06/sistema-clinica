@@ -3,7 +3,7 @@ import { interval, timer, Subscription } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronDown, Undo2, DollarSign, XCircle, Trash2, Megaphone, Edit2, UserPlus, UserX, Play, Square } from 'lucide-angular';
+import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronDown, Undo2, DollarSign, XCircle, Trash2, Megaphone, Edit2, UserPlus, UserX } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { SwalService } from '../../core/services/swal.service';
@@ -42,8 +42,6 @@ export class LaboratorioComponent implements OnInit, OnDestroy {
   readonly Edit2 = Edit2;
   readonly UserPlus = UserPlus;
   readonly UserX = UserX;
-  readonly Play = Play;
-  readonly Square = Square;
 
   // ---- Countdown de estado LLAMADO (4) ----
   private countdowns = new Map<number, number>();           // id_atencion → segundos restantes
@@ -51,7 +49,7 @@ export class LaboratorioComponent implements OnInit, OnDestroy {
   private voiceSubs = new Map<number, Subscription>();      // id_atencion → voz cada 10s
   private countdownStarts = new Map<number, number>();      // id_atencion → timestamp ms de inicio
   private admisionCountdown = new Map<number, any>();       // referencia al paciente
-  readonly COUNTDOWN_TOTAL = 120; // 120 segundos
+  readonly COUNTDOWN_TOTAL = 60; // 60 segundos
   readonly VOZ_INTERVALO = 10000; // 10 segundos
   private _tick = 0;
 
@@ -285,6 +283,7 @@ export class LaboratorioComponent implements OnInit, OnDestroy {
         
         if (event.tipo === 'nuevo-turno') {
           if (esLaboratorio && (esParticular || esSeguro) && ![6, 9].includes(Number(a.id_estado_actual))) {
+            // En estado 3 se agrega (viene de APS)
             this.ultimasAdmisiones = [a, ...this.ultimasAdmisiones].slice(0, 50);
           }
         } else if (event.tipo === 'retirado') {
@@ -296,7 +295,8 @@ export class LaboratorioComponent implements OnInit, OnDestroy {
         } else if (event.tipo === 'estado-cambiado') {
           if ([6, 9].includes(Number(event.id_estado_nuevo))) {
             this.ultimasAdmisiones = this.ultimasAdmisiones.filter(x => x.id_atencion !== a.id_atencion);
-          } else if (Number(event.id_estado_nuevo) === 3 && esLaboratorio && esParticular) {
+          } else if (Number(event.id_estado_nuevo) === 3 && esLaboratorio && (esParticular || esSeguro)) {
+            // Paciente de laboratorio pasó a sala de espera: aparece en tabla con megáfono
             this.ultimasAdmisiones = [a, ...this.ultimasAdmisiones].slice(0, 50);
           }
         }
@@ -386,7 +386,11 @@ export class LaboratorioComponent implements OnInit, OnDestroy {
           const esSeguro = modalidadPagoLower === 'seguro' || modalidadPagoLower.includes('asegur');
           const esParticular = modalidadPagoLower === 'particular';
 
-          if (esLaboratorio) return esParticular;
+          if (esLaboratorio) {
+            // Aseguradoras solo aparecen en estado 3 en adelante
+            if (esSeguro && ![3, 4, 5, 7].includes(Number(a.id_estado_actual))) return false;
+            return esParticular || esSeguro;
+          }
           return false;
         });
         // Iniciar countdowns para pacientes ya en estado 4 (LLAMADO)
@@ -509,11 +513,10 @@ export class LaboratorioComponent implements OnInit, OnDestroy {
   /** Pasa un paciente de LLAMADO (4) a EN ATENCIÓN (5). */
   iniciarAtencionLab(admision: any) {
     this.stopCountdown(admision.id_atencion);
+    // Cambio inmediato de estado en UI (sin esperar API)
+    admision.id_estado_actual = 5;
+    admision.nombre_estado = 'EN ATENCION';
     this.api.put(`recepcion/atencion/${admision.id_atencion}/estado`, { id_estado_nuevo: 5 }).subscribe({
-      next: () => {
-        admision.id_estado_actual = 5;
-        admision.nombre_estado = 'EN ATENCION';
-      },
       error: (err) => this.swal.error(err.error?.mensaje || 'Error al iniciar atención')
     });
   }
@@ -521,10 +524,9 @@ export class LaboratorioComponent implements OnInit, OnDestroy {
   /** Finaliza la atención: pasa de EN ATENCIÓN (5) a ATENDIDO (6). */
   finalizarAtencionLab(admision: any) {
     this.stopCountdown(admision.id_atencion);
+    // Cambio inmediato de estado en UI
+    this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== admision.id_atencion);
     this.api.put(`recepcion/atencion/${admision.id_atencion}/estado`, { id_estado_nuevo: 6 }).subscribe({
-      next: () => {
-        this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== admision.id_atencion);
-      },
       error: (err) => this.swal.error(err.error?.mensaje || 'Error al finalizar atención')
     });
   }

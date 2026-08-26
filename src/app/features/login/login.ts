@@ -351,6 +351,7 @@ export class Login implements OnDestroy {
         error: (err: any) => {
           const restante = Math.max(0, MIN_CARGANDO_SELECTOR - (Date.now() - inicio));
           setTimeout(() => {
+            this.mostrarSelectorEspecialidad = false;
             this.cargandoSelector = false;
             this.swal.error(err.error?.mensaje || 'Error al seleccionar la especialidad');
           }, restante);

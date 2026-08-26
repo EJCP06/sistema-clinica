@@ -641,7 +641,7 @@ const importarPersonal = async (req, res) => {
       }
 
       const password_hash = await bcrypt.hash(crypto.randomBytes(6).toString('hex'), 10);
-      const sedeFinal = row.id_sede || row.sede || sedeToken;
+      const sedeFinal = sedeToken;
       const idConsultorio = row.id_consultorio || row.consultorio_id || null;
       const idServicio = row.id_servicio || row.servicio_id || null;
       const idEspecialidad = row.id_especialidad || row.especialidad_id || null;
@@ -664,18 +664,15 @@ const importarPersonal = async (req, res) => {
       });
       importados++;
     } catch (error) {
-      logger.error('Error al importar personal:', { error: error.message, row });
+      logger.error('Error al importar personal:', { error: error.message, row: { cedula: row.cedula, rol: row.rol, sede: row.sede, id_sede: row.id_sede } });
       errores++;
     }
   }
 
-  res.json({
-    mensaje: `Importación completada: ${importados},
-    ${omitidos} ya existían, ${errores} errores`,
-    importados,
-    omitidos,
-    errores,
-  });
+  const mensaje = errores > 0 && importados === 0
+    ? `No se pudo importar ninguno. ${errores} error(es). Verifica que el Rol y la Sede del Excel coincidan con los del sistema.`
+    : `Importacion completada: ${importados} importados, ${omitidos} ya existian, ${errores} errores`;
+  res.json({ mensaje, importados, omitidos, errores });
 };
 
 /**

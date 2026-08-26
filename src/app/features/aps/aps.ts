@@ -269,7 +269,7 @@ export class ApsComponent implements OnInit, OnDestroy {
         const pasaFiltro = (esLaboratorio || esImagenes) ? esSeguro : esConsulta ? (esSeguro || esParticular) : false;
         
         if (event.tipo === 'nuevo-turno') {
-          if (pasaFiltro && ![6, 9].includes(Number(a.id_estado_actual))) {
+          if ((esLaboratorio || esImagenes ? esSeguro : pasaFiltro) && ![6, 9].includes(Number(a.id_estado_actual))) {
             this.ultimasAdmisiones = [a, ...this.ultimasAdmisiones].slice(0, 50);
           }
         } else if (event.tipo === 'retirado') {
@@ -281,8 +281,14 @@ export class ApsComponent implements OnInit, OnDestroy {
         } else if (event.tipo === 'estado-cambiado') {
           if ([6, 9].includes(Number(event.id_estado_nuevo))) {
             this.ultimasAdmisiones = this.ultimasAdmisiones.filter(x => x.id_atencion !== a.id_atencion);
-          } else if (Number(event.id_estado_nuevo) === 3 && pasaFiltro) {
-            this.ultimasAdmisiones = [a, ...this.ultimasAdmisiones].slice(0, 50);
+          } else if (Number(event.id_estado_nuevo) === 3) {
+            // En estado 3: si es lab/imagenes se retira de APS (pasa a su módulo)
+            if (esLaboratorio || esImagenes) {
+              this.ultimasAdmisiones = this.ultimasAdmisiones.filter(x => x.id_atencion !== a.id_atencion);
+            } else if (pasaFiltro) {
+              // Consultas: se queda en APS para atención médica
+              this.ultimasAdmisiones = [a, ...this.ultimasAdmisiones].slice(0, 50);
+            }
           }
         }
       } else if (event.tipo === 'liberacion' || event.tipo === 'retirado') {
@@ -417,7 +423,20 @@ export class ApsComponent implements OnInit, OnDestroy {
     const result = await this.swal.confirm('¿Deseas enviar este paciente a la Sala de Espera?');
     if (!result.isConfirmed) return;
     this.api.actualizarEstadoAtencion(id_atencion, 3).subscribe({
-      next: () => this.cargarUltimasAdmisiones(),
+      next: () => {
+        // Remover inmediatamente de la tabla local si es lab/imagenes
+        const adm = this.ultimasAdmisiones.find(a => a.id_atencion === id_atencion);
+        if (adm) {
+          const svc = (adm.nombre_servicio || '').toLowerCase();
+          if (svc.includes('laboratorio') || svc.includes('imágenes') || svc.includes('imagenes')) {
+            this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== id_atencion);
+          } else {
+            this.cargarUltimasAdmisiones();
+          }
+        } else {
+          this.cargarUltimasAdmisiones();
+        }
+      },
       error: (err) => this.swal.error(err.error?.mensaje || 'Error al cambiar estado')
     });
   }
@@ -427,7 +446,15 @@ export class ApsComponent implements OnInit, OnDestroy {
     if (!result.isConfirmed) return;
 
     this.api.actualizarEstadoAtencion(admision.id_atencion, 3).subscribe({
-      next: () => this.cargarUltimasAdmisiones(),
+      next: () => {
+        // Remover inmediatamente de la tabla local si es lab/imagenes
+        const svc = (admision.nombre_servicio || '').toLowerCase();
+        if (svc.includes('laboratorio') || svc.includes('imágenes') || svc.includes('imagenes')) {
+          this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== admision.id_atencion);
+        } else {
+          this.cargarUltimasAdmisiones();
+        }
+      },
       error: (err) => this.swal.error(err.error?.mensaje || 'Error al cambiar estado')
     });
   }

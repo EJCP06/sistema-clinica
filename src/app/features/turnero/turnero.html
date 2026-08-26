@@ -1,5 +1,17 @@
 <div class="h-[100dvh] bg-slate-900 text-white overflow-hidden flex flex-col font-sans relative">
 
+  <!-- SPLASH: PRESIONE OK PARA INICIAR (modo TV) -->
+  <div *ngIf="tvMode && showSplash"
+    class="fixed inset-0 z-[100] bg-slate-900 flex flex-col items-center justify-center gap-8 cursor-pointer select-none"
+    (click)="iniciarTurnero()" (keydown)="iniciarTurnero()">
+    <img src="/logo-cnc.png" alt="Logo" class="w-32 h-32 rounded-2xl bg-white/10 p-3 object-contain" />
+    <h1 class="text-4xl font-black text-white tracking-tight text-center">SALA DE ESPERA Y TURNOS</h1>
+    <p class="text-slate-400 text-lg font-bold uppercase tracking-widest">Clínica Nueva Caracas</p>
+    <div class="mt-8 px-10 py-5 bg-blue-600 text-white text-2xl font-black rounded-2xl animate-pulse">
+      PRESIONE OK PARA INICIAR
+    </div>
+  </div>
+
   <!-- BARRA SUPERIOR: INFO CLÍNICA -->
   <div class="p-4 md:p-8 bg-slate-950 border-b border-slate-800 flex flex-col md:flex-row justify-between items-center shadow-2xl gap-4">
     <div class="flex items-center gap-4 md:gap-6">

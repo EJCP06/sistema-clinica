@@ -1203,6 +1203,28 @@ export class TurneroComponent implements OnInit, OnDestroy {
     // gesto previo es un no-op silencioso y los listeners de desbloqueo siguen.
     desbloquearVozNavegador();
     this.initTarjetasResponsive();
+    // Detectar modo TV: pantalla grande (TV) pero viewport estrecho (navegador de TV).
+    // En este caso, forzar viewport ancho para que las clases md: de Tailwind se activen.
+    if (typeof window !== 'undefined') {
+      const isLargeScreen = window.screen.width >= 1280;
+      const isNarrowViewport = window.innerWidth < 768;
+      this.tvMode = isLargeScreen && isNarrowViewport;
+      if (this.tvMode) {
+        const meta = document.querySelector('meta[name="viewport"]');
+        if (meta) {
+          this.originalViewport = meta.getAttribute('content');
+          meta.setAttribute('content', 'width=1024');
+        }
+        // Solo mostrar splash si NO se desbloqueó audio en esta sesión.
+        // Si ya se dio OK antes (sessionStorage), el audio se re-desbloquea
+        // silenciosamente y el splash no vuelve a aparecer.
+        if (this.audioDesbloqueado) {
+          desbloquearVozNavegador();
+        } else {
+          this.showSplash = true;
+        }
+      }
+    }
     // Marca de versión para verificar en consola (F12) que este turnero corre
     // el código con la guardia anti-doble (un anuncio por ciclo de 10s).
     // El contador de instancias detecta turneros duplicados en la misma pestaña.
@@ -1576,6 +1598,19 @@ private verificarUltimoLlamado() {
       window.removeEventListener('pagehide', this.beforeUnloadHandler);
       this.beforeUnloadHandler = null;
     }
+    // Restaurar viewport original si se modificó para modo TV
+    if (this.tvMode && this.originalViewport) {
+      const meta = document.querySelector('meta[name="viewport"]');
+      if (meta) {
+        meta.setAttribute('content', this.originalViewport);
+      }
+    }
+  }
+
+  /** Oculta el splash de TV y desbloquea el audio con la interacción del usuario. */
+  iniciarTurnero() {
+    this.showSplash = false;
+    this.desbloquearAudio();
   }
 
   cambiarSala(sala: SalaMode) {
@@ -1779,6 +1814,12 @@ private verificarUltimoLlamado() {
   maxVisibleTarjetas: number = 4;
   private mediaQueryMovil: MediaQueryList | null = null;
   private mediaQueryHandler: (() => void) | null = null;
+
+  /** Modo TV: pantalla grande (≥1280px) pero viewport estrecho (<768px). */
+  tvMode: boolean = false;
+  /** Splash de inicio en modo TV: requiere una interacción para desbloquear audio. */
+  showSplash: boolean = false;
+  private originalViewport: string | null = null;
 
   private initTarjetasResponsive() {
     if (typeof window === 'undefined') return;
