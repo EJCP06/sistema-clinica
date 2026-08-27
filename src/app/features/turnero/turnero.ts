@@ -1261,14 +1261,11 @@ export class TurneroComponent implements OnInit, OnDestroy {
           meta.setAttribute('content', 'width=1024');
         }
       }
-      // Mostrar splash en TV y en móvil para desbloquear audio.
-      // Si ya se dio OK antes (sessionStorage), el audio se re-desbloquea
-      // silenciosamente y el splash no vuelve a aparecer.
-      if (this.audioDesbloqueado) {
-        desbloquearVozNavegador();
-      } else {
-        this.showSplash = true;
-      }
+      // SIEMPRE mostrar splash en TV y móvil para desbloquear audio.
+      // Esto garantiza que el usuario toque la pantalla en cada carga.
+      // El navegador requiere una interacción del usuario (touch/click)
+      // para permitir reproducción de audio.
+      this.showSplash = true;
     }
     // Marca de versión para verificar en consola (F12) que este turnero corre
     // el código con la guardia anti-doble (un anuncio por ciclo de 10s).
