@@ -16,6 +16,7 @@ const path = require('path');
 const logger = require('../config/logger');
 const piperWorker = require('./piperWorker');
 const DICCIONARIO = require('../config/diccionario');
+const { normalizarNombre } = require('./normalizador-nombres');
 
 // Detectar raíz del proyecto: probar 3 niveles (local: backend/src/services → project)
 // y 2 niveles (IIS: src/services → project). Se queda con el que tenga la carpeta piper/.
@@ -51,6 +52,50 @@ function aplicarDiccionario(texto) {
 }
 
 /**
+ * Aplica el normalizador fonético a cada palabra del texto.
+ * Solo normaliza palabras que parecen nombres (primera mayúscula o todo mayúsculas).
+ * No toca palabras comunes como "Paciente", "diríjase", etc.
+ */
+function aplicarNormalizadorFonetico(texto) {
+  // Palabras que NO deben ser normalizadas (son parte del texto del llamado)
+  const palabrasIgnorar = new Set([
+    'paciente', 'turno', 'dirijase', 'diríjase', 'consultorio',
+    'laboratorio', 'imagenes', 'imágenes', 'recepcion', 'recepción', 'aps',
+    'el', 'la', 'los', 'las', 'un', 'una', 'de', 'del', 'al', 'a', 'en',
+    'por', 'con', 'para', 'y', 'o', 'que', 'es', 'segundo', 'primero'
+  ]);
+  
+  // Separar el texto manteniendo espacios
+  const tokens = texto.split(/(\s+)/);
+  
+  const tokensNormalizados = tokens.map(token => {
+    // Si es espacio o número, mantener tal cual
+    if (/^\s+$/.test(token) || /^\d+$/.test(token)) return token;
+    
+    // Limpiar puntuación para análisis
+    const limpia = token.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ]/g, '');
+    
+    // Solo normalizar si:
+    // 1. Es una palabra que empieza con mayúscula (probable nombre)
+    // 2. O es todo mayúsculas
+    // 3. Y NO está en la lista de ignorar
+    const esPrimeraMayuscula = /^[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+$/.test(limpia);
+    const esTodoMayusculas = /^[A-ZÁÉÍÓÚÑ]+$/.test(limpia) && limpia.length > 2;
+    const esIgnorada = palabrasIgnorar.has(limpia.toLowerCase());
+    
+    if ((esPrimeraMayuscula || esTodoMayusculas) && !esIgnorada && limpia.length > 2) {
+      // Aplicar normalizador fonético
+      const normalizado = normalizarNombre(token);
+      return normalizado;
+    }
+    
+    return token;
+  });
+  
+  return tokensNormalizados.join('');
+}
+
+/**
  * Genera un archivo WAV con la síntesis de voz del texto proporcionado.
  *
  * @param {string} texto - Texto a convertir en voz
@@ -74,7 +119,12 @@ async function generarAudio(texto, nombrePersonalizado, opts = {}) {
     fs.mkdirSync(TEMP_DIR, { recursive: true });
   }
 
-  const textoFinal = aplicarDiccionario(texto.trim());
+  // 1. Aplicar diccionario (coincidencia exacta)
+  let textoFinal = aplicarDiccionario(texto.trim());
+  
+  // 2. Aplicar normalizador fonético automático a palabras que no fueron reemplazadas
+  // Esto convierte JH→Y, Y→I, W→U, etc. automáticamente
+  textoFinal = aplicarNormalizadorFonetico(textoFinal);
   const nombreArchivo = nombrePersonalizado ? `${nombrePersonalizado}.wav` : `tts_${Date.now()}.wav`;
   const rutaArchivo = path.join(TEMP_DIR, nombreArchivo);
 

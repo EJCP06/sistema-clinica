@@ -147,5 +147,15 @@ export const routes: Routes = [
     loadComponent: () => import('./features/turnero/turnero').then(m => m.TurneroComponent)
   },
 
+  // Modo kiosco para Android TV (sin login, sede automática)
+  {
+    path: 'kiosk',
+    loadComponent: () => import('./features/turnero/turnero-kiosk').then(m => m.TurneroKiosk)
+  },
+  {
+    path: 'kiosk/:sede',
+    loadComponent: () => import('./features/turnero/turnero-kiosk').then(m => m.TurneroKiosk)
+  },
+
   { path: '**', redirectTo: '' }
 ];
