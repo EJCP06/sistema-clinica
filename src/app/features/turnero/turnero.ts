@@ -1260,14 +1260,14 @@ export class TurneroComponent implements OnInit, OnDestroy {
           this.originalViewport = meta.getAttribute('content');
           meta.setAttribute('content', 'width=1024');
         }
-        // Solo mostrar splash si NO se desbloqueó audio en esta sesión.
-        // Si ya se dio OK antes (sessionStorage), el audio se re-desbloquea
-        // silenciosamente y el splash no vuelve a aparecer.
-        if (this.audioDesbloqueado) {
-          desbloquearVozNavegador();
-        } else {
-          this.showSplash = true;
-        }
+      }
+      // Mostrar splash en TV y en móvil para desbloquear audio.
+      // Si ya se dio OK antes (sessionStorage), el audio se re-desbloquea
+      // silenciosamente y el splash no vuelve a aparecer.
+      if (this.audioDesbloqueado) {
+        desbloquearVozNavegador();
+      } else {
+        this.showSplash = true;
       }
     }
     // Marca de versión para verificar en consola (F12) que este turnero corre
