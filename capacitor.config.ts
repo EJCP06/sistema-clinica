@@ -7,10 +7,9 @@ const config: CapacitorConfig = {
   
   // Configuración del servidor (URL del backend)
   server: {
-    // IP de tu PC Windows donde corre el backend
-    // El TV se conectará a esta IP para obtener los datos
-    url: 'http://ip-de-tu-pc:3000',
-    cleartext: true,
+    // URL oficial del sistema (HTTPS con certificado SSL)
+    url: 'https://cola-cat.clinicanuevacaracas.net',
+    // No se necesita cleartext porque ya es HTTPS
   },
 
   // Configuración de Android
