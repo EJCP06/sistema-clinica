@@ -6,7 +6,7 @@
  *
  * Para agregar un nombre difícil: añade una entrada con la clave en
  * MAYÚSCULAS (tal como está en la base de datos) y el valor con la
- * pronunciación deseada (ej. 'JHONATAN': 'Jonathan').
+ * pronunciación deseada (ej. 'JHONATAN': 'Jonatan').
  */
 const DICCIONARIO = {
   'YULIBETH': 'Yulibet',
@@ -42,6 +42,10 @@ const DICCIONARIO = {
   'YERIDIANA': 'Yeridiana',
   'YULIMAR': 'Yulimar',
   'EDWARD': 'Eduar',
+  'YHOANDER': 'Yoander',
+  'YEIMERSON': 'Yeimerson',
+  'YURIBIKSAIDA': 'Yuribiksaida' ,
+  'JHOENDIKSON': 'Yoendikson',
 };
 
 module.exports = DICCIONARIO;
