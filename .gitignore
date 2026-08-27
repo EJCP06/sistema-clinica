@@ -52,3 +52,6 @@ Thumbs.db
 # Piper TTS (modelos y entorno virtual)
 /piper
 /temp
+
+# Android (Capacitor - se regenera con npx cap add android)
+/android
