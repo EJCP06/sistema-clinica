@@ -32,28 +32,108 @@ export function desbloquearVozNavegador() {
   }
 }
 
+/**
+ * Detecta si la app corre en Capacitor (Android/iOS) o en un navegador.
+ */
+export function isCapacitor(): boolean {
+  return typeof window !== 'undefined' && !!(window as any).Capacitor;
+}
+
+/**
+ * Construye la URL completa del backend.
+ * En navegador usa URL relativa (mismo dominio).
+ * En Capacitor usa la URL del capacitor.config.ts.
+ */
+export function getBackendUrl(path: string): string {
+  if (isCapacitor()) {
+    // En Capacitor, usar la URL configurada en capacitor.config.ts
+    const config = (window as any).__CAPACITOR_CONFIG__;
+    const baseUrl = config?.server?.url || 'https://cola-cat.clinicanuevacaracas.net';
+    return `${baseUrl}${path}`;
+  }
+  // En navegador, URL relativa
+  return path;
+}
+
+/**
+ * Descarga audio usando CapacitorHttp (sin CORS) y lo reproduce.
+ * Esta es la solución para Android donde HTML5 Audio no funciona con URLs externas.
+ *
+ * Flujo:
+ *   1. CapacitorHttp.fetch() descarga el WAV sin restricciones CORS
+ *   2. Se convierte a Blob
+ *   3. Se crea un blob URL
+ *   4. Se reproduce con HTML5 Audio
+ */
+export async function descargarYReproducirAudio(url: string): Promise<HTMLAudioElement> {
+  // Importar Capacitor dinámicamente
+  const { CapacitorHttp } = await import('@capacitor/core');
+
+  // 1. Descargar audio con CapacitorHttp (sin CORS)
+  const response = await CapacitorHttp.get({
+    url: url,
+    responseType: 'blob',
+  });
+
+  // 2. Convertir a Blob
+  const blob = new Blob([response.data], { type: 'audio/wav' });
+  const blobUrl = URL.createObjectURL(blob);
+
+  // 3. Reproducir
+  const audio = new Audio(blobUrl);
+  audio.volume = 1.0;
+
+  return new Promise((resolve, reject) => {
+    audio.onended = () => {
+      URL.revokeObjectURL(blobUrl);
+      resolve(audio);
+    };
+    audio.onerror = (err) => {
+      URL.revokeObjectURL(blobUrl);
+      reject(err);
+    };
+    audio.play().catch(reject);
+  });
+}
+
+/**
+ * Descarga audio usando CapacitorHttp y retorna el blob URL.
+ * El caller es responsable de reproducir y limpiar.
+ */
+export async function descargarAudioBlob(url: string): Promise<string> {
+  const { CapacitorHttp } = await import('@capacitor/core');
+
+  const response = await CapacitorHttp.get({
+    url: url,
+    responseType: 'blob',
+  });
+
+  const blob = new Blob([response.data], { type: 'audio/wav' });
+  return URL.createObjectURL(blob);
+}
+
+/**
+ * Usa Text-to-Speech nativo de Capacitor (Android).
+ */
+export async function hablarNativo(texto: string): Promise<void> {
+  try {
+    const { TextToSpeech } = await import('@capacitor-community/text-to-speech');
+    await TextToSpeech.speak({
+      text: texto,
+      lang: 'es-VE',
+      rate: 1.0,
+      pitch: 1.0,
+      volume: 1.0,
+    });
+  } catch (err) {
+    console.error('Error en TTS nativo:', err);
+    throw err;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // GUARDIA GLOBAL ANTI-DOBLE (a nivel de window)
 // ---------------------------------------------------------------------------
-// El problema: aunque el turnero tenga su propia lógica anti-doble, si en la
-// MISMA pestaña existen DOS instancias del componente (p. ej. por HMR del
-// dev server que deja la instancia vieja viva, o por un chunk viejo en caché
-// que monta otra copia), CADA instancia llama a speechSynthesis.speak() con
-// su propio estado interno, y la lógica de una no ve la de la otra → dos
-// voces. La guardia anterior solo cubría UNA instancia.
-//
-// Solución definitiva: envolver `speechSynthesis.speak` UNA sola vez por
-// pestaña (marcador en window). Solo se descarta el MISMO texto (mismo
-// paciente + consultorio) si ya está sonando o sonó hace menos de 9s en esta
-// pestaña, SIN importar cuántas instancias ni qué lógica lo llame. Un texto
-// DISTINTO (otro paciente, otro consultorio: dos doctores con la misma
-// especialidad) NUNCA se bloquea, aunque otra voz esté sonando: el navegador
-// lo encola y ambas voces se escuchan. La repetición legítima cada 10s
-// siempre pasa (10s > 9s). La guardia es solo intra-pestaña: no se comparte
-// entre pestañas ni dispositivos, así cada pantalla anuncia por separado
-// (las voces se sincronizan por la hora absoluta `inicio_ms` del backend).
-// ---------------------------------------------------------------------------
-
 const VENTANA_ANTIDOBLE_MS = 9000;
 
 const GUARDIA_KEY = '__turnero_guardia_instalada';
@@ -76,7 +156,6 @@ function marcarInstalada() {
   try {
     (window as any)[GUARDIA_KEY] = true;
   } catch {
-    // Si no se puede marcar, la guardia se reinstala (inofensivo).
   }
 }
 
@@ -92,7 +171,6 @@ function setUltimoSpeak(texto: string) {
   try {
     (window as any)[ULTIMO_SPEAK_KEY] = { texto, ts: Date.now() };
   } catch {
-    // Almacenamiento no disponible: se ignora.
   }
 }
 
@@ -100,20 +178,16 @@ function limpiarUltimoSpeak() {
   try {
     delete (window as any)[ULTIMO_SPEAK_KEY];
   } catch {
-    // Almacenamiento no disponible: se ignora.
   }
 }
 
 /**
  * Envuelve `speechSynthesis.speak` UNA sola vez por pestaña con una guardia
  * global: el MISMO texto no puede reproducirse dos veces en menos de 9s.
- * Esto hace físicamente imposible el doble anuncio aunque existan dos
- * instancias del turnero (HMR, chunks viejos, doble montaje), porque todas
- * pasan por este mismo envoltorio.
  */
 export function instalarGuardiaGlobalAntiDoble() {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-  if (guardiaYaInstalada()) return; // Ya se envolvió en esta pestaña.
+  if (guardiaYaInstalada()) return;
 
   const synth = window.speechSynthesis;
   const speakOriginal = synth.speak.bind(synth);
@@ -125,17 +199,10 @@ export function instalarGuardiaGlobalAntiDoble() {
       const ultimo = getUltimoSpeak();
       const esElMismoTexto = !!ultimo && ultimo.texto === texto;
 
-      // Solo se bloquea el MISMO texto (mismo paciente + consultorio) si ya
-      // está sonando o sonó hace menos de 9s en esta pestaña. La repetición
-      // legítima cada 10s siempre pasa (10s > 9s). Un texto DISTINTO (dos
-      // doctores con la misma especialidad pero consultorios diferentes) NUNCA
-      // se bloquea, aunque otra voz esté sonando: el navegador lo encola y
-      // ambas voces se escuchan. La guardia es solo intra-pestaña: no se
-      // comparte entre pestañas ni dispositivos, así cada pantalla anuncia.
       const hablandoElMismo = esElMismoTexto && synth.speaking;
       const sonóReciente = esElMismoTexto && ahora - ultimo!.ts < VENTANA_ANTIDOBLE_MS;
       if (hablandoElMismo || sonóReciente) {
-        return; // Doble del mismo anuncio: se descarta en el origen.
+        return;
       }
       setUltimoSpeak(texto);
     }
@@ -146,9 +213,7 @@ export function instalarGuardiaGlobalAntiDoble() {
 }
 
 /**
- * Limpia el registro del último speak (se usa al detener la repetición con
- * Iniciar/Ausente/Retirar: si el mismo paciente se vuelve a llamar justo
- * después, debe sonar de inmediato).
+ * Limpia el registro del último speak.
  */
 export function limpiarGuardiaGlobalAntiDoble() {
   limpiarUltimoSpeak();

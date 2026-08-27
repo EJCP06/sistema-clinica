@@ -6,7 +6,7 @@ import { TurnoDTO } from '../../core/models/dto.models';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription, interval } from 'rxjs';
 import { ApsScrollDirective } from './aps-scroll.directive';
-import { desbloquearVozNavegador, instalarGuardiaGlobalAntiDoble, limpiarGuardiaGlobalAntiDoble } from './voz.util';
+import { desbloquearVozNavegador, instalarGuardiaGlobalAntiDoble, limpiarGuardiaGlobalAntiDoble, isCapacitor, getBackendUrl, descargarAudioBlob } from './voz.util';
 
 type SalaMode = 'aps' | 'aps-espera' | 'lab-espera' | 'lab-en-espera' | 'img-espera' | 'img-en-espera' | 'consulta';
 
@@ -851,18 +851,35 @@ export class TurneroComponent implements OnInit, OnDestroy {
     // último mate el audio del otro.
     this.sintetizandoTTS = true;
     try {
-      const resp = await fetch('/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texto }),
-      });
-      if (!resp.ok) {
-        this.ttsServidorDisponible = false;
-        this.sintetizandoTTS = false;
-        return false;
+      const ttsUrl = getBackendUrl('/api/tts');
+      
+      let blob: Blob;
+      
+      // En Capacitor (Android), usar CapacitorHttp para evitar problemas CORS
+      if (isCapacitor()) {
+        const { CapacitorHttp } = await import('@capacitor/core');
+        const resp = await CapacitorHttp.post({
+          url: ttsUrl,
+          headers: { 'Content-Type': 'application/json' },
+          data: JSON.stringify({ texto }),
+          responseType: 'blob',
+        });
+        blob = new Blob([resp.data], { type: 'audio/wav' });
+      } else {
+        const resp = await fetch(ttsUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ texto }),
+        });
+        if (!resp.ok) {
+          this.ttsServidorDisponible = false;
+          this.sintetizandoTTS = false;
+          return false;
+        }
+        blob = await resp.blob();
       }
+      
       this.ttsServidorDisponible = true;
-      const blob = await resp.blob();
       const url = URL.createObjectURL(blob);
       // Detener audio anterior si existe (defensa: con la marca de síntesis
       // en vuelo el turnero ya no debería llegar aquí con otro audio sonando)
@@ -902,7 +919,19 @@ export class TurneroComponent implements OnInit, OnDestroy {
         if ('speechSynthesis' in window) {
           window.speechSynthesis.cancel();
         }
-        await audio.play();
+        
+        // En Capacitor (Android), usar Crosswalk o plugin nativo
+        if (isCapacitor()) {
+          // Android WebView: forzar reproducción con workaround
+          audio.load();
+          await new Promise<void>((resolve, reject) => {
+            audio.oncanplaythrough = () => resolve();
+            audio.onerror = () => reject(new Error('Error cargando audio'));
+          });
+          await audio.play();
+        } else {
+          await audio.play();
+        }
         return true;
       } catch {
         // Autoplay bloqueado: notificar al caller para que use fallback
@@ -956,7 +985,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
    * Se usa cuando el servidor pre-generó el audio antes de emitir el socket,
    * para que todos los turneros reproduzcan el mismo WAV simultáneamente.
    */
-  private reproducirAudioURL(url: string, onEnd: () => void, onError: () => void): void {
+  private async reproducirAudioURL(url: string, onEnd: () => void, onError: () => void): Promise<void> {
     try {
       if (this.audioServidor) {
         this.audioServidor.pause();
@@ -964,15 +993,31 @@ export class TurneroComponent implements OnInit, OnDestroy {
         URL.revokeObjectURL(this.audioServidor.src);
         this.audioServidor = null;
       }
-      const audio = new Audio(url);
+      
+      // Construir URL completa si es necesaria (para Capacitor/Android)
+      const audioUrl = url.startsWith('http') ? url : getBackendUrl(url);
+      
+      let audio: HTMLAudioElement;
+      let blobUrl: string | null = null;
+      
+      // En Capacitor (Android), descargar audio con CapacitorHttp (sin CORS)
+      if (isCapacitor()) {
+        blobUrl = await descargarAudioBlob(audioUrl);
+        audio = new Audio(blobUrl);
+      } else {
+        audio = new Audio(audioUrl);
+      }
+      
       this.audioServidor = audio;
       const generacion = this.generacionVoz;
       audio.onended = () => {
+        if (blobUrl) URL.revokeObjectURL(blobUrl);
         if (this.audioServidor === audio) this.audioServidor = null;
         if (generacion !== this.generacionVoz) return;
         onEnd();
       };
       audio.onerror = () => {
+        if (blobUrl) URL.revokeObjectURL(blobUrl);
         if (this.audioServidor === audio) this.audioServidor = null;
         if (generacion !== this.generacionVoz) return;
         onError();
@@ -982,7 +1027,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
         if ('speechSynthesis' in window) {
           window.speechSynthesis.cancel();
         }
-        audio.play();
+        await audio.play();
       } catch {
         onError();
       }

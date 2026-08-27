@@ -3,13 +3,12 @@ import { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.clinicanuevacaracas.turnero',
   appName: 'Turnero CNC',
-  webDir: 'dist/sistema-clinica',
+  webDir: 'dist/sistema-clinica/browser',
   
-  // Configuración del servidor (URL del backend)
+  // Servidor: usar assets locales (dist/sistema-clinica)
+  // El backend se llama por HTTP directamente (CapacitorHttp)
   server: {
-    // URL oficial del sistema (HTTPS con certificado SSL)
-    url: 'https://cola-cat.clinicanuevacaracas.net',
-    // No se necesita cleartext porque ya es HTTPS
+    androidScheme: 'https',
   },
 
   // Configuración de Android
@@ -24,6 +23,11 @@ const config: CapacitorConfig = {
   plugins: {
     SplashScreen: {
       launchShowDuration: 0, // Sin splash screen
+    },
+    // Habilitar CapacitorHttp para peticiones HTTP nativas
+    // Esto resuelve problemas de CORS en Android
+    CapacitorHttp: {
+      enabled: true,
     }
   }
 };
