@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">Turnero CNC</string>
-    <string name="title_activity_main">Turnero CNC</string>
-    <string name="package_name">com.clinicanuevacaracas.turnero</string>
-    <string name="custom_url_scheme">com.clinicanuevacaracas.turnero</string>
-</resources>
