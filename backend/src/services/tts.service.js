@@ -42,21 +42,33 @@ const TEMP_DIR = path.join(ROOT, 'temp');
  * Aplica el diccionario de pronunciación al texto (definido en
  * ../config/diccionario.js). Reemplaza cada palabra clave por su versión
  * fonética. La búsqueda ignora mayúsculas/minúsculas.
+ *
+ * @returns {{ texto: string, palabrasDiccionario: Set<string> }}
+ *   palabrasDiccionario contiene los valores de reemplazo en minúsculas,
+ *   para que el normalizador fonético NO los vuelva a procesar.
  */
 function aplicarDiccionario(texto) {
   let resultado = texto;
+  const palabrasDiccionario = new Set();
   for (const [clave, valor] of Object.entries(DICCIONARIO)) {
-    resultado = resultado.replace(new RegExp(clave, 'gi'), valor);
+    if (new RegExp(clave, 'gi').test(resultado)) {
+      palabrasDiccionario.add(valor.toLowerCase());
+      resultado = resultado.replace(new RegExp(clave, 'gi'), valor);
+    }
   }
-  return resultado;
+  return { texto: resultado, palabrasDiccionario };
 }
 
 /**
  * Aplica el normalizador fonético a cada palabra del texto.
  * Solo normaliza palabras que parecen nombres (primera mayúscula o todo mayúsculas).
  * No toca palabras comunes como "Paciente", "diríjase", etc.
+ * Tampoco toca palabras que ya fueron reemplazadas por el diccionario.
+ *
+ * @param {string} texto
+ * @param {Set<string>} palabrasDiccionario - Valores de reemplazo del diccionario (minúsculas)
  */
-function aplicarNormalizadorFonetico(texto) {
+function aplicarNormalizadorFonetico(texto, palabrasDiccionario = new Set()) {
   // Palabras que NO deben ser normalizadas (son parte del texto del llamado)
   const palabrasIgnorar = new Set([
     'paciente', 'turno', 'dirijase', 'diríjase', 'consultorio',
@@ -84,6 +96,12 @@ function aplicarNormalizadorFonetico(texto) {
     const esIgnorada = palabrasIgnorar.has(limpia.toLowerCase());
     
     if ((esPrimeraMayuscula || esTodoMayusculas) && !esIgnorada && limpia.length > 2) {
+      // Si esta palabra ya fue procesada por el diccionario, NO la normalizamos
+      // para no deshacer el reemplazo (ej: diccionario YHOANDER→Yoander, y el
+      // normalizador la cambiaría a Ioander con la regla Y→I)
+      if (palabrasDiccionario.has(limpia.toLowerCase())) {
+        return token;
+      }
       // Aplicar normalizador fonético
       const normalizado = normalizarNombre(token);
       return normalizado;
@@ -119,12 +137,14 @@ async function generarAudio(texto, nombrePersonalizado, opts = {}) {
     fs.mkdirSync(TEMP_DIR, { recursive: true });
   }
 
-  // 1. Aplicar diccionario (coincidencia exacta)
-  let textoFinal = aplicarDiccionario(texto.trim());
+  // 1. Aplicar diccionario (coincidencia exacta) + obtener palabras ya manejadas
+  const { texto: textoDiccionario, palabrasDiccionario } = aplicarDiccionario(texto.trim());
   
   // 2. Aplicar normalizador fonético automático a palabras que no fueron reemplazadas
   // Esto convierte JH→Y, Y→I, W→U, etc. automáticamente
-  textoFinal = aplicarNormalizadorFonetico(textoFinal);
+  // IMPORTANTE: se pasa palabrasDiccionario para que el normalizador NO deshaga
+  // los reemplazos del diccionario (ej: YHOANDER→Yoander no debe convertirse a Ioander)
+  const textoFinal = aplicarNormalizadorFonetico(textoDiccionario, palabrasDiccionario);
   const nombreArchivo = nombrePersonalizado ? `${nombrePersonalizado}.wav` : `tts_${Date.now()}.wav`;
   const rutaArchivo = path.join(TEMP_DIR, nombreArchivo);
 
