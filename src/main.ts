@@ -16,7 +16,9 @@ bootstrapApplication(App, appConfig).catch((err) => console.error(err));
 // Registra el service worker mínimo (PWA). Se necesita para que el sitio sea
 // instalable y Chrome Android permita la voz del turnero SIN gesto del usuario
 // (el autoplay con sonido solo se habilita en apps instaladas).
-if ('serviceWorker' in navigator) {
+// En Capacitor (Android/iOS), NO registrar el service worker para evitar
+// problemas de caché y recursos cruzados.
+if ('serviceWorker' in navigator && !(window as any).Capacitor) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').catch(() => {
       /* Si el SW no se puede registrar (p. ej. http local), el sistema
