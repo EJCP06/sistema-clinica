@@ -11,6 +11,29 @@
     <title>Clínica Nueva Caracas</title>
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script>
+      (function() {
+        /* FIX TV: Android WebView en smart TV puede reportar un device-width
+           muy bajo (por DPI scaling). Detectamos Android TV por user agent
+           (contiene "Android TV", "SmartTV", "GoogleTV" o "AppleTV").
+           Si es TV y pantalla >= 500px, forzamos viewport a 1024 para
+           activar las clases md: de Tailwind (>= 768px). */
+        try {
+          var sw = window.screen.width || 0;
+          var sh = window.screen.height || 0;
+          var realWidth = Math.max(sw, sh);
+          var ua = navigator.userAgent || '';
+          var isAndroidTV = /Android TV|SmartTV|GoogleTV|Apple TV|Android.*TV|Monitor|MiTV/i.test(ua);
+          var isDesktop = (sw > sh && realWidth >= 960); // landscape + pantalla grande real
+          if (isDesktop || (isAndroidTV && realWidth >= 500)) {
+            var meta = document.querySelector('meta[name="viewport"]');
+            if (meta) {
+              meta.setAttribute('content', 'width=1024, initial-scale=1');
+            }
+          }
+        } catch(e) {}
+      })();
+    </script>
     <meta name="theme-color" content="#2563eb" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />

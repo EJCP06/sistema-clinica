@@ -313,17 +313,22 @@
           </div>
         </div>
         <div class="lg:col-span-2 space-y-1.5">
-          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Rol <span class="text-rose-500">*</span></label>
+          <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Roles <span class="text-rose-500">*</span></label>
           <div class="relative rol-dropdown-container">
-            <input type="text" [ngModel]="rolFiltro" (input)="onRolInput($event)" (keydown)="onRolKeydown($event)" (focus)="showRolDropdown = true" [class.border-blue-600]="showRolDropdown" placeholder="Buscar rol..." autocomplete="off" class="w-full px-4 py-2.5 pr-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500" />
+            <input type="text" [ngModel]="rolDisplay" (input)="onRolInput($event)" (keydown)="onRolKeydown($event)" (focus)="showRolDropdown = true" [class.border-blue-600]="showRolDropdown" placeholder="Seleccione roles..." autocomplete="off" class="w-full px-4 py-2.5 pr-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium shadow-sm transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500" />
             <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
               <lucide-icon [name]="ChevronDown" class="w-4 h-4 text-slate-400" [class.rotate-180]="showRolDropdown"></lucide-icon>
             </div>
             <div *ngIf="showRolDropdown" class="absolute z-[100] w-full mt-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600">
               <div class="max-h-48 overflow-y-auto custom-scrollbar p-1">
-                <div *ngFor="let r of rolesConFiltro; let i = index" (click)="selectRol(r.key)" class="px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between" [class.bg-blue-50]="formPersonal.rol === r.key" [class.dark:bg-blue-950]="formPersonal.rol === r.key" [class.bg-blue-100]="rolIndex === i">
-                  <span class="font-bold">{{ toTitleCase(r.nombre) }}</span>
-                  <lucide-icon *ngIf="formPersonal.rol === r.key" [name]="CheckCircle2" class="w-3.5 h-3.5 text-blue-600"></lucide-icon>
+                <div *ngFor="let r of rolesConFiltro; let i = index" (click)="selectRol(r.key)" class="group/rol px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center gap-3" [class.bg-blue-50]="formPersonal.roles.includes(r.key)" [class.dark:bg-blue-950]="formPersonal.roles.includes(r.key)" [class.bg-blue-100]="rolIndex === i">
+                  <div class="relative shrink-0">
+                    <div *ngIf="!formPersonal.roles.includes(r.key)" class="w-5 h-5 rounded-md border-2 border-slate-300 group-hover/rol:border-blue-400 transition-all flex items-center justify-center"></div>
+                    <div *ngIf="formPersonal.roles.includes(r.key)" class="w-5 h-5 rounded-md border-2 border-blue-600 bg-blue-600 transition-all flex items-center justify-center">
+                      <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                  </div>
+                  <span class="lowercase first-letter:uppercase font-bold flex-1">{{ toTitleCase(r.nombre) }}</span>
                 </div>
                 <div *ngIf="rolesConFiltro.length === 0" class="px-4 py-4 text-xs text-slate-400 italic text-center">SIN RESULTADOS</div>
               </div>

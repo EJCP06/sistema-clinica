@@ -506,9 +506,9 @@ const emitirLlamadoNuevo = async (io, admision, sede, consultorio = 'APS', salaE
     const consultorioLower = (consultorio || '').toLowerCase();
     let texto = `Paciente ${nombreNatural},`;
     if (consultorioLower.includes('laboratorio')) {
-      texto += salaEspera ? ' diríjase a laboratorio' : ' diríjase a la recepción de laboratorio';
+      texto += ' diríjase a la recepción de laboratorio';
     } else if (consultorioLower.includes('imagen')) {
-      texto += salaEspera ? ' diríjase a imágenes' : ' diríjase a la recepción de imágenes';
+      texto += ' diríjase a la recepción de imágenes';
     } else if (consultorioLower === 'aps' || consultorioLower.includes('aps')) {
       texto += ' diríjase a la recepción de APS';
     } else {

@@ -13,6 +13,8 @@ export interface Usuario {
   rol: Rol;
   /** Lista de claves de permiso (ej. admision:ver, personal:*). */
   permisos: string[];
+  /** Todos los roles asignados al usuario (muchos a muchos). */
+  roles?: { id: number; key: string; nombre: string; activo?: boolean }[];
   consultorioId?: string;
   consultorio_id?: number;
   servicio_id?: number;

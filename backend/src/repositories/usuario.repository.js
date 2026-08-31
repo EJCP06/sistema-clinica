@@ -203,7 +203,14 @@ const getPersonal = async (sede, rolKey) => {
            WHERE ue.id_usuario = u.id_usuario
          ) x),
         '{}'::json
-      ) AS especialidades_consultorios
+      ) AS especialidades_consultorios,
+      COALESCE(
+        (SELECT json_agg(json_build_object('id', r2.id_rol, 'key', r2.key, 'nombre', r2.nombre, 'activo', r2.activo))
+         FROM "Usuario_Rol" ur2
+         INNER JOIN "Roles" r2 ON ur2.id_rol = r2.id_rol
+         WHERE ur2.id_usuario = u.id_usuario),
+        '[]'::json
+      ) AS roles
     FROM "Usuarios" u
     LEFT JOIN "Roles" r ON u.id_rol = r.id_rol
     LEFT JOIN "Consultorios" c ON u.id_consultorio = c.id_consultorio
@@ -247,6 +254,10 @@ const crearPersonal = async (data) => {
   );
   const idUsuario = result.rows[0].id_usuario;
   await sincronizarEspecialidades(idUsuario, data.especialidades, data.especialidadesInactivas, data.especialidadesConsultorios);
+  // Sincronizar roles múltiples (si se provee el array)
+  if (Array.isArray(data.roles) && data.roles.length > 0) {
+    await sincronizarRoles(idUsuario, data.roles, data.sede);
+  }
   return result.rows[0];
 };
 
@@ -260,6 +271,24 @@ const crearPersonal = async (data) => {
  * @param {Array<number>|null|undefined} especialidadesInactivas - IDs inactivas
  * @param {Object|null|undefined} especialidadesConsultorios - Mapa { idEspecialidad: idConsultorio }
  */
+/**
+ * Sincroniza los roles de un usuario en la tabla puente "Usuario_Rol".
+ * Borra los roles actuales y guarda los nuevos.
+ */
+const sincronizarRoles = async (idUsuario, rolesKeys, sede) => {
+  if (!idUsuario || !Array.isArray(rolesKeys)) return;
+  await pool.query('DELETE FROM "Usuario_Rol" WHERE id_usuario = $1', [idUsuario]);
+  for (const key of rolesKeys) {
+    const rolRes = await pool.query('SELECT id_rol FROM "Roles" WHERE key = $1 AND id_sede = $2', [key, sede]);
+    if (rolRes.rows[0]) {
+      await pool.query(
+        'INSERT INTO "Usuario_Rol" (id_usuario, id_rol) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [idUsuario, rolRes.rows[0].id_rol]
+      );
+    }
+  }
+};
+
 const sincronizarEspecialidades = async (idUsuario, especialidades, especialidadesInactivas, especialidadesConsultorios) => {
   if (idUsuario === null || idUsuario === undefined) return;
   await pool.query('DELETE FROM "Usuario_Especialidad" WHERE id_usuario = $1', [idUsuario]);
@@ -289,6 +318,7 @@ const actualizarPersonal = async (id, sede, fields) => {
   let especialidades = null;
   let especialidadesInactivas = null;
   let especialidadesConsultorios = null;
+  let rolesMulti = null;
   if (fields.especialidades !== undefined) {
     especialidades = fields.especialidades;
     delete fields.especialidades;
@@ -301,12 +331,15 @@ const actualizarPersonal = async (id, sede, fields) => {
     especialidadesConsultorios = fields.especialidades_consultorios;
     delete fields.especialidades_consultorios;
   }
+  if (fields.roles !== undefined) {
+    rolesMulti = fields.roles;
+    delete fields.roles;
+  }
 
   for (const key of keys) {
-    // "especialidades", "especialidades_inactivas" y
-    // "especialidades_consultorios" no son columnas de "Usuarios": se
-    // sincronizan en la tabla puente después del UPDATE.
-    if (key === 'especialidades' || key === 'especialidades_inactivas' || key === 'especialidades_consultorios') continue;
+    // "especialidades", "especialidades_inactivas", "especialidades_consultorios"
+    // y "roles" no son columnas de "Usuarios": se sincronizan después del UPDATE.
+    if (key === 'especialidades' || key === 'especialidades_inactivas' || key === 'especialidades_consultorios' || key === 'roles') continue;
     if (key === 'rol') {
       // El rol debe resolverse en la sede NUEVA del usuario (si viene en el
       // mismo guardado) y no en la sede del admin que edita: si se usaba la
@@ -336,6 +369,12 @@ const actualizarPersonal = async (id, sede, fields) => {
 
   if (especialidades !== null) {
     await sincronizarEspecialidades(id, especialidades, especialidadesInactivas, especialidadesConsultorios);
+  }
+  // Sincronizar roles múltiples (si se provee el array)
+  if (rolesMulti !== null) {
+    const sedeDelRol = fields.id_sede !== undefined && fields.id_sede !== null
+      ? Number(fields.id_sede) : sede;
+    await sincronizarRoles(id, rolesMulti, sedeDelRol);
   }
 };
 
@@ -385,6 +424,22 @@ const eliminarPersonal = async (id, sede) => {
   }
 };
 
+/**
+ * Obtiene todos los roles de un usuario desde la tabla Usuario_Rol.
+ * Cada rol incluye id, key (nombre técnico), nombre visible y si está activo.
+ */
+const getRolesDeUsuario = async (idUsuario) => {
+  const result = await pool.query(
+    `SELECT r.id_rol AS id, r.key, r.nombre, r.activo
+     FROM "Usuario_Rol" ur
+     INNER JOIN "Roles" r ON ur.id_rol = r.id_rol
+     WHERE ur.id_usuario = $1
+     ORDER BY r.nombre`,
+    [idUsuario]
+  );
+  return result.rows;
+};
+
 module.exports = {
   findByCedulas,
   findByCedula,
@@ -392,6 +447,7 @@ module.exports = {
   findManyByCedula,
   findByCedulaSimple,
   findByCedulaSede,
+  getRolesDeUsuario,
   actualizarSesionToken,
   actualizarSesionTokenSiCoincide,
   updatePasswordByCedula,
@@ -404,4 +460,5 @@ module.exports = {
   actualizarPersonal,
   eliminarPersonal,
   sincronizarEspecialidades,
+  sincronizarRoles,
 };

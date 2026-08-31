@@ -12,21 +12,50 @@ export function desbloquearVozNavegador() {
   if (typeof window === 'undefined') return;
 
   // Desbloquear speechSynthesis
+  // Se hace un speak() silencioso dentro del gesto de usuario para que Chrome
+  // desbloquee el motor. Inmediatamente en onstart se cancela para que NUNCA
+  // suene en paralelo con Piper. Sin el cancel() en onstart la utterance
+  // quedaría encolada y chocaría con el audio de Piper.
   if ('speechSynthesis' in window) {
     try {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(' ');
       utterance.volume = 0;
-      utterance.rate = 1;
+      utterance.rate = 10; // velocidad máxima: termina en ~0ms si llega a sonar
+      // Cancelar en cuanto el motor la procesa: desbloquea el motor sin emitir sonido
+      utterance.onstart = () => {
+        try { window.speechSynthesis.cancel(); } catch { /* ignorar */ }
+      };
       window.speechSynthesis.speak(utterance);
     } catch {
     }
   }
 
   // Desbloquear HTML5 Audio (para Piper TTS)
+  // Estrategia 1: AudioContext + oscillator (método más confiable en Chrome)
+  // Chrome desbloquea HTMLAudioElement.play() después de crear y reanudar
+  // un AudioContext dentro de un gesto de usuario.
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (AudioCtx) {
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      gain.gain.value = 0.001;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.05);
+      // Reanudar si estaba suspendido (requiere gesto de usuario)
+      ctx.resume();
+    }
+  } catch {
+  }
+
+  // Estrategia 2: HTML5 Audio silencioso (respaldo)
   try {
     const silent = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
-    silent.volume = 0;
+    silent.volume = 0.01;
     silent.play().catch(() => {});
   } catch {
   }
@@ -39,19 +68,21 @@ export function isCapacitor(): boolean {
   return typeof window !== 'undefined' && !!(window as any).Capacitor;
 }
 
+import { environment } from '../../../environments/environment';
+
 /**
  * Construye la URL completa del backend.
- * En navegador usa URL relativa (mismo dominio).
- * En Capacitor usa la URL del capacitor.config.ts.
+ * En navegador usa URL relativa (mismo dominio, funciona con proxy de ng serve y Nginx).
+ * En Capacitor usa la URL del environment Angular (configurada por build configuration:
+ * environment.capacitor.ts = producción, environment.capacitor.dev.ts = desarrollo local).
  */
 export function getBackendUrl(path: string): string {
   if (isCapacitor()) {
-    // En Capacitor, usar la URL configurada en capacitor.config.ts
-    const config = (window as any).__CAPACITOR_CONFIG__;
-    const baseUrl = config?.server?.url || 'https://cola-cat.clinicanuevacaracas.net';
-    return `${baseUrl}${path}`;
+    // Extraer la base URL del environment apiUrl (ej: 'https://cola-cat.../api' → 'https://cola-cat...')
+    const apiBase = environment.apiUrl.replace(/\/api$/, '');
+    return `${apiBase}${path}`;
   }
-  // En navegador, URL relativa
+  // En navegador, URL relativa (el proxy de ng serve o Nginx se encarga)
   return path;
 }
 

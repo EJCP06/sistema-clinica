@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LucideAngularModule, Bell, Volume2, Clock, Users, Stethoscope, FlaskConical, ScanLine, ClipboardList, ArrowLeft, LucideIconData } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
@@ -339,11 +339,20 @@ export class TurneroComponent implements OnInit, OnDestroy {
    */
   private sintetizandoTTS: boolean = false;
 
-  /** Indica si el motor de voz está ocupado (audio del servidor sonando, síntesis en vuelo o Web Speech hablando). */
+  /**
+   * true mientras el navegador (fallback) está hablando vía Web Speech API.
+   * Se usa en motorVozOcupado() para bloquear nuevos anuncios sin incluir la
+   * utterance de DESBLOQUEO (volumen=0) que se usa solo para activar el motor.
+   */
+  private isBrowserTTSSpeaking: boolean = false;
+
+  /** Indica si el motor de voz está ocupado (audio del servidor sonando, síntesis en vuelo
+   * o el navegador hablando con el fallback Web Speech). Se usa isBrowserTTSSpeaking
+   * en lugar de speechSynthesis.speaking para excluir la utterance de desbloqueo. */
   private motorVozOcupado(): boolean {
     return this.audioServidor !== null ||
       this.sintetizandoTTS ||
-      ('speechSynthesis' in window && window.speechSynthesis.speaking);
+      this.isBrowserTTSSpeaking;
   }
   /**
    * Generación de voz: se incrementa cada vez que se detiene un anuncio o
@@ -527,6 +536,9 @@ export class TurneroComponent implements OnInit, OnDestroy {
       audioUrl: data.audio_url || undefined,
     };
     this.anunciosActivos.set(id, anuncio);
+    // Resetear disponibilidad del servidor TTS en cada llamado nuevo para que
+    // tras un error temporal se reintente en lugar de quedarse en fallback permanente.
+    this.ttsServidorDisponible = null;
     this.iniciarRepeticionAnuncio(anuncio);
     // Memoria anti-voz-doble para polling
     this.ultimoLlamadoProcesadoId = id;
@@ -633,6 +645,13 @@ export class TurneroComponent implements OnInit, OnDestroy {
    * Respeta la guardia global anti-doble y serializa las voces (cola si hay otra sonando).
    */
   private reproducirAudio(a: AnuncioActivo): boolean {
+    // No reproducir audio mientras el splash esté visible (el usuario aún no
+    // tocó "TOCA PARA INICIAR"). El anuncio queda en anunciosActivos y se
+    // reproducirá cuando iniciarTurnero() lo procese.
+    if (this.showSplash) {
+      // Do not show visual modal if splash is visible (audio is not ready either)
+      return false;
+    }
     if (!('speechSynthesis' in window)) {
       console.error('SpeechSynthesis no soportado.');
       return false;
@@ -649,9 +668,9 @@ export class TurneroComponent implements OnInit, OnDestroy {
       // doble voz cuando el WAV pre-sintetizado falla y se usa POST /api/tts.
       const destinoModulo = (a.consultorio || '').toLowerCase();
       if (destinoModulo.includes('laboratorio')) {
-        texto = `Paciente ${nombreCompleto}, diríjase a laboratorio`;
+        texto = `Paciente ${nombreCompleto}, diríjase a la recepción de laboratorio`;
       } else if (destinoModulo.includes('imagen')) {
-        texto = `Paciente ${nombreCompleto}, diríjase a imágenes`;
+        texto = `Paciente ${nombreCompleto}, diríjase a la recepción de imágenes`;
       } else {
         texto = `Paciente ${nombreCompleto}, diríjase a la recepción de APS`;
       }
@@ -693,7 +712,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       return false;
     }
     // Si el motor está ocupado (otra voz sonando o sintetizando), encolar y
-    // salir: sonará cuando el motor se libere (onend procesa la cola).
+    // mostrar modal de inmediato: el audio sonará cuando el motor se libere.
     // IMPORTANTE: al ENCOLAR no se reclama ultimoAnuncioGlobal. Si se fijara
     // aquí (con sonado:false), el onExito del anuncio en curso (p. ej. el
     // ciclo de 10s del doctor A) marcaría ESE registro como "sonado" y el
@@ -722,19 +741,27 @@ export class TurneroComponent implements OnInit, OnDestroy {
       if (ultimoAnuncioGlobal) ultimoAnuncioGlobal.sonado = true;
       this.quitarListenersDesbloqueo();
       this.sintetizandoTTS = false;
+      if (this.modalLlamadoTimer) { clearTimeout(this.modalLlamadoTimer); this.modalLlamadoTimer = null; }
       if (a.speakTimerId) {
         clearTimeout(a.speakTimerId);
         a.speakTimerId = null;
       }
       a.ultimaVozMs = Date.now();
+      if (this.colaVoz.length === 0) {
+        this.cerrarModalLlamado();
+      }
       this.procesarColaVoz();
     };
     const onError = (msg?: string) => {
       if (msg) console.warn(msg);
       this.sintetizandoTTS = false;
+      if (this.modalLlamadoTimer) { clearTimeout(this.modalLlamadoTimer); this.modalLlamadoTimer = null; }
       if (a.speakTimerId) {
         clearTimeout(a.speakTimerId);
         a.speakTimerId = null;
+      }
+      if (this.colaVoz.length === 0) {
+        this.cerrarModalLlamado();
       }
       this.procesarColaVoz();
     };
@@ -745,11 +772,15 @@ export class TurneroComponent implements OnInit, OnDestroy {
     }
     a.speakTimerId = setTimeout(() => {
       a.speakTimerId = null;
+      // Mostrar modal JUSTO cuando el audio empieza a sonar.
+      // Se deferred con setTimeout(0) para que el change detection de Angular
+      // NO interrumpa la síntesis de voz que se configura en este hilo.
+      setTimeout(() => this.mostrarModalLlamado(a), 0);
       this.reproducirTexto(texto, onExito, onError, a.audioUrl);
-      // Solo el primer uso del audio pre-sintetizado: las repeticiones usan
-      // el flujo normal (POST /api/tts) porque el WAV temporal puede haber
-      // sido eliminado por el cleanup.
-      a.audioUrl = undefined;
+      // NO borrar audioUrl: el WAV dura 120s (limpieza del backend) y el
+      // ciclo de llamados dura 115s, así que siempre está disponible.
+      // Si el WAV falla (404 por limpieza tardía), reproducirTexto ya tiene
+      // fallback a POST /api/tts y de ahí a AudioContext.
     }, retrasoSpeak);
     return true;
   }
@@ -783,17 +814,31 @@ export class TurneroComponent implements OnInit, OnDestroy {
           if (ultimoAnuncioGlobal) ultimoAnuncioGlobal.sonado = true;
           this.quitarListenersDesbloqueo();
           this.sintetizandoTTS = false;
+          if (this.modalLlamadoTimer) { clearTimeout(this.modalLlamadoTimer); this.modalLlamadoTimer = null; }
           if (esAnuncioUnico) this.anunciosActivos.delete(next.idAtencion);
           next.ultimaVozMs = Date.now();
+          if (this.colaVoz.length === 0) {
+            this.cerrarModalLlamado();
+          }
           this.procesarColaVoz();
         };
         const onError = (msg?: string) => {
           if (msg) console.warn(msg);
           this.sintetizandoTTS = false;
+          if (this.modalLlamadoTimer) { clearTimeout(this.modalLlamadoTimer); this.modalLlamadoTimer = null; }
           if (esAnuncioUnico) this.anunciosActivos.delete(next.idAtencion);
+          if (this.colaVoz.length === 0) {
+            this.cerrarModalLlamado();
+          }
           this.procesarColaVoz();
         };
-        this.reproducirTexto(texto, onExito, onError);
+        // Mostrar modal al reproducir desde la cola (deferred para no interrumpir audio)
+        setTimeout(() => this.mostrarModalLlamado(next), 0);
+        // Pasar audioUrl pre-sintetizado si existe (APS/Lab/Imágenes lo mandan),
+        // para que suene Piper en lugar del fallback al navegador.
+        const audioUrlCola = next.audioUrl;
+        next.audioUrl = undefined; // Solo primer uso; repeticiones van por POST
+        this.reproducirTexto(texto, onExito, onError, audioUrlCola);
         return; // Solo uno a la vez; onend continuará la cola
       }
     }
@@ -818,9 +863,9 @@ export class TurneroComponent implements OnInit, OnDestroy {
       // doble voz cuando el WAV pre-sintetizado falla y se usa POST /api/tts.
       const destinoModulo = (a.consultorio || '').toLowerCase();
       if (destinoModulo.includes('laboratorio')) {
-        texto = `Paciente ${nombreCompleto}, diríjase a laboratorio`;
+        texto = `Paciente ${nombreCompleto}, diríjase a la recepción de laboratorio`;
       } else if (destinoModulo.includes('imagen')) {
-        texto = `Paciente ${nombreCompleto}, diríjase a imágenes`;
+        texto = `Paciente ${nombreCompleto}, diríjase a la recepción de imágenes`;
       } else {
         texto = `Paciente ${nombreCompleto}, diríjase a la recepción de APS`;
       }
@@ -873,6 +918,8 @@ export class TurneroComponent implements OnInit, OnDestroy {
         });
         if (!resp.ok) {
           this.ttsServidorDisponible = false;
+          // Auto-resetear después de 30s para reintentar el servidor
+          setTimeout(() => { this.ttsServidorDisponible = null; }, 30000);
           this.sintetizandoTTS = false;
           return false;
         }
@@ -890,6 +937,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
         this.audioServidor = null;
       }
       const audio = new Audio(url);
+      audio.preload = 'auto';
       this.audioServidor = audio;
       // Captura la generación actual: si al terminar (o fallar) este audio ya
       // se anunció OTRO paciente (generación cambiada), estos callbacks se
@@ -905,11 +953,13 @@ export class TurneroComponent implements OnInit, OnDestroy {
         onEnd();
       };
       audio.onerror = () => {
+        // SOLO limpiar recursos y resetear estado. NO llamar onError() aquí
+        // porque el catch de audio.play() ya maneja el fallback (AudioContext).
+        // Si onError() se dispara aquí Y en el catch, se lanzan 2 reproducciones
+        // en paralelo (doble voz).
         URL.revokeObjectURL(url);
-        this.sintetizandoTTS = false;
         if (this.audioServidor === audio) this.audioServidor = null;
-        if (generacion !== this.generacionVoz) return;
-        onError();
+        this.sintetizandoTTS = false;
       };
       this.ultimoDisparoVozMs = Date.now();
       try {
@@ -934,10 +984,23 @@ export class TurneroComponent implements OnInit, OnDestroy {
         }
         return true;
       } catch {
-        // Autoplay bloqueado: notificar al caller para que use fallback
-        this.sintetizandoTTS = false;
-        onError();
-        return false;
+        // Autoplay bloqueado: intentar con AudioContext (byppasea autoplay policy)
+        // IMPORTANTE: limpiar el <audio> ANTES para que su onerror no dispare
+        // el fallback de voz del navegador encima de Piper.
+        try {
+          audio.onended = null;
+          audio.onerror = null;
+          audio.pause();
+          audio.src = '';
+          URL.revokeObjectURL(url);
+          this.audioServidor = null;
+          const arrayBuffer = await blob.arrayBuffer();
+          await this.reproducirBlobConAudioContext(arrayBuffer, generacion, onEnd);
+          return true;
+        } catch {
+          this.sintetizandoTTS = false;
+          return false;
+        }
       }
     } catch {
       this.sintetizandoTTS = false;
@@ -963,21 +1026,42 @@ export class TurneroComponent implements OnInit, OnDestroy {
    * Si se proporciona audioUrl, reproduce ese WAV directamente (audio
    * pre-sintetizado por el servidor para sincronización entre pantallas).
    */
-  private reproducirTexto(texto: string, onExito: () => void, onError: (msg?: string) => void, audioUrl?: string): void {
+  private async reproducirTexto(texto: string, onExito: () => void, onError: (msg?: string) => void, audioUrl?: string): Promise<void> {
     // Si hay audio pre-sintetizado, reproducirlo directamente (más rápido y sincronizado)
     if (audioUrl) {
-      this.reproducirAudioURL(audioUrl, onExito, onError);
+      this.reproducirAudioURL(audioUrl, onExito, async () => {
+        // Si el WAV falla (404, Piper no disponible), intentar POST /api/tts on-the-fly
+        let fallbackLlamado = false;
+        const fallbackNavegador = () => {
+          if (fallbackLlamado) return; // Evita doble llamada
+          fallbackLlamado = true;
+          if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+          this.reproducirTextoNavegador(texto, onExito, onError);
+        };
+        const ok = await this.reproducirConServidor(texto, onExito, fallbackNavegador);
+        // IMPORTANTE: si ok=false, reproducirConServidor NO llamó onError (retornó
+        // false directo), así que el fallback aún no se activó → activarlo ahora.
+        if (!ok) fallbackNavegador();
+      });
       return;
     }
     // Si ya se detectó que el servidor no está disponible, ir directo al fallback
     if (this.ttsServidorDisponible === false) {
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
       this.reproducirTextoNavegador(texto, onExito, onError);
       return;
     }
-    this.reproducirConServidor(texto, onExito, () => {
-      // Fallback a Web Speech API si el servidor no responde
+    let fallbackLlamado = false;
+    const fallbackNavegador = () => {
+      if (fallbackLlamado) return; // Evita doble llamada
+      fallbackLlamado = true;
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
       this.reproducirTextoNavegador(texto, onExito, onError);
-    });
+    };
+    const ok = await this.reproducirConServidor(texto, onExito, fallbackNavegador);
+    // IMPORTANTE: si ok=false, reproducirConServidor NO llamó onError (retornó
+    // false directo), así que el fallback aún no se activó → activarlo ahora.
+    if (!ok) fallbackNavegador();
   }
 
   /**
@@ -1004,8 +1088,10 @@ export class TurneroComponent implements OnInit, OnDestroy {
       if (isCapacitor()) {
         blobUrl = await descargarAudioBlob(audioUrl);
         audio = new Audio(blobUrl);
+        audio.preload = 'auto';
       } else {
         audio = new Audio(audioUrl);
+        audio.preload = 'auto';
       }
       
       this.audioServidor = audio;
@@ -1017,10 +1103,11 @@ export class TurneroComponent implements OnInit, OnDestroy {
         onEnd();
       };
       audio.onerror = () => {
+        // SOLO limpiar recursos. NO llamar onError() aquí porque el catch de
+        // audio.play() ya maneja el fallback. Si onError() se dispara aquí Y en
+        // el catch, se lanzan 2 reproducciones en paralelo (doble voz).
         if (blobUrl) URL.revokeObjectURL(blobUrl);
         if (this.audioServidor === audio) this.audioServidor = null;
-        if (generacion !== this.generacionVoz) return;
-        onError();
       };
       this.ultimoDisparoVozMs = Date.now();
       try {
@@ -1029,11 +1116,80 @@ export class TurneroComponent implements OnInit, OnDestroy {
         }
         await audio.play();
       } catch {
-        onError();
+        // Autoplay bloqueado: intentar con AudioContext (byppasea autoplay policy)
+        // IMPORTANTE: limpiar el <audio> ANTES para que su onerror no dispare
+        // el fallback de voz del navegador encima de Piper.
+        try {
+          audio.onended = null;
+          audio.onerror = null;
+          audio.pause();
+          audio.src = '';
+          if (blobUrl) URL.revokeObjectURL(blobUrl);
+          this.audioServidor = null;
+          await this.reproducirConAudioContext(audioUrl, generacion, onEnd);
+        } catch {
+          onError();
+        }
       }
     } catch {
       onError();
     }
+  }
+
+  /**
+   * Reproduce audio usando AudioContext (Web Audio API).
+   * Funciona cuando HTMLAudioElement.play() está bloqueado por autoplay policy.
+   */
+  private async reproducirConAudioContext(url: string, generacion: number, onEnd: () => void): Promise<void> {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) throw new Error('AudioContext no disponible');
+
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const arrayBuffer = await resp.arrayBuffer();
+
+    const ctx = new AudioCtx();
+    const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+    const source = ctx.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(ctx.destination);
+
+    // IMPORTANTE: NO resetear sintetizandoTTS aquí. Debe permanecer true
+    // mientras AudioContext suena para que motorVozOcupado() returne true
+    // y el ciclo de 10s no lance otra reproducción encima.
+    source.onended = () => {
+      this.sintetizandoTTS = false;
+      if (generacion !== this.generacionVoz) return;
+      ctx.close();
+      onEnd();
+    };
+    source.start();
+  }
+
+  /**
+   * Reproduce un ArrayBuffer de audio usando AudioContext.
+   * Usado cuando el audio viene de un blob (POST /api/tts) y audio.play() falla.
+   */
+  private async reproducirBlobConAudioContext(arrayBuffer: ArrayBuffer, generacion: number, onEnd: () => void): Promise<void> {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) throw new Error('AudioContext no disponible');
+
+    const ctx = new AudioCtx();
+    const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+    const source = ctx.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(ctx.destination);
+
+    // IMPORTANTE: NO resetear sintetizandoTTS aquí. Debe permanecer true
+    // mientras AudioContext suena para que motorVozOcupado() returne true
+    // y no se lance otra reproducción encima.
+    source.onended = () => {
+      this.sintetizandoTTS = false;
+      if (generacion !== this.generacionVoz) return;
+      ctx.close();
+      onEnd();
+    };
+    source.start();
   }
 
   /**
@@ -1047,18 +1203,26 @@ export class TurneroComponent implements OnInit, OnDestroy {
     const utterance = new SpeechSynthesisUtterance(texto);
     this.aplicarVoz(utterance);
     utterance.rate = 0.9;
-    utterance.onstart = () => {
-      onExito();
-    };
+    // onstart NO llama onExito: hacerlo liberaba sintetizandoTTS y el motor
+    // antes de que la locución terminara, permitiendo que el polling disparara
+    // una nueva reproducción que cancelaba la actual (se escuchaba solo "pa").
     utterance.onend = () => {
+      this.isBrowserTTSSpeaking = false;
       onExito();
     };
     utterance.onerror = (e) => {
-      if (e.error === 'interrupted' || e.error === 'canceled') return;
+      this.isBrowserTTSSpeaking = false;
+      // Aunque sea una cancelación intencional, liberar el motor para que el
+      // siguiente anuncio en cola pueda procesarse.
+      if (e.error === 'interrupted' || e.error === 'canceled') {
+        onError();
+        return;
+      }
       onError(`SpeechSynthesis error: ${e.error}`);
     };
     if (window.speechSynthesis.paused) window.speechSynthesis.resume();
     this.ultimoDisparoVozMs = Date.now();
+    this.isBrowserTTSSpeaking = true;
     window.speechSynthesis.speak(utterance);
   }
 
@@ -1086,6 +1250,8 @@ export class TurneroComponent implements OnInit, OnDestroy {
    * de reanudación debe sobrevivir para que la voz continúe el ciclo de 10s.
    */
   private detenerRepeticion(idAtencion?: number, preservarSesion: boolean = false): void {
+    // Guardar estado del motor ANTES de modificar, para decidir si cerrar modal.
+    const motorActivoAntes = this.sintetizandoTTS;
     if (idAtencion !== undefined) {
       const a = this.anunciosActivos.get(idAtencion);
       if (a) {
@@ -1119,6 +1285,21 @@ export class TurneroComponent implements OnInit, OnDestroy {
     // Reiniciar guardias para permitir re-llamado inmediato del mismo paciente
     ultimoAnuncioGlobal = null;
     limpiarGuardiaGlobalAntiDoble();
+    // Cerrar modal de llamado visual SOLO si la voz ya no estaba sonando
+    // ANTES de esta detención. Si la voz sigue activa (AudioContext reproduciendo),
+    // el onExito la cerrará cuando termine.
+    if (!motorActivoAntes) {
+      this.cerrarModalLlamado();
+    } else {
+      // Respaldo: cerrar el modal tras 10s si la voz no terminó
+      // (generacionVoz++ invalidó los callbacks onExito/onError).
+      if (this.modalLlamadoTimer) clearTimeout(this.modalLlamadoTimer);
+      this.modalLlamadoTimer = setTimeout(() => {
+        this.modalLlamadoTimer = null;
+        this.sintetizandoTTS = false;
+        this.cerrarModalLlamado();
+      }, 10000);
+    }
     if (preservarSesion) {
       // F5: la memoria de reanudación debe sobrevivir a la recarga.
       return;
@@ -1234,6 +1415,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
     readonly api: ApiService,
     readonly route: ActivatedRoute,
     readonly router: Router,
+    readonly cdr: ChangeDetectorRef,
   ) {}
 
   /** Inicializa: valida sede, carga voz femenina, suscribe a cambios y polling, inicia reloj. */
@@ -1250,8 +1432,14 @@ export class TurneroComponent implements OnInit, OnDestroy {
     this.initTarjetasResponsive();
     // Detectar modo TV: pantalla grande (TV) pero viewport estrecho (navegador de TV).
     // En este caso, forzar viewport ancho para que las clases md: de Tailwind se activen.
+    // Se detecta Android TV por user agent para no confundir con phones/tablets normales.
     if (typeof window !== 'undefined') {
-      const isLargeScreen = window.screen.width >= 1280;
+      const sw = window.screen.width || 0;
+      const sh = window.screen.height || 0;
+      const realWidth = Math.max(sw, sh);
+      const ua = navigator.userAgent || '';
+      const isAndroidTV = /Android TV|SmartTV|GoogleTV|Apple TV|Android.*TV|Monitor|MiTV/i.test(ua);
+      const isLargeScreen = isAndroidTV && realWidth >= 500;
       const isNarrowViewport = window.innerWidth < 768;
       this.tvMode = isLargeScreen && isNarrowViewport;
       if (this.tvMode) {
@@ -1443,55 +1631,18 @@ export class TurneroComponent implements OnInit, OnDestroy {
 
   private desbloquearAudio() {
     if (this.sonidoConfirmado) return;
-    const estaHablando = this.motorVozOcupado();
-    if (estaHablando) {
-      return;
-    }
     this.audioDesbloqueado = true;
     try {
       sessionStorage.setItem('turnero_audio_unlocked', 'true');
     } catch {
     }
+    // Solo desbloquear audio (AudioContext + speechSynthesis).
+    // NO reproducir anuncios aquí: el socket y el ciclo de 10s ya los
+    // manejan. Reproducir aquí causaría doble voz (el mismo audio suena
+    // dos veces: una por desbloquearAudio y otra por el socket/ciclo).
     desbloquearVozNavegador();
-
-    const ahora = Date.now();
-    let forzado = false;
-    for (const a of this.anunciosActivos.values()) {
-      const nuncaSono = a.ultimaVozMs === 0;
-      const haceTiempo = a.ultimaVozMs > 0 && ahora - a.ultimaVozMs > 8000;
-      if (nuncaSono || haceTiempo) {
-        if (a.speakTimerId) {
-          clearTimeout(a.speakTimerId);
-          a.speakTimerId = null;
-        }
-        const texto = this.construirTexto(a);
-        const bloqueaDoble = !!ultimoAnuncioGlobal && ultimoAnuncioGlobal.texto === texto && (
-          estaHablando || (ultimoAnuncioGlobal.sonado && ahora - ultimoAnuncioGlobal.ts < VENTANA_ANTIDOBLE_MS)
-        );
-        if (!bloqueaDoble) {
-          ultimoAnuncioGlobal = { texto, ts: ahora, sonado: false };
-          const onExito = () => {
-            this.sonidoConfirmado = true;
-            if (ultimoAnuncioGlobal) ultimoAnuncioGlobal.sonado = true;
-            this.quitarListenersDesbloqueo();
-            a.ultimaVozMs = Date.now();
-            this.procesarColaVoz();
-          };
-          const onError = (msg?: string) => {
-            if (msg) console.warn(msg);
-            this.procesarColaVoz();
-          };
-          this.reproducirTexto(texto, onExito, onError);
-          forzado = true;
-          break;
-        }
-      }
-    }
-
-    if (!forzado) {
-      this.procesarColaVoz();
-    }
-    this.verificarUltimoLlamado();
+    this.sonidoConfirmado = true;
+    this.quitarListenersDesbloqueo();
   }
 
   /**
@@ -1647,12 +1798,24 @@ private verificarUltimoLlamado() {
         meta.setAttribute('content', this.originalViewport);
       }
     }
+    // Cerrar modal de llamado visual
+    this.cerrarModalLlamado();
   }
 
   /** Oculta el splash de TV y desbloquea el audio con la interacción del usuario. */
   iniciarTurnero() {
     this.showSplash = false;
     this.desbloquearAudio();
+    // Reproducir el anuncio más reciente que llegó mientras el splash estaba
+    // visible (el usuario aún no había tocado la pantalla, así que el audio
+    // fue silenciado). Si hay varios, solo reproducimos el más nuevo; los
+    // demás quedarán en la cola si el motor está ocupado.
+    const pendientes = Array.from(this.anunciosActivos.values())
+      .filter(a => a.idAtencion !== this.ultimoIdAnunciado)
+      .sort((a, b) => (b.inicioMs || 0) - (a.inicioMs || 0));
+    if (pendientes.length > 0) {
+      this.reproducirAudio(pendientes[0]);
+    }
   }
 
   cambiarSala(sala: SalaMode) {
@@ -1662,6 +1825,63 @@ private verificarUltimoLlamado() {
   volverASedes() {
     sessionStorage.removeItem('turnero_sede');
     this.router.navigate(['/turnero'], { replaceUrl: true });
+  }
+
+  /**
+   * Muestra el modal de llamado visual con el nombre del paciente y el destino.
+   * Si ya hay un modal visible, cambia los datos con una transición suave.
+   */
+  mostrarModalLlamado(a: AnuncioActivo): void {
+    const destino = this.calcularDestinoVisual(a.consultorio, a.piso);
+    
+    this.modalLlamadoPaciente = a.paciente;
+    this.modalLlamadoApellido = a.apellido;
+    this.modalLlamadoDestino = destino;
+    this.modalLlamadoTurno = a.numeroTurno || '';
+    
+    if (!this.showModalLlamado) {
+      this.showModalLlamado = true;
+      this.modalLlamadoClosing = false;
+    }
+    this.modalLlamadoCambiando = false;
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Cierra el modal de llamado visual con animación de salida.
+   */
+  cerrarModalLlamado(): void {
+    if (!this.showModalLlamado || this.modalLlamadoClosing) return;
+    this.modalLlamadoClosing = true;
+    this.cdr.detectChanges();
+    setTimeout(() => {
+      this.showModalLlamado = false;
+      this.modalLlamadoClosing = false;
+      this.cdr.detectChanges();
+    }, 300);
+  }
+
+  /**
+   * Calcula el destino legible para el modal visual.
+   * Misma lógica que construirTexto() pero solo la parte del destino.
+   */
+  private calcularDestinoVisual(consultorio: string, piso?: string | null): string {
+    const destinoConsultorio = this.formatearConsultorioConPiso(consultorio, piso);
+    const c = consultorio.toLowerCase();
+
+    if (c.includes('laboratorio')) {
+      return 'RECEPCIÓN DE LABORATORIO';
+    } else if (c.includes('imagen') || c.includes('imagenes')) {
+      return 'RECEPCIÓN DE IMÁGENES';
+    } else if (c.includes('consulta')) {
+      return 'CONSULTA';
+    } else if (c.startsWith('consultorio')) {
+      return `CONSULTORIO ${destinoConsultorio}`;
+    } else if (this.esAnuncioAPS(consultorio)) {
+      return 'RECEPCIÓN DE APS';
+    }
+    // Si hay piso, mostrar consultorio con piso antepuesto (ej. "02" en piso "1" => "102")
+    return destinoConsultorio.toUpperCase() || (consultorio || 'DESTINO').toUpperCase();
   }
 
   private addSede(params: URLSearchParams) {
@@ -1862,6 +2082,16 @@ private verificarUltimoLlamado() {
   /** Splash de inicio en modo TV: requiere una interacción para desbloquear audio. */
   showSplash: boolean = false;
   private originalViewport: string | null = null;
+
+  // Modal de llamado visual
+  showModalLlamado = false;
+  modalLlamadoClosing = false;
+  modalLlamadoCambiando = false;
+  modalLlamadoPaciente = '';
+  modalLlamadoApellido = '';
+  modalLlamadoDestino = '';
+  modalLlamadoTurno = '';
+  private modalLlamadoTimer: any = null;
 
   private initTarjetasResponsive() {
     if (typeof window === 'undefined') return;

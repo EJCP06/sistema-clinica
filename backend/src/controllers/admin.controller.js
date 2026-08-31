@@ -385,6 +385,7 @@ const crearPersonal = async (req, res) => {
       email,
       password,
       rol,
+      roles,
       id_consultorio,
       id_servicio,
       id_especialidad,
@@ -429,6 +430,7 @@ const crearPersonal = async (req, res) => {
       especialidadesConsultorios: (especialidades_consultorios && typeof especialidades_consultorios === 'object')
         ? especialidades_consultorios
         : {},
+      roles: Array.isArray(roles) ? roles : (rol ? [rol] : []),
       sede: sedeFinal,
       status: status !== false,
     });
@@ -479,6 +481,7 @@ const actualizarPersonal = async (req, res) => {
       'segundo_apellido', 'telefono', 'email', 'password_hash',
       'rol', 'id_consultorio', 'id_servicio', 'id_especialidad',
       'especialidades', 'especialidades_inactivas', 'especialidades_consultorios',
+      'roles',
       'status', 'id_sede',
     ];
     const safeFields = {};

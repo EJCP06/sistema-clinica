@@ -237,10 +237,11 @@ function servirAudio(res, rutaArchivo) {
 }
 
 /**
- * Elimina archivos temporales TTS más viejos que maxAgeMs (default 60s).
- * Ejecutar periódicamente para evitar acumulación de WAVs.
+ * Elimina archivos temporales TTS más viejos que maxAgeMs (default 120s).
+ * Cubre la ventana de 115s de los llamados para que los archivos pre-sintetizados
+ * estén disponibles durante todo el ciclo de repetición.
  */
-function limpiarArchivosAntiguos(maxAgeMs = 60000) {
+function limpiarArchivosAntiguos(maxAgeMs = 120000) {
   try {
     if (!fs.existsSync(TEMP_DIR)) return;
     const ahora = Date.now();

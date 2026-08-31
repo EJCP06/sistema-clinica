@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const pool = require('../config/db');
 const usuarioRepo = require('../repositories/usuario.repository');
 const refreshTokenRepo = require('../repositories/refreshToken.repository');
 const { auditar } = require('../middleware/audit');
@@ -101,6 +102,19 @@ const login = async (req, res) => {
       permisosArr = [];
     }
 
+    // Obtener todos los roles del usuario (muchos a muchos)
+    let rolesDelUsuario = [];
+    try {
+      rolesDelUsuario = await usuarioRepo.getRolesDeUsuario(usuario.id);
+    } catch (err) {
+      // Si la tabla Usuario_Rol no existe aún, usar el rol único del usuario
+      rolesDelUsuario = [{ id: usuario.id_rol, key: usuario.rol, nombre: usuario.rol }];
+    }
+    // Si no tiene registros en Usuario_Rol, usar el rol único
+    if (rolesDelUsuario.length === 0) {
+      rolesDelUsuario = [{ id: usuario.id_rol, key: usuario.rol, nombre: usuario.rol }];
+    }
+
     const payload = {
       id: usuario.id,
       id_rol: usuario.id_rol,
@@ -119,6 +133,7 @@ const login = async (req, res) => {
       id_especialidad: espSesion ? Number(espSesion.id) : usuario.id_especialidad,
       especialidad_nombre: espSesion ? espSesion.nombre : usuario.especialidad_nombre,
       especialidades_activas: especialidadesActivas,
+      roles: rolesDelUsuario,
       sesion_token: sesionToken
     };
 
@@ -296,6 +311,77 @@ const seleccionarEspecialidad = async (req, res) => {
 };
 
 /**
+ * Selecciona un rol para la sesión actual. Valida que el rol pertenezca
+ * al usuario, genera un nuevo token JWT con los permisos del nuevo rol
+ * y retorna los datos actualizados.
+ */
+const seleccionarRol = async (req, res) => {
+  const { id_rol } = req.body;
+
+  if (!id_rol) {
+    return res.status(400).json({ mensaje: 'Seleccione un rol' });
+  }
+
+  try {
+    const decoded = req.usuario;
+    const roles = Array.isArray(decoded.roles) ? decoded.roles : [];
+    const elegido = roles.find((r) => Number(r.id) === Number(id_rol));
+    if (!elegido) {
+      return res.status(400).json({ mensaje: 'El rol seleccionado no está asignado a este usuario' });
+    }
+    if (elegido.activo === false) {
+      return res.status(400).json({ mensaje: 'El rol seleccionado está inactivo' });
+    }
+
+    // Obtener permisos del nuevo rol
+    let permisosArr = [];
+    try {
+      const permisosResult = await pool.query(
+        `SELECT json_agg(rec.key || ':' || acc.key) AS permisos
+         FROM "Roles_Recursos_Acciones" rra
+         INNER JOIN "Recursos" rec ON rra.id_recurso = rec.id_recurso
+         INNER JOIN "Acciones" acc ON rra.id_accion = acc.id_accion
+         WHERE rra.id_rol = $1`,
+        [elegido.id]
+      );
+      permisosArr = permisosResult.rows[0]?.permisos || [];
+    } catch (e) {
+      permisosArr = [];
+    }
+
+    const payload = {
+      id: decoded.id,
+      id_rol: elegido.id,
+      cedula: decoded.cedula,
+      nombre: decoded.nombre,
+      apellido: decoded.apellido,
+      rol: elegido.key,
+      permisos: permisosArr,
+      servicio_id: decoded.servicio_id,
+      consultorio_id: decoded.consultorio_id,
+      id_sede: decoded.id_sede,
+      id_especialidad: decoded.id_especialidad,
+      especialidad_nombre: decoded.especialidad_nombre,
+      especialidades_activas: decoded.especialidades_activas,
+      roles: roles,
+      sesion_token: decoded.sesion_token,
+    };
+
+    const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
+    auditar({ userId: decoded.id, accion: 'login', recurso: 'auth', detalle: { rol: elegido.key }, ip: req.ip });
+
+    res.json({
+      mensaje: 'Rol seleccionado',
+      token: accessToken,
+      expiresIn: 86400,
+      usuario: payload,
+    });
+  } catch (error) {
+    res.status(500).json({ mensaje: 'Error interno' });
+  }
+};
+
+/**
  * Cierra la sesión del usuario: invalida el token de sesión en BD y
  * elimina la cookie refresh_token.
  *
@@ -435,6 +521,7 @@ const refrescarToken = async (req, res) => {
 module.exports = {
   login,
   seleccionarEspecialidad,
+  seleccionarRol,
   cambiarPassword,
   misPermisos,
   cerrarSesion,

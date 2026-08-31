@@ -63,6 +63,7 @@ router.get('/verify', authMiddleware, async (req, res) => {
 });
 
 router.post('/seleccionar-especialidad', authMiddleware, authController.seleccionarEspecialidad);
+router.post('/seleccionar-rol', authMiddleware, authController.seleccionarRol);
 router.post('/refresh', authController.refrescarToken);
 router.put('/cambiar-password', authMiddleware, [
   body('newPassword').isLength({ min: 8 }).withMessage('La nueva contraseña debe tener al menos 8 caracteres'),

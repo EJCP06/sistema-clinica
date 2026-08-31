@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { LucideAngularModule, Building2, ArrowLeft } from 'lucide-angular';
 import { desbloquearVozNavegador } from './voz.util';
+import { Capacitor } from '@capacitor/core';
 
 @Component({
   selector: 'app-turnero-sede-selector',
@@ -10,7 +11,7 @@ import { desbloquearVozNavegador } from './voz.util';
   imports: [CommonModule, LucideAngularModule],
   template: `
     <div class="h-[100dvh] bg-slate-900 text-white flex flex-col items-center justify-center gap-8 p-8 relative">
-      <button (click)="volver()"
+      <button *ngIf="!isNative" (click)="volver()"
         class="absolute top-6 left-6 flex items-center justify-center w-10 h-10 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all duration-200">
         <lucide-icon [img]="ArrowLeft" class="w-5 h-5"></lucide-icon>
       </button>
@@ -36,6 +37,7 @@ import { desbloquearVozNavegador } from './voz.util';
 export class TurneroSedeSelector {
   readonly Building2 = Building2;
   readonly ArrowLeft = ArrowLeft;
+  readonly isNative = Capacitor.isNativePlatform();
   private router = inject(Router);
 
   ir(sede: number) {
