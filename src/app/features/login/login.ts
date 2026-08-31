@@ -50,11 +50,17 @@ export class Login implements OnDestroy {
   mostrarResetPassword = false;
   initialTransitionDisabled = true;
 
-  // Selector de especialidad (médicos con varias especialidades activas)
+  // Selector de especialidad (médicos con varios especialidades activas)
   mostrarSelectorEspecialidad = false;
   especialidadesParaElegir: { id: number; nombre: string }[] = [];
   espSeleccionada: number | null = null;
   cargandoSelector = false;
+
+  // Selector de roles (usuarios con varios roles asignados)
+  mostrarSelectorRoles = false;
+  rolesParaElegir: { id: number; key: string; nombre: string; activo?: boolean }[] = [];
+  rolSeleccionado: number | null = null;
+  cargandoSelectorRol = false;
 
   recuperacionEmail = '';
   recuperacionCedula = '';
@@ -294,17 +300,28 @@ export class Login implements OnDestroy {
       // entrar. El "Cargando..." dura MENOS (200ms) para que el modal de
       // especialidad aparezca rápido.
       const activas = Array.isArray(usuario.especialidades_activas) ? usuario.especialidades_activas : [];
+      const roles = Array.isArray(usuario.roles) ? usuario.roles : [];
       const esMedicoConSelector = activas.length > 1;
-      const duracionCargando = esMedicoConSelector ? 100 : 800;
+      const tieneVariosRoles = roles.length > 1;
+      const duracionCargando = (esMedicoConSelector || tieneVariosRoles) ? 100 : 800;
       const elapsed = Date.now() - inicio;
       if (elapsed < duracionCargando) {
         await new Promise(r => setTimeout(r, duracionCargando - elapsed));
       }
+      // Primero verificar especialidades (médicos), luego roles
       if (esMedicoConSelector) {
         this.especialidadesParaElegir = activas;
         this.espSeleccionada = Number(usuario.id_especialidad) || activas[0].id;
         this.cargando = false;
         this.mostrarSelectorEspecialidad = true;
+        return;
+      }
+      // Si tiene varios roles activos, preguntar con cuál entrar
+      if (tieneVariosRoles) {
+        this.rolesParaElegir = roles.filter(r => r.activo !== false);
+        this.rolSeleccionado = Number(usuario.id_rol) || roles[0].id;
+        this.cargando = false;
+        this.mostrarSelectorRoles = true;
         return;
       }
       this.navegarAlInicio();
@@ -354,6 +371,38 @@ export class Login implements OnDestroy {
             this.mostrarSelectorEspecialidad = false;
             this.cargandoSelector = false;
             this.swal.error(err.error?.mensaje || 'Error al seleccionar la especialidad');
+          }, restante);
+        }
+      });
+    }
+
+    /**
+     * Cierra el selector de roles (X, click fuera o Escape): cancela
+     * el login y limpia la sesión para que el usuario vuelva a intentarlo.
+     */
+    cerrarSelectorRoles() {
+      this.mostrarSelectorRoles = false;
+      this.auth.logoutRapido();
+    }
+
+    /** Acepta el rol elegido: pide token nuevo y navega. */
+    confirmarRol() {
+      if (!this.rolSeleccionado) return;
+      this.cargandoSelectorRol = true;
+      const inicio = Date.now();
+      const MIN_CARGANDO_SELECTOR = 200;
+
+      this.auth.seleccionarRol(this.rolSeleccionado).subscribe({
+        next: () => {
+          const restante = Math.max(0, MIN_CARGANDO_SELECTOR - (Date.now() - inicio));
+          setTimeout(() => this.navegarAlInicio(), restante);
+        },
+        error: (err: any) => {
+          const restante = Math.max(0, MIN_CARGANDO_SELECTOR - (Date.now() - inicio));
+          setTimeout(() => {
+            this.mostrarSelectorRoles = false;
+            this.cargandoSelectorRol = false;
+            this.swal.error(err.error?.mensaje || 'Error al seleccionar el rol');
           }, restante);
         }
       });

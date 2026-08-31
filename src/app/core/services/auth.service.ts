@@ -244,6 +244,29 @@ export class AuthService implements OnDestroy {
     );
   }
 
+  /** Selecciona un rol para la sesión actual (mismo patrón que especialidad). */
+  seleccionarRol(idRol: number): Observable<any> {
+    return this.http.post<{ mensaje: string, token: string, usuario: any }>(
+      `${environment.apiUrl}/auth/seleccionar-rol`,
+      { id_rol: idRol },
+      { withCredentials: true }
+    ).pipe(
+      tap(response => {
+        const usuario: Usuario = {
+          ...response.usuario,
+          nombre: response.usuario.nombre || response.usuario.username
+        };
+        sessionStorage.setItem(this.TOKEN_KEY, response.token);
+        sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(usuario));
+        sessionStorage.setItem(this.FECHA_KEY, this.fechaHoy());
+        this.api.actualizarSocketToken(response.token);
+        this.usuarioSubject.next(usuario);
+        this.sessionVerified = true;
+      }),
+      catchError(err => throwError(() => err))
+    );
+  }
+
   refreshSession(): Observable<{ token: string; usuario: any } | null> {
     return this.http.post<{ token: string; usuario: any }>(
       `${environment.apiUrl}/auth/refresh`, {}, { withCredentials: true }

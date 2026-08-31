@@ -396,6 +396,29 @@ const runMigrations = async () => {
     logger.warn('Aviso: no se pudo crear la tabla de especialidades por médico', { error: errEsp.message });
   }
 
+  // --- Roles múltiples por usuario ---
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS "Usuario_Rol" (
+        id_usuario INTEGER NOT NULL REFERENCES "Usuarios"("id_usuario") ON DELETE CASCADE,
+        id_rol INTEGER NOT NULL REFERENCES "Roles"("id_rol") ON DELETE CASCADE,
+        PRIMARY KEY (id_usuario, id_rol)
+      )
+    `);
+    // Migrar id_rol actual a la nueva tabla (solo si no tiene registros)
+    const countResult = await pool.query('SELECT COUNT(*)::int AS cnt FROM "Usuario_Rol"');
+    if (countResult.rows[0].cnt === 0) {
+      await pool.query(`
+        INSERT INTO "Usuario_Rol" (id_usuario, id_rol)
+        SELECT id_usuario, id_rol FROM "Usuarios" WHERE id_rol IS NOT NULL
+        ON CONFLICT DO NOTHING
+      `);
+      logger.info('Migrados roles existentes a Usuario_Rol');
+    }
+  } catch (errRol) {
+    logger.warn('Aviso: no se pudo crear la tabla Usuario_Rol', { error: errRol.message });
+  }
+
   logger.info('Base de datos inicializada correctamente');
 };
 

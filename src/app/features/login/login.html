@@ -335,4 +335,51 @@
       </div>
     </div>
   </div>
+
+  <!-- MODAL SELECCIÓN DE ROL -->
+  <div *ngIf="mostrarSelectorRoles" class="fixed inset-0 z-[200] flex items-center justify-center p-4" role="dialog" aria-modal="true" (keydown.escape)="cerrarSelectorRoles()">
+    <div class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-300" (click)="cerrarSelectorRoles()"></div>
+    <div class="relative bg-white dark:bg-slate-900 rounded-[28px] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-200 dark:border-slate-800">
+      <div class="bg-blue-600 p-6 text-white">
+        <div class="flex items-start justify-between gap-3 mb-2">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center"><lucide-icon [name]="Shield" class="w-5 h-5 text-white"></lucide-icon></div>
+            <div>
+              <h2 class="text-xl font-black tracking-tight text-white">¿Con qué rol desea entrar?</h2>
+              <p class="text-blue-100 text-[10px] uppercase font-bold tracking-widest mt-0.5">Seleccione uno de sus roles asignados</p>
+            </div>
+          </div>
+          <button type="button" (click)="cerrarSelectorRoles()" aria-label="Cerrar" class="p-2 hover:bg-white/10 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
+            <lucide-icon [name]="XCircle" class="w-5 h-5 text-white"></lucide-icon>
+          </button>
+        </div>
+      </div>
+      <div class="p-6 flex flex-col">
+        <div class="max-h-[280px] overflow-y-auto custom-scrollbar space-y-3 pr-1">
+          <label
+            *ngFor="let rol of rolesParaElegir"
+            class="flex items-center gap-3 px-5 py-4 rounded-xl border-2 cursor-pointer transition-all"
+            [class.border-blue-600]="rolSeleccionado === rol.id"
+            [class.bg-blue-50]="rolSeleccionado === rol.id"
+            [class.border-slate-200]="rolSeleccionado !== rol.id"
+            [class.hover:border-blue-300]="rolSeleccionado !== rol.id"
+          >
+            <input type="radio" name="rolLogin" [value]="rol.id" [checked]="rolSeleccionado === rol.id" (change)="rolSeleccionado = rol.id" class="w-5 h-5 text-blue-600" />
+            <span class="lowercase first-letter:uppercase font-black text-slate-800 dark:text-white text-base">{{ rol.nombre }}</span>
+          </label>
+        </div>
+
+        <button type="button" (click)="confirmarRol()" [disabled]="cargandoSelectorRol || !rolSeleccionado" class="!mt-5 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/20 transition-all flex items-center justify-center gap-3 text-sm uppercase tracking-widest">
+          <span *ngIf="!cargandoSelectorRol" class="flex items-center gap-2">
+            Entrar
+            <lucide-icon [name]="LogIn" class="w-4 h-4"></lucide-icon>
+          </span>
+          <div *ngIf="cargandoSelectorRol" class="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-[800ms]">
+            <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            <span class="animate-pulse">Cargando...</span>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
 </div>

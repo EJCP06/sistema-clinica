@@ -144,6 +144,24 @@ export class AdminPersonal implements OnInit {
     return this.rolesPorSede.filter(r => !q || (r.nombre || '').toLowerCase().includes(q) || (r.key || '').toLowerCase().includes(q));
   }
 
+  /**
+   * Texto visible del select de roles: las seleccionadas separadas
+   * por comas (ej: "medico, administrador"). Mientras el dropdown está
+   * abierto solo se muestra lo que se escribe para filtrar; al cerrarse
+   * vuelven a verse las comas.
+   */
+  get rolDisplay(): string {
+    if (this.showRolDropdown) {
+      // Mientras el dropdown está abierto, mostrar lo que se escribe para filtrar
+      return this.rolFiltro || '';
+    }
+    // Al cerrar el dropdown, mostrar los roles seleccionados por comas
+    return this.formPersonal.roles
+      .map(r => this.getRolLabel(r))
+      .filter(Boolean)
+      .join(', ');
+  }
+
   get especialidadesConFiltro(): EspecialidadDTO[] {
     const q = (this.espFiltro || '').trim().toLowerCase();
     return this.especialidades.filter(e => !q || (e.nombre || '').toLowerCase().includes(q));
@@ -159,7 +177,10 @@ export class AdminPersonal implements OnInit {
     if ((this.espFiltro || '').trim()) return this.espFiltro;
     if (this.showMedicoEspDropdown) return '';
     return this.especialidadesSel
-      .map(id => this.especialidades.find(e => e.id === Number(id))?.nombre)
+      .map(id => {
+        const nombre = this.especialidades.find(e => e.id === Number(id))?.nombre;
+        return nombre ? nombre.charAt(0).toUpperCase() + nombre.slice(1).toLowerCase() : null;
+      })
       .filter(Boolean)
       .join(', ');
   }
@@ -338,6 +359,7 @@ export class AdminPersonal implements OnInit {
 
   formPersonal: {
     rol: string;
+    roles: string[];
     username: string;
     password: string;
     primer_nombre: string;
@@ -354,6 +376,7 @@ export class AdminPersonal implements OnInit {
     id_sede: string | number;
   } = {
     rol: '',
+    roles: [],
     username: '',
     password: '',
     primer_nombre: '',
@@ -426,8 +449,16 @@ export class AdminPersonal implements OnInit {
     this.showRolDropdown = false;
     this.showEspConModal = false;
     if (user) {
+      const rolesUsuario: string[] = [];
+      if (Array.isArray((user as any).roles) && (user as any).roles.length) {
+        rolesUsuario.push(...(user as any).roles.map((r: any) => r.key || r));
+      } else if (user.rol) {
+        rolesUsuario.push(user.rol);
+      }
+
       this.formPersonal = {
         rol: user.rol || 'medico',
+        roles: rolesUsuario,
         username: user.username || user.cedula || '',
         password: '',
         primer_nombre: (user.primer_nombre || user.nombre || '').toUpperCase(),
@@ -446,6 +477,7 @@ export class AdminPersonal implements OnInit {
     } else {
       this.formPersonal = {
         rol: '',
+        roles: [],
         username: '',
         password: '',
         primer_nombre: '',
@@ -491,7 +523,7 @@ export class AdminPersonal implements OnInit {
     // Prefill de los autocompletes según los valores cargados
     // (la especialidad ahora es multi-selección: se ven separadas por comas)
     this.espFiltro = '';
-    this.rolFiltro = this.formPersonal.rol ? this.getRolLabel(this.formPersonal.rol) : '';
+    this.rolFiltro = ''; // El getter rolDisplay muestra los roles seleccionados
 
     this.abrirModalPersonal(trigger);
   }
@@ -559,6 +591,7 @@ export class AdminPersonal implements OnInit {
       especialidades_inactivas: rol === 'medico' ? this.especialidadesInactivas.map(Number) : [],
       // Consultorio de CADA especialidad: { idEsp: idConsultorio }
       especialidades_consultorios: rol === 'medico' ? this.especialidadesConsultorios : {},
+      roles: this.formPersonal.roles.length > 0 ? this.formPersonal.roles : [rol],
       status: !!this.formPersonal.activo,
     };
     const call = this.isEditing && this.editingId !== null
@@ -682,10 +715,17 @@ export class AdminPersonal implements OnInit {
   }
 
   selectRol(rol: string) {
-    this.formPersonal.rol = rol;
-    this.showRolDropdown = false;
-    this.rolIndex = -1;
-    this.rolFiltro = this.getRolLabel(rol);
+    // Toggle en el array de roles múltiples
+    const idx = this.formPersonal.roles.indexOf(rol);
+    if (idx >= 0) {
+      this.formPersonal.roles.splice(idx, 1);
+    } else {
+      this.formPersonal.roles.push(rol);
+    }
+    // Mantener el rol principal sincronizado (el primero de la lista)
+    this.formPersonal.rol = this.formPersonal.roles[0] || '';
+    // Limpiar filtro para que el getter rolDisplay muestre los seleccionados
+    this.rolFiltro = '';
   }
 
   tienePermiso(permiso: string): boolean { return this.auth.tienePermiso(permiso); }

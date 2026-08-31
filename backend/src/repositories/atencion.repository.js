@@ -119,6 +119,38 @@ const getAtencionesDePaciente = async (idPaciente, sede) => {
 };
 
 const actualizarAtencionConServicio = async (id, sede, data) => {
+  // Si el servicio cambia, reasignar número con el prefijo del nuevo servicio
+  let numeroUpdate = '';
+  let params = [data.id_servicio, data.id_responsable || null, data.id_cliente || null, id, sede, data.id_especialidad || null, data.id_medico || null, data.id_consultorio || null];
+
+  if (data.id_servicio) {
+    // Obtener el servicio actual para comparar
+    const current = await pool.query(
+      'SELECT id_servicio, numero FROM "Atencion" WHERE id_atencion = $1 AND id_sede = $2',
+      [id, sede]
+    );
+    const actual = current.rows[0];
+
+    if (actual && actual.id_servicio !== data.id_servicio) {
+      // El servicio cambió: obtener siguiente número y prefijo del nuevo servicio
+      const cliente = await pool.connect();
+      try {
+        await cliente.query('BEGIN');
+        const nuevoNumero = await getSiguienteNumero(cliente, data.id_servicio, sede);
+        const prefijo = await getServicioPrefijo(data.id_servicio);
+        const nuevoNumeroStr = `${prefijo}-${String(nuevoNumero).padStart(2, '0')}`;
+        numeroUpdate = ', numero = $9';
+        params.push(nuevoNumeroStr);
+        await cliente.query('COMMIT');
+      } catch (err) {
+        await cliente.query('ROLLBACK');
+        throw err;
+      } finally {
+        cliente.release();
+      }
+    }
+  }
+
   await pool.query(
     `UPDATE "Atencion"
      SET id_servicio = $1,
@@ -127,8 +159,9 @@ const actualizarAtencionConServicio = async (id, sede, data) => {
          id_especialidad = $6,
          id_medico = $7,
          id_consultorio = $8
+         ${numeroUpdate}
      WHERE id_atencion = $4 AND id_sede = $5`,
-    [data.id_servicio, data.id_responsable || null, data.id_cliente || null, id, sede, data.id_especialidad || null, data.id_medico || null, data.id_consultorio || null],
+    params,
   );
 };
 

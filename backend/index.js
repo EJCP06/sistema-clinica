@@ -79,6 +79,10 @@ app.use(helmet({
   },
   crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   crossOriginEmbedderPolicy: false,
+  // Deshabilitado: bloquea la carga de audios WAV del TTS cuando el frontend
+  // (localhost:4200) y el backend (localhost:3001) corren en orígenes distintos.
+  // En producción Nginx maneja estos headers.
+  crossOriginResourcePolicy: false,
   hsts: isProduction ? {
     maxAge: 63072000,
     includeSubDomains: true,
@@ -178,7 +182,7 @@ const startServer = async () => {
       logger.info(`Servidor backend corriendo en http://localhost:${PORT}`);
       // Limpiar WAVs temporales del TTS pre-sintetizado cada 60s
       const ttsService = require('./src/services/tts.service');
-      setInterval(() => ttsService.limpiarArchivosAntiguos(60000), 60000);
+      setInterval(() => ttsService.limpiarArchivosAntiguos(120000), 60000);
     });
 
   } catch (err) {
