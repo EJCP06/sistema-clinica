@@ -314,5 +314,23 @@ aside nav::-webkit-scrollbar {
   }
 }
 
-
-
+/* TV MODE: Optimizaciones para Smart TV 1366x768 */
+.tv-mode {
+  font-size: 18px;
+}
+.tv-mode .text-xs { font-size: 0.85rem !important; line-height: 1.2rem !important; }
+.tv-mode .text-sm { font-size: 1rem !important; line-height: 1.4rem !important; }
+.tv-mode .text-base { font-size: 1.1rem !important; }
+.tv-mode .text-lg { font-size: 1.3rem !important; }
+.tv-mode .text-xl { font-size: 1.6rem !important; }
+.tv-mode .text-2xl { font-size: 2rem !important; }
+.tv-mode .text-4xl { font-size: 2.8rem !important; }
+.tv-mode .text-5xl { font-size: 3.5rem !important; }
+.tv-mode .w-10 { width: 3rem !important; }
+.tv-mode .h-10 { height: 3rem !important; }
+.tv-mode .w-14 { width: 3.5rem !important; }
+.tv-mode .h-14 { height: 3.5rem !important; }
+.tv-mode .font-mono { font-size: 3rem !important; letter-spacing: -0.05em !important; }
+.tv-mode .text-6xl { font-size: 4rem !important; }
+.tv-mode .text-7xl { font-size: 5rem !important; }
+.tv-mode .text-8xl { font-size: 6rem !important; }

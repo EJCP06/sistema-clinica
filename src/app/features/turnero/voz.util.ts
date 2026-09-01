@@ -97,20 +97,14 @@ export function getBackendUrl(path: string): string {
  *   4. Se reproduce con HTML5 Audio
  */
 export async function descargarYReproducirAudio(url: string): Promise<HTMLAudioElement> {
-  // Importar Capacitor dinámicamente
-  const { CapacitorHttp } = await import('@capacitor/core');
-
-  // 1. Descargar audio con CapacitorHttp (sin CORS)
-  const response = await CapacitorHttp.get({
-    url: url,
-    responseType: 'blob',
-  });
-
-  // 2. Convertir a Blob
-  const blob = new Blob([response.data], { type: 'audio/wav' });
+  // Usar fetch normal (CORS está configurado en el servidor)
+  // Nota: CapacitorHttp está deshabilitado para que Socket.IO funcione
+  const fullUrl = isCapacitor() ? getBackendUrl(url) : url;
+  const response = await fetch(fullUrl);
+  if (!response.ok) throw new Error(`HTTP ${response.status} descargando audio`);
+  const blob = await response.blob();
   const blobUrl = URL.createObjectURL(blob);
 
-  // 3. Reproducir
   const audio = new Audio(blobUrl);
   audio.volume = 1.0;
 
@@ -132,14 +126,10 @@ export async function descargarYReproducirAudio(url: string): Promise<HTMLAudioE
  * El caller es responsable de reproducir y limpiar.
  */
 export async function descargarAudioBlob(url: string): Promise<string> {
-  const { CapacitorHttp } = await import('@capacitor/core');
-
-  const response = await CapacitorHttp.get({
-    url: url,
-    responseType: 'blob',
-  });
-
-  const blob = new Blob([response.data], { type: 'audio/wav' });
+  const fullUrl = isCapacitor() ? getBackendUrl(url) : url;
+  const response = await fetch(fullUrl);
+  if (!response.ok) throw new Error(`HTTP ${response.status} descargando audio`);
+  const blob = await response.blob();
   return URL.createObjectURL(blob);
 }
 
