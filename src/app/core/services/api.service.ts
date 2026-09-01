@@ -36,8 +36,12 @@ export class ApiService {
   /** Observable que emite eventos en tiempo real (cambios de estado, nuevos llamados, actualización de permisos). */
   public cambios$ = new Subject<{ tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; apellido?: string; id_sede?: number; inicio_ms?: number; server_now?: number }>();
 
+
   constructor() {
     this.conectarSocket(sessionStorage.getItem('clinica_token'));
+    // Fallback background: si el socket no conecta en 5s con el dominio,
+    // probar la IP interna del servidor.
+    this.iniciarFallbackBackground();
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible' && !this.socket?.connected) {
@@ -48,6 +52,26 @@ export class ApiService {
         this.socket?.disconnect();
       });
     }
+  }
+
+  /**
+   * Si el socket no logra conectarse al dominio en 5 segundos, probar
+   * la IP interna del servidor como fallback. Esto cubre el caso donde
+   * el dispositivo esta en la red de la clínica pero el DNS no resuelve
+   * el dominio (o el port-forwarding esta caído).
+   */
+  private iniciarFallbackBackground() {
+    const env = environment as any;
+    if (!env.apiUrlFallback) return; // Sin fallback configurado
+    setTimeout(() => {
+      if (this.socket && this.socket.connected) return; // Ya conectó, todo bien
+      // Cambiar URLs al fallback
+      this.base = env.apiUrlFallback;
+      env.socketUrl = env.socketUrlFallback;
+      // Desconectar el socket viejo y reconectar con la nueva URL
+      if (this.socket) this.socket.disconnect();
+      this.conectarSocket(sessionStorage.getItem('clinica_token'));
+    }, 5000);
   }
 
   private conectarSocket(token: string | null) {

@@ -1433,8 +1433,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
   ) {}
 
   /** Inicializa: valida sede, carga voz femenina, suscribe a cambios y polling, inicia reloj. */
-  ngOnInit() {
-    // Guardia global a nivel de window: envuelve speechSynthesis.speak UNA
+  ngOnInit() {    // Guardia global a nivel de window: envuelve speechSynthesis.speak UNA
     // sola vez por pestaña. Aunque existan DOS instancias del turnero (HMR,
     // chunk viejo en caché, doble montaje), el mismo texto jamás puede sonar
     // dos veces en menos de 9s: todas pasan por el mismo envoltorio.
@@ -1500,11 +1499,21 @@ export class TurneroComponent implements OnInit, OnDestroy {
       return true;
     };
 
-    if (!validarSede(this.route.snapshot.params['sede'])) return;
+    // Obtener sede: primero de route params, luego de sessionStorage (modo kiosco)
+    const sedeInicial = this.route.snapshot.params['sede'] || sessionStorage.getItem('turnero_sede') || undefined;
+    const sedeVieneDeParams = !!this.route.snapshot.params['sede'];
+    if (!validarSede(sedeInicial)) return;
+
+    // Si la sede viene de sessionStorage (modo kiosco), inicializar inmediatamente
+    if (!sedeVieneDeParams) {
+      this.sede = Number(sedeInicial);
+      this.verificarUltimoLlamado();
+    }
 
     this.route.params.subscribe(params => {
-      if (!validarSede(params['sede'])) return;
-      this.sede = params['sede'] ? Number(params['sede']) : null;
+      const sedeParam = params['sede'] || sessionStorage.getItem('turnero_sede');
+      if (!validarSede(sedeParam)) return;
+      this.sede = sedeParam ? Number(sedeParam) : null;
       // Al recargar la vista, la sede llega de forma asíncrona: se dispara
       // la verificación del último llamado apenas se conoce, para que el
       // anuncio inicial no se pierda esperando el intervalo de 10s.
@@ -1586,7 +1595,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
     this.timerSub = interval(5000).subscribe(() => {
         this.cargarDatosSala();
     });
-    this.clockSub = interval(1000).subscribe(() => {
+      this.clockSub = interval(1000).subscribe(() => {
       this.fechaActual = new Date();
       this.horaFormateada = this.fechaActual.toLocaleTimeString('en-US', {
         hour: '2-digit', minute: '2-digit', second: '2-digit',
@@ -2108,6 +2117,8 @@ export class TurneroComponent implements OnInit, OnDestroy {
   modalLlamadoDestino = '';
   modalLlamadoTurno = '';
   private modalLlamadoTimer: any = null;
+
+
 
   private initTarjetasResponsive() {
     if (typeof window === 'undefined') return;
