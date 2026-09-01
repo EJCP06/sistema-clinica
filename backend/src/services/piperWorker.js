@@ -30,7 +30,7 @@ const resolverRuta = (ruta) => {
 
 const PIPER_PYTHON = resolverRuta(process.env.PIPER_PYTHON) || path.join(ROOT, 'piper', 'piper-env', 'Scripts', 'python.exe');
 const PIPER_MODEL = resolverRuta(process.env.PIPER_MODEL) || path.join(ROOT, 'piper', 'models', 'es_ES-sharvard-medium.onnx');
-const PIPER_SENTENCE_SILENCE = process.env.PIPER_SENTENCE_SILENCE || '0.2';
+const PIPER_SENTENCE_SILENCE = process.env.PIPER_SENTENCE_SILENCE || '0.5';
 
 const TIEMPO_ESPERA_MS = 20000;
 const TIEMPO_READY_MS = 30000;

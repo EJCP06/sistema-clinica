@@ -35,7 +35,7 @@ const resolverRuta = (ruta) => {
 
 const PIPER_PYTHON = resolverRuta(process.env.PIPER_PYTHON) || path.join(ROOT, 'piper', 'piper-env', 'Scripts', 'python.exe');
 const PIPER_MODEL = resolverRuta(process.env.PIPER_MODEL) || path.join(ROOT, 'piper', 'models', 'es_ES-sharvard-medium.onnx');
-const PIPER_SENTENCE_SILENCE = process.env.PIPER_SENTENCE_SILENCE || '0.2';
+const PIPER_SENTENCE_SILENCE = process.env.PIPER_SENTENCE_SILENCE || '0.5';
 const TEMP_DIR = path.join(ROOT, 'temp');
 
 /**
@@ -144,7 +144,10 @@ async function generarAudio(texto, nombrePersonalizado, opts = {}) {
   // Esto convierte JH→Y, Y→I, W→U, etc. automáticamente
   // IMPORTANTE: se pasa palabrasDiccionario para que el normalizador NO deshaga
   // los reemplazos del diccionario (ej: YHOANDER→Yoander no debe convertirse a Ioander)
-  const textoFinal = aplicarNormalizadorFonetico(textoDiccionario, palabrasDiccionario);
+  const textoNormalizado = aplicarNormalizadorFonetico(textoDiccionario, palabrasDiccionario);
+  // Agregar un espacio al inicio para que Piper no corte la primera palabra
+  // (Piper tiende a truncar los primeros ~50ms del audio)
+  const textoFinal = ' ' + textoNormalizado;
   const nombreArchivo = nombrePersonalizado ? `${nombrePersonalizado}.wav` : `tts_${Date.now()}.wav`;
   const rutaArchivo = path.join(TEMP_DIR, nombreArchivo);
 

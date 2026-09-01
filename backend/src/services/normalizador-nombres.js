@@ -23,14 +23,9 @@ function normalizarNombre(nombre) {
   
   let resultado = nombre.trim();
   
-  // 1. Eliminar tildes (Piper las maneja, pero mejor sin ellas)
-  resultado = resultado
-    .replace(/á/gi, 'a')
-    .replace(/é/gi, 'e')
-    .replace(/í/gi, 'i')
-    .replace(/ó/gi, 'o')
-    .replace(/ú/gi, 'u')
-    .replace(/ñ/gi, 'ni');
+  // 1. NO eliminar tildes: Piper pronuncia mejor con acentos.
+  //    'diríjase' suena correcto con tilde; sin ella suena plano.
+  //    'ñ' se mantiene como ñ (Piper lo maneja como sonido nasal palatal).
   
   // 2. PRIMERO: Reglas para JH al inicio → Y (ANTES de eliminar H)
   //    Jhon → Yon, Jhonny → Yonny, Jheison → Yeison

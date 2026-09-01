@@ -40,7 +40,7 @@ if not os.path.isdir(os.path.join(_project_root, 'piper')):
 _ESPEAK_DATA = os.path.join(_project_root, 'piper', 'piper-env', 'Lib', 'site-packages', 'piper', 'espeak-ng-data')
 
 MODELO = os.environ.get('PIPER_MODEL')
-SENTENCE_SILENCE = float(os.environ.get('PIPER_SENTENCE_SILENCE', '0.2'))
+SENTENCE_SILENCE = float(os.environ.get('PIPER_SENTENCE_SILENCE', '0.5'))
 
 _espeak_listo = False
 
@@ -123,8 +123,14 @@ def phonemizar_texto(texto):
 
 
 def generar_wav(voz, texto, ruta):
-    """Sintetiza `texto` y escribe un WAV de 16 bits PCM en `ruta`."""
-    texto_procesado = phonemizar_texto(texto)
+    """Sintetiza `texto` y escribe un WAV de 16 bits PCM en `ruta`.
+
+    NOTA: NO se usa phonemización. El modelo Piper (es_MX-claude-high)
+    ya viene entrenado con su propio procesamiento de texto en español
+    mexicano/latinoamericano. La phonemización de espeak-ng usa español
+    peninsular (θ para z/c antes de e/i), lo cual suena raro con este modelo.
+    """
+    texto_procesado = texto.strip()
     with wave.open(ruta, 'wb') as wav_file:
         if SynthesisConfig is not None:
             config = SynthesisConfig(length_scale=1.15)

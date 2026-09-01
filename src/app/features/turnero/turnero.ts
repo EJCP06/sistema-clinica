@@ -49,6 +49,10 @@ interface AnuncioActivo {
   ultimaVozMs: number;
   /** URL del audio pre-sintetizado por el servidor (para sincronización entre pantallas). */
   audioUrl?: string;
+  /** Blob URL cacheado del WAV pre-descargado (para reproducción instantánea). */
+  audioBlobUrl?: string;
+  /** Promesa de pre-descarga del WAV (para esperar antes de reproducir). */
+  audioPreload?: Promise<string | undefined>;
   /** true cuando el ciclo se pausó temporalmente (ej. llegó un megáfono). Se reanuda al terminar el megáfono. */
   pausado?: boolean;
 }
@@ -510,6 +514,11 @@ export class TurneroComponent implements OnInit, OnDestroy {
    */
   private crearAnuncio(data: any): void {
     const id = data.id_atencion;
+    // ANTI-DOBLE: si ya existe un anuncio activo para esta atención, NO crear
+    // otro. Evita que el polling duplique el anuncio del socket (o viceversa).
+    if (this.anunciosActivos.has(id)) {
+      return;
+    }
     this.actualizarDeltaReloj(data.server_now);
     if (data.inicio_ms) {
       this.inicioMsActual = data.inicio_ms;
@@ -536,6 +545,20 @@ export class TurneroComponent implements OnInit, OnDestroy {
       audioUrl: data.audio_url || undefined,
     };
     this.anunciosActivos.set(id, anuncio);
+    // Pre-descargar el WAV de forma INMEDIATA y guardar la Promesa.
+    // Cuando llegue el turno de reproducir, se hará await de esta promesa
+    // para que el WAV ya esté en memoria (blob URL) y suene INMEDIATO.
+    if (anuncio.audioUrl) {
+      const url = anuncio.audioUrl;
+      const fullUrl = url.startsWith('http') ? url : getBackendUrl(url);
+      anuncio.audioPreload = fetch(fullUrl)
+        .then(r => r.ok ? r.blob() : Promise.reject(new Error(`HTTP ${r.status}`)))
+        .then(blob => {
+          anuncio.audioBlobUrl = URL.createObjectURL(blob);
+          return anuncio.audioBlobUrl;
+        })
+        .catch(() => undefined); // silencioso: reproducirTexto maneja fallback
+    }
     // Resetear disponibilidad del servidor TTS en cada llamado nuevo para que
     // tras un error temporal se reintente en lugar de quedarse en fallback permanente.
     this.ttsServidorDisponible = null;
@@ -633,10 +656,11 @@ export class TurneroComponent implements OnInit, OnDestroy {
     // Evita que el polling re-anuncie este mismo llamado
     this.ultimoLlamadoProcesadoId = id;
     this.ultimoLlamadoProcesadoHora = data.inicio_ms || data.server_now || Date.now();
-    // NOTA: NO se llama detenerSoloCiclosMedicos aquí para que el ciclo
-    // de 10s del médico CONTINÚE sin interrupciones. El megáfono se
-    // encola en colaVoz y suena cuando el motor se libere. Así el médico
-    // nunca deja de sonar mientras lab/imag llaman pacientes.
+    // Detener el anuncio anterior si existe para que crearAnuncio pueda
+    // recrearlo (crearAnuncio tiene guardia anti-doble si ya existe).
+    if (this.anunciosActivos.has(id)) {
+      this.detenerRepeticion(id);
+    }
     this.crearAnuncio(data);
   }
 
@@ -652,10 +676,9 @@ export class TurneroComponent implements OnInit, OnDestroy {
       // Do not show visual modal if splash is visible (audio is not ready either)
       return false;
     }
-    if (!('speechSynthesis' in window)) {
-      console.error('SpeechSynthesis no soportado.');
-      return false;
-    }
+    // NOTA: speechSynthesis NO existe en el WebView de Android (Capacitor).
+    // No bloqueamos aqui: el audio se reproduce via WAV/AudioContext,
+    // y speechSynthesis solo se usa como último fallback en reproducirTextoNavegador.
     const nombreCompleto = `${a.paciente} ${a.apellido}`.trim();
     // Piso + número del consultorio (ej. consultorio "01" en piso "1" => "101")
     const destinoConsultorio = this.formatearConsultorioConPiso(a.consultorio, a.piso);
@@ -765,22 +788,26 @@ export class TurneroComponent implements OnInit, OnDestroy {
       }
       this.procesarColaVoz();
     };
-    // Sincronización con inicio_ms del servidor (usa baseLocal anclado)
-    let retrasoSpeak = 300;
-    if (a.inicioMs && Number.isFinite(a.inicioMs)) {
+    // Para llamados inmediatos (APS/médico), delay = 0 para que suene YA.
+    // Solo usar delay de grilla para ciclos de repetición de médicos.
+    let retrasoSpeak = 0;
+    if (!a.destinoInmediato && !a.primerTickInmediato && a.inicioMs && Number.isFinite(a.inicioMs)) {
       retrasoSpeak = Math.max(0, a.baseLocal - Date.now());
     }
-    a.speakTimerId = setTimeout(() => {
+    a.speakTimerId = setTimeout(async () => {
       a.speakTimerId = null;
-      // Mostrar modal JUSTO cuando el audio empieza a sonar.
-      // Se deferred con setTimeout(0) para que el change detection de Angular
-      // NO interrumpa la síntesis de voz que se configura en este hilo.
-      setTimeout(() => this.mostrarModalLlamado(a), 0);
-      this.reproducirTexto(texto, onExito, onError, a.audioUrl);
-      // NO borrar audioUrl: el WAV dura 120s (limpieza del backend) y el
-      // ciclo de llamados dura 115s, así que siempre está disponible.
-      // Si el WAV falla (404 por limpieza tardía), reproducirTexto ya tiene
-      // fallback a POST /api/tts y de ahí a AudioContext.
+      // ESPERAR a que el WAV pre-descargado esté listo (blob en memoria).
+      // Sin esto, el Audio() tiene que descargar el WAV de la red → delay perceptible.
+      let audioUrlFinal: string | undefined;
+      if (a.audioPreload) {
+        audioUrlFinal = await a.audioPreload;
+      }
+      if (!audioUrlFinal) {
+        audioUrlFinal = a.audioBlobUrl || a.audioUrl;
+      }
+      // Mostrar modal y reproducir audio SIMULTÁNEAMENTE (el WAV ya está en memoria).
+      this.mostrarModalLlamado(a);
+      this.reproducirTexto(texto, onExito, onError, audioUrlFinal);
     }, retrasoSpeak);
     return true;
   }
@@ -900,31 +927,21 @@ export class TurneroComponent implements OnInit, OnDestroy {
       
       let blob: Blob;
       
-      // En Capacitor (Android), usar CapacitorHttp para evitar problemas CORS
-      if (isCapacitor()) {
-        const { CapacitorHttp } = await import('@capacitor/core');
-        const resp = await CapacitorHttp.post({
-          url: ttsUrl,
-          headers: { 'Content-Type': 'application/json' },
-          data: JSON.stringify({ texto }),
-          responseType: 'blob',
-        });
-        blob = new Blob([resp.data], { type: 'audio/wav' });
-      } else {
-        const resp = await fetch(ttsUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ texto }),
-        });
-        if (!resp.ok) {
-          this.ttsServidorDisponible = false;
-          // Auto-resetear después de 30s para reintentar el servidor
-          setTimeout(() => { this.ttsServidorDisponible = null; }, 30000);
-          this.sintetizandoTTS = false;
-          return false;
-        }
-        blob = await resp.blob();
+      // Usar fetch normal para TODOS los entornos (CORS configurado en servidor)
+      // Nota: CapacitorHttp está deshabilitado para que Socket.IO funcione
+      const resp = await fetch(ttsUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texto }),
+      });
+      if (!resp.ok) {
+        this.ttsServidorDisponible = false;
+        // Auto-resetear después de 30s para reintentar el servidor
+        setTimeout(() => { this.ttsServidorDisponible = null; }, 30000);
+        this.sintetizandoTTS = false;
+        return false;
       }
+      blob = await resp.blob();
       
       this.ttsServidorDisponible = true;
       const url = URL.createObjectURL(blob);
@@ -1079,20 +1096,17 @@ export class TurneroComponent implements OnInit, OnDestroy {
       }
       
       // Construir URL completa si es necesaria (para Capacitor/Android)
-      const audioUrl = url.startsWith('http') ? url : getBackendUrl(url);
+      // Blob URLs (blob:...) se usan tal cual, no necesitan prefijo.
+      const audioUrl = (url.startsWith('http') || url.startsWith('blob:')) ? url : getBackendUrl(url);
       
       let audio: HTMLAudioElement;
       let blobUrl: string | null = null;
       
       // En Capacitor (Android), descargar audio con CapacitorHttp (sin CORS)
-      if (isCapacitor()) {
-        blobUrl = await descargarAudioBlob(audioUrl);
-        audio = new Audio(blobUrl);
-        audio.preload = 'auto';
-      } else {
-        audio = new Audio(audioUrl);
-        audio.preload = 'auto';
-      }
+      // Usar fetch para descargar audio (CORS configurado en servidor)
+      // Nota: En Capacitor se usa fetch normal (CapacitorHttp está deshabilitado)
+      audio = new Audio(audioUrl);
+      audio.preload = 'auto';
       
       this.audioServidor = audio;
       const generacion = this.generacionVoz;
@@ -1446,8 +1460,12 @@ export class TurneroComponent implements OnInit, OnDestroy {
         const meta = document.querySelector('meta[name="viewport"]');
         if (meta) {
           this.originalViewport = meta.getAttribute('content');
-          meta.setAttribute('content', 'width=1024');
+          // Usar 1366 para que coincida con la resolución real del TV (1366×768)
+          // y las clases md: de Tailwind se activen correctamente
+          meta.setAttribute('content', 'width=1366');
         }
+        // Agregar clase CSS al body para estilos específicos de TV
+        document.body.classList.add('tv-mode');
       }
       // SIEMPRE mostrar splash en TV y móvil para desbloquear audio.
       // Esto garantiza que el usuario toque la pantalla en cada carga.
@@ -1561,7 +1579,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
     // Cada 4s (antes 10s): al ser el mecanismo de respaldo (y el principal
     // si el socket del turnero público se cae), un intervalo menor hace que
     // la voz salga "de una vez" en lugar de tardar hasta 10s.
-    this.verificarSub = interval(4000).subscribe(() => {
+    this.verificarSub = interval(2000).subscribe(() => {
       this.verificarUltimoLlamado();
     });
 
@@ -1660,9 +1678,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
     } else {
       this.deltaRelojMs += 0.25 * (muestra - this.deltaRelojMs);
     }
-  }
-
-private verificarUltimoLlamado() {
+  }  private verificarUltimoLlamado() {
     if (!this.sede || this.verificandoUltimoLlamado) return;
     this.verificandoUltimoLlamado = true;
 

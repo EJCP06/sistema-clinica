@@ -5,13 +5,10 @@ const config: CapacitorConfig = {
   appName: 'Turnero CNC',
   webDir: 'dist/sistema-clinica/browser',
   
-  // Servidor: usar assets locales (dist/sistema-clinica)
-  // El backend se llama por HTTP directamente (CapacitorHttp)
   server: {
     androidScheme: 'https',
   },
 
-  // Configuración de Android
   android: {
     buildOptions: {
       keystorePath: undefined,
@@ -19,15 +16,12 @@ const config: CapacitorConfig = {
     }
   },
 
-  // Plugins
   plugins: {
     SplashScreen: {
-      launchShowDuration: 0, // Sin splash screen
+      launchShowDuration: 0,
     },
-    // Habilitar CapacitorHttp para peticiones HTTP nativas
-    // Esto resuelve problemas de CORS en Android
     CapacitorHttp: {
-      enabled: true,
+      enabled: false,
     }
   }
 };
