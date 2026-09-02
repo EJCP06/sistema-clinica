@@ -14,10 +14,12 @@
     <script>
       (function() {
         /* FIX TV: Android WebView en smart TV puede reportar un device-width
-           muy bajo (por DPI scaling). Detectamos Android TV por user agent
-           (contiene "Android TV", "SmartTV", "GoogleTV" o "AppleTV").
-           Si es TV y pantalla >= 500px, forzamos viewport a 1024 para
-           activar las clases md: de Tailwind (>= 768px). */
+           muy bajo (por DPI scaling). Detectamos pantallas grandes por tamaño
+           real (landscape + >= 960px) o por user agent de TV.
+           En vez de hardcodear un ancho, usamos el ancho REAL de la pantalla
+           para que el layout se adapte a cualquier resolución (1080p, 4K, etc.).
+           maximum-scale=1 evita que navegadores de TV (BrowseHere, etc.)
+           rompan el layout al hacer zoom out. */
         try {
           var sw = window.screen.width || 0;
           var sh = window.screen.height || 0;
@@ -28,7 +30,8 @@
           if (isDesktop || (isAndroidTV && realWidth >= 500)) {
             var meta = document.querySelector('meta[name="viewport"]');
             if (meta) {
-              meta.setAttribute('content', 'width=1024, initial-scale=1');
+              // Usar el ancho REAL de la pantalla para que todo encaje al 100%
+              meta.setAttribute('content', 'width=' + realWidth + ', initial-scale=1, maximum-scale=1');
             }
           }
         } catch(e) {}
