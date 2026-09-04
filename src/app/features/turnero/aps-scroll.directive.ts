@@ -6,15 +6,14 @@ import { Directive, ElementRef, Input, AfterViewInit, OnDestroy, OnChanges } fro
 })
 /**
  * Directiva de scroll automático para el tablero.
- * Mide la altura REAL de las tarjetas en el DOM (funciona en móvil y PC,
- * donde las tarjetas no miden lo mismo) y ajusta la altura del viewport
- * (el padre) para mostrar exactamente `apsScrollMaxVisible` tarjetas sin
- * cortarlas. Cuando hay MÁS tarjetas que visibles, anima en bucle.
+ * Mide la altura REAL de las tarjetas en el DOM y el espacio REAL disponible
+ * en el panel que las contiene, de modo que la animación arranca justo cuando
+ * la lista YA NO CABE — sin depender de un número fijo de tarjetas visibles.
  */
 export class ApsScrollDirective implements AfterViewInit, OnDestroy, OnChanges {
   @Input({ required: true }) apsScroll = 0;
   @Input() apsScrollSpeed = 40;
-  /** Cantidad de tarjetas visibles: la animación solo arranca si hay MÁS que este número. */
+  /** Respaldo: cantidad de tarjetas visibles si no se puede medir el espacio disponible. */
   @Input() apsScrollMaxVisible = 4;
 
   private anim: Animation | null = null;
@@ -34,6 +33,8 @@ export class ApsScrollDirective implements AfterViewInit, OnDestroy, OnChanges {
     if (typeof ResizeObserver !== 'undefined') {
       this.ro = new ResizeObserver(() => this.remeasure());
       this.ro.observe(this.el.nativeElement);
+      const sec = this.seccion;
+      if (sec) this.ro.observe(sec);
     }
     this.remeasure();
   }
@@ -44,6 +45,18 @@ export class ApsScrollDirective implements AfterViewInit, OnDestroy, OnChanges {
 
   private get viewport(): HTMLElement | null {
     return this.el.nativeElement.parentElement;
+  }
+
+  /** La sección (panel con título) que contiene la lista. */
+  private get seccion(): HTMLElement | null {
+    const vp = this.viewport;
+    return vp ? (vp.parentElement as HTMLElement | null) : null;
+  }
+
+  /** El contenedor que limita la altura de la sección (grid o columna flex). */
+  private get contenedor(): HTMLElement | null {
+    const sec = this.seccion;
+    return sec ? (sec.parentElement as HTMLElement | null) : null;
   }
 
   private medirTarjetas() {
@@ -60,28 +73,50 @@ export class ApsScrollDirective implements AfterViewInit, OnDestroy, OnChanges {
         : 0;
   }
 
+  /** Altura real (px) que el panel puede usar para las tarjetas sin recortarse. */
+  private alturaDisponible(): number {
+    const vp = this.viewport;
+    const sec = this.seccion;
+    const cont = this.contenedor;
+    if (!vp || !sec || !cont) return 0;
+    const cr = cont.getBoundingClientRect();
+    const vr = vp.getBoundingClientRect();
+    const padBottom = parseFloat(getComputedStyle(sec).paddingBottom) || 0;
+    return Math.max(cr.bottom - vr.top - padBottom, 0);
+  }
+
+  /** Cuántas tarjetas caben en el espacio disponible (mínimo 1). */
+  private visiblesReales(): number {
+    const availH = this.alturaDisponible();
+    if (availH <= 0 || this.cardH <= 0) return this.maxVisible;
+    const n = Math.floor((availH + this.gap) / (this.cardH + this.gap));
+    return Math.max(1, n);
+  }
+
   private viewportHMedido(): number {
     if (this.cardH <= 0) return 0;
-    return this.maxVisible * this.cardH + (this.maxVisible - 1) * this.gap;
+    const visibles = this.visiblesReales();
+    return visibles * this.cardH + (visibles - 1) * this.gap;
   }
 
   private remeasure() {
     this.medirTarjetas();
     const vp = this.viewport;
     if (!vp) return;
+    const visibles = this.visiblesReales();
     const vpH = this.viewportHMedido();
-    if (this.apsScroll > this.maxVisible && vpH > 0) {
+    if (this.apsScroll > visibles && vpH > 0) {
       vp.style.height = vpH + 'px';
-      this.startAnim(vpH);
+      this.startAnim(vpH, visibles);
     } else {
       vp.style.height = 'auto';
       this.stopAnim();
     }
   }
 
-  private startAnim(vpH: number) {
+  private startAnim(vpH: number, visibles: number) {
     this.stopAnim();
-    if (this.apsScroll <= this.maxVisible || !vpH || this.cardH <= 0) return;
+    if (this.apsScroll <= visibles || !vpH || this.cardH <= 0) return;
     const contentH = this.apsScroll * this.cardH + (this.apsScroll - 1) * this.gap;
     const upDist = contentH;
     const downDist = vpH;

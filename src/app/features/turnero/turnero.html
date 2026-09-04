@@ -73,10 +73,7 @@
           <div *ngIf="!apsLoading[i] && (!apsData[i] || apsData[i].length === 0)" class="flex-1 flex items-center justify-center">
             <p class="text-slate-600 text-sm md:text-base font-bold uppercase tracking-widest">Sin pacientes</p>
           </div>
-          <div *ngIf="!apsLoading[i] && apsData[i] && apsData[i].length > 0" class="overflow-hidden relative"
-               [style.display]="apsData[i].length <= maxVisibleTarjetas ? 'flex' : 'block'"
-               [style.flex-direction]="apsData[i].length <= maxVisibleTarjetas ? 'column' : null"
-               [class.justify-center]="apsData[i].length <= maxVisibleTarjetas">
+          <div *ngIf="!apsLoading[i] && apsData[i] && apsData[i].length > 0" class="overflow-hidden relative">
             <div class="space-y-2 md:space-y-3"
                  [apsScroll]="apsData[i].length"
                  [apsScrollMaxVisible]="maxVisibleTarjetas">
@@ -122,10 +119,7 @@
           <div *ngIf="!apsEsperaLoading[i] && (!apsEsperaData[i] || apsEsperaData[i].length === 0)" class="flex-1 flex items-center justify-center">
             <p class="text-slate-600 text-sm md:text-base font-bold uppercase tracking-widest">Sin pacientes</p>
           </div>
-          <div *ngIf="!apsEsperaLoading[i] && apsEsperaData[i] && apsEsperaData[i].length > 0" class="overflow-hidden relative"
-               [style.display]="apsEsperaData[i].length <= maxVisibleTarjetas ? 'flex' : 'block'"
-               [style.flex-direction]="apsEsperaData[i].length <= maxVisibleTarjetas ? 'column' : null"
-               [class.justify-center]="apsEsperaData[i].length <= maxVisibleTarjetas">
+          <div *ngIf="!apsEsperaLoading[i] && apsEsperaData[i] && apsEsperaData[i].length > 0" class="overflow-hidden relative">
             <div class="space-y-2 md:space-y-3"
                  [apsScroll]="apsEsperaData[i].length"
                   [apsScrollMaxVisible]="maxVisibleTarjetas">
@@ -178,10 +172,7 @@
           <div *ngIf="!labLoading[i] && (!labData[i] || labData[i].length === 0)" class="flex-1 flex items-center justify-center">
             <p class="text-slate-600 text-sm md:text-base font-bold uppercase tracking-widest">Sin pacientes</p>
           </div>
-          <div *ngIf="!labLoading[i] && labData[i] && labData[i].length > 0" class="overflow-hidden relative"
-               [style.display]="labData[i].length <= maxVisibleTarjetas ? 'flex' : 'block'"
-               [style.flex-direction]="labData[i].length <= maxVisibleTarjetas ? 'column' : null"
-               [class.justify-center]="labData[i].length <= maxVisibleTarjetas">
+          <div *ngIf="!labLoading[i] && labData[i] && labData[i].length > 0" class="overflow-hidden relative">
             <div class="space-y-2 md:space-y-3"
                  [apsScroll]="labData[i].length"
                   [apsScrollMaxVisible]="maxVisibleTarjetas">
@@ -226,10 +217,7 @@
           <div *ngIf="!labEsperaLoading[i] && (!labEsperaData[i] || labEsperaData[i].length === 0)" class="flex-1 flex items-center justify-center">
             <p class="text-slate-600 text-sm md:text-base font-bold uppercase tracking-widest">Sin pacientes</p>
           </div>
-          <div *ngIf="!labEsperaLoading[i] && labEsperaData[i] && labEsperaData[i].length > 0" class="overflow-hidden relative"
-               [style.display]="labEsperaData[i].length <= maxVisibleTarjetas ? 'flex' : 'block'"
-               [style.flex-direction]="labEsperaData[i].length <= maxVisibleTarjetas ? 'column' : null"
-               [class.justify-center]="labEsperaData[i].length <= maxVisibleTarjetas">
+          <div *ngIf="!labEsperaLoading[i] && labEsperaData[i] && labEsperaData[i].length > 0" class="overflow-hidden relative">
             <div class="space-y-2 md:space-y-3"
                  [apsScroll]="labEsperaData[i].length"
                   [apsScrollMaxVisible]="maxVisibleTarjetas">
@@ -278,10 +266,7 @@
           <div *ngIf="!imgLoading[i] && (!imgData[i] || imgData[i].length === 0)" class="flex-1 flex items-center justify-center">
             <p class="text-slate-600 text-sm md:text-base font-bold uppercase tracking-widest">Sin pacientes</p>
           </div>
-          <div *ngIf="!imgLoading[i] && imgData[i] && imgData[i].length > 0" class="overflow-hidden relative"
-               [style.display]="imgData[i].length <= maxVisibleTarjetas ? 'flex' : 'block'"
-               [style.flex-direction]="imgData[i].length <= maxVisibleTarjetas ? 'column' : null"
-               [class.justify-center]="imgData[i].length <= maxVisibleTarjetas">
+          <div *ngIf="!imgLoading[i] && imgData[i] && imgData[i].length > 0" class="overflow-hidden relative">
             <div class="space-y-2 md:space-y-3"
                  [apsScroll]="imgData[i].length"
                   [apsScrollMaxVisible]="maxVisibleTarjetas">
@@ -326,10 +311,7 @@
           <div *ngIf="!imgEsperaLoading[i] && (!imgEsperaData[i] || imgEsperaData[i].length === 0)" class="flex-1 flex items-center justify-center">
             <p class="text-slate-600 text-sm md:text-base font-bold uppercase tracking-widest">Sin pacientes</p>
           </div>
-          <div *ngIf="!imgEsperaLoading[i] && imgEsperaData[i] && imgEsperaData[i].length > 0" class="overflow-hidden relative"
-               [style.display]="imgEsperaData[i].length <= maxVisibleTarjetas ? 'flex' : 'block'"
-               [style.flex-direction]="imgEsperaData[i].length <= maxVisibleTarjetas ? 'column' : null"
-               [class.justify-center]="imgEsperaData[i].length <= maxVisibleTarjetas">
+          <div *ngIf="!imgEsperaLoading[i] && imgEsperaData[i] && imgEsperaData[i].length > 0" class="overflow-hidden relative">
             <div class="space-y-2 md:space-y-3"
                  [apsScroll]="imgEsperaData[i].length"
                   [apsScrollMaxVisible]="maxVisibleTarjetas">
@@ -374,10 +356,7 @@
           <div *ngIf="!consultaLoading[i] && (!consultaData[i] || consultaData[i].length === 0)" class="flex-1 flex items-center justify-center">
             <p class="text-slate-600 text-sm md:text-base font-bold uppercase tracking-widest">Sin pacientes</p>
           </div>
-          <div *ngIf="!consultaLoading[i] && consultaData[i] && consultaData[i].length > 0" class="overflow-hidden relative"
-               [style.display]="consultaData[i].length <= maxVisibleTarjetas ? 'flex' : 'block'"
-               [style.flex-direction]="consultaData[i].length <= maxVisibleTarjetas ? 'column' : null"
-               [class.justify-center]="consultaData[i].length <= maxVisibleTarjetas">
+          <div *ngIf="!consultaLoading[i] && consultaData[i] && consultaData[i].length > 0" class="overflow-hidden relative">
             <div class="space-y-2 md:space-y-3"
                  [apsScroll]="consultaData[i].length"
                   [apsScrollMaxVisible]="maxVisibleTarjetas">
