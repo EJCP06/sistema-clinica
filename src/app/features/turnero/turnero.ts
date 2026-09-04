@@ -131,15 +131,6 @@ const SALAS: Record<SalaMode, SalaConfig> = {
  */
 let ultimoAnuncioGlobal: { texto: string; ts: number; sonado: boolean } | null = null;
 const VENTANA_ANTIDOBLE_MS = 9000;
-/**
- * Ventana del llamado (desde `inicio_ms`): coincide con el contador del
- * médico (120s desde la hora del llamado). Pasada esta ventana (~115s desde
- * `inicio_ms`), la repetición se DETIENE sola: la voz suena cada 10s mientras
- * el paciente siga llamado y el corte final lo hace el auto-ausente del
- * médico. Si ese evento se pierde por el socket, este tope evita que la voz
- * siga sonando en bucle.
- */
-const VENTANA_LLAMADO_MS = 115000;
 
 @Component({
   selector: 'app-turnero',
@@ -371,7 +362,9 @@ export class TurneroComponent implements OnInit, OnDestroy {
 
   /**
    * Calcula el retardo hasta la siguiente marca de 10s de la grilla del llamado.
-   * Devuelve null si el llamado ya pasó la ventana de 115s (VENTANA_LLAMADO_MS).
+   * El ciclo sigue indefinidamente cada 10s: se detiene únicamente cuando el
+   * paciente entra en atención (o se marca ausente/libera el consultorio), que
+   * dispara detenerRepeticion() en el turnero.
    */
   private retardoHastaSiguienteMarca(a: AnuncioActivo, minMs: number): number | null {
     if (!a.inicioMs || !Number.isFinite(a.inicioMs)) {
@@ -380,10 +373,9 @@ export class TurneroComponent implements OnInit, OnDestroy {
     const baseLocal = a.baseLocal;
     const ahora = Date.now();
     const desfase = ahora - baseLocal;
-    if (desfase >= VENTANA_LLAMADO_MS) return null;
+    if (desfase < 0) return Math.max(minMs, 500);
     const periodos = Math.max(1, Math.floor(desfase / 10000) + 1);
     const siguienteBorde = baseLocal + periodos * 10000;
-    if (siguienteBorde - baseLocal >= VENTANA_LLAMADO_MS) return null;
     return Math.max(minMs, siguienteBorde - ahora);
   }
 
@@ -394,8 +386,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
    * ("Llamar al Siguiente") emiten `inicio_ms` en el mismo instante del
    * clic, así que cuando el evento llega el objetivo ya está en el pasado y
    * el retardo queda en `minMs` (la voz sale YA), en vez de esperar la
-   * siguiente marca de 10s de la grilla de consultorios. Devuelve null si
-   * el llamado ya pasó la ventana de 115s.
+   * siguiente marca de 10s de la grilla de consultorios.
    */
   private retardoHastaInicioAnuncio(a: AnuncioActivo, minMs: number): number | null {
     if (!a.inicioMs || !Number.isFinite(a.inicioMs)) {
@@ -404,8 +395,8 @@ export class TurneroComponent implements OnInit, OnDestroy {
     const baseLocal = a.baseLocal;
     const ahora = Date.now();
     const desfase = ahora - baseLocal;
-    if (desfase >= VENTANA_LLAMADO_MS) return null;
-    return Math.max(minMs, baseLocal - ahora);
+    if (desfase < 0) return Math.max(minMs, baseLocal - ahora);
+    return Math.max(minMs, 0);
   }
 
   /**
@@ -470,17 +461,32 @@ export class TurneroComponent implements OnInit, OnDestroy {
       // Llamados de módulo: anuncio único. Como el paciente no cambia de
       // estado al llamarlo, el ciclo de repetición de 10s sonaría en bucle,
       // así que no se re-agenda.
-      if (continuar && !esDestino) {
+      if (esDestino) {
+        // Anuncio de módulo: disparo único; termina aquí (salvo que haya
+        // quedado encolado esperando que el motor se libere).
+        if (this.colaVoz.some(x => x.idAtencion === a.idAtencion)) {
+          // El megáfono quedó ENCOLADO esperando que el motor se libere (p. ej.
+          // el ciclo de 10s del doctor A está sonando). NO se borra de
+          // anunciosActivos: procesarColaVoz lo sacará y reproducirá apenas
+          // termine la voz en curso. Si se borrara aquí, procesarColaVoz lo
+          // saltaría (anunciosActivos.has = false) y la voz del megáfono no
+          // sonaría hasta que el paciente del doctor entrara en atención.
+        } else {
+          this.anunciosActivos.delete(a.idAtencion);
+        }
+      } else if (this.anunciosActivos.has(a.idAtencion) && !a.pausado) {
+        // Ciclo del médico: se repite CADA 10s SIN límite de tiempo, hasta que
+        // el paciente entra en atención (o se marca ausente/libera), evento que
+        // dispara detenerRepeticion(). Un `continuar === false` transitorio
+        // (p. ej. bloqueo anti-doble por solapamiento de voz) NO debe matar el
+        // ciclo: se re-agenda en la siguiente marca de 10s.
         this.iniciarRepeticionAnuncio(a);
-      } else if (this.colaVoz.some(x => x.idAtencion === a.idAtencion)) {
-        // El megáfono quedó ENCOLADO esperando que el motor se libere (p. ej.
-        // el ciclo de 10s del doctor A está sonando). NO se borra de
-        // anunciosActivos: procesarColaVoz lo sacará y reproducirá apenas
-        // termine la voz en curso. Si se borrara aquí, procesarColaVoz lo
-        // saltaría (anunciosActivos.has = false) y la voz del megáfono no
-        // sonaría hasta que el paciente del doctor entrara en atención.
       } else {
-        this.anunciosActivos.delete(a.idAtencion);
+        // Anuncio fue detenido/retirado o quedó pausado; si está pausado su
+        // ciclo se reanuda vía reanudarCiclosPausados(), así que no lo borramos.
+        if (!a.pausado) {
+          this.anunciosActivos.delete(a.idAtencion);
+        }
       }
     }, delay);
   }
@@ -1443,28 +1449,35 @@ export class TurneroComponent implements OnInit, OnDestroy {
     // gesto previo es un no-op silencioso y los listeners de desbloqueo siguen.
     desbloquearVozNavegador();
     this.initTarjetasResponsive();
+
     // Detectar modo TV: pantalla grande (TV) pero viewport estrecho (navegador de TV).
     // En este caso, forzar viewport ancho para que las clases md: de Tailwind se activen.
     // Se detecta Android TV por user agent para no confundir con phones/tablets normales.
+    // NOTA: dentro de la APK (Capacitor) esto NO se aplica: el viewport ya lo
+    // fija index.html al ancho FÍSICO real (ver script FIX TV) para que 1px CSS =
+    // 1px físico. Aquí solo queda para la versión web abierta en el navegador del TV.
     if (typeof window !== 'undefined') {
-      const sw = window.screen.width || 0;
-      const sh = window.screen.height || 0;
-      const realWidth = Math.max(sw, sh);
-      const ua = navigator.userAgent || '';
-      const isAndroidTV = /Android TV|SmartTV|GoogleTV|Apple TV|Android.*TV|Monitor|MiTV/i.test(ua);
-      const isLargeScreen = isAndroidTV && realWidth >= 500;
-      const isNarrowViewport = window.innerWidth < 768;
-      this.tvMode = isLargeScreen && isNarrowViewport;
-      if (this.tvMode) {
-        const meta = document.querySelector('meta[name="viewport"]');
-        if (meta) {
-          this.originalViewport = meta.getAttribute('content');
-          // Usar 1366 para que coincida con la resolución real del TV (1366×768)
-          // y las clases md: de Tailwind se activen correctamente
-          meta.setAttribute('content', 'width=1366');
+      const esCapacitor = !!(window as any).Capacitor && !!(window as any).Capacitor.isNativePlatform?.();
+      if (!esCapacitor) {
+        const sw = window.screen.width || 0;
+        const sh = window.screen.height || 0;
+        const realWidth = Math.max(sw, sh);
+        const ua = navigator.userAgent || '';
+        const isAndroidTV = /Android TV|SmartTV|GoogleTV|Apple TV|Android.*TV|Monitor|MiTV/i.test(ua);
+        const isLargeScreen = isAndroidTV && realWidth >= 500;
+        const isNarrowViewport = window.innerWidth < 768;
+        this.tvMode = isLargeScreen && isNarrowViewport;
+        if (this.tvMode) {
+          const meta = document.querySelector('meta[name="viewport"]');
+          if (meta) {
+            this.originalViewport = meta.getAttribute('content');
+            // Usar 1366 para que coincida con la resolución real del TV (1366×768)
+            // y las clases md: de Tailwind se activen correctamente
+            meta.setAttribute('content', 'width=1366');
+          }
+          // Agregar clase CSS al body para estilos específicos de TV
+          document.body.classList.add('tv-mode');
         }
-        // Agregar clase CSS al body para estilos específicos de TV
-        document.body.classList.add('tv-mode');
       }
       // SIEMPRE mostrar splash en TV y móvil para desbloquear audio.
       // Esto garantiza que el usuario toque la pantalla en cada carga.
@@ -1783,6 +1796,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.destroyTarjetasResponsive();
+
     this.queryParamsSub?.unsubscribe();
     this.cambiosSub?.unsubscribe();
     this.timerSub?.unsubscribe();
@@ -2107,6 +2121,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
   /** Splash de inicio en modo TV: requiere una interacción para desbloquear audio. */
   showSplash: boolean = false;
   private originalViewport: string | null = null;
+
 
   // Modal de llamado visual
   showModalLlamado = false;

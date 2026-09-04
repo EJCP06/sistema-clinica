@@ -13,28 +13,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script>
       (function() {
-        /* FIX TV: Android WebView en smart TV puede reportar un device-width
-           muy bajo (por DPI scaling). Detectamos pantallas grandes por tamaño
-           real (landscape + >= 960px) o por user agent de TV.
-           En vez de hardcodear un ancho, usamos el ancho REAL de la pantalla
-           para que el layout se adapte a cualquier resolución (1080p, 4K, etc.).
-           maximum-scale=1 evita que navegadores de TV (BrowseHere, etc.)
-           rompan el layout al hacer zoom out. */
-        try {
-          var sw = window.screen.width || 0;
-          var sh = window.screen.height || 0;
-          var realWidth = Math.max(sw, sh);
-          var ua = navigator.userAgent || '';
-          var isAndroidTV = /Android TV|SmartTV|GoogleTV|Apple TV|Android.*TV|Monitor|MiTV/i.test(ua);
-          var isDesktop = (sw > sh && realWidth >= 960); // landscape + pantalla grande real
-          if (isDesktop || (isAndroidTV && realWidth >= 500)) {
+        /* FIX TV: el WebView de Android (APK Capacitor) reporta el ancho en
+           px CSS YA dividido por la densidad: en un panel físico 1920x1080 con
+           dpr 2 reporta screen.width = 960. Si el viewport se fija a 960, el
+           layout se maqueta a mitad de ancho y cada px CSS se pinta como 2 px
+           físicos -> todo se ve al doble y los breakpoints lg/xl nunca actúan.
+           Solución: en la APK forzar el viewport al ancho FÍSICO
+           (screen.width x dpr), sin initial-scale, para que 1px CSS = 1px físico
+           (igual que en el PC). En navegadores de escritorio/TV (sin la APK) se
+           conserva el ancho CSS real. maximum-scale=1 evita que navegadores de
+           TV (BrowseHere, etc.) rompan el layout al hacer zoom out. */
+        function fijarViewport() {
+          try {
             var meta = document.querySelector('meta[name="viewport"]');
-            if (meta) {
-              // Usar el ancho REAL de la pantalla para que todo encaje al 100%
-              meta.setAttribute('content', 'width=' + realWidth + ', initial-scale=1, maximum-scale=1');
+            if (!meta) return;
+            var sw = window.screen.width || 0;
+            var sh = window.screen.height || 0;
+            var realWidth = Math.max(sw, sh);
+            var ua = navigator.userAgent || '';
+            var isAndroidTV = /Android TV|SmartTV|GoogleTV|Apple TV|Android.*TV|Monitor|MiTV/i.test(ua);
+            var isDesktop = (sw > sh && realWidth >= 960); // landscape + pantalla grande real
+            if (!isDesktop && !(isAndroidTV && realWidth >= 500)) return;
+            var dpr = window.devicePixelRatio || 1;
+            // Solo la APK (Capacitor) o navegadores de TV reales: en tablets /
+            // phones Android navegando la web NO se toca el viewport.
+            var isCapacitor = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+            var esTV = isCapacitor || isAndroidTV;
+            var viewportWidth = realWidth;
+            var escalaExtra = ', initial-scale=1';
+            if (esTV && dpr > 1) {
+              // APK / TV: usar px FÍSICOS (ej. 1920) y omitir initial-scale para
+              // que el WebView ajuste el zoom y 1px CSS = 1px físico.
+              viewportWidth = Math.round(realWidth * dpr);
+              escalaExtra = '';
             }
-          }
-        } catch(e) {}
+            meta.setAttribute('content', 'width=' + viewportWidth + escalaExtra + ', maximum-scale=1');
+          } catch (e) { /* el viewport queda como esté */ }
+        }
+        fijarViewport();
+        // El bridge de Capacitor puede tardar en cargar: reintentar al DOMContentLoaded
+        // (en la APK ya estará definido window.Capacitor para entonces).
+        document.addEventListener('DOMContentLoaded', fijarViewport);
       })();
     </script>
     <meta name="theme-color" content="#2563eb" />
