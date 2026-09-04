@@ -190,7 +190,7 @@
     </div>
 
     <!-- Footer del modal -->
-    <div class="p-4 md:p-6 bg-slate-50 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-3 shrink-0 sticky bottom-0 z-10">
+    <div class="p-4 md:p-6 bg-slate-50 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 flex flex-wrap justify-end gap-3 shrink-0 sticky bottom-0 z-10">
       <button
         type="button"
         [disabled]="isSaving"
@@ -207,7 +207,7 @@
           <span class="flex items-center gap-2" [class.invisible]="isSaving">{{ isEditing ? 'GUARDAR' : 'CREAR' }}</span>
           <span class="flex items-center gap-3" [class.invisible]="!isSaving">
             <span class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-            <span class="animate-pulse">{{ isEditing ? 'guardando...' : 'creando...' }}</span>
+            <span class="animate-pulse">{{ isEditing ? 'GUARDANDO...' : 'CREANDO...' }}</span>
           </span>
         </span>
       </button>
