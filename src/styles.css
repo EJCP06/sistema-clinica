@@ -250,6 +250,19 @@ body:has(.fixed.inset-0.z-\[100\]) {
   transform-origin: top;
 }
 
+/* Botones de acción de modales con doble estado (texto normal <-> spinner "guardando..."):
+   ambos estados se apilan en la misma celda y conservan el MISMO ancho, así el botón no
+   cambia de tamaño al guardar y los botones vecinos (p. ej. CANCELAR) no se mueven. */
+.btn-dual {
+  display: inline-grid;
+  grid-template-areas: "cell";
+  place-items: center;
+}
+.btn-dual > * {
+  grid-area: cell;
+  white-space: nowrap;
+}
+
 
 /* Helpers para experiencia móvil */
 .touch-scroll {
