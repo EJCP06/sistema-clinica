@@ -251,9 +251,11 @@ body:has(.fixed.inset-0.z-\[100\]) {
 }
 
 /* Botones de acción de modales con doble estado (texto normal <-> spinner "guardando..."):
-   ambos estados se apilan en la misma celda y conservan el MISMO ancho, así el botón no
+   el texto visible (p. ej. "GUARDAR") define el ancho real del botón en reposo, y el estado
+   de carga se superpone CENTRADO encima (posición absoluta), de modo que el botón jamás
    cambia de tamaño al guardar y los botones vecinos (p. ej. CANCELAR) no se mueven. */
 .btn-dual {
+  position: relative;
   display: inline-grid;
   grid-template-areas: "cell";
   place-items: center;
@@ -261,6 +263,25 @@ body:has(.fixed.inset-0.z-\[100\]) {
 .btn-dual > * {
   grid-area: cell;
   white-space: nowrap;
+}
+.btn-dual > :last-child {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+}
+.btn-dual > :last-child > span:last-child {
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase; /* "GUARDANDO..." visible en mayúsculas */
+}
+.btn-dual > :last-child .animate-spin {
+  width: 0.875rem;
+  height: 0.875rem;
 }
 
 

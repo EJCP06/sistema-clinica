@@ -74,12 +74,92 @@ export class Login implements OnDestroy {
    tiempoRestante = 0;
   private intervaloTemporizador: ReturnType<typeof setInterval> | null = null;
 
+  /** Clave en sessionStorage para persistir la recuperación entre recargas (F5). */
+  private static readonly RECUPERACION_KEY = 'login_recuperacion';
+
   constructor() {
     setTimeout(() => this.initialTransitionDisabled = false, 100);
+    // Guarda la recuperación en curso al recargar (F5) o salir de la página,
+    // para poder restaurarla al volver.
+    window.addEventListener('pagehide', this.guardarAlSalir);
+    this.restaurarRecuperacion();
   }
 
   ngOnDestroy() {
     this.detenerTemporizador();
+    window.removeEventListener('pagehide', this.guardarAlSalir);
+  }
+
+  /** Guarda la recuperación en curso al recargar/cerrar la página (F5 incluido). */
+  private readonly guardarAlSalir = () => {
+    if (this.mostrarResetPassword && this.paso > 1) {
+      this.guardarRecuperacion();
+    }
+  };
+
+  /** Hora límite (epoch ms) en que expira el código OTP, para recalcular el temporizador tras recargar. */
+  private codigoVenceEn: number | null = null;
+
+  /** Persiste el estado actual de la recuperación para sobrevivir a recargas. */
+  guardarRecuperacion() {
+    try {
+      sessionStorage.setItem(Login.RECUPERACION_KEY, JSON.stringify({
+        paso: this.paso,
+        email: this.recuperacionEmail,
+        cedula: this.recuperacionCedula,
+        codigo: this.recuperacionCodigo,
+        newPassword: this.newPassword,
+        confirmPassword: this.confirmPassword,
+        // Hora real en que expira el código (fijada al enviarlo), para que la
+        // cuenta regresiva sea correcta incluso si pasó tiempo entre guardados.
+        venceEn: this.codigoVenceEn
+      }));
+    } catch { /* almacenamiento no disponible */ }
+  }
+
+  /** Limpia la recuperación persistida (al completarla o salir del flujo). */
+  private limpiarRecuperacionGuardada() {
+    try {
+      sessionStorage.removeItem(Login.RECUPERACION_KEY);
+    } catch { /* almacenamiento no disponible */ }
+  }
+
+  /**
+   * Al abrir la pantalla de login, si el usuario venía a mitad de una
+   * recuperación (recargó con F5, por ejemplo), lo devuelve a la misma fase
+   * con sus datos y el temporizador recalculado.
+   */
+  private restaurarRecuperacion() {
+    try {
+      const raw = sessionStorage.getItem(Login.RECUPERACION_KEY);
+      if (!raw) return;
+      const s = JSON.parse(raw);
+      // Restaurar solo si hay una recuperación en curso con datos válidos.
+      // Se restaura cualquier paso (1 a 3): así el usuario vuelve exactamente
+      // a donde estaba antes de recargar la página.
+      if (!s || !s.email || !s.cedula || !s.paso || s.paso < 1 || s.paso > 3) {
+        this.limpiarRecuperacionGuardada();
+        return;
+      }
+      this.recuperacionEmail = s.email;
+      this.recuperacionCedula = s.cedula;
+      this.recuperacionCodigo = s.codigo || '';
+      this.newPassword = s.newPassword || '';
+      this.confirmPassword = s.confirmPassword || '';
+      this.paso = s.paso;
+      this.mostrarResetPassword = true;
+      // Si el código aún no vence, reanudar la cuenta regresiva con el tiempo
+      // real restante; si ya venció, dejar el temporizador en 0 (muestra
+      // "Código expirado" y permite reenviar).
+      if (s.paso === 2 && s.venceEn) {
+        // Fijar la hora de vencimiento ORIGINAL guardada: la cuenta regresiva
+        // reanuda con el tiempo real que queda (no se reinicia completa).
+        this.codigoVenceEn = Number(s.venceEn);
+        this.iniciarTemporizador(0);
+      }
+    } catch {
+      this.limpiarRecuperacionGuardada();
+    }
   }
 
   get isDarkMode() {
@@ -102,6 +182,7 @@ export class Login implements OnDestroy {
       this.paso = 1;
     } else {
       this.resetearRecuperacion();
+      this.limpiarRecuperacionGuardada();
     }
   }
 
@@ -113,6 +194,7 @@ export class Login implements OnDestroy {
     this.confirmPassword = '';
     this.paso = 1;
     this.tiempoRestante = 0;
+    this.codigoVenceEn = null;
     this.detenerTemporizador();
   }
 
@@ -124,12 +206,22 @@ export class Login implements OnDestroy {
   }
 
   private iniciarTemporizador(segundos: number) {
-    this.tiempoRestante = segundos;
+    // Si ya hay una hora de vencimiento fijada (p. ej. al restaurar tras una
+    // recarga con el código aún vigente), se conserva; si no, se fija a partir
+    // de ahora. Así la cuenta regresiva siempre termina en el momento real en
+    // que expira el código.
+    if (!this.codigoVenceEn) {
+      this.codigoVenceEn = Date.now() + segundos * 1000;
+    }
+    this.tiempoRestante = Math.max(0, Math.floor((this.codigoVenceEn - Date.now()) / 1000));
     this.detenerTemporizador();
     this.intervaloTemporizador = setInterval(() => {
-      this.tiempoRestante--;
+      // Basarse en la hora real de vencimiento: así el conteo nunca se
+      // desvía aunque el intervalo se retrase.
+      this.tiempoRestante = Math.max(0, Math.floor((this.codigoVenceEn! - Date.now()) / 1000));
       if (this.tiempoRestante <= 0) {
         this.detenerTemporizador();
+        this.codigoVenceEn = null;
       }
     }, 1000);
   }
@@ -149,6 +241,9 @@ export class Login implements OnDestroy {
       this.swal.warning('Complete su correo y cédula');
       return;
     }
+    // Guardar lo escrito en el paso 1 por si recarga la página mientras
+    // espera el correo con el código.
+    this.guardarRecuperacion();
     this.cargandoReset = true;
     const inicio = Date.now();
     const MIN_CARGANDO = 800;
@@ -162,6 +257,7 @@ export class Login implements OnDestroy {
           this.paso = 2;
           this.recuperacionCodigo = '';
           this.iniciarTemporizador(res.expiracion || 300);
+          this.guardarRecuperacion();
           this.swal.success('Nuevo código enviado a tu correo. Revisa el mensaje más reciente.');
         }, restante);
       },
@@ -198,6 +294,7 @@ export class Login implements OnDestroy {
           this.swal.success('Código de recuperación exitoso');
           this.paso = 3;
           this.detenerTemporizador();
+          this.guardarRecuperacion();
         }, restante);
       },
       error: (err) => {
@@ -237,6 +334,7 @@ export class Login implements OnDestroy {
           this.swal.success('Contraseña actualizada exitosamente');
           this.mostrarResetPassword = false;
           this.resetearRecuperacion();
+          this.limpiarRecuperacionGuardada();
         }, restante);
       },
       error: (err) => {
@@ -255,6 +353,9 @@ export class Login implements OnDestroy {
         this.swal.warning('Por favor ingrese su cédula y contraseña.');
         return;
       }
+      // Al intentar un login normal, descartar cualquier recuperación previa
+      // guardada (si se venía de una recarga a mitad de la recuperación).
+      this.limpiarRecuperacionGuardada();
       this.cargando = true;
       const inicio = Date.now();
       // Tiempo mínimo de la animación "Cargando...": si el servidor responde

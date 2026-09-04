@@ -138,7 +138,7 @@
                 </span>
                 <div *ngIf="cargando" class="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-[800ms]">
                   <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  <span class="animate-pulse">Cargando...</span>
+                  <span class="animate-pulse">CARGANDO...</span>
                 </div>
               </button>
             </div>
@@ -178,7 +178,7 @@
                 <div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors">
                   <lucide-icon [name]="Mail" class="w-5 h-5"></lucide-icon>
                 </div>
-                <input type="email" [(ngModel)]="recuperacionEmail" name="recuperacionEmail" (keydown.space)="$event.preventDefault()" placeholder="Ej: correo@ejemplo.com" class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
+                <input type="email" [(ngModel)]="recuperacionEmail" name="recuperacionEmail" (ngModelChange)="guardarRecuperacion()" (keydown.space)="$event.preventDefault()" placeholder="Ej: correo@ejemplo.com" class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
               </div>
             </div>
             <div class="space-y-2">
@@ -187,7 +187,7 @@
                 <div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors">
                   <lucide-icon [name]="User" class="w-5 h-5"></lucide-icon>
                 </div>
-                <input type="text" [(ngModel)]="recuperacionCedula" name="recuperacionCedula" (keydown.space)="$event.preventDefault()" placeholder="Ej: 31596888" class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
+                <input type="text" [(ngModel)]="recuperacionCedula" name="recuperacionCedula" (ngModelChange)="guardarRecuperacion()" (keydown.space)="$event.preventDefault()" placeholder="Ej: 31596888" class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
               </div>
             </div>
             <button (click)="solicitarCodigo()" [disabled]="cargandoReset" class="!mt-8 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-0.5 active:translate-y-0 transition-transform flex items-center justify-center gap-3 text-sm uppercase tracking-widest">
@@ -213,7 +213,7 @@
                 <div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors">
                   <lucide-icon [name]="Shield" class="w-5 h-5"></lucide-icon>
                 </div>
-                <input type="text" [(ngModel)]="recuperacionCodigo" name="recuperacionCodigo" (keypress)="soloNumeros($event)" maxlength="6" placeholder="000000" class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium text-center text-2xl tracking-[8px]" />
+                <input type="text" [(ngModel)]="recuperacionCodigo" name="recuperacionCodigo" (ngModelChange)="guardarRecuperacion()" (keypress)="soloNumeros($event)" maxlength="6" placeholder="000000" class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium text-center text-2xl tracking-[8px]" />
               </div>
             </div>
             <div class="flex items-center justify-center gap-2 text-sm">
@@ -252,7 +252,7 @@
                  <div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors">
                    <lucide-icon [name]="Lock" class="w-5 h-5"></lucide-icon>
                  </div>
-                 <input [type]="mostrarNewPassword ? 'text' : 'password'" [(ngModel)]="newPassword" name="newPassword" placeholder="••••••••" class="w-full pl-14 pr-14 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
+                 <input [type]="mostrarNewPassword ? 'text' : 'password'" [(ngModel)]="newPassword" name="newPassword" (ngModelChange)="guardarRecuperacion()" placeholder="••••••••" class="w-full pl-14 pr-14 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
                  <button type="button" (click)="mostrarNewPassword = !mostrarNewPassword" class="absolute inset-y-0 right-0 pr-5 flex items-center text-slate-400 hover:text-blue-600 transition-colors">
                    <lucide-icon [name]="mostrarNewPassword ? EyeOff : Eye" class="w-5 h-5"></lucide-icon>
                  </button>
@@ -264,7 +264,7 @@
                  <div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors">
                    <lucide-icon [name]="KeyRound" class="w-5 h-5"></lucide-icon>
                  </div>
-                 <input [type]="mostrarConfirmPassword ? 'text' : 'password'" [(ngModel)]="confirmPassword" name="confirmPassword" placeholder="••••••••" class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
+                 <input [type]="mostrarConfirmPassword ? 'text' : 'password'" [(ngModel)]="confirmPassword" name="confirmPassword" (ngModelChange)="guardarRecuperacion()" placeholder="••••••••" class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
                  <button type="button" (click)="mostrarConfirmPassword = !mostrarConfirmPassword" class="absolute inset-y-0 right-0 pr-5 flex items-center text-slate-400 hover:text-blue-600 transition-colors">
                    <lucide-icon [name]="mostrarConfirmPassword ? EyeOff : Eye" class="w-5 h-5"></lucide-icon>
                  </button>
@@ -329,7 +329,7 @@
           </span>
           <div *ngIf="cargandoSelector" class="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-[800ms]">
             <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-            <span class="animate-pulse">Cargando...</span>
+            <span class="animate-pulse">CARGANDO...</span>
           </div>
         </button>
       </div>
@@ -376,7 +376,7 @@
           </span>
           <div *ngIf="cargandoSelectorRol" class="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-[800ms]">
             <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-            <span class="animate-pulse">Cargando...</span>
+            <span class="animate-pulse">CARGANDO...</span>
           </div>
         </button>
       </div>
