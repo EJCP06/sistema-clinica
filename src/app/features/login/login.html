@@ -14,9 +14,9 @@
     <lucide-icon [name]="Sun" class="w-4 h-4 text-amber-500"></lucide-icon>
     <label class="relative inline-flex items-center cursor-pointer group">
       <input type="checkbox" [checked]="isDarkMode" (change)="toggleDarkMode()" class="sr-only peer" />
-      <div [class.after:transition-all]="!initialTransitionDisabled" [class.after:duration-300]="!initialTransitionDisabled" class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full dark:bg-slate-700 peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 peer-checked:bg-slate-800 shadow-inner"></div>
+      <div [class.after:transition-all]="!initialTransitionDisabled" [class.after:duration-300]="!initialTransitionDisabled" class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer-checked:bg-blue-600 transition-colors duration-300 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:shadow-sm after:transition-transform after:duration-300 peer-checked:after:translate-x-full"></div>
     </label>
-    <lucide-icon [name]="Moon" class="w-4 h-4 text-slate-300 dark:text-blue-400"></lucide-icon>
+    <lucide-icon [name]="Moon" class="w-4 h-4 text-slate-400 dark:text-blue-400"></lucide-icon>
   </div>
 
   <div class="w-full max-w-5xl flex flex-col lg:flex-row rounded-[24px] md:rounded-[40px] overflow-hidden shadow-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 relative z-10 backdrop-blur-xl">
@@ -70,9 +70,9 @@
               <lucide-icon [name]="Sun" class="w-3.5 h-3.5 text-amber-500"></lucide-icon>
               <label class="relative inline-flex items-center cursor-pointer group">
                 <input type="checkbox" [checked]="isDarkMode" (change)="toggleDarkMode()" class="sr-only peer" />
-                <div [class.after:transition-all]="!initialTransitionDisabled" [class.after:duration-300]="!initialTransitionDisabled" class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full dark:bg-slate-700 peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 peer-checked:bg-slate-800 shadow-inner"></div>
+                <div [class.after:transition-all]="!initialTransitionDisabled" [class.after:duration-300]="!initialTransitionDisabled" class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer-checked:bg-blue-600 transition-colors duration-300 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:shadow-sm after:transition-transform after:duration-300 peer-checked:after:translate-x-4"></div>
               </label>
-              <lucide-icon [name]="Moon" class="w-3.5 h-3.5 text-slate-300 dark:text-blue-400"></lucide-icon>
+              <lucide-icon [name]="Moon" class="w-3.5 h-3.5 text-slate-400 dark:text-blue-400"></lucide-icon>
             </div>
           </div>
           <h2 class="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight w-full">Bienvenido</h2>
@@ -95,9 +95,9 @@
             <lucide-icon [name]="Sun" class="w-3.5 h-3.5 text-amber-500"></lucide-icon>
             <label class="relative inline-flex items-center cursor-pointer group">
               <input type="checkbox" [checked]="isDarkMode" (change)="toggleDarkMode()" class="sr-only peer" />
-              <div [class.after:transition-all]="!initialTransitionDisabled" [class.after:duration-300]="!initialTransitionDisabled" class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full dark:bg-slate-700 peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 peer-checked:bg-slate-800 shadow-inner"></div>
+              <div [class.after:transition-all]="!initialTransitionDisabled" [class.after:duration-300]="!initialTransitionDisabled" class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer-checked:bg-blue-600 transition-colors duration-300 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:shadow-sm after:transition-transform after:duration-300 peer-checked:after:translate-x-4"></div>
             </label>
-            <lucide-icon [name]="Moon" class="w-3.5 h-3.5 text-slate-300 dark:text-blue-400"></lucide-icon>
+            <lucide-icon [name]="Moon" class="w-3.5 h-3.5 text-slate-400 dark:text-blue-400"></lucide-icon>
           </div>
         </div>
 
@@ -109,7 +109,7 @@
                 <div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors">
                   <lucide-icon [name]="User" class="w-5 h-5"></lucide-icon>
                 </div>
-                <input type="text" [(ngModel)]="cedula" name="cedula" (keydown.space)="$event.preventDefault()" placeholder="Ej: 31596888" class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
+                <input type="text" [(ngModel)]="cedula" name="cedula" (keydown.space)="$event.preventDefault()" placeholder="Ej: 31596888" class="input-field-with-icon" />
               </div>
             </div>
 
@@ -119,7 +119,7 @@
                 <div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors">
                   <lucide-icon [name]="Lock" class="w-5 h-5"></lucide-icon>
                 </div>
-                <input [type]="mostrarPassword ? 'text' : 'password'" [(ngModel)]="password" name="password" (keydown.space)="$event.preventDefault()" placeholder="••••••••" class="w-full pl-14 pr-14 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
+                <input [type]="mostrarPassword ? 'text' : 'password'" [(ngModel)]="password" name="password" (keydown.space)="$event.preventDefault()" placeholder="••••••••" class="input-field-with-icon-and-toggle" />
                 <button type="button" (click)="mostrarPassword = !mostrarPassword" class="absolute inset-y-0 right-0 pr-5 flex items-center text-slate-400 hover:text-blue-600 transition-colors">
                   <lucide-icon [name]="mostrarPassword ? EyeOff : Eye" class="w-5 h-5"></lucide-icon>
                 </button>
@@ -178,7 +178,7 @@
                 <div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors">
                   <lucide-icon [name]="Mail" class="w-5 h-5"></lucide-icon>
                 </div>
-                <input type="email" [(ngModel)]="recuperacionEmail" name="recuperacionEmail" (ngModelChange)="guardarRecuperacion()" (keydown.space)="$event.preventDefault()" placeholder="Ej: correo@ejemplo.com" class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
+                <input type="email" [(ngModel)]="recuperacionEmail" name="recuperacionEmail" (ngModelChange)="guardarRecuperacion()" (keydown.space)="$event.preventDefault()" placeholder="Ej: correo@ejemplo.com" class="input-field-with-icon" />
               </div>
             </div>
             <div class="space-y-2">
@@ -187,7 +187,7 @@
                 <div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors">
                   <lucide-icon [name]="User" class="w-5 h-5"></lucide-icon>
                 </div>
-                <input type="text" [(ngModel)]="recuperacionCedula" name="recuperacionCedula" (ngModelChange)="guardarRecuperacion()" (keydown.space)="$event.preventDefault()" placeholder="Ej: 31596888" class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
+                <input type="text" [(ngModel)]="recuperacionCedula" name="recuperacionCedula" (ngModelChange)="guardarRecuperacion()" (keydown.space)="$event.preventDefault()" placeholder="Ej: 31596888" class="input-field-with-icon" />
               </div>
             </div>
             <button (click)="solicitarCodigo()" [disabled]="cargandoReset" class="!mt-8 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-800 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-0.5 active:translate-y-0 transition-transform flex items-center justify-center gap-3 text-sm uppercase tracking-widest">
@@ -213,7 +213,7 @@
                 <div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors">
                   <lucide-icon [name]="Shield" class="w-5 h-5"></lucide-icon>
                 </div>
-                <input type="text" [(ngModel)]="recuperacionCodigo" name="recuperacionCodigo" (ngModelChange)="guardarRecuperacion()" (keypress)="soloNumeros($event)" maxlength="6" placeholder="000000" class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium text-center text-2xl tracking-[8px]" />
+                <input type="text" [(ngModel)]="recuperacionCodigo" name="recuperacionCodigo" (ngModelChange)="guardarRecuperacion()" (keypress)="soloNumeros($event)" maxlength="6" placeholder="000000" class="input-field-with-icon text-center text-2xl tracking-[8px]" />
               </div>
             </div>
             <div class="flex items-center justify-center gap-2 text-sm">
@@ -252,7 +252,7 @@
                  <div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors">
                    <lucide-icon [name]="Lock" class="w-5 h-5"></lucide-icon>
                  </div>
-                 <input [type]="mostrarNewPassword ? 'text' : 'password'" [(ngModel)]="newPassword" name="newPassword" (ngModelChange)="guardarRecuperacion()" placeholder="••••••••" class="w-full pl-14 pr-14 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
+                  <input [type]="mostrarNewPassword ? 'text' : 'password'" [(ngModel)]="newPassword" name="newPassword" (ngModelChange)="guardarRecuperacion()" placeholder="••••••••" class="input-field-with-icon-and-toggle" />
                  <button type="button" (click)="mostrarNewPassword = !mostrarNewPassword" class="absolute inset-y-0 right-0 pr-5 flex items-center text-slate-400 hover:text-blue-600 transition-colors">
                    <lucide-icon [name]="mostrarNewPassword ? EyeOff : Eye" class="w-5 h-5"></lucide-icon>
                  </button>
@@ -264,7 +264,7 @@
                  <div class="absolute inset-y-0 left-0 pl-5 flex items-center text-slate-400 dark:text-slate-500 group-focus-within:text-blue-600 transition-colors">
                    <lucide-icon [name]="KeyRound" class="w-5 h-5"></lucide-icon>
                  </div>
-                 <input [type]="mostrarConfirmPassword ? 'text' : 'password'" [(ngModel)]="confirmPassword" name="confirmPassword" (ngModelChange)="guardarRecuperacion()" placeholder="••••••••" class="w-full pl-14 pr-5 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium" />
+                  <input [type]="mostrarConfirmPassword ? 'text' : 'password'" [(ngModel)]="confirmPassword" name="confirmPassword" (ngModelChange)="guardarRecuperacion()" placeholder="••••••••" class="input-field-with-icon" />
                  <button type="button" (click)="mostrarConfirmPassword = !mostrarConfirmPassword" class="absolute inset-y-0 right-0 pr-5 flex items-center text-slate-400 hover:text-blue-600 transition-colors">
                    <lucide-icon [name]="mostrarConfirmPassword ? EyeOff : Eye" class="w-5 h-5"></lucide-icon>
                  </button>

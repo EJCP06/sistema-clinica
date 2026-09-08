@@ -53,7 +53,7 @@ import { FillersPipe } from '../../shared/pipes/fillers.pipe';
   standalone: true,
   imports: [CommonModule, FormsModule, LucideAngularModule, PaginationComponent, PaginatePipe, FillersPipe],
   templateUrl: './admin-personal.html',
-  styles: [],
+
 })
 /**
  * Panel de administración del personal de la clínica.

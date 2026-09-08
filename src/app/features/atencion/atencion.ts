@@ -22,7 +22,7 @@ import Swal from 'sweetalert2';
   standalone: true,
   imports: [CommonModule, FormsModule, LucideAngularModule, Header, Sidebar, PaginationComponent, PaginatePipe, FillersPipe],
   templateUrl: './atencion.html',
-  styles: []
+
 })
 /**
  * Panel de atención médica/laboratorio/imágenes.
@@ -499,15 +499,6 @@ export class Atencion implements OnInit, OnDestroy {
         } else if (eid || cid || mid) {
           this.turnosAtendidos = turnosNormalizados.filter(t =>
             esMiTurno(t) && estadoValido(t.estado)
-          ).sort((a, b) => {
-            const dateA = new Date(a.updated_at || a.hora_llegada).getTime();
-            const dateB = new Date(b.updated_at || b.hora_llegada).getTime();
-            return dateB - dateA;
-          });
-          this.totalAtendidosHoy = this.turnosAtendidos.length;
-        } else if (cid) {
-          this.turnosAtendidos = turnosNormalizados.filter(t => 
-            t.id_consultorio == cid && estadoValido(t.estado)
           ).sort((a, b) => {
             const dateA = new Date(a.updated_at || a.hora_llegada).getTime();
             const dateB = new Date(b.updated_at || b.hora_llegada).getTime();

@@ -13,7 +13,7 @@ import Swal from 'sweetalert2';
   standalone: true,
   imports: [CommonModule, FormsModule, LucideAngularModule, RouterLink],
   templateUrl: './login.html',
-  styles: []
+
 })
 /**
  * Pantalla de inicio de sesión y recuperación de contraseña.

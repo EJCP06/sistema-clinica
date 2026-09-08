@@ -2,6 +2,88 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   SISTEMA DE DISEÑO - Custom Properties (Tokens)
+   Usa estas variables en lugar de valores hardcodeados.
+   Ejemplo: color: var(--color-text-secondary);
+   ============================================================ */
+:root {
+  /* Colores de texto */
+  --color-text-primary: #0f172a;        /* slate-900 */
+  --color-text-secondary: #64748b;      /* slate-500 */
+  --color-text-tertiary: #94a3b8;       /* slate-400 */
+  --color-text-muted: #cbd5e1;          /* slate-300 */
+
+  /* Colores de fondo */
+  --color-bg-primary: #ffffff;          /* white */
+  --color-bg-secondary: #f8fafc;        /* slate-50 */
+  --color-bg-tertiary: #f1f5f9;         /* slate-100 */
+
+  /* Colores de borde */
+  --color-border-primary: #e2e8f0;      /* slate-200 */
+  --color-border-secondary: #cbd5e1;    /* slate-300 */
+
+  /* Colores de acento */
+  --color-accent-blue: #2563eb;         /* blue-600 */
+  --color-accent-blue-light: #3b82f6;   /* blue-500 */
+  --color-accent-blue-dark: #1d4ed8;    /* blue-700 */
+
+  /* Sombras */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+
+  /* Border radius */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+
+  /* Transiciones */
+  --transition-fast: 150ms ease;
+  --transition-normal: 300ms ease;
+  --transition-slow: 500ms ease;
+}
+
+.dark {
+  --color-text-primary: #f1f5f9;        /* slate-100 */
+  --color-text-secondary: #94a3b8;      /* slate-400 */
+  --color-text-tertiary: #64748b;       /* slate-500 */
+  --color-text-muted: #475569;          /* slate-600 */
+
+  --color-bg-primary: #0f172a;          /* slate-900 */
+  --color-bg-secondary: #1e293b;        /* slate-800 */
+  --color-bg-tertiary: #334155;         /* slate-700 */
+
+  --color-border-primary: #1e293b;      /* slate-800 */
+  --color-border-secondary: #334155;    /* slate-700 */
+
+  --shadow-sm: 0 1px 2px 0 rgba(255, 255, 255, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(255, 255, 255, 0.1), 0 2px 4px -2px rgba(255, 255, 255, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(255, 255, 255, 0.1), 0 4px 6px -4px rgba(255, 255, 255, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(255, 255, 255, 0.1), 0 8px 10px -6px rgba(255, 255, 255, 0.04);
+}
+
+/* ============================================================
+   COMPONENTES REUTILIZABLES
+   ============================================================ */
+@layer components {
+  /* Input estándar del sistema (login, formularios, etc.) */
+  .input-field {
+    @apply w-full py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium;
+  }
+  /* Variante con icono a la izquierda */
+  .input-field-with-icon {
+    @apply input-field pl-14;
+  }
+  /* Variante con icono a la izquierda + botón a la derecha */
+  .input-field-with-icon-and-toggle {
+    @apply input-field-with-icon pr-14;
+  }
+}
+
 /* Remove focus outline on mouse click, keep for keyboard navigation */
 button:focus:not(:focus-visible) {
   outline: none;
@@ -9,7 +91,8 @@ button:focus:not(:focus-visible) {
 
 /* No body scroll when modal is open */
 body:has(.fixed.inset-0.z-50),
-body:has(.fixed.inset-0.z-\[100\]) {
+body:has(.fixed.inset-0.z-\[100\]),
+body.modal-open {
   overflow: hidden;
 }
 
@@ -22,117 +105,38 @@ body:has(.fixed.inset-0.z-\[100\]) {
     @apply bg-[#0f172a] text-slate-100;
   }
 
-  /* Global Dark Mode Overrides */
-  .dark .bg-white {
-    @apply bg-slate-900 border-slate-800 text-slate-100;
-  }
-
-  .dark .bg-slate-50 {
-    @apply bg-[#0f172a];
-  }
-
-  .dark .border-slate-200, 
-  .dark .border-slate-100 {
-    @apply border-slate-800;
-  }
-
-  .dark .text-slate-900,
-  .dark .text-slate-800 {
-    @apply text-white;
-  }
-
-  .dark .text-slate-600,
-  .dark .text-slate-500 {
-    @apply text-slate-400;
-  }
-
-  .dark aside {
-    @apply bg-slate-950 border-slate-900;
-  }
-
-  .dark header {
-    @apply bg-slate-900/80 border-slate-800;
-  }
-
-  .dark input, 
-  .dark select, 
-  .dark textarea {
-    @apply bg-slate-800 border-slate-700 text-white placeholder-slate-500;
-  }
-
-  .dark .bg-slate-50\/50 {
-    @apply bg-slate-800/50;
-  }
-
-  /* Icon Containers Overrides for Dark Mode */
-  .dark .bg-blue-50 { @apply bg-blue-500/10 text-blue-400; }
-  .dark .bg-rose-50 { @apply bg-rose-500/10 text-rose-400; }
-  .dark .bg-emerald-50 { @apply bg-emerald-500/10 text-emerald-400; }
-  .dark .bg-amber-50 { @apply bg-amber-500/10 text-amber-400; }
-  .dark .bg-teal-50 { @apply bg-teal-500/10 text-teal-400; }
-  .dark .bg-indigo-50 { @apply bg-indigo-500/10 text-indigo-400; }
-  
-  .dark .text-blue-600 { @apply text-blue-400; }
-  .dark .text-rose-600 { @apply text-rose-400; }
-  .dark .text-emerald-600 { @apply text-emerald-400; }
-  .dark .text-amber-600 { @apply text-amber-400; }
-  .dark .text-teal-600 { @apply text-teal-400; }
-  .dark .text-indigo-600 { @apply text-indigo-400; }
-
-  .dark .border-blue-100,
-  .dark .border-emerald-100,
-  .dark .border-rose-100 {
-    @apply border-transparent;
-  }
-
   /* White Shadows for Dark Mode */
   .dark .shadow-sm {
     box-shadow: 0 1px 2px 0 rgba(255, 255, 255, 0.05);
   }
-  
   .dark .shadow-md,
   .dark .hover\:shadow-md:hover {
     box-shadow: 0 4px 6px -1px rgba(255, 255, 255, 0.1), 0 2px 4px -1px rgba(255, 255, 255, 0.06);
   }
-
   .dark .shadow-lg {
     box-shadow: 0 10px 15px -3px rgba(255, 255, 255, 0.1), 0 4px 6px -2px rgba(255, 255, 255, 0.05);
   }
-
   .dark .shadow-xl {
     box-shadow: 0 20px 25px -5px rgba(255, 255, 255, 0.1), 0 10px 10px -5px rgba(255, 255, 255, 0.04);
   }
 
   /* Soft light gray text for table data */
-  table tbody td, 
+  table tbody td,
   table tbody td *,
   table tbody td span,
   table tbody td div {
-    color: #64748b !important; /* slate-500: gris medio en claro */
+    color: #64748b !important; /* slate-500 */
   }
-
-  /* Specific Gray for Dark Mode - Force it to not be white */
   .dark table tbody td,
   .dark table tbody td *,
   .dark table tbody td span,
   .dark table tbody td div,
   .dark tr td,
   .dark tr td span {
-    color: #94a3b8 !important; /* slate-400: un gris medio-claro que NO es blanco */
+    color: #94a3b8 !important; /* slate-400 */
   }
 
-  /* Hide number input spinners (arrows) */
-  input::-webkit-outer-spin-button,
-  input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-
-  input[type=number] {
-    -moz-appearance: textfield;
-  }
-
-  /* SweetAlert2 Dark Mode */
+  /* Dark mode para elementos externos (SweetAlert2, etc.) */
   .dark .swal2-popup {
     @apply bg-slate-800 text-slate-100;
   }
@@ -160,9 +164,27 @@ body:has(.fixed.inset-0.z-\[100\]) {
   .dark .swal2-close:hover {
     @apply text-white;
   }
+
+  /* Hide number input spinners (arrows) */
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type=number] {
+    -moz-appearance: textfield;
+  }
 }
 
-/* Ocultar scrollbars en elementos con la clase .hide-scrollbar */
+/* ============================================================
+   DARK MODE: Usa variantes `dark:` en los templates, NO overrides globales.
+   Ejemplo: class="bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+   ============================================================ */
+
+/* ============================================================
+   SCROLLBAR: Una sola utilidad unificada
+   ============================================================ */
 .hide-scrollbar {
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -171,14 +193,14 @@ body:has(.fixed.inset-0.z-\[100\]) {
   display: none;
 }
 
-/* Scrollbar global estilizada - aplica a todos los elementos scrollables */
+/* Scrollbar global estilizada */
 * {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
   -ms-overflow-style: auto;
 }
 
-/* Para Firefox: Mostrar scrollbar al pasar el mouse por el contenedor */
+/* Firefox: Mostrar scrollbar al hover */
 *:hover {
   scrollbar-color: #cbd5e1 transparent;
 }
@@ -187,7 +209,7 @@ body:has(.fixed.inset-0.z-\[100\]) {
   scrollbar-color: #475569 transparent;
 }
 
-/* Para Chrome, Safari, Edge y navegadores WebKit */
+/* Chrome, Safari, Edge */
 *::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -208,7 +230,7 @@ body:has(.fixed.inset-0.z-\[100\]) {
   border-radius: 0px;
 }
 
-/* Mostrar la barra (línea gris) al pasar el mouse por encima del contenedor */
+/* Mostrar barra al hover */
 *:hover::-webkit-scrollbar-thumb {
   background: #cbd5e1;
 }
@@ -229,6 +251,27 @@ body:has(.fixed.inset-0.z-\[100\]) {
   background: #64748b;
 }
 
+/* Ocultar scrollbar del sidebar */
+aside nav {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+aside nav::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* Ocultar scrollbar en contenedores internos con custom-scrollbar */
+.custom-scrollbar {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* ============================================================
+   ANIMACIONES
+   ============================================================ */
 @keyframes ticker {
   0% { transform: translate3d(0, 0, 0); }
   100% { transform: translate3d(-50%, 0, 0); }
@@ -250,10 +293,14 @@ body:has(.fixed.inset-0.z-\[100\]) {
   transform-origin: top;
 }
 
-/* Botones de acción de modales con doble estado (texto normal <-> spinner "guardando..."):
-   el texto visible (p. ej. "GUARDAR") define el ancho real del botón en reposo, y el estado
-   de carga se superpone CENTRADO encima (posición absoluta), de modo que el botón jamás
-   cambia de tamaño al guardar y los botones vecinos (p. ej. CANCELAR) no se mueven. */
+@keyframes focus-ring {
+  0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+  100% { box-shadow: 0 0 0 4px rgba(37, 99, 235, 0); }
+}
+
+/* ============================================================
+   BOTONES DUBALES (estado normal <-> spinner)
+   ============================================================ */
 .btn-dual {
   position: relative;
   display: inline-grid;
@@ -277,67 +324,43 @@ body:has(.fixed.inset-0.z-\[100\]) {
 .btn-dual > :last-child > span:last-child {
   font-size: 10px;
   letter-spacing: 0.5px;
-  text-transform: uppercase; /* "GUARDANDO..." visible en mayúsculas */
+  text-transform: uppercase;
 }
 .btn-dual > :last-child .animate-spin {
   width: 0.875rem;
   height: 0.875rem;
 }
 
-
-/* Helpers para experiencia móvil */
+/* ============================================================
+   HELPERS MÓVILES
+   ============================================================ */
 .touch-scroll {
-  -webkit-overflow-scrolling: touch; /* momentum scrolling en iOS */
-  touch-action: pan-y; /* permitir scroll vertical */
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 .sticky-footer {
   position: sticky;
   bottom: 0;
   padding: 0.75rem;
-  background: inherit; /* mantiene color según tema */
-  /* border-top removed to avoid visible line above logout button on mobile */
+  background: inherit;
 }
 
-/* Ajuste móvil: elevar un poco la tarjeta superior del sidebar para que se vea mejor en teléfonos */
 @media (max-width: 640px) {
   .sidebar-card {
-    transform: translateY(-1.4rem); /* sube más en móvil */
+    transform: translateY(-1.4rem);
     transition: transform 160ms ease;
   }
 
-  /* Perfil móvil: quitar borde que produce la línea sobre el botón */
   .mobile-profile-card {
     border: none !important;
     box-shadow: none !important;
   }
 }
 
-/* Ocultar el scroll del sidebar por completo (tanto en PC como en móviles) */
-aside nav {
-  scrollbar-width: none !important; /* Firefox */
-  -ms-overflow-style: none !important; /* IE/Edge */
-}
-aside nav::-webkit-scrollbar {
-  display: none !important; /* Chrome, Safari, Edge */
-}
-
-/* Ocultar scrollbar en contenedores internos con custom-scrollbar */
-.custom-scrollbar {
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-}
-.custom-scrollbar::-webkit-scrollbar {
-  display: none !important;
-}
-
-/* Animación suave para transiciones de focus */
-@keyframes focus-ring {
-  0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
-  100% { box-shadow: 0 0 0 4px rgba(37, 99, 235, 0); }
-}
-
-/* Reducir movimiento para usuarios que lo prefieren */
+/* ============================================================
+   REDUCIR MOVIMIENTO
+   ============================================================ */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -348,7 +371,9 @@ aside nav::-webkit-scrollbar {
   }
 }
 
-/* TV MODE: Optimizaciones para Smart TV 1366x768 */
+/* ============================================================
+   TV MODE: Escalamiento para Smart TV 1366x768
+   ============================================================ */
 .tv-mode {
   font-size: 18px;
 }
@@ -360,11 +385,11 @@ aside nav::-webkit-scrollbar {
 .tv-mode .text-2xl { font-size: 2rem !important; }
 .tv-mode .text-4xl { font-size: 2.8rem !important; }
 .tv-mode .text-5xl { font-size: 3.5rem !important; }
+.tv-mode .text-6xl { font-size: 4rem !important; }
+.tv-mode .text-7xl { font-size: 5rem !important; }
+.tv-mode .text-8xl { font-size: 6rem !important; }
 .tv-mode .w-10 { width: 3rem !important; }
 .tv-mode .h-10 { height: 3rem !important; }
 .tv-mode .w-14 { width: 3.5rem !important; }
 .tv-mode .h-14 { height: 3.5rem !important; }
 .tv-mode .font-mono { font-size: 3rem !important; letter-spacing: -0.05em !important; }
-.tv-mode .text-6xl { font-size: 4rem !important; }
-.tv-mode .text-7xl { font-size: 5rem !important; }
-.tv-mode .text-8xl { font-size: 6rem !important; }

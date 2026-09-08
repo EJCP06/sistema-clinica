@@ -24,7 +24,7 @@ import {
   standalone: true,
   imports: [CommonModule, RouterModule, LucideAngularModule, FormsModule],
   templateUrl: './header.html',
-  styles: [],
+
 })
 /**
  * Barra superior de la aplicación.

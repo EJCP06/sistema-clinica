@@ -64,9 +64,9 @@
         <lucide-icon [name]="Sun" class="w-4 h-4 text-amber-500"></lucide-icon>
         <label class="relative inline-flex items-center cursor-pointer group">
           <input type="checkbox" [checked]="isDarkMode" (change)="toggleDarkMode()" class="sr-only peer" />
-          <div [class.after:transition-all]="!initialTransitionDisabled" [class.after:duration-300]="!initialTransitionDisabled" class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full dark:bg-slate-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 peer-checked:bg-slate-800 shadow-inner"></div>
+          <div [class.after:transition-all]="!initialTransitionDisabled" [class.after:duration-300]="!initialTransitionDisabled" class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer-checked:bg-blue-600 transition-colors duration-300 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:shadow-sm after:transition-transform after:duration-300 peer-checked:after:translate-x-full"></div>
         </label>
-        <lucide-icon [name]="Moon" class="w-4 h-4 text-slate-300 dark:text-blue-400"></lucide-icon>
+        <lucide-icon [name]="Moon" class="w-4 h-4 text-slate-400 dark:text-blue-400"></lucide-icon>
       </div>
 
       <div 

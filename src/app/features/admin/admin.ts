@@ -19,7 +19,7 @@ import { AdminPermisologia } from './admin-permisologia';
   standalone: true,
   imports: [CommonModule, FormsModule, Sidebar, Header, AdminReports, AdminPersonal, AdminEspecialidades, AdminRoles, AdminPermisologia],
   templateUrl: './admin.html',
-  styles: [],
+
 })
 /**
  * Panel de administración principal.

@@ -31,7 +31,7 @@ import { FillersPipe } from '../../shared/pipes/fillers.pipe';
   standalone: true,
   imports: [CommonModule, FormsModule, LucideAngularModule, PaginationComponent, PaginatePipe, FillersPipe],
   templateUrl: './admin-especialidades.html',
-  styles: [],
+
 })
 /**
  * Panel de administración de especialidades médicas.

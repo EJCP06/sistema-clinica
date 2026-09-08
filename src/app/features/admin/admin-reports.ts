@@ -38,7 +38,7 @@ import { FillersPipe } from '../../shared/pipes/fillers.pipe';
   standalone: true,
   imports: [CommonModule, FormsModule, LucideAngularModule, PaginationComponent, PaginatePipe, FillersPipe],
   templateUrl: './admin-reports.html',
-  styles: [],
+
 })
 /**
  * Panel de reportes operativos de la clínica.

@@ -53,7 +53,7 @@ import { RolDTO, CrearRolRequest } from '@core/models/dto.models';
   standalone: true,
   imports: [CommonModule, FormsModule, LucideAngularModule, PaginationComponent, PaginatePipe, FillersPipe],
   templateUrl: './admin-roles.html',
-  styles: [],
+
 })
 /** Panel de administración de roles de usuario. CRUD y filtro por sede. */
 export class AdminRoles implements OnInit {
