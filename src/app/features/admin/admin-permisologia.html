@@ -28,7 +28,7 @@
         </div>
         <div class="relative flex-1 min-w-0">
           <lucide-icon [name]="Search" class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"></lucide-icon>
-          <input type="text" autocomplete="off" [(ngModel)]="searchQuery" placeholder="Buscar rol..." class="w-full pl-14 pr-10 py-3 text-sm focus:outline-none font-medium bg-slate-100 dark:bg-slate-800 rounded-2xl text-slate-900 dark:text-white" />
+          <input type="text" autocomplete="off" [(ngModel)]="searchQuery" placeholder="Buscar rol..." class="w-full pl-14 pr-10 py-3 text-sm focus:outline-none font-medium bg-slate-100 dark:bg-slate-800 rounded-2xl text-slate-900 dark:text-slate-400" />
         </div>
       </div>
       <div class="grid grid-cols-1 w-full gap-2 sm:flex sm:items-center sm:gap-2 sm:w-auto sm:shrink-0">
@@ -55,10 +55,10 @@
           <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
             <ng-container *ngFor="let rol of rolesFiltrados | paginate: currentPage : pageSize">
               <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
-                <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-white tracking-tight uppercase text-center">
+                <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-slate-400 tracking-tight uppercase text-center">
                   {{ rol.nombre }}
                 </td>
-                <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-white tracking-tight uppercase text-center">
+                <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-slate-400 tracking-tight uppercase text-center">
                   {{ getSedeLabel(rol.id_sede) }}
                 </td>
                 <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center border-b border-slate-100/30 dark:border-slate-800/10">
@@ -162,7 +162,7 @@
           <div class="space-y-1 shrink-0 rol-dropdown-container relative">
             <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Rol <span class="text-rose-500">*</span></label>
             <div class="relative">
-              <input type="text" [ngModel]="rolFiltro" (input)="onRolInput($event)" (keydown)="onRolKeydown($event)" (focus)="showRolDropdown = true" [class.border-blue-600]="showRolDropdown" placeholder="Buscar rol..." autocomplete="off" class="w-full px-4 py-2.5 pr-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white placeholder:text-slate-400" />
+              <input type="text" [ngModel]="rolFiltro" (input)="onRolInput($event)" (keydown)="onRolKeydown($event)" (focus)="showRolDropdown = true" [class.border-blue-600]="showRolDropdown" placeholder="Buscar rol..." autocomplete="off" class="w-full px-4 py-2.5 pr-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-slate-400 placeholder:text-slate-400" />
               <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
                 <lucide-icon [name]="ChevronDown" class="w-4 h-4 text-slate-400" [class.rotate-180]="showRolDropdown"></lucide-icon>
               </div>
@@ -198,7 +198,7 @@
                   (change)="selectSede(s.id_sede)"
                   class="w-4 h-4 text-blue-600"
                 />
-                <span class="text-sm font-bold text-slate-700 dark:text-white">{{ toTitleCase(s.nombre) }}</span>
+                <span class="text-sm font-bold text-slate-700 dark:text-slate-400">{{ toTitleCase(s.nombre) }}</span>
               </label>
             </div>
           </div>
@@ -206,7 +206,7 @@
           <div class="space-y-1 shrink-0 modulo-dropdown-container relative">
             <label class="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Módulo <span class="text-rose-500">*</span></label>
             <div class="relative">
-              <input type="text" [ngModel]="moduloFiltro" (input)="onModuloInput($event)" (keydown)="onModuloKeydown($event)" (focus)="showModuloDropdown = true" [class.border-blue-600]="showModuloDropdown" placeholder="Buscar módulo..." autocomplete="off" class="w-full px-4 py-2.5 pr-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-white placeholder:text-slate-400" />
+              <input type="text" [ngModel]="moduloFiltro" (input)="onModuloInput($event)" (keydown)="onModuloKeydown($event)" (focus)="showModuloDropdown = true" [class.border-blue-600]="showModuloDropdown" placeholder="Buscar módulo..." autocomplete="off" class="w-full px-4 py-2.5 pr-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium transition-all focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:text-slate-400 placeholder:text-slate-400" />
               <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
                 <lucide-icon [name]="ChevronDown" class="w-4 h-4 text-slate-400" [class.rotate-180]="showModuloDropdown"></lucide-icon>
               </div>

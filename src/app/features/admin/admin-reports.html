@@ -98,7 +98,7 @@
           <ng-container *ngFor="let t of turnos | paginate: currentPage : pageSize; trackBy: trackById">
             <tr class="h-[52px] md:h-[64px] hover:bg-slate-50 dark:hover:bg-slate-800">
               <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 dark:text-slate-400 font-bold tracking-tight text-center">{{ t.numero || t.id }}</td>
-              <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-white uppercase text-center">{{ t.paciente.nombre || 'Sin asignar' }} {{ t.paciente.apellido || '' }}</td>
+              <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-slate-400 uppercase text-center">{{ t.paciente.nombre || 'Sin asignar' }} {{ t.paciente.apellido || '' }}</td>
               <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 dark:text-slate-400 font-bold tracking-tight text-center">{{ t.paciente.documento || 'Sin asignar' }}</td>
               <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">
                 <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [ngClass]="{

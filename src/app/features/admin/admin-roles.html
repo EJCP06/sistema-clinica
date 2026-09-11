@@ -28,7 +28,7 @@
         </div>
         <div class="relative flex-1 min-w-0">
           <lucide-icon [name]="Search" class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"></lucide-icon>
-          <input type="text" autocomplete="off" [(ngModel)]="searchQuery" placeholder="Buscar rol por nombre, clave o sede..." class="w-full pl-14 pr-10 py-3 text-sm focus:outline-none font-medium bg-slate-100 dark:bg-slate-800 rounded-2xl text-slate-900 dark:text-white" />
+          <input type="text" autocomplete="off" [(ngModel)]="searchQuery" placeholder="Buscar rol por nombre, clave o sede..." class="w-full pl-14 pr-10 py-3 text-sm focus:outline-none font-medium bg-slate-100 dark:bg-slate-800 rounded-2xl text-slate-900 dark:text-slate-400" />
         </div>
       </div>
       <div class="grid grid-cols-1 w-full gap-2 sm:flex sm:items-center sm:gap-2 sm:w-auto sm:shrink-0">
@@ -56,10 +56,10 @@
           <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
             <ng-container *ngFor="let rol of getRolesFiltrados() | paginate: currentPageRoles : pageSize">
               <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
-                <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-white tracking-tight uppercase text-center">
+                <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-slate-400 tracking-tight uppercase text-center">
                   {{ rol.nombre }}
                 </td>
-                <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-white tracking-tight uppercase text-center">
+                <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-slate-400 tracking-tight uppercase text-center">
                   {{ getSedeLabel(rol.id_sede) }}
                 </td>
                 <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">
@@ -146,7 +146,7 @@
           (blur)="trimCampo($event)"
           placeholder="Ej: Administrador, Recepcionista..."
           [disabled]="isSaving"
-          class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium text-slate-900 dark:text-white"
+          class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium text-slate-900 dark:text-slate-400"
         />
       </div>
 
@@ -172,7 +172,7 @@
               [disabled]="isSaving"
               class="w-4 h-4 text-blue-600"
             />
-            <span class="text-sm font-bold text-slate-700 dark:text-white">{{ sede.nombre }}</span>
+            <span class="text-sm font-bold text-slate-700 dark:text-slate-400">{{ sede.nombre }}</span>
           </label>
         </div>
       </div>

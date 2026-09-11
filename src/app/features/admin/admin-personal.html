@@ -79,8 +79,8 @@
             <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10">
               <ng-container *ngFor="let p of personalFiltrados | paginate: currentPage : pageSize; trackBy: trackById">
                 <tr class="h-[52px] md:h-[64px] group hover:bg-slate-50 dark:hover:bg-slate-800">
-                  <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-white uppercase text-center">{{ (p.nombre || '') + (p.segundo_nombre ? ' ' + p.segundo_nombre : '') || 'SIN ASIGNAR' }}</td>
-                  <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-white uppercase text-center">{{ (p.apellido || '') + (p.segundo_apellido ? ' ' + p.segundo_apellido : '') || 'SIN ASIGNAR' }}</td>
+                  <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-slate-400 uppercase text-center">{{ (p.nombre || '') + (p.segundo_nombre ? ' ' + p.segundo_nombre : '') || 'SIN ASIGNAR' }}</td>
+                  <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-slate-400 uppercase text-center">{{ (p.apellido || '') + (p.segundo_apellido ? ' ' + p.segundo_apellido : '') || 'SIN ASIGNAR' }}</td>
                   <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 dark:text-slate-400 font-bold tracking-tight text-center">{{ p.cedula || 'SIN ASIGNAR' }}</td>
                   <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">
                     <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [ngClass]="getRolBadgeClass(p.rol)">{{ getRolLabel(p.rol) }}</span>
@@ -88,7 +88,7 @@
                   <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 dark:text-slate-400 font-bold uppercase text-center">{{ p.telefono || 'SIN ASIGNAR' }}</td>
                   <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 dark:text-slate-400 font-bold text-center">{{ p.email || 'SIN ASIGNAR' }}</td>
                   <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 dark:text-slate-400 font-bold text-center">{{ getSedeLabel(p.id_sede) }}</td>
-                  <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-white uppercase text-center">
+                  <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-slate-400 uppercase text-center">
                     <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [ngClass]="p.activo ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'">{{ p.activo ? 'Activo' : 'Inactivo' }}</span>
                   </td>
                   <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center border-b border-slate-100/30 dark:border-slate-800/10">
