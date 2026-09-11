@@ -1,35 +1,98 @@
-import { Component, OnInit, OnDestroy, HostListener, ElementRef, inject, DestroyRef } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  HostListener,
+  ElementRef,
+  inject,
+  DestroyRef,
+} from '@angular/core';
 import { interval, timer, Subscription } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LucideAngularModule, Search, FileText, CheckCircle2, ChevronDown, Undo2, DollarSign, XCircle, Trash2, Megaphone, Edit2, UserPlus, UserX } from 'lucide-angular';
-import { ApiService } from '../../core/services/api.service';
-import { AuthService } from '../../core/services/auth.service';
-import { SwalService } from '../../core/services/swal.service';
-import { EspecialidadesService } from '../../core/services/especialidades.service';
-import { ScrollService } from '../../core/services/scroll.service';
+import { ActivatedRoute } from '@angular/router';
+import {
+  LucideAngularModule,
+  Search,
+  FileText,
+  CheckCircle2,
+  ChevronDown,
+  Undo2,
+  DollarSign,
+  XCircle,
+  Trash2,
+  Megaphone,
+  Edit2,
+  UserPlus,
+  UserX,
+} from 'lucide-angular';
+import { ApiService } from '@core/services/api.service';
+import { AuthService } from '@core/services/auth.service';
+import { SwalService } from '@core/services/swal.service';
+import { EspecialidadesService } from '@core/services/especialidades.service';
+import { ScrollService } from '@core/services/scroll.service';
 import { AdmisionDTO } from '@core/models/dto.models';
 
-import { Sidebar } from '../../shared/components/sidebar/sidebar';
-import { Header } from '../../shared/components/header/header';
-import { PaginationComponent } from '../../shared/components/pagination/pagination';
-import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
-import { FillersPipe } from '../../shared/pipes/fillers.pipe';
+import { Sidebar } from '@shared/components/sidebar/sidebar';
+import { Header } from '@shared/components/header/header';
+import { PaginationComponent } from '@shared/components/pagination/pagination';
+import { PaginatePipe } from '@shared/pipes/paginate.pipe';
+import { FillersPipe } from '@shared/pipes/fillers.pipe';
 
+/** Servicios que comparten el flujo de caja → sala de espera → llamado. */
+export type TipoServicioCola = 'laboratorio' | 'imagenes';
 
 @Component({
-  selector: 'app-imagenes',
+  selector: 'app-cola-servicio',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule, Sidebar, Header, PaginationComponent, PaginatePipe, FillersPipe],
-  templateUrl: './imagenes.html'
+  imports: [
+    CommonModule,
+    FormsModule,
+    LucideAngularModule,
+    Sidebar,
+    Header,
+    PaginationComponent,
+    PaginatePipe,
+    FillersPipe,
+  ],
+  templateUrl: './cola-servicio.html',
 })
 /**
- * Panel de imágenes/radiología.
- * Gestiona pacientes de servicio de imágenes: presupuesto, caja,
- * sala de espera, reincorporación y retiro de pacientes.
+ * Panel de cola y atención para servicios (laboratorio e imágenes).
+ *
+ * Un único componente parametrizado por `tipo` (vía `data.tipo` de la ruta):
+ * presupuesto, caja, sala de espera, llamado por voz, reincorporación y
+ * retiro de pacientes. Antes existían dos copias casi idénticas
+ * (laboratorio.ts / imagenes.ts); lo único que las diferenciaba era el rol
+ * autorizado, el servicio que filtran, los endpoints de llamado y las claves
+ * de permiso, todo derivado de `tipo`.
  */
-export class ImagenesComponent implements OnInit, OnDestroy {
+export class ColaServicioComponent implements OnInit, OnDestroy {
+  /**
+   * Servicio que atiende este panel, tomado de `data.tipo` de la ruta.
+   * (`/laboratorio` → 'laboratorio', `/imagenes` → 'imagenes')
+   */
+  readonly tipo: TipoServicioCola =
+    (inject(ActivatedRoute).snapshot.data['tipo'] as TipoServicioCola) ?? 'laboratorio';
+
+  /** Etiqueta del servicio, usada en el encabezado y en el filtro de categoría. */
+  get etiquetaServicio(): string {
+    return this.tipo === 'laboratorio' ? 'Laboratorio' : 'Imágenes';
+  }
+
+  /** Título del encabezado del módulo. */
+  get tituloPagina(): string {
+    return `Módulo de ${this.etiquetaServicio}`;
+  }
+
+  /** ¿El servicio recibido pertenece a este panel? */
+  private esDelServicio(nombreServicio: string | undefined | null): boolean {
+    const nombre = (nombreServicio || '').toLowerCase();
+    return this.tipo === 'laboratorio'
+      ? nombre.includes('laboratorio')
+      : nombre.includes('imágenes') || nombre.includes('imagenes');
+  }
   readonly Search = Search;
   readonly FileText = FileText;
   readonly CheckCircle2 = CheckCircle2;
@@ -44,13 +107,13 @@ export class ImagenesComponent implements OnInit, OnDestroy {
   readonly UserX = UserX;
 
   // ---- Countdown de estado LLAMADO (4) ----
-  private countdowns = new Map<number, number>();
-  private countdownSubs = new Map<number, Subscription>();
-  private voiceSubs = new Map<number, Subscription>();
-  private countdownStarts = new Map<number, number>();
-  private admisionCountdown = new Map<number, any>();
-  readonly COUNTDOWN_TOTAL = 60;
-  readonly VOZ_INTERVALO = 10000;
+  private countdowns = new Map<number, number>(); // id_atencion → segundos restantes
+  private countdownSubs = new Map<number, Subscription>(); // id_atencion → RxJS subscription
+  private voiceSubs = new Map<number, Subscription>(); // id_atencion → voz cada 10s
+  private countdownStarts = new Map<number, number>(); // id_atencion → timestamp ms de inicio
+  private admisionCountdown = new Map<number, any>(); // referencia al paciente
+  readonly COUNTDOWN_TOTAL = 60; // 60 segundos
+  readonly VOZ_INTERVALO = 10000; // 10 segundos
   private _tick = 0;
 
   pageSize = 9;
@@ -114,17 +177,23 @@ export class ImagenesComponent implements OnInit, OnDestroy {
 
   get aseguradorasFiltradas(): any[] {
     const q = (this.aseguradoraFiltro || '').trim().toLowerCase();
-    return this.aseguradoras.filter((a: any) => !q || (a.aseguradora || '').toLowerCase().includes(q));
+    return this.aseguradoras.filter(
+      (a: any) => !q || (a.aseguradora || '').toLowerCase().includes(q),
+    );
   }
 
   get especialidadesFiltradas(): any[] {
     const q = (this.especialidadFiltro || '').trim().toLowerCase();
-    return this.getEspecialidades().filter((s: any) => !q || (s.nombre || s.nombre_servicio || '').toLowerCase().includes(q));
+    return this.getEspecialidades().filter(
+      (s: any) => !q || (s.nombre || s.nombre_servicio || '').toLowerCase().includes(q),
+    );
   }
 
   get medicosConFiltro(): any[] {
     const q = (this.medicoFiltro || '').trim().toLowerCase();
-    return this.medicosFiltrados.filter((m: any) => !q || ((m.nombre || '') + ' ' + (m.apellido || '')).toLowerCase().includes(q));
+    return this.medicosFiltrados.filter(
+      (m: any) => !q || ((m.nombre || '') + ' ' + (m.apellido || '')).toLowerCase().includes(q),
+    );
   }
 
   onAseguradoraInput(event: Event) {
@@ -141,7 +210,8 @@ export class ImagenesComponent implements OnInit, OnDestroy {
       if (list.length) this.aseguradoraIndex = (this.aseguradoraIndex + 1) % list.length;
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
-      if (list.length) this.aseguradoraIndex = (this.aseguradoraIndex - 1 + list.length) % list.length;
+      if (list.length)
+        this.aseguradoraIndex = (this.aseguradoraIndex - 1 + list.length) % list.length;
     } else if (event.key === 'Enter') {
       event.preventDefault();
       if (this.showAseguradoraDropdown && list[this.aseguradoraIndex]) {
@@ -166,7 +236,8 @@ export class ImagenesComponent implements OnInit, OnDestroy {
       if (list.length) this.especialidadIndex = (this.especialidadIndex + 1) % list.length;
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
-      if (list.length) this.especialidadIndex = (this.especialidadIndex - 1 + list.length) % list.length;
+      if (list.length)
+        this.especialidadIndex = (this.especialidadIndex - 1 + list.length) % list.length;
     } else if (event.key === 'Enter') {
       event.preventDefault();
       if (this.showEspecialidadDropdown && list[this.especialidadIndex]) {
@@ -210,7 +281,7 @@ export class ImagenesComponent implements OnInit, OnDestroy {
   consultorios: any[] = [];
 
   get admisionesFiltradas(): AdmisionDTO[] {
-    return this.ultimasAdmisiones.filter(a => {
+    return this.ultimasAdmisiones.filter((a) => {
       const query = (this.cedulaBusqueda || '').trim().toLowerCase();
       if (!query) return true;
 
@@ -230,7 +301,7 @@ export class ImagenesComponent implements OnInit, OnDestroy {
   }
 
   get puedeLlamar(): boolean {
-    return this.auth.tieneRol(['analista', 'coordinador', 'administrador', 'imagenes']);
+    return this.auth.tieneRol(['analista', 'coordinador', 'administrador', this.tipo]);
   }
 
   trackById = (index: number, item: AdmisionDTO) => item?.id_atencion ?? index;
@@ -244,9 +315,13 @@ export class ImagenesComponent implements OnInit, OnDestroy {
 
   constructor(private api: ApiService) {}
 
-  get usuario() { return this.auth.usuarioActual; }
+  get usuario() {
+    return this.auth.usuarioActual;
+  }
 
-  tienePermiso(permiso: string): boolean { return this.auth.tienePermiso(permiso); }
+  tienePermiso(permiso: string): boolean {
+    return this.auth.tienePermiso(permiso);
+  }
 
   @HostListener('document:click', ['$event'])
   onClick(event: MouseEvent) {
@@ -262,7 +337,8 @@ export class ImagenesComponent implements OnInit, OnDestroy {
       if (!target.closest('.search-filter-container')) this.showSearchFilterDropdown = false;
       if (!target.closest('.payer-dropdown-container')) this.showPayerDropdown = false;
       if (!target.closest('.service-dropdown-container')) this.showServiceDropdown = false;
-      if (!target.closest('.especialidad-dropdown-container')) this.showEspecialidadDropdown = false;
+      if (!target.closest('.especialidad-dropdown-container'))
+        this.showEspecialidadDropdown = false;
       if (!target.closest('.medico-dropdown-container')) this.showMedicoDropdown = false;
       if (!target.closest('.aseguradora-dropdown-container')) this.showAseguradoraDropdown = false;
     }
@@ -275,73 +351,90 @@ export class ImagenesComponent implements OnInit, OnDestroy {
     this.api.cambios$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((event: any) => {
       if (event?.admision) {
         const a = event.admision;
-        const servicioLower = (a.nombre_servicio || '').toLowerCase();
-        const esImagenes = servicioLower.includes('imágenes') || servicioLower.includes('imagenes');
+        const esDelServicio = this.esDelServicio(a.nombre_servicio);
         const modalidadPagoLower = (a.modalidad_pago || '').toLowerCase();
         const esSeguro = modalidadPagoLower === 'seguro' || modalidadPagoLower.includes('asegur');
         const esParticular = modalidadPagoLower === 'particular';
-        
+
         if (event.tipo === 'nuevo-turno') {
-          if (esImagenes && (esParticular || esSeguro) && ![6, 9].includes(Number(a.id_estado_actual))) {
+          if (
+            esDelServicio &&
+            (esParticular || esSeguro) &&
+            ![6, 9].includes(Number(a.id_estado_actual))
+          ) {
             // En estado 3 se agrega (viene de APS)
             this.ultimasAdmisiones = [a, ...this.ultimasAdmisiones].slice(0, 50);
           }
         } else if (event.tipo === 'retirado') {
-          const idx = this.ultimasAdmisiones.findIndex(x => x.id_atencion === a.id_atencion);
+          const idx = this.ultimasAdmisiones.findIndex((x) => x.id_atencion === a.id_atencion);
           if (idx !== -1) {
             this.ultimasAdmisiones[idx] = a;
             this.ultimasAdmisiones = [...this.ultimasAdmisiones];
           }
         } else if (event.tipo === 'estado-cambiado') {
           if ([6, 9].includes(Number(event.id_estado_nuevo))) {
-            this.ultimasAdmisiones = this.ultimasAdmisiones.filter(x => x.id_atencion !== a.id_atencion);
-          } else if (Number(event.id_estado_nuevo) === 3 && esImagenes && (esParticular || esSeguro)) {
-            // Paciente de imágenes pasó a sala de espera: aparece en tabla con megáfono
+            this.ultimasAdmisiones = this.ultimasAdmisiones.filter(
+              (x) => x.id_atencion !== a.id_atencion,
+            );
+          } else if (
+            Number(event.id_estado_nuevo) === 3 &&
+            esDelServicio &&
+            (esParticular || esSeguro)
+          ) {
+            // Paciente del servicio pasó a sala de espera: aparece en tabla con megáfono
             this.ultimasAdmisiones = [a, ...this.ultimasAdmisiones].slice(0, 50);
           }
         }
       } else if (event.tipo === 'liberacion' || event.tipo === 'retirado') {
-        this.cargarUltimasAdmisiones();        } else if (event.tipo === 'estado-cambiado') {
-          const nuevoEstado = Number(event.id_estado_nuevo);
-          const idAtencion = Number(event.id_atencion);
-          if ([6, 9].includes(nuevoEstado)) {
-            if (!isNaN(idAtencion)) {
-              this.stopCountdown(idAtencion);
-              this.ultimasAdmisiones = this.ultimasAdmisiones.filter(x => x.id_atencion !== idAtencion);
-            } else {
-              this.cargarUltimasAdmisiones();
-            }
-          } else if (nuevoEstado === 4) {
-            // Paciente pasó a LLAMADO: reiniciar countdown en exactamente 120s.
-            const adm = this.ultimasAdmisiones.find(x => x.id_atencion === idAtencion);
-            if (adm) {
-              adm.id_estado_actual = 4;
-              adm.nombre_estado = 'LLAMADO';
-              this.stopCountdown(idAtencion);
-              this.startCountdown(adm, this.COUNTDOWN_TOTAL);
-            }
-          } else if (nuevoEstado === 5) {
+        this.cargarUltimasAdmisiones();
+      } else if (event.tipo === 'estado-cambiado') {
+        const nuevoEstado = Number(event.id_estado_nuevo);
+        const idAtencion = Number(event.id_atencion);
+        if ([6, 9].includes(nuevoEstado)) {
+          if (!isNaN(idAtencion)) {
             this.stopCountdown(idAtencion);
-            const adm = this.ultimasAdmisiones.find(x => x.id_atencion === idAtencion);
-            if (adm) {
-              adm.id_estado_actual = 5;
-              adm.nombre_estado = 'EN ATENCION';
-            }
-          } else if (nuevoEstado === 7) {
-            this.stopCountdown(idAtencion);
-            this.cargarUltimasAdmisiones();
+            this.ultimasAdmisiones = this.ultimasAdmisiones.filter(
+              (x) => x.id_atencion !== idAtencion,
+            );
           } else {
             this.cargarUltimasAdmisiones();
           }
-        } else if (event.tipo !== 'llamado') {
+        } else if (nuevoEstado === 4) {
+          // Paciente pasó a LLAMADO: reiniciar countdown en exactamente 120s.
+          // Siempre forzamos el reinicio porque el evento socket significa "esto
+          // acaba de pasar" — no usamos hora_llamado del servidor porque tiene
+          // latencia y el countdown arrancaría con <120s.
+          const adm = this.ultimasAdmisiones.find((x) => x.id_atencion === idAtencion);
+          if (adm) {
+            adm.id_estado_actual = 4;
+            adm.nombre_estado = 'LLAMADO';
+            this.stopCountdown(idAtencion);
+            this.startCountdown(adm, this.COUNTDOWN_TOTAL);
+          }
+        } else if (nuevoEstado === 5) {
+          // Paciente pasó a EN ATENCIÓN: detener countdown
+          this.stopCountdown(idAtencion);
+          const adm = this.ultimasAdmisiones.find((x) => x.id_atencion === idAtencion);
+          if (adm) {
+            adm.id_estado_actual = 5;
+            adm.nombre_estado = 'EN ATENCION';
+          }
+        } else if (nuevoEstado === 7) {
+          this.stopCountdown(idAtencion);
+          this.cargarUltimasAdmisiones();
+        } else {
+          this.cargarUltimasAdmisiones();
+        }
+      } else if (event.tipo !== 'llamado') {
         this.cargarUltimasAdmisiones();
       }
-
     });
 
-    interval(30000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
-      this.cargarUltimasAdmisiones();
-    });
+    interval(30000)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.cargarUltimasAdmisiones();
+      });
   }
 
   ngOnDestroy() {
@@ -359,10 +452,10 @@ export class ImagenesComponent implements OnInit, OnDestroy {
 
   getSearchFilterLabel(): string {
     const labels: Record<string, string> = {
-      'todo': 'TODO',
-      'nombre': 'NOMBRES',
-      'apellido': 'APELLIDOS',
-      'cedula': 'CÉDULA'
+      todo: 'TODO',
+      nombre: 'NOMBRES',
+      apellido: 'APELLIDOS',
+      cedula: 'CÉDULA',
     };
     return labels[this.searchFilter] || 'TODO';
   }
@@ -372,23 +465,23 @@ export class ImagenesComponent implements OnInit, OnDestroy {
     this.api.get<AdmisionDTO[]>('recepcion/ultimas-admisiones').subscribe({
       next: (data) => {
         const items = data || [];
-        this.ultimasAdmisiones = items.filter(a => {
+        this.ultimasAdmisiones = items.filter((a) => {
           if ([6, 9].includes(Number(a.id_estado_actual))) return false;
-          
-          const servicioLower = (a.nombre_servicio || '').toLowerCase();
-          const esImagenes = servicioLower.includes('imágenes') || servicioLower.includes('imagenes');
+
+          const esDelServicio = this.esDelServicio(a.nombre_servicio);
 
           const modalidadPagoLower = (a.modalidad_pago || '').toLowerCase();
           const esSeguro = modalidadPagoLower === 'seguro' || modalidadPagoLower.includes('asegur');
           const esParticular = modalidadPagoLower === 'particular';
 
-          if (esImagenes) {
+          if (esDelServicio) {
             // Aseguradoras solo aparecen en estado 3 en adelante
             if (esSeguro && ![3, 4, 5, 7].includes(Number(a.id_estado_actual))) return false;
             return esParticular || esSeguro;
           }
           return false;
         });
+        // Iniciar countdowns para pacientes ya en estado 4 (LLAMADO)
         for (const a of this.ultimasAdmisiones) {
           if (Number(a.id_estado_actual) === 4) {
             this.startCountdown(a);
@@ -396,12 +489,19 @@ export class ImagenesComponent implements OnInit, OnDestroy {
         }
         this.cargando = false;
       },
-      error: () => { this.cargando = false; console.error('Error cargando ultimas admisiones'); }
+      error: () => {
+        this.cargando = false;
+        console.error('Error cargando ultimas admisiones');
+      },
     });
   }
 
   onSearchChange(value: string | undefined) {
     this.cedulaBusqueda = value || '';
+    this.currentPage = 1;
+  }
+
+  onSearch() {
     this.currentPage = 1;
   }
 
@@ -411,23 +511,26 @@ export class ImagenesComponent implements OnInit, OnDestroy {
    * siempre al primero de la cola.
    */
   llamarPaciente(paciente: any) {
-    this.api.post(`recepcion/atencion/${paciente.id_atencion}/llamar-imagenes`, {}).subscribe({
+    this.api.post(`recepcion/atencion/${paciente.id_atencion}/llamar-${this.tipo}`, {}).subscribe({
       next: () => {},
-      error: () => {} // Silencioso
+      error: () => {}, // Silencioso
     });
   }
 
   /** Llama por voz a un paciente en SALA DE ESPERA (estado 3) desde la tabla. Cambia a estado 4. */
   llamarPacienteSalaEspera(paciente: any) {
-    this.api.post(`recepcion/atencion/${paciente.id_atencion}/llamar-imagenes-se`, {}).subscribe({
-      next: () => {
-        paciente.id_estado_actual = 4;
-        paciente.nombre_estado = 'LLAMADO';
-        paciente.hora_llamado = new Date().toISOString();
-        this.startCountdown(paciente);
-      },
-      error: () => {} // Silencioso
-    });
+    this.api
+      .post(`recepcion/atencion/${paciente.id_atencion}/llamar-${this.tipo}-se`, {})
+      .subscribe({
+        next: () => {
+          // Actualizar localmente el estado y hora_llamado
+          paciente.id_estado_actual = 4;
+          paciente.nombre_estado = 'LLAMADO';
+          paciente.hora_llamado = new Date().toISOString();
+          this.startCountdown(paciente);
+        },
+        error: () => {}, // Silencioso
+      });
   }
 
   async enviarAPresupuesto(id_atencion: number) {
@@ -438,7 +541,7 @@ export class ImagenesComponent implements OnInit, OnDestroy {
       next: () => {
         this.cargarUltimasAdmisiones();
       },
-      error: (err) => this.swal.error(err.error?.mensaje || 'Error al cambiar estado')
+      error: (err) => this.swal.error(err.error?.mensaje || 'Error al cambiar estado'),
     });
   }
 
@@ -447,7 +550,7 @@ export class ImagenesComponent implements OnInit, OnDestroy {
     if (!result.isConfirmed) return;
     this.api.actualizarEstadoAtencion(id_atencion, 3).subscribe({
       next: () => this.cargarUltimasAdmisiones(),
-      error: (err) => this.swal.error(err.error?.mensaje || 'Error al cambiar estado')
+      error: (err) => this.swal.error(err.error?.mensaje || 'Error al cambiar estado'),
     });
   }
 
@@ -456,16 +559,18 @@ export class ImagenesComponent implements OnInit, OnDestroy {
     if (!result.isConfirmed) return;
     this.api.actualizarEstadoAtencion(id_atencion, 4).subscribe({
       next: () => this.cargarUltimasAdmisiones(),
-      error: (err) => this.swal.error(err.error?.mensaje || 'Error al cambiar estado')
+      error: (err) => this.swal.error(err.error?.mensaje || 'Error al cambiar estado'),
     });
   }
 
   async reincorporar(id_atencion: number) {
-    const result = await this.swal.confirm('¿Deseas reincorporar este paciente a la Sala de Espera?');
+    const result = await this.swal.confirm(
+      '¿Deseas reincorporar este paciente a la Sala de Espera?',
+    );
     if (!result.isConfirmed) return;
     this.api.reincorporarPaciente(id_atencion).subscribe({
       next: () => this.cargarUltimasAdmisiones(),
-      error: (err) => this.swal.error(err.error?.mensaje || 'Error al reincorporar paciente')
+      error: (err) => this.swal.error(err.error?.mensaje || 'Error al reincorporar paciente'),
     });
   }
 
@@ -474,7 +579,9 @@ export class ImagenesComponent implements OnInit, OnDestroy {
     if (!result.isConfirmed) return;
     this.api.put(`recepcion/atencion/${admision.id_atencion}/marcar_ausente`, {}).subscribe({
       next: () => {
-        this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== admision.id_atencion);
+        this.ultimasAdmisiones = this.ultimasAdmisiones.filter(
+          (a) => a.id_atencion !== admision.id_atencion,
+        );
         this.api.cambios$.next({ id_atencion: admision.id_atencion });
         this.swal.success('Paciente retirado correctamente');
       },
@@ -490,9 +597,10 @@ export class ImagenesComponent implements OnInit, OnDestroy {
     if (!result.isConfirmed) return;
     this.api.put(`recepcion/atencion/${admision.id_atencion}/marcar-ausente-real`, {}).subscribe({
       next: () => {
-        this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== admision.id_atencion);
+        this.ultimasAdmisiones = this.ultimasAdmisiones.filter(
+          (a) => a.id_atencion !== admision.id_atencion,
+        );
         this.api.cambios$.next({ id_atencion: admision.id_atencion });
-
       },
       error: (err) => {
         this.swal.error(err.error?.mensaje || 'Error al marcar ausente');
@@ -501,38 +609,46 @@ export class ImagenesComponent implements OnInit, OnDestroy {
   }
 
   /** Pasa un paciente de LLAMADO (4) a EN ATENCIÓN (5). */
-  iniciarAtencionImg(admision: any) {
+  iniciarAtencion(admision: any) {
     this.stopCountdown(admision.id_atencion);
     // Cambio inmediato de estado en UI (sin esperar API)
     admision.id_estado_actual = 5;
     admision.nombre_estado = 'EN ATENCION';
-    this.api.put(`recepcion/atencion/${admision.id_atencion}/estado`, { id_estado_nuevo: 5 }).subscribe({
-      error: (err) => this.swal.error(err.error?.mensaje || 'Error al iniciar atención')
-    });
+    this.api
+      .put(`recepcion/atencion/${admision.id_atencion}/estado`, { id_estado_nuevo: 5 })
+      .subscribe({
+        error: (err) => this.swal.error(err.error?.mensaje || 'Error al iniciar atención'),
+      });
   }
 
   /** Finaliza la atención: pasa de EN ATENCIÓN (5) a ATENDIDO (6). */
-  finalizarAtencionImg(admision: any) {
+  finalizarAtencion(admision: any) {
     this.stopCountdown(admision.id_atencion);
     // Cambio inmediato de estado en UI
-    this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== admision.id_atencion);
-    this.api.put(`recepcion/atencion/${admision.id_atencion}/estado`, { id_estado_nuevo: 6 }).subscribe({
-      error: (err) => this.swal.error(err.error?.mensaje || 'Error al finalizar atención')
-    });
+    this.ultimasAdmisiones = this.ultimasAdmisiones.filter(
+      (a) => a.id_atencion !== admision.id_atencion,
+    );
+    this.api
+      .put(`recepcion/atencion/${admision.id_atencion}/estado`, { id_estado_nuevo: 6 })
+      .subscribe({
+        error: (err) => this.swal.error(err.error?.mensaje || 'Error al finalizar atención'),
+      });
   }
 
   // ===================== COUNTDOWN DE LLAMADO (estado 4) =====================
 
+  /** Retorna los segundos restantes del countdown para el template. */
   getCountdown(idAtencion: number): number {
-    void this._tick;
+    void this._tick; // dependencia reactiva
     return this.countdowns.get(idAtencion) ?? 0;
   }
 
   /** Inicia el countdown de 120s + voz cada 10s para un paciente en estado 4.
-   *  Usa timestamp absoluto para ser inmune al drift de setInterval. */
+   *  Usa timestamp absoluto para ser inmune al drift de setInterval:
+   *  en cada tick recalcula `Date.now() - startTime` en vez de decrementar 1. */
   private startCountdown(admision: any, forceSeconds?: number) {
     const id = Number(admision.id_atencion);
-    if (this.countdownSubs.has(id)) return;
+    if (this.countdownSubs.has(id)) return; // ya está corriendo
 
     const nowMs = Date.now();
     const total = forceSeconds ?? this.COUNTDOWN_TOTAL;
@@ -541,11 +657,14 @@ export class ImagenesComponent implements OnInit, OnDestroy {
       offsetSec = Math.floor((nowMs - new Date(admision.hora_llamado).getTime()) / 1000);
       offsetSec = Math.min(offsetSec, total);
     }
-    const startMs = nowMs - (offsetSec * 1000);
+    // "Hora de inicio virtual": si el paciente fue llamado hace 10s, el
+    // inicio es nowMs - 10000, así el timer arranca en 110.
+    const startMs = nowMs - offsetSec * 1000;
     this.countdownStarts.set(id, startMs);
     this.countdowns.set(id, total - offsetSec);
     this.admisionCountdown.set(id, admision);
 
+    // Timer de countdown (1s) — drift-proof
     const sub = interval(1000).subscribe(() => {
       const elapsed = Math.floor((Date.now() - this.countdownStarts.get(id)!) / 1000);
       const remaining = Math.max(0, total - elapsed);
@@ -557,36 +676,46 @@ export class ImagenesComponent implements OnInit, OnDestroy {
         if (adm) {
           this.api.put(`recepcion/atencion/${id}/marcar-ausente-real`, {}).subscribe({
             next: () => {
-              this.ultimasAdmisiones = this.ultimasAdmisiones.filter(a => a.id_atencion !== id);
+              this.ultimasAdmisiones = this.ultimasAdmisiones.filter((a) => a.id_atencion !== id);
               this.api.cambios$.next({ id_atencion: id });
             },
-            error: () => {}
+            error: () => {},
           });
         }
       }
     });
     this.countdownSubs.set(id, sub);
 
+    // Timer de voz cada 10s. Se dispara 2s antes (VOZ_INTERVALO - 2000)
+    // para compensar la latencia HTTP + generación de TTS + socket → turnero.
     const voiceSub = timer(this.VOZ_INTERVALO - 2000, this.VOZ_INTERVALO).subscribe(() => {
-      this.api.post(`recepcion/atencion/${id}/llamar-imagenes-se`, {}).subscribe({
+      this.api.post(`recepcion/atencion/${id}/llamar-${this.tipo}-se`, {}).subscribe({
         next: () => {},
-        error: () => {}
+        error: () => {}, // Silencioso: el turnero puede estar apagado
       });
     });
     this.voiceSubs.set(id, voiceSub);
   }
 
+  /** Detiene el countdown y la voz de un paciente. */
   private stopCountdown(idAtencion: number) {
     const s1 = this.countdownSubs.get(idAtencion);
-    if (s1) { s1.unsubscribe(); this.countdownSubs.delete(idAtencion); }
+    if (s1) {
+      s1.unsubscribe();
+      this.countdownSubs.delete(idAtencion);
+    }
     const s2 = this.voiceSubs.get(idAtencion);
-    if (s2) { s2.unsubscribe(); this.voiceSubs.delete(idAtencion); }
+    if (s2) {
+      s2.unsubscribe();
+      this.voiceSubs.delete(idAtencion);
+    }
     this.countdowns.delete(idAtencion);
     this.countdownStarts.delete(idAtencion);
     this.admisionCountdown.delete(idAtencion);
     this._tick = Date.now();
   }
 
+  /** Detiene TODOS los countdowns (al navegar fuera o destruir el componente). */
   private stopAllCountdowns() {
     for (const id of this.countdownSubs.keys()) this.stopCountdown(id);
   }
@@ -666,15 +795,17 @@ export class ImagenesComponent implements OnInit, OnDestroy {
     if (fila.id_especialidad) {
       const esp = this.especialidades.find(
         (e: any) => (e.id_especialidad || e.id) === fila.id_especialidad,
-      );        if (esp) {
-          this.seleccion.nombre_especialidad_label = esp.nombre;
-          this.especialidadFiltro = esp.nombre;
-        }
+      );
+      if (esp) {
+        this.seleccion.nombre_especialidad_label = esp.nombre;
+        this.especialidadFiltro = esp.nombre;
       }
+    }
 
     const asig = this.aseguradoras.find((a: any) => a.id_cliente === fila.id_cliente);
     this.aseguradoraFiltro = asig ? asig.aseguradora : '';
-    this.medicoFiltro = fila.nombre_medico || (fila.id_medico ? this.getNombreMedicoLabel(fila.id_medico) : '');
+    this.medicoFiltro =
+      fila.nombre_medico || (fila.id_medico ? this.getNombreMedicoLabel(fila.id_medico) : '');
 
     this.abrirModalRegistro();
   }
@@ -729,7 +860,10 @@ export class ImagenesComponent implements OnInit, OnDestroy {
               this.filaEnEdicion = null;
               this.swal.success('Cambios guardados con éxito');
               this.cargarUltimasAdmisiones();
-              this.api.cambios$.next({ tipo: 'atencion-actualizada', id_atencion: this.seleccion.id_atencion });
+              this.api.cambios$.next({
+                tipo: 'atencion-actualizada',
+                id_atencion: this.seleccion.id_atencion,
+              });
             });
           },
           error: () =>
@@ -814,7 +948,6 @@ export class ImagenesComponent implements OnInit, OnDestroy {
       .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase();
   }
-
 
   toggleServiceDropdown() {
     this.showServiceDropdown = !this.showServiceDropdown;
@@ -905,7 +1038,9 @@ export class ImagenesComponent implements OnInit, OnDestroy {
     const target = Number(this.seleccion.id_especialidad);
     return this.medicos.filter((m: any) => {
       // Especialidad inactiva para este médico: no aparece en esa especialidad
-      const inactivas = Array.isArray(m.especialidades_inactivas) ? m.especialidades_inactivas.map(Number) : [];
+      const inactivas = Array.isArray(m.especialidades_inactivas)
+        ? m.especialidades_inactivas.map(Number)
+        : [];
       if (inactivas.includes(target)) return false;
       const espId = Number(m.id_especialidad || m.especialidad_id);
       if (espId === target) return true;
@@ -979,7 +1114,11 @@ export class ImagenesComponent implements OnInit, OnDestroy {
   onFechaNacimientoInput(event: Event) {
     const input = event.target as HTMLInputElement;
     const cursorPos = input.selectionStart || 0;
-    const resultado = this.aplicarCambioFecha(this.nuevoPaciente.fecha_nacimiento || '', input.value, cursorPos);
+    const resultado = this.aplicarCambioFecha(
+      this.nuevoPaciente.fecha_nacimiento || '',
+      input.value,
+      cursorPos,
+    );
     this.nuevoPaciente.fecha_nacimiento = resultado.valor;
     input.value = resultado.valor;
     input.setSelectionRange(resultado.cursor, resultado.cursor);
@@ -992,10 +1131,14 @@ export class ImagenesComponent implements OnInit, OnDestroy {
     return `${partes[2]}/${partes[1]}/${partes[0]}`;
   }
 
-  private aplicarCambioFecha(displayAnterior: string, nuevoValor: string, cursorPos: number): { valor: string; cursor: number } {
+  private aplicarCambioFecha(
+    displayAnterior: string,
+    nuevoValor: string,
+    cursorPos: number,
+  ): { valor: string; cursor: number } {
     const viejo = this.obtenerSlots(displayAnterior);
     const nuevoDigitos = nuevoValor.replace(/\D/g, '').substring(0, 8);
-    const viejoDigitos = viejo.filter(ch => /\d/.test(ch)).join('');
+    const viejoDigitos = viejo.filter((ch) => /\d/.test(ch)).join('');
 
     if (nuevoDigitos.length === 0) {
       return { valor: '', cursor: 0 };
@@ -1010,7 +1153,9 @@ export class ImagenesComponent implements OnInit, OnDestroy {
     }
 
     if (nuevoDigitos.length === viejoDigitos.length) {
-      const slots = viejo.map((ch, i) => /\d/.test(ch) ? nuevoDigitos[this.runIndex(i, viejo)] : ch);
+      const slots = viejo.map((ch, i) =>
+        /\d/.test(ch) ? nuevoDigitos[this.runIndex(i, viejo)] : ch,
+      );
       return { valor: this.reconstruir(slots), cursor: Math.min(cursorPos, 10) };
     }
 
@@ -1027,17 +1172,31 @@ export class ImagenesComponent implements OnInit, OnDestroy {
       ultimoRellenado = pos;
       pos++;
     }
-    const cursor = ultimoRellenado >= 0 ? this.posicionDeSlot(ultimoRellenado) + 1 : this.posicionDeSlot(insertSlot);
+    const cursor =
+      ultimoRellenado >= 0
+        ? this.posicionDeSlot(ultimoRellenado) + 1
+        : this.posicionDeSlot(insertSlot);
     return { valor: this.reconstruir(slots), cursor };
   }
 
   private obtenerSlots(display: string): string[] {
     if (!display) return Array(8).fill(' ');
-    return [0, 1, 3, 4, 6, 7, 8, 9].map(i => display[i] ?? ' ');
+    return [0, 1, 3, 4, 6, 7, 8, 9].map((i) => display[i] ?? ' ');
   }
 
   private reconstruir(slots: string[]): string {
-    return slots[0] + slots[1] + '/' + slots[2] + slots[3] + '/' + slots[4] + slots[5] + slots[6] + slots[7];
+    return (
+      slots[0] +
+      slots[1] +
+      '/' +
+      slots[2] +
+      slots[3] +
+      '/' +
+      slots[4] +
+      slots[5] +
+      slots[6] +
+      slots[7]
+    );
   }
 
   private posicionDeSlot(slotIndex: number): number {

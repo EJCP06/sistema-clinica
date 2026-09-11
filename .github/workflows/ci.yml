@@ -7,6 +7,8 @@
 #   frontend -> compila la app Angular en modo producción (npm run build).
 #   lint     -> corre ESLint sobre backend/src y src/app (tolerando hasta
 #               50 warnings para no bloquear la entrega).
+#   contratos -> verifica que los contratos del backend sigan sincronizados
+#               con los DTO del frontend (src/app/core/models/dto.models.ts).
 # ============================================================
 name: CI
 
@@ -46,3 +48,16 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx eslint backend/src/ src/app/ --max-warnings 50
+
+  contratos:
+    name: Contratos front/back
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # El script solo usa módulos nativos de Node, así que no necesita npm ci.
+      - run: npm run contratos:check

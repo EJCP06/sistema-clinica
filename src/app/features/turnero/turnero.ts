@@ -7,6 +7,14 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription, interval } from 'rxjs';
 import { ApsScrollDirective } from './aps-scroll.directive';
 import { desbloquearVozNavegador, instalarGuardiaGlobalAntiDoble, limpiarGuardiaGlobalAntiDoble, isCapacitor, getBackendUrl, descargarAudioBlob } from './voz.util';
+import {
+  calcularDestinoVisual,
+  consultorioConPiso as consultorioConPisoDeTurno,
+  esAnuncioAPS,
+  formatearConsultorioConPiso,
+  retardoHastaInicioAnuncio,
+  retardoHastaSiguienteMarca,
+} from './turnero-formato.util';
 
 type SalaMode = 'aps' | 'aps-espera' | 'lab-espera' | 'lab-en-espera' | 'img-espera' | 'img-en-espera' | 'consulta';
 
@@ -286,29 +294,11 @@ export class TurneroComponent implements OnInit, OnDestroy {
   trackById = (index: number, item: TurnoDTO) => item?.id_atencion ?? item?.id ?? index;
 
   /**
-   * Muestra el consultorio con el piso antepuesto en la pantalla (ej.
-   * consultorio "01" en piso "1" => "101", o en mezanina con piso "M" =>
-   * "M01", conservando el cero). El piso se toma de la ESPECIALIDAD del
-   * turno (configurado en Especialidades) y se respalda con el del
-   * consultorio físico. Puede ser numérico o una letra (M = mezanina),
-   * siempre en mayúscula. Si no hay piso o el nombre no es numérico,
-   * conserva el formato actual. Usado en las tarjetas de pacientes llamados.
+   * Consultorio con el piso antepuesto, para las tarjetas de llamados.
+   * La lógica (pura) vive en `turnero-formato.util.ts`.
    */
   consultorioConPiso(t: TurnoDTO): string {
-    const nombre = (t.consultorio_nombre || '').trim();
-    if (!nombre) {
-      // Para pacientes de laboratorio/imagenes no hay consultorio fisico:
-      // mostrar el nombre del servicio (ej. "Laboratorio", "Imagenes").
-      const svc = (t.nombre_servicio || '').trim();
-      return svc || 'Consultorio';
-    }
-    const piso = (t.especialidad_piso || t.consultorio_piso || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-    const digitos = nombre.match(/\d+/);
-    if (piso && digitos) {
-      // Se conserva el número original del consultorio (con su cero): "M" + "01" => "M01".
-      return nombre.replace(digitos[0], `${piso}${digitos[0]}`);
-    }
-    return nombre.replace(/\b0+(\d+)\b/g, '$1');
+    return consultorioConPisoDeTurno(t);
   }
 
   private queryParamsSub: Subscription | null = null;
@@ -361,45 +351,6 @@ export class TurneroComponent implements OnInit, OnDestroy {
   private ttsServidorDisponible: boolean | null = null;
 
   /**
-   * Calcula el retardo hasta la siguiente marca de 10s de la grilla del llamado.
-   * El ciclo sigue indefinidamente cada 10s: se detiene únicamente cuando el
-   * paciente entra en atención (o se marca ausente/libera el consultorio), que
-   * dispara detenerRepeticion() en el turnero.
-   */
-  private retardoHastaSiguienteMarca(a: AnuncioActivo, minMs: number): number | null {
-    if (!a.inicioMs || !Number.isFinite(a.inicioMs)) {
-      return Math.max(minMs, 10000);
-    }
-    const baseLocal = a.baseLocal;
-    const ahora = Date.now();
-    const desfase = ahora - baseLocal;
-    if (desfase < 0) return Math.max(minMs, 500);
-    const periodos = Math.max(1, Math.floor(desfase / 10000) + 1);
-    const siguienteBorde = baseLocal + periodos * 10000;
-    return Math.max(minMs, siguienteBorde - ahora);
-  }
-
-  /**
-   * Retardo hasta el instante objetivo del anuncio (`inicio_ms` en hora
-   * local). Se usa para los llamados que deben sonar de INMEDIATO: los
-   * botones de módulo (APS/Lab/Imágenes) y el primer tick del médico
-   * ("Llamar al Siguiente") emiten `inicio_ms` en el mismo instante del
-   * clic, así que cuando el evento llega el objetivo ya está en el pasado y
-   * el retardo queda en `minMs` (la voz sale YA), en vez de esperar la
-   * siguiente marca de 10s de la grilla de consultorios.
-   */
-  private retardoHastaInicioAnuncio(a: AnuncioActivo, minMs: number): number | null {
-    if (!a.inicioMs || !Number.isFinite(a.inicioMs)) {
-      return Math.max(minMs, 500);
-    }
-    const baseLocal = a.baseLocal;
-    const ahora = Date.now();
-    const desfase = ahora - baseLocal;
-    if (desfase < 0) return Math.max(minMs, baseLocal - ahora);
-    return Math.max(minMs, 0);
-  }
-
-  /**
    * Inicia/reinicia el ciclo de repetición de 10s para un anuncio específico.
    * Usa setTimeout recursivo (NO setInterval) para auto-corregir deriva.
    */
@@ -420,8 +371,8 @@ export class TurneroComponent implements OnInit, OnDestroy {
       }
       // Prioridad: si es ciclo médico (no megáfono) y hay megáfonos en cola,
       // NO tocamos y re-agendamos para la siguiente marca de 10s.
-      const esMegafono = a.destinoInmediato || this.esAnuncioAPS(a.consultorio);
-      if (!esMegafono && this.colaVoz.some(x => x.destinoInmediato || this.esAnuncioAPS(x.consultorio))) {
+      const esMegafono = a.destinoInmediato || esAnuncioAPS(a.consultorio);
+      if (!esMegafono && this.colaVoz.some(x => x.destinoInmediato || esAnuncioAPS(x.consultorio))) {
         return true; // Tick consumido; se re-agendará en el siguiente ciclo
       }
       const anunciado = this.reproducirAudio(a);
@@ -431,21 +382,21 @@ export class TurneroComponent implements OnInit, OnDestroy {
     // inmediato. El backend manda `inicio_ms` en el pasado inmediato del
     // clic, así que con minMs 0 la voz sale YA, sin esperar la siguiente
     // marca de 10s de la grilla de consultorios.
-    const esDestino = a.destinoInmediato || this.esAnuncioAPS(a.consultorio);
+    const esDestino = a.destinoInmediato || esAnuncioAPS(a.consultorio);
     // Llamados del médico ("Llamar al Siguiente"): el backend manda
     // `inicio_inmediato` para que el PRIMER anuncio salga ya, y las
     // siguientes repeticiones siguen ancladas a la grilla de 10s.
     let delay: number | null;
     if (esDestino) {
-      delay = this.retardoHastaInicioAnuncio(a, 0);
+      delay = retardoHastaInicioAnuncio(a, 0);
     } else if (a.primerTickInmediato) {
       // "Llamar al Siguiente": la voz sale YA (sin espera). El backend manda
       // `inicio_ms` en el pasado inmediato del clic, así que con minMs 0 el
       // retardo queda en 0 y el anuncio se dispara apenas llega el evento.
-      delay = this.retardoHastaInicioAnuncio(a, 0);
+      delay = retardoHastaInicioAnuncio(a, 0);
       a.primerTickInmediato = false;
     } else {
-      delay = this.retardoHastaSiguienteMarca(a, 500);
+      delay = retardoHastaSiguienteMarca(a, 500);
     }
     if (delay === null) {
       this.anunciosActivos.delete(a.idAtencion);
@@ -574,10 +525,6 @@ export class TurneroComponent implements OnInit, OnDestroy {
     this.ultimoLlamadoProcesadoHora = data.inicio_ms || data.server_now || Date.now();
   }
 
-  private esAnuncioAPS(consultorio: string): boolean {
-    return consultorio.trim().toLowerCase() === 'aps';
-  }
-
   /**
    * Pausa SOLO los ciclos de médicos (grilla 10s), NO los megáfonos (destinoInmediato/APS).
    * Se usa cuando llega un megáfono: los ciclos médicos se pausan y se reanudan
@@ -586,7 +533,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
    */
   private detenerSoloCiclosMedicos(): void {
     for (const [id, a] of this.anunciosActivos) {
-      const esMegafono = a.destinoInmediato || this.esAnuncioAPS(a.consultorio);
+      const esMegafono = a.destinoInmediato || esAnuncioAPS(a.consultorio);
       if (!esMegafono) {
         if (a.timerId) { clearTimeout(a.timerId); a.timerId = null; }
         if (a.speakTimerId) { clearTimeout(a.speakTimerId); a.speakTimerId = null; }
@@ -610,27 +557,6 @@ export class TurneroComponent implements OnInit, OnDestroy {
         this.iniciarRepeticionAnuncio(a);
       }
     }
-  }
-
-  /**
-   * Compone el destino del consultorio para la voz: si el consultorio tiene
-   * piso asignado, se antepone al número del consultorio (consultorio "01"
-   * en piso "1" => "101", o en mezanina con piso "M" => "M5", sin el cero:
-   * se lee "eme cinco" y no "eme cero cinco"). Cuando el piso es numérico se
-   * conserva el cero para que "1" + "01" siga siendo "101". El piso puede
-   * ser numérico o una letra (M = mezanina), siempre en mayúscula. Si no hay
-   * piso o el nombre no es numérico, conserva el formato actual.
-   */
-  private formatearConsultorioConPiso(consultorio: string, piso?: string | null): string {
-    const nombre = (consultorio || '').trim();
-    const pisoLimpio = (piso || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-    const digitos = nombre.match(/\d+/);
-    if (pisoLimpio && digitos) {
-      // Con piso de letra (M = mezanina) se quita el cero: "M" + "05" => "M5".
-      const numero = /^\d+$/.test(pisoLimpio) ? digitos[0] : digitos[0].replace(/^0+/, '');
-      return nombre.replace(digitos[0], `${pisoLimpio}${numero}`);
-    }
-    return nombre.replace(/\b0+(\d+)\b/g, '$1');
   }
 
   /**
@@ -687,7 +613,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
     // y speechSynthesis solo se usa como último fallback en reproducirTextoNavegador.
     const nombreCompleto = `${a.paciente} ${a.apellido}`.trim();
     // Piso + número del consultorio (ej. consultorio "01" en piso "1" => "101")
-    const destinoConsultorio = this.formatearConsultorioConPiso(a.consultorio, a.piso);
+    const destinoConsultorio = formatearConsultorioConPiso(a.consultorio, a.piso);
     let texto = `Paciente ${nombreCompleto}, diríjase al consultorio ${destinoConsultorio}`;
     const c = a.consultorio.toLowerCase();
     if (a.destinoInmediato) {
@@ -711,7 +637,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       texto = `Paciente ${nombreCompleto}, diríjase a consulta`;
     } else if (c.startsWith('consultorio')) {
       texto = `Paciente ${nombreCompleto}, diríjase al ${destinoConsultorio}`;
-    } else if (this.esAnuncioAPS(a.consultorio)) {
+    } else if (esAnuncioAPS(a.consultorio)) {
       texto = `Paciente ${nombreCompleto}, diríjase a la recepción de APS`;
     }
     const ahora = Date.now();
@@ -841,7 +767,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
         // reproducirlos desde la cola se liberan de anunciosActivos, igual
         // que cuando suenan directo. Los ciclos del médico NO se tocan (su
         // ciclo de 10s sigue re-agendando y debe permanecer en el mapa).
-        const esAnuncioUnico = next.destinoInmediato || this.esAnuncioAPS(next.consultorio);
+        const esAnuncioUnico = next.destinoInmediato || esAnuncioAPS(next.consultorio);
         const onExito = () => {
           this.sonidoConfirmado = true;
           if (ultimoAnuncioGlobal) ultimoAnuncioGlobal.sonado = true;
@@ -886,7 +812,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
   private construirTexto(a: AnuncioActivo): string {
     const nombreCompleto = `${a.paciente} ${a.apellido}`.trim();
     // Piso + número del consultorio (ej. consultorio "01" en piso "1" => "101")
-    const destinoConsultorio = this.formatearConsultorioConPiso(a.consultorio, a.piso);
+    const destinoConsultorio = formatearConsultorioConPiso(a.consultorio, a.piso);
     let texto = `Paciente ${nombreCompleto}, diríjase al consultorio ${destinoConsultorio}`;
     const c = a.consultorio.toLowerCase();
     if (a.destinoInmediato) {
@@ -910,7 +836,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       texto = `Paciente ${nombreCompleto}, diríjase a consulta`;
     } else if (c.startsWith('consultorio')) {
       texto = `Paciente ${nombreCompleto}, diríjase al ${destinoConsultorio}`;
-    } else if (this.esAnuncioAPS(a.consultorio)) {
+    } else if (esAnuncioAPS(a.consultorio)) {
       texto = `Paciente ${nombreCompleto}, diríjase a la recepción de APS`;
     }
     return texto;
@@ -1475,8 +1401,10 @@ export class TurneroComponent implements OnInit, OnDestroy {
             // y las clases md: de Tailwind se activen correctamente
             meta.setAttribute('content', 'width=1366');
           }
-          // Agregar clase CSS al body para estilos específicos de TV
-          document.body.classList.add('tv-mode');
+          // La clase va en <html> (no en <body>): Tailwind usa `rem`, y `rem`
+          // se resuelve contra el font-size del elemento raíz. Así todo el
+          // diseño del kiosco escala de una sola vez (ver styles.css).
+          document.documentElement.classList.add('tv-mode');
         }
       }
       // SIEMPRE mostrar splash en TV y móvil para desbloquear audio.
@@ -1837,6 +1765,8 @@ export class TurneroComponent implements OnInit, OnDestroy {
         meta.setAttribute('content', this.originalViewport);
       }
     }
+    // Quitar el escalado de TV al salir del turnero
+    document.documentElement.classList.remove('tv-mode');
     // Cerrar modal de llamado visual
     this.cerrarModalLlamado();
   }
@@ -1871,7 +1801,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
    * Si ya hay un modal visible, cambia los datos con una transición suave.
    */
   mostrarModalLlamado(a: AnuncioActivo): void {
-    const destino = this.calcularDestinoVisual(a.consultorio, a.piso);
+    const destino = calcularDestinoVisual(a.consultorio, a.piso);
     
     this.modalLlamadoPaciente = a.paciente;
     this.modalLlamadoApellido = a.apellido;
@@ -1898,29 +1828,6 @@ export class TurneroComponent implements OnInit, OnDestroy {
       this.modalLlamadoClosing = false;
       this.cdr.detectChanges();
     }, 300);
-  }
-
-  /**
-   * Calcula el destino legible para el modal visual.
-   * Misma lógica que construirTexto() pero solo la parte del destino.
-   */
-  private calcularDestinoVisual(consultorio: string, piso?: string | null): string {
-    const destinoConsultorio = this.formatearConsultorioConPiso(consultorio, piso);
-    const c = consultorio.toLowerCase();
-
-    if (c.includes('laboratorio')) {
-      return 'RECEPCIÓN DE LABORATORIO';
-    } else if (c.includes('imagen') || c.includes('imagenes')) {
-      return 'RECEPCIÓN DE IMÁGENES';
-    } else if (c.includes('consulta')) {
-      return 'CONSULTA';
-    } else if (c.startsWith('consultorio')) {
-      return `CONSULTORIO ${destinoConsultorio}`;
-    } else if (this.esAnuncioAPS(consultorio)) {
-      return 'RECEPCIÓN DE APS';
-    }
-    // Si hay piso, mostrar consultorio con piso antepuesto (ej. "02" en piso "1" => "102")
-    return destinoConsultorio.toUpperCase() || (consultorio || 'DESTINO').toUpperCase();
   }
 
   private addSede(params: URLSearchParams) {

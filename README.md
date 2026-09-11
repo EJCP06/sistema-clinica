@@ -179,6 +179,7 @@ El turnero anuncia los llamados por voz usando **Piper TTS** (síntesis local, s
 - **Modo kiosco**: rutas `/kiosk` y `/kiosk/:sede` (`src/app/features/turnero/turnero-kiosk`) sin login, pensadas para Android TV/tablet con sede automática.
 - **App Android**: configurada en `capacitor.config.ts` (app **Turnero CNC**, `com.clinicanuevacaracas.turnero`) con `@capacitor-community/text-to-speech` para la voz nativa.
 - **Scripts de operación** en `scripts/`: `iniciar-turnero.bat` / `iniciar-turnero.sh` lanzan el turnero en modo kiosco y `habilitar-autoplay-turnero.reg` habilita el autoplay de audio en Windows.
+- **Variables de entorno de la app**: la APK se compila con `npm run build:capacitor`, que genera `src/environments/environment.capacitor.ts` a partir de `.env.capacitor`. Ese archivo es **local y no versionado** (está en `.gitignore`): cópialo desde `.env.capacitor.example` y completa el dominio público y la IP interna antes de compilar. Si falta, el build **falla a propósito** para no generar una APK apuntando a un servidor incorrecto. La configuración `capacitor` de `angular.json` escribe en `dist/sistema-clinica-capacitor/`, separado del `dist/sistema-clinica/` que consumen Docker/Nginx, de modo que compilar la APK **no sobrescribe** el build web.
 
 ---
 
@@ -280,6 +281,7 @@ CORS_ORIGIN=https://midominio.com,https://admin.midominio.com docker compose up 
 │   │   └── backup.bat              # Backup de la BD
 │   ├── src/
 │   │   ├── config/                 # DB pool, logger, swagger, rate limit, permission-sets
+│   │   ├── contracts/              # Contratos DTO generados desde el frontend (npm run contratos)
 │   │   ├── controllers/            # Lógica de endpoints (auth, admin, turnos, recepción…)
 │   │   ├── middleware/             # Auth JWT, permisos, auditoría, métricas, rate limit, requestId
 │   │   ├── repositories/           # Capa de acceso a datos (SQL con parámetros)
@@ -339,6 +341,10 @@ Plantillas completas y comentadas en `.env.example` (raíz) y `backend/.env.exam
 | `npm run build` | Build de producción del frontend (Angular) |
 | `npm run watch` | Build en modo watch (desarrollo) |
 | `npm run migrate` | Ejecuta las migraciones idempotentes (`backend/migrate.js`) |
+| `npm run build:capacitor` | Genera el entorno desde `.env.capacitor` y compila la app Android (Capacitor) |
+| `npm run build:capacitor:dev` | Igual que el anterior, pero apuntando al backend local/emulador |
+| `npm run contratos` | Regenera los contratos DTO del backend desde `src/app/core/models/dto.models.ts` |
+| `npm run contratos:check` | Verifica que los contratos estén sincronizados (lo corre la CI) |
 
 **Scripts de operación** (`scripts/`):
 
@@ -405,7 +411,7 @@ npx tsc --noEmit -p tsconfig.app.json
 node backend/db/test_full_flow.js
 ```
 
-La **CI** (GitHub Actions, `.github/workflows/ci.yml`) compila el frontend en modo producción en cada push a `main`/`develop` y en PRs hacia `main`. El trabajo de lint está temporalmente deshabilitado a la espera de migrar ESLint a `eslint.config.js`.
+La **CI** (GitHub Actions, `.github/workflows/ci.yml`) compila el frontend en modo producción en cada push a `main`/`develop` y en PRs hacia `main`. Además, el job de **Lint** corre `npx eslint backend/src/ src/app/ --max-warnings 50` usando la configuración flat `eslint.config.js`. Actualmente pasa con **0 errores** y ~44 warnings (por debajo del límite), así que el pipeline queda en verde. El job **Contratos front/back** ejecuta `npm run contratos:check`: si alguien cambia los DTO de Angular sin regenerar los contratos del backend, la CI falla y se detecta la rotura de contrato antes de desplegar.
 
 ---
 

@@ -33,8 +33,7 @@ import {
   selector: 'app-sidebar',
   standalone: true,
   imports: [CommonModule, RouterModule, LucideAngularModule],
-  templateUrl: './sidebar.html',
-  styleUrls: []
+  templateUrl: './sidebar.html'
 })
 /**
  * Barra lateral de navegación.

@@ -89,9 +89,13 @@ button:focus:not(:focus-visible) {
   outline: none;
 }
 
-/* No body scroll when modal is open */
-body:has(.fixed.inset-0.z-50),
-body:has(.fixed.inset-0.z-\[100\]),
+/* Bloquea el scroll del body mientras hay una superposición a pantalla
+   completa (modales, splash, visores).
+   Ya NO depende del z-index exacto: cualquier overlay `fixed inset-0` lo
+   activa, así que no se rompe al añadir/cambiar un `z-*` (antes solo cubría
+   z-50 y z-[100]: 5 de los 20 overlays de la app no bloqueaban el scroll).
+   `body.modal-open` sigue disponible para bloquearlo manualmente desde TS. */
+body:has(.fixed.inset-0),
 body.modal-open {
   overflow: hidden;
 }
@@ -120,20 +124,14 @@ body.modal-open {
     box-shadow: 0 20px 25px -5px rgba(255, 255, 255, 0.1), 0 10px 10px -5px rgba(255, 255, 255, 0.04);
   }
 
-  /* Soft light gray text for table data */
-  table tbody td,
-  table tbody td *,
-  table tbody td span,
-  table tbody td div {
-    color: #64748b !important; /* slate-500 */
-  }
-  .dark table tbody td,
-  .dark table tbody td *,
-  .dark table tbody td span,
-  .dark table tbody td div,
-  .dark tr td,
-  .dark tr td span {
-    color: #94a3b8 !important; /* slate-400 */
+  /* Texto por defecto de las celdas de tabla.
+     Sin !important y sin selectores comodín (`td *`, `td span`, `td div`):
+     cualquier utilidad `text-*` aplicada a la celda o a un hijo suyo tiene
+     mayor especificidad y gana, así que los badges/estados con color propio
+     ya no quedan forzados a gris. Usa tokens, por lo que el modo oscuro se
+     resuelve solo (--color-text-secondary cambia con la clase `.dark`). */
+  table tbody td {
+    color: var(--color-text-secondary);
   }
 
   /* Dark mode para elementos externos (SweetAlert2, etc.) */
@@ -185,14 +183,6 @@ body.modal-open {
 /* ============================================================
    SCROLLBAR: Una sola utilidad unificada
    ============================================================ */
-.hide-scrollbar {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
 /* Scrollbar global estilizada */
 * {
   scrollbar-width: thin;
@@ -200,13 +190,11 @@ body.modal-open {
   -ms-overflow-style: auto;
 }
 
-/* Firefox: Mostrar scrollbar al hover */
+/* Firefox: mostrar la scrollbar al hover.
+   `--color-text-muted` ya cambia con la clase `.dark`, así que no hacen
+   falta reglas `.dark *:hover` duplicadas. */
 *:hover {
-  scrollbar-color: #cbd5e1 transparent;
-}
-
-.dark *:hover {
-  scrollbar-color: #475569 transparent;
+  scrollbar-color: var(--color-text-muted) transparent;
 }
 
 /* Chrome, Safari, Edge */
@@ -230,43 +218,27 @@ body.modal-open {
   border-radius: 0px;
 }
 
-/* Mostrar barra al hover */
+/* Mostrar barra al hover (los tokens resuelven el modo oscuro). */
 *:hover::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--color-text-muted);
 }
 
 *:hover::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--color-text-tertiary);
 }
 
-.dark *::-webkit-scrollbar-thumb {
-  background: transparent;
-}
-
-.dark *:hover::-webkit-scrollbar-thumb {
-  background: #475569;
-}
-
-.dark *:hover::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
-}
-
-/* Ocultar scrollbar del sidebar */
-aside nav {
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-}
-aside nav::-webkit-scrollbar {
-  display: none !important;
-}
-
-/* Ocultar scrollbar en contenedores internos con custom-scrollbar */
+/* Ocultar scrollbar en la navegación del sidebar y en los contenedores que
+   usan .custom-scrollbar (única utilidad para ocultarla; se eliminó
+   `.hide-scrollbar` porque no se usaba en ninguna plantilla).
+   Sin !important: estas reglas ya son más específicas que las globales de `*`. */
+aside nav,
 .custom-scrollbar {
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+aside nav::-webkit-scrollbar,
 .custom-scrollbar::-webkit-scrollbar {
-  display: none !important;
+  display: none;
 }
 
 /* ============================================================
@@ -372,24 +344,16 @@ aside nav::-webkit-scrollbar {
 }
 
 /* ============================================================
-   TV MODE: Escalamiento para Smart TV 1366x768
+   TV MODE: Escalamiento del kiosco para Smart TV (1366x768)
+   ------------------------------------------------------------
+   La clase se aplica a <html> (document.documentElement), NO a <body>:
+   Tailwind define tamaños, espaciados y anchos en `rem`, y `rem` se resuelve
+   SIEMPRE contra el font-size del elemento raíz. Escalando la raíz, toda la
+   interfaz escala de una sola vez (incluidas clases de tamaño nuevas), sin
+   listas manuales de clases ni !important.
+   Ajusta únicamente --tv-font-size si necesitas otra proporción.
    ============================================================ */
-.tv-mode {
-  font-size: 18px;
+html.tv-mode {
+  --tv-font-size: 18px; /* 16px base × 1.125 */
+  font-size: var(--tv-font-size);
 }
-.tv-mode .text-xs { font-size: 0.85rem !important; line-height: 1.2rem !important; }
-.tv-mode .text-sm { font-size: 1rem !important; line-height: 1.4rem !important; }
-.tv-mode .text-base { font-size: 1.1rem !important; }
-.tv-mode .text-lg { font-size: 1.3rem !important; }
-.tv-mode .text-xl { font-size: 1.6rem !important; }
-.tv-mode .text-2xl { font-size: 2rem !important; }
-.tv-mode .text-4xl { font-size: 2.8rem !important; }
-.tv-mode .text-5xl { font-size: 3.5rem !important; }
-.tv-mode .text-6xl { font-size: 4rem !important; }
-.tv-mode .text-7xl { font-size: 5rem !important; }
-.tv-mode .text-8xl { font-size: 6rem !important; }
-.tv-mode .w-10 { width: 3rem !important; }
-.tv-mode .h-10 { height: 3rem !important; }
-.tv-mode .w-14 { width: 3.5rem !important; }
-.tv-mode .h-14 { height: 3.5rem !important; }
-.tv-mode .font-mono { font-size: 3rem !important; letter-spacing: -0.05em !important; }

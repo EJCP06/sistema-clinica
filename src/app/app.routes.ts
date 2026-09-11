@@ -13,7 +13,9 @@ import { modulePermissionGuard } from '@core/guards/module-permission.guard';
  *
  * Nota: /aseguradoras reutiliza el componente de recepción en modo
  * 'aseguradorasMode' (ver recepcion.ts); /atencion-laboratorio y
- * /atencion-imagenes reutilizan el componente de atención con `tipo`.
+ * /atencion-imagenes reutilizan el componente de atención con `tipo`; y
+ * /laboratorio y /imagenes reutilizan el MISMO componente de cola y atención
+ * (`shared/features/cola-servicio`) parametrizado con `data.tipo`.
  */
 export const routes: Routes = [
   {
@@ -117,23 +119,27 @@ export const routes: Routes = [
 
   {
     path: 'laboratorio',
-    loadComponent: () => import('./features/laboratorio/laboratorio').then(m => m.LaboratorioComponent),
+    loadComponent: () =>
+      import('./shared/features/cola-servicio/cola-servicio').then(m => m.ColaServicioComponent),
     canActivate: [authGuard, modulePermissionGuard],
     data: {
       modules: [
         { module: 'laboratorio', allowedActions: ['ver'] }
-      ]
+      ],
+      tipo: 'laboratorio'
     }
   },
 
   {
     path: 'imagenes',
-    loadComponent: () => import('./features/imagenes/imagenes').then(m => m.ImagenesComponent),
+    loadComponent: () =>
+      import('./shared/features/cola-servicio/cola-servicio').then(m => m.ColaServicioComponent),
     canActivate: [authGuard, modulePermissionGuard],
     data: {
       modules: [
         { module: 'imagenes', allowedActions: ['ver'] }
-      ]
+      ],
+      tipo: 'imagenes'
     }
   },
 

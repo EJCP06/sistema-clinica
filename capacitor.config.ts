@@ -3,7 +3,10 @@ import { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.clinicanuevacaracas.turnero',
   appName: 'Turnero CNC',
-  webDir: 'dist/sistema-clinica/browser',
+  // OJO: la app Android se compila con una salida propia
+  // (ver "outputPath" en la configuración "capacitor" de angular.json)
+  // para no sobrescribir el dist/ del despliegue web.
+  webDir: 'dist/sistema-clinica-capacitor/browser',
   
   server: {
     androidScheme: 'https',
