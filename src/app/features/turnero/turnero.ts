@@ -6,7 +6,7 @@ import { TurnoDTO } from '../../core/models/dto.models';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription, interval } from 'rxjs';
 import { ApsScrollDirective } from './aps-scroll.directive';
-import { desbloquearVozNavegador, instalarGuardiaGlobalAntiDoble, limpiarGuardiaGlobalAntiDoble, isCapacitor, getBackendUrl, descargarAudioBlob } from './voz.util';
+import { desbloquearVozNavegador, instalarGuardiaGlobalAntiDoble, limpiarGuardiaGlobalAntiDoble, isCapacitor, getBackendUrl } from './voz.util';
 import {
   aNombreNatural,
   calcularDestinoVisual,
@@ -405,9 +405,8 @@ export class TurneroComponent implements OnInit, OnDestroy {
       return;
     }
     a.timerId = setTimeout(() => {
-      let continuar = true;
       try {
-        continuar = hablar();
+        hablar();
       } catch (e) {
         console.error('[Turnero v7] Error en anuncio repetido:', e);
       }
@@ -553,7 +552,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
    * Se llama cuando el megáfono termina de sonar y la cola de voz queda vacía.
    */
   private reanudarCiclosPausados(): void {
-    for (const [id, a] of this.anunciosActivos) {
+    for (const [, a] of this.anunciosActivos) {
       if (a.pausado) {
         a.pausado = false;
         this.iniciarRepeticionAnuncio(a);
@@ -813,7 +812,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
    * Si el backend no está disponible, retorna false para que el caller
    * use Web Speech API como respaldo.
    */
-  private async reproducirConServidor(texto: string, onEnd: () => void, onError: () => void): Promise<boolean> {
+  private async reproducirConServidor(texto: string, onEnd: () => void, _onError?: () => void): Promise<boolean> {
     // Marca el motor como ocupado DESDE el inicio del fetch (no solo cuando
     // el <audio> ya existe): cierra la ventana en la que dos llamados (p. ej.
     // el ciclo de 10s del doctor A y un llamado nuevo del doctor B) creen que
@@ -823,8 +822,6 @@ export class TurneroComponent implements OnInit, OnDestroy {
     try {
       const ttsUrl = getBackendUrl('/api/tts');
       
-      let blob: Blob;
-      
       // Usar fetch normal para TODOS los entornos (CORS configurado en servidor)
       // Nota: CapacitorHttp está deshabilitado para que Socket.IO funcione
       const resp = await fetch(ttsUrl, {
@@ -833,13 +830,10 @@ export class TurneroComponent implements OnInit, OnDestroy {
         body: JSON.stringify({ texto }),
       });
       if (!resp.ok) {
-        this.ttsServidorDisponible = false;
-        // Auto-resetear después de 30s para reintentar el servidor
-        setTimeout(() => { this.ttsServidorDisponible = null; }, 30000);
         this.sintetizandoTTS = false;
         return false;
       }
-      blob = await resp.blob();
+      const blob = await resp.blob();
       
       this.ttsServidorDisponible = true;
       const url = URL.createObjectURL(blob);
@@ -997,14 +991,12 @@ export class TurneroComponent implements OnInit, OnDestroy {
       // Blob URLs (blob:...) se usan tal cual, no necesitan prefijo.
       const audioUrl = (url.startsWith('http') || url.startsWith('blob:')) ? url : getBackendUrl(url);
       
-      let audio: HTMLAudioElement;
-      let blobUrl: string | null = null;
-      
       // En Capacitor (Android), descargar audio con CapacitorHttp (sin CORS)
       // Usar fetch para descargar audio (CORS configurado en servidor)
       // Nota: En Capacitor se usa fetch normal (CapacitorHttp está deshabilitado)
-      audio = new Audio(audioUrl);
+      const audio = new Audio(audioUrl);
       audio.preload = 'auto';
+      const blobUrl: string | null = null;
       
       this.audioServidor = audio;
       const generacion = this.generacionVoz;
@@ -1152,7 +1144,9 @@ export class TurneroComponent implements OnInit, OnDestroy {
       if (a.inicioMs && Number.isFinite(a.inicioMs)) {
         sessionStorage.setItem('turnero_ultimo_anuncio_inicio_ms', String(a.inicioMs));
       }
-    } catch {}
+    } catch {
+      // sessionStorage may be full or unavailable
+    }
   }
 
   /**
@@ -1220,7 +1214,9 @@ export class TurneroComponent implements OnInit, OnDestroy {
       sessionStorage.removeItem('turnero_ultimo_anuncio_id');
       sessionStorage.removeItem('turnero_ultimo_anuncio_ts');
       sessionStorage.removeItem('turnero_ultimo_anuncio_inicio_ms');
-    } catch {}
+    } catch {
+      // sessionStorage may be unavailable
+    }
   }
   // Memoria anti-voz-doble: el último llamado que ESTE turnero ya procesó
   // (anunció o detuvo). El polling NO debe re-anunciarlo: tras
@@ -1569,6 +1565,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
     try {
       sessionStorage.setItem('turnero_audio_unlocked', 'true');
     } catch {
+      // private browsing
     }
     // Solo desbloquear audio (AudioContext + speechSynthesis).
     // NO reproducir anuncios aquí: el socket y el ciclo de 10s ya los

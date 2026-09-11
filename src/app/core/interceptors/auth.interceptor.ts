@@ -1,10 +1,9 @@
-import { HttpInterceptorFn, HttpErrorResponse, HttpRequest, HttpHandlerFn } from '@angular/common/http';
+import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { AuthService } from '../services/auth.service';
 import { catchError, switchMap, throwError, BehaviorSubject, filter, take } from 'rxjs';
 
 let isRefreshing = false;
-const refreshQueue: { req: HttpRequest<unknown>; next: HttpHandlerFn }[] = [];
 const pending$ = new BehaviorSubject<boolean>(false);
 
 function isAuthUrl(url: string): boolean {
@@ -58,6 +57,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
               return throwError(() => error);
             }),
             catchError((refreshError) => {
+              void refreshError;
               isRefreshing = false;
               pending$.next(false);
               authService.clearSession();

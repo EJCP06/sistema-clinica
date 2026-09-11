@@ -302,7 +302,7 @@ export class AdminReports implements OnInit, OnDestroy {
 
     try {
       doc.addImage('logo-cnc.png', 'PNG', margin, 8, 32, 24);
-    } catch (_) {}
+    } catch (_) { void _; }
     doc.setTextColor(30, 30, 30);
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
@@ -327,6 +327,7 @@ export class AdminReports implements OnInit, OnDestroy {
       val ? new Date(val).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: true }) : '';
     const fmtSalida = (val: string | null | undefined) =>
       val ? new Date(val).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'Sin atender';
+    void fmtSalida;
 
     const sharedStyles = {
       theme: 'grid' as const,

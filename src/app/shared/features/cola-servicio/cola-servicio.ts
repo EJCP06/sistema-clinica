@@ -763,7 +763,7 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
   }
 
   /** Carga la admisión seleccionada (solo estado Registrado) en el modal de edición. */
-  editarFila(fila: any, trigger?: EventTarget | null) {
+  editarFila(fila: any, _trigger?: EventTarget | null) {
     this.filaEnEdicion = fila;
     this.isEditMode = true;
     this.nuevoPaciente = {

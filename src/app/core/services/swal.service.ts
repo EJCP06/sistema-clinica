@@ -21,19 +21,19 @@ export class SwalService {
     }
   });
 
-  success(message: string, title?: string) {
+  success(message: string) {
     return this.toast.fire({ icon: 'success', title: message });
   }
 
-  error(message: string, title?: string) {
+  error(message: string) {
     return this.toast.fire({ icon: 'error', title: message });
   }
 
-  warning(message: string, title?: string) {
+  warning(message: string) {
     return this.toast.fire({ icon: 'warning', title: message });
   }
 
-  info(message: string, title?: string) {
+  info(message: string) {
     return this.toast.fire({ icon: 'info', title: message });
   }
 

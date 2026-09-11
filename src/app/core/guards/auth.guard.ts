@@ -3,7 +3,7 @@ import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { Rol } from '@core/models/usuario.model';
 import { VISTA_POR_PERMISO } from '@core/config/permisos.config';
-import { map, catchError, of, switchMap } from 'rxjs';
+import { map, catchError, of } from 'rxjs';
 
 /** Guard que verifica si el usuario está autenticado. Redirige a /login si no. */
 export const authGuard: CanActivateFn = () => {

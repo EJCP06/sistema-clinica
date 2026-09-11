@@ -4,10 +4,7 @@ import { Observable, Subject } from 'rxjs';
 import { environment } from '@env/environment';
 import { io, Socket } from 'socket.io-client';
 import {
-  LoginRequest,
   LoginResponse,
-  AdmisionDTO,
-  PacienteDTO,
   TurnoDTO,
   ConsultorioDTO,
   MiEstadoDTO,
@@ -24,7 +21,6 @@ import {
   CrearRolRequest,
   PermisoDTO,
   MatrizPermisosDTO,
-  RecursoMatrizDTO,
 } from '@core/models/dto.models';
 
 @Injectable({ providedIn: 'root' })

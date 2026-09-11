@@ -43,8 +43,8 @@ import { AuthService } from '../../core/services/auth.service';
 import { SwalService } from '../../core/services/swal.service';
 import { EspecialidadesService } from '../../core/services/especialidades.service';
 import { ScrollService } from '../../core/services/scroll.service';
-import { Subject, Subscription, of } from 'rxjs';
-import { debounceTime, catchError } from 'rxjs/operators';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 
 import { Sidebar } from '../../shared/components/sidebar/sidebar';
 import { Header } from '../../shared/components/header/header';
@@ -338,6 +338,7 @@ nuevoPaciente: any = {
 
   set mostrarRegistro(v: boolean) {
     const wasOpen = this._mostrarRegistro;
+    void wasOpen;
     this._mostrarRegistro = v;
     if (v) {
       this.scrollService.block();
@@ -577,9 +578,7 @@ nuevoPaciente: any = {
     this.cargando = true;
     this.api.get<any[]>('recepcion/ultimas-admisiones').subscribe({
       next: (data) => {
-        const ahora = new Date();
-        const inicioDeHoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
-
+        const _ahora = new Date();
         this.ultimasAdmisiones = (data || []).filter((admision: any) => {
           const estadoActual = admision.id_estado_actual;
           return (
@@ -713,7 +712,7 @@ nuevoPaciente: any = {
           this.mostrarResultadosBusqueda = data && data.length > 0;
           this.buscando = false;
         },
-        error: (err: any) => {
+        error: () => {
           this.buscando = false;
           this.pacientesEncontrados = [];
           this.mostrarResultadosBusqueda = false;
@@ -821,7 +820,7 @@ nuevoPaciente: any = {
         }
         this.cdr.detectChanges();
       },
-      error: (err: any) => {
+      error: () => {
         this.pacienteExistenteCargado = false;
         this.nuevoPaciente.id_paciente = null;
       },

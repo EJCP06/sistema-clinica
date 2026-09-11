@@ -1,4 +1,3 @@
-import { TurnoDTO } from '../../core/models/dto.models';
 import { LucideIconData } from 'lucide-angular';
 
 export type SalaMode = 'aps' | 'aps-espera' | 'lab-espera' | 'lab-en-espera' | 'img-espera' | 'img-en-espera' | 'consulta';

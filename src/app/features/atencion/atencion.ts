@@ -7,7 +7,7 @@ import { ApiService } from '@core/services/api.service';
 import { AuthService } from '@core/services/auth.service';
 import { ThemeService } from '@core/services/theme.service';
 import { SwalService } from '@core/services/swal.service';
-import { TurnoDTO, MiEstadoDTO, LlamarSiguienteResponseDTO, ApiResponse } from '@core/models/dto.models';
+import { TurnoDTO, MiEstadoDTO, LlamarSiguienteResponseDTO } from '@core/models/dto.models';
 import { Subscription, interval } from 'rxjs';
 import { LucideAngularModule, Play, Pause, Coffee, Volume2, CheckCircle2, ArrowRightLeft, UserX, MonitorSpeaker, IdCard, X, Search, Calendar, Clock, Download, ChevronRight, ChevronDown, FileText, RefreshCcw } from 'lucide-angular';
 import { Header } from '../../shared/components/header/header';

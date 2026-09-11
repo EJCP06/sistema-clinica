@@ -145,7 +145,7 @@ export const ACCION_NOMBRES: Record<string, string> = {
 
 export function getAccionLabel(permisoKey: string): string {
   if (permisoKey.includes(':')) {
-    const [rec, acc] = permisoKey.split(':');
+    const [, acc] = permisoKey.split(':');
     const accLabel = ACCION_NOMBRES[acc] || acc.replace(/_/g, ' ');
     return acc === '*' ? 'Acceso Total' : accLabel;
   }

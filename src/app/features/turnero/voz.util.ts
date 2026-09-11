@@ -28,6 +28,7 @@ export function desbloquearVozNavegador() {
       };
       window.speechSynthesis.speak(utterance);
     } catch {
+      // Silently ignore – speechSynthesis not supported
     }
   }
 
@@ -50,6 +51,7 @@ export function desbloquearVozNavegador() {
       ctx.resume();
     }
   } catch {
+    // Silently ignore – AudioContext not supported
   }
 
   // Estrategia 2: HTML5 Audio silencioso (respaldo)
@@ -58,6 +60,7 @@ export function desbloquearVozNavegador() {
     silent.volume = 0.01;
     silent.play().catch(() => {});
   } catch {
+    // Silently ignore – Audio playback not supported
   }
 }
 
@@ -177,6 +180,7 @@ function marcarInstalada() {
   try {
     (window as any)[GUARDIA_KEY] = true;
   } catch {
+    // Silently ignore – window access blocked
   }
 }
 
@@ -192,6 +196,7 @@ function setUltimoSpeak(texto: string) {
   try {
     (window as any)[ULTIMO_SPEAK_KEY] = { texto, ts: Date.now() };
   } catch {
+    // Silently ignore – sessionStorage unavailable
   }
 }
 
@@ -199,6 +204,7 @@ function limpiarUltimoSpeak() {
   try {
     delete (window as any)[ULTIMO_SPEAK_KEY];
   } catch {
+    // Silently ignore – sessionStorage unavailable
   }
 }
 
