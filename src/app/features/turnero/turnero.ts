@@ -8,7 +8,9 @@ import { Subscription, interval } from 'rxjs';
 import { ApsScrollDirective } from './aps-scroll.directive';
 import { desbloquearVozNavegador, instalarGuardiaGlobalAntiDoble, limpiarGuardiaGlobalAntiDoble, isCapacitor, getBackendUrl, descargarAudioBlob } from './voz.util';
 import {
+  aNombreNatural,
   calcularDestinoVisual,
+  construirTextoAnuncio,
   consultorioConPiso as consultorioConPisoDeTurno,
   esAnuncioAPS,
   formatearConsultorioConPiso,
@@ -483,8 +485,8 @@ export class TurneroComponent implements OnInit, OnDestroy {
     const anuncio: AnuncioActivo = {
       idAtencion: id,
       numeroTurno: data.turno || null,
-      paciente: this.aNombreNatural(data.paciente || ''),
-      apellido: this.aNombreNatural(data.apellido || ''),
+      paciente: aNombreNatural(data.paciente || ''),
+      apellido: aNombreNatural(data.apellido || ''),
       consultorio: data.consultorio,
       piso: data.piso || null,
       // Los llamados de módulo (botones "Llamar" de APS/Lab/Imágenes) llevan
@@ -753,7 +755,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       if (this.anunciosActivos.has(next.idAtencion)) {
         // Reproducir inmediatamente (sin delay de grilla)
         const ahora = Date.now();
-        const texto = this.construirTexto(next);
+        const texto = construirTextoAnuncio(next);
         const estaHablando = this.motorVozOcupado();
         const bloqueaDoble = !!ultimoAnuncioGlobal && ultimoAnuncioGlobal.texto === texto && (
           estaHablando || (ultimoAnuncioGlobal.sonado && ahora - ultimoAnuncioGlobal.ts < VENTANA_ANTIDOBLE_MS)
@@ -804,42 +806,6 @@ export class TurneroComponent implements OnInit, OnDestroy {
     // Cuando la cola queda vacía (el último megáfono terminó de sonar),
     // reanudar los ciclos de médicos que se pausaron al llegar el megáfono.
     this.reanudarCiclosPausados();
-  }
-
-  /**
-   * Construye el texto de anuncio para un AnuncioActivo (extraído para reusar en cola).
-   */
-  private construirTexto(a: AnuncioActivo): string {
-    const nombreCompleto = `${a.paciente} ${a.apellido}`.trim();
-    // Piso + número del consultorio (ej. consultorio "01" en piso "1" => "101")
-    const destinoConsultorio = formatearConsultorioConPiso(a.consultorio, a.piso);
-    let texto = `Paciente ${nombreCompleto}, diríjase al consultorio ${destinoConsultorio}`;
-    const c = a.consultorio.toLowerCase();
-    if (a.destinoInmediato) {
-      // Botones "Llamar" de módulos (APS / clave / laboratorio / imágenes):
-      // anuncio de disparo inmediato. El texto DEBE coincidir con el generado
-      // por emitirLlamadoNuevo en el backend (salaEspera=true) para evitar
-      // doble voz cuando el WAV pre-sintetizado falla y se usa POST /api/tts.
-      const destinoModulo = (a.consultorio || '').toLowerCase();
-      if (destinoModulo.includes('laboratorio')) {
-        texto = `Paciente ${nombreCompleto}, diríjase a la recepción de laboratorio`;
-      } else if (destinoModulo.includes('imagen')) {
-        texto = `Paciente ${nombreCompleto}, diríjase a la recepción de imágenes`;
-      } else {
-        texto = `Paciente ${nombreCompleto}, diríjase a la recepción de APS`;
-      }
-    } else if (c.includes('laboratorio')) {
-      texto = `Paciente ${nombreCompleto}, diríjase a la recepción de laboratorio`;
-    } else if (c.includes('imágenes') || c.includes('imagenes')) {
-      texto = `Paciente ${nombreCompleto}, diríjase a la recepción de imágenes`;
-    } else if (c.includes('consulta')) {
-      texto = `Paciente ${nombreCompleto}, diríjase a consulta`;
-    } else if (c.startsWith('consultorio')) {
-      texto = `Paciente ${nombreCompleto}, diríjase al ${destinoConsultorio}`;
-    } else if (esAnuncioAPS(a.consultorio)) {
-      texto = `Paciente ${nombreCompleto}, diríjase a la recepción de APS`;
-    }
-    return texto;
   }
 
   /**
@@ -1628,7 +1594,9 @@ export class TurneroComponent implements OnInit, OnDestroy {
     } else {
       this.deltaRelojMs += 0.25 * (muestra - this.deltaRelojMs);
     }
-  }  private verificarUltimoLlamado() {
+  }
+
+  private verificarUltimoLlamado() {
     if (!this.sede || this.verificandoUltimoLlamado) return;
     this.verificandoUltimoLlamado = true;
 
@@ -2128,23 +2096,6 @@ export class TurneroComponent implements OnInit, OnDestroy {
     } else {
       utterance.lang = 'es-419';
     }
-  }
-
-  /**
-   * Convierte un nombre guardado en MAYÚSCULAS a formato natural
-   * ("JUAN CARLOS" → "Juan Carlos") SOLO para la voz. Los motores TTS en
-   * Android (Google TTS) interpretan las palabras en mayúscula sostenida
-   * como acrónimos y las deletrean letra por letra (por eso el nombre se
-   * deletreaba en el móvil pero no en PC). La pantalla sigue mostrando el
-   * nombre en mayúsculas: este cambio afecta únicamente la locución.
-   */
-  private aNombreNatural(nombre: string): string {
-    return nombre
-      .toLowerCase()
-      .split(/\s+/)
-      .filter(Boolean)
-      .map(p => p.charAt(0).toUpperCase() + p.slice(1))
-      .join(' ');
   }
 
 }

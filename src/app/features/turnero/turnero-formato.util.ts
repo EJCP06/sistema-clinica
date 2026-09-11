@@ -142,3 +142,69 @@ export function retardoHastaInicioAnuncio(a: AnuncioProgramable, minMs: number):
   if (desfase < 0) return Math.max(minMs, baseLocal - ahora);
   return Math.max(minMs, 0);
 }
+
+/** Datos de un anuncio necesarios para componer el texto que se locuta. */
+export interface TextoAnuncio {
+  paciente: string;
+  apellido: string;
+  consultorio: string;
+  piso?: string | null;
+  destinoInmediato?: boolean;
+}
+
+/**
+ * Convierte un nombre guardado en MAYÚSCULAS a formato natural
+ * ("JUAN CARLOS" → "Juan Carlos") SOLO para la voz. Los motores TTS en
+ * Android (Google TTS) interpretan las palabras en mayúscula sostenida como
+ * acrónimos y las deletrean letra por letra (por eso el nombre se deletreaba
+ * en el móvil pero no en PC). La pantalla sigue mostrando el nombre en
+ * mayúsculas: esto afecta únicamente a la locución.
+ */
+export function aNombreNatural(nombre: string): string {
+  return nombre
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(p => p.charAt(0).toUpperCase() + p.slice(1))
+    .join(' ');
+}
+
+/**
+ * Compone el texto que se locuta para un anuncio.
+ *
+ * El texto DEBE coincidir con el que genera `emitirLlamadoNuevo` en el
+ * backend para evitar doble voz cuando el WAV pre-sintetizado falla y se cae
+ * al `POST /api/tts`.
+ */
+export function construirTextoAnuncio(a: TextoAnuncio): string {
+  const nombreCompleto = `${a.paciente} ${a.apellido}`.trim();
+  // Piso + número del consultorio (ej. consultorio "01" en piso "1" => "101")
+  const destinoConsultorio = formatearConsultorioConPiso(a.consultorio, a.piso);
+  let texto = `Paciente ${nombreCompleto}, diríjase al consultorio ${destinoConsultorio}`;
+  const c = a.consultorio.toLowerCase();
+
+  if (a.destinoInmediato) {
+    // Botones "Llamar" de módulos (APS / clave / laboratorio / imágenes):
+    // anuncio de disparo inmediato, dirigido a la recepción del módulo.
+    const destinoModulo = (a.consultorio || '').toLowerCase();
+    if (destinoModulo.includes('laboratorio')) {
+      texto = `Paciente ${nombreCompleto}, diríjase a la recepción de laboratorio`;
+    } else if (destinoModulo.includes('imagen')) {
+      texto = `Paciente ${nombreCompleto}, diríjase a la recepción de imágenes`;
+    } else {
+      texto = `Paciente ${nombreCompleto}, diríjase a la recepción de APS`;
+    }
+  } else if (c.includes('laboratorio')) {
+    texto = `Paciente ${nombreCompleto}, diríjase a la recepción de laboratorio`;
+  } else if (c.includes('imágenes') || c.includes('imagenes')) {
+    texto = `Paciente ${nombreCompleto}, diríjase a la recepción de imágenes`;
+  } else if (c.includes('consulta')) {
+    texto = `Paciente ${nombreCompleto}, diríjase a consulta`;
+  } else if (c.startsWith('consultorio')) {
+    texto = `Paciente ${nombreCompleto}, diríjase al ${destinoConsultorio}`;
+  } else if (esAnuncioAPS(a.consultorio)) {
+    texto = `Paciente ${nombreCompleto}, diríjase a la recepción de APS`;
+  }
+
+  return texto;
+}
