@@ -1,12 +1,34 @@
+/* ============================================================
+   DESIGN SYSTEM — Guía de uso
+   ============================================================
+   Todos los colores, sombras, radios y transiciones del proyecto
+   están definidos como CSS custom properties en :root (light) y
+   .dark (dark mode). Tailwind NO los usa automáticamente; se
+   consumen con la sintaxis arbitrary:
+
+     class="text-[var(--color-text-secondary)]"
+     class="bg-[var(--color-bg-primary)]"
+
+   REGLAS:
+   1. NUNCA uses colores hex en crudo en templates (.html).
+      Usa tokens: text-[var(--color-text-primary)] en vez de text-[#0f172a].
+   2. Para dark mode, cambia el token en .dark (ya está hecho).
+      NO crees overrides globales como .dark .bg-white { ... }.
+   3. Sombras: usa shadow-sm/md/lg/xl de Tailwind.
+      Los overrides globales .dark .shadow-* se eliminaron.
+      Si necesitas sombras claras en dark, usa dark:shadow-* en el template.
+   4. Componentes reutilizables están en @layer components:
+      - .input-field, .input-field-with-icon, .input-field-with-icon-and-toggle
+      - .btn-primary (botón azul principal)
+      - .btn-dual (botón con spinner dual)
+   5. Colores de estado (ej. estado 4 "LLAMADO"):
+      --color-estado-llamado, --color-estado-estado-llamado-bg,
+      --color-estado-llamado-border. Se resuelven en light y dark.
+   ============================================================ */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* ============================================================
-   SISTEMA DE DISEÑO - Custom Properties (Tokens)
-   Usa estas variables en lugar de valores hardcodeados.
-   Ejemplo: color: var(--color-text-secondary);
-   ============================================================ */
 :root {
   /* Colores de texto */
   --color-text-primary: #0f172a;        /* slate-900 */

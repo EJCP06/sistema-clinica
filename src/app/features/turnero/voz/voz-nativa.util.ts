@@ -5,4 +5,4 @@
  * resuelve que la URL absoluta del API sea resuelta y entre en uso.
  */
 
-export { getBackendUrl } from '../turnero.util'
+export { getBackendUrl } from '../voz.util'
