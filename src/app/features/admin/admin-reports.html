@@ -97,9 +97,9 @@
         <tbody class="divide-y divide-slate-100/30 dark:divide-slate-800/10 h-full">
           <ng-container *ngFor="let t of turnos | paginate: currentPage : pageSize; trackBy: trackById">
             <tr class="h-[52px] md:h-[64px] hover:bg-slate-50 dark:hover:bg-slate-800">
-              <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 font-bold tracking-tight text-center">{{ t.numero || t.id }}</td>
-              <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 uppercase text-center">{{ t.paciente.nombre || 'Sin asignar' }} {{ t.paciente.apellido || '' }}</td>
-              <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 font-bold tracking-tight text-center">{{ t.paciente.documento || 'Sin asignar' }}</td>
+              <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 dark:text-slate-400 font-bold tracking-tight text-center">{{ t.numero || t.id }}</td>
+              <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-white uppercase text-center">{{ t.paciente.nombre || 'Sin asignar' }} {{ t.paciente.apellido || '' }}</td>
+              <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 dark:text-slate-400 font-bold tracking-tight text-center">{{ t.paciente.documento || 'Sin asignar' }}</td>
               <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">
                 <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border" [ngClass]="{
                   'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20': t.id_estado_actual === 1,
@@ -113,7 +113,7 @@
                   'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20': t.id_estado_actual === 9
                 }">{{ t.estado }}</span>
               </td>
-              <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 font-bold uppercase text-center">{{ t.servicio_nombre || 'Sin asignar' }}</td>
+              <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 dark:text-slate-400 font-bold uppercase text-center">{{ t.servicio_nombre || 'Sin asignar' }}</td>
               <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 dark:text-slate-400 font-bold text-center">{{ t.hora_llegada | date:'h:mm a' }}</td>
               <td class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center text-slate-600 dark:text-slate-400 font-bold">{{ getHoraSalida(t) }}</td>
             </tr>
