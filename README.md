@@ -57,7 +57,7 @@ flowchart LR
     end
 
     subgraph Servidor
-        N[Nginx<br/>proxy inverso · HTTPS · rate limit]
+        N[Nginx<br/>proxy inverso - HTTPS - rate limit]
         API[API Express 5<br/>REST + Socket.io]
         P[Piper TTS<br/>worker Python + modelos ONNX]
         DB[(PostgreSQL 15)]
@@ -66,7 +66,7 @@ flowchart LR
     A -->|HTTPS / REST + WS| N
     T -->|HTTPS / REST + WS| N
     K -->|HTTPS / REST + WS| N
-    N -->|/api · /socket.io| API
+    N -->|/api - /socket.io| API
     API --> DB
     API <--> P
 ```
@@ -177,9 +177,25 @@ El turnero anuncia los llamados por voz usando **Piper TTS** (síntesis local, s
 ## 📺 Modo kiosco y app Android (Capacitor)
 
 - **Modo kiosco**: rutas `/kiosk` y `/kiosk/:sede` (`src/app/features/turnero/turnero-kiosk`) sin login, pensadas para Android TV/tablet con sede automática.
-- **App Android**: configurada en `capacitor.config.ts` (app **Turnero CNC**, `com.clinicanuevacaracas.turnero`) con `@capacitor-community/text-to-speech` para la voz nativa.
+- **App Android**: configurada en `capacitor.config.ts` (app **Turnero CNC**, `com.siscol.turnero`) con `@capacitor-community/text-to-speech` para la voz nativa.
+- **Arquitectura del turnero**: la lógica está modularizada en servicios especializados — `turnero-data.service.ts` (carga de datos y estado), `turnero-voz.service.ts` (reproducción de anuncios con fallback Web Speech API → TTS nativo) y `turnero-formato.util.ts` (formateo de turnos). El módulo de recepción cuenta con `recepcion-autocomplete.service.ts` para la navegación con teclado en los dropdowns.
 - **Scripts de operación** en `scripts/`: `iniciar-turnero.bat` / `iniciar-turnero.sh` lanzan el turnero en modo kiosco y `habilitar-autoplay-turnero.reg` habilita el autoplay de audio en Windows.
 - **Variables de entorno de la app**: la APK se compila con `npm run build:capacitor`, que genera `src/environments/environment.capacitor.ts` a partir de `.env.capacitor`. Ese archivo es **local y no versionado** (está en `.gitignore`): cópialo desde `.env.capacitor.example` y completa el dominio público y la IP interna antes de compilar. Si falta, el build **falla a propósito** para no generar una APK apuntando a un servidor incorrecto. La configuración `capacitor` de `angular.json` escribe en `dist/sistema-clinica-capacitor/`, separado del `dist/sistema-clinica/` que consumen Docker/Nginx, de modo que compilar la APK **no sobrescribe** el build web.
+
+### Compilar la APK
+
+```bash
+# 1. Compilar el frontend con la configuración de Capacitor
+npm run build:capacitor
+
+# 2. Sincronizar el build con el proyecto Android
+npx cap sync android
+
+# 3. Generar la APK (debug)
+cd android && ./gradlew assembleDebug
+```
+
+La APK queda en `android/app/build/outputs/apk/debug/app-debug.apk`. Para instalarla como actualización sobre una versión previa, incrementa `versionCode` (y opcionalmente `versionName`) en `android/app/build.gradle` antes de compilar: Android exige un código creciente para aceptar la instalación.
 
 ---
 
