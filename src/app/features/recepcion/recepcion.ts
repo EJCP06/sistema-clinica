@@ -43,6 +43,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { SwalService } from '../../core/services/swal.service';
 import { EspecialidadesService } from '../../core/services/especialidades.service';
 import { ScrollService } from '../../core/services/scroll.service';
+import { RecepcionAutocompleteService, AutocompleteState, AutocompleteItem } from './recepcion-autocomplete.service';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
 
@@ -201,12 +202,24 @@ nuevoPaciente: any = {
   showAseguradoraDropdown: boolean = false;
 
   // ---- Autocomplete de los selects del modal (escribir para filtrar) ----
-  aseguradoraFiltro: string = '';
-  especialidadFiltro: string = '';
-  medicoFiltro: string = '';
-  aseguradoraIndex: number = -1;
-  especialidadIndex: number = -1;
-  medicoIndex: number = -1;
+  private ac = inject(RecepcionAutocompleteService);
+  acAseguradora: AutocompleteState = this.ac.createState();
+  acEspecialidad: AutocompleteState = this.ac.createState();
+  acMedico: AutocompleteState = this.ac.createState();
+
+  // Legacy aliases para el template existente (se migra gradualmente)
+  get aseguradoraFiltro() { return this.acAseguradora.filtro; }
+  set aseguradoraFiltro(v: string) { this.acAseguradora.filtro = v; }
+  get especialidadFiltro() { return this.acEspecialidad.filtro; }
+  set especialidadFiltro(v: string) { this.acEspecialidad.filtro = v; }
+  get medicoFiltro() { return this.acMedico.filtro; }
+  set medicoFiltro(v: string) { this.acMedico.filtro = v; }
+  get aseguradoraIndex() { return this.acAseguradora.index; }
+  set aseguradoraIndex(v: number) { this.acAseguradora.index = v; }
+  get especialidadIndex() { return this.acEspecialidad.index; }
+  set especialidadIndex(v: number) { this.acEspecialidad.index = v; }
+  get medicoIndex() { return this.acMedico.index; }
+  set medicoIndex(v: number) { this.acMedico.index = v; }
 
   get aseguradorasFiltradas(): any[] {
     const q = (this.aseguradoraFiltro || '').trim().toLowerCase();
@@ -224,78 +237,36 @@ nuevoPaciente: any = {
   }
 
   onAseguradoraInput(event: Event) {
-    this.aseguradoraFiltro = (event.target as HTMLInputElement).value;
-    this.showAseguradoraDropdown = true;
-    this.aseguradoraIndex = -1;
+    this.ac.onInput(this.acAseguradora, (event.target as HTMLInputElement).value);
+    this.showAseguradoraDropdown = this.acAseguradora.showDropdown;
   }
 
   onAseguradoraKeydown(event: KeyboardEvent) {
-    const list = this.aseguradorasFiltradas;
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      this.showAseguradoraDropdown = true;
-      if (list.length) this.aseguradoraIndex = (this.aseguradoraIndex + 1) % list.length;
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      if (list.length) this.aseguradoraIndex = (this.aseguradoraIndex - 1 + list.length) % list.length;
-    } else if (event.key === 'Enter') {
-      event.preventDefault();
-      if (this.showAseguradoraDropdown && list[this.aseguradoraIndex]) {
-        this.selectAseguradora(list[this.aseguradoraIndex].id_cliente);
-      }
-    } else if (event.key === 'Escape') {
-      this.showAseguradoraDropdown = false;
-    }
+    const items: AutocompleteItem[] = this.aseguradorasFiltradas.map(a => ({ label: a.aseguradora, id: a.id_cliente }));
+    this.ac.onKeydown(this.acAseguradora, event, items, (item) => this.selectAseguradora(item.id as number));
+    this.showAseguradoraDropdown = this.acAseguradora.showDropdown;
   }
 
   onEspecialidadInput(event: Event) {
-    this.especialidadFiltro = (event.target as HTMLInputElement).value;
-    this.showEspecialidadDropdown = true;
-    this.especialidadIndex = -1;
+    this.ac.onInput(this.acEspecialidad, (event.target as HTMLInputElement).value);
+    this.showEspecialidadDropdown = this.acEspecialidad.showDropdown;
   }
 
   onEspecialidadKeydown(event: KeyboardEvent) {
-    const list = this.especialidadesFiltradas;
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      this.showEspecialidadDropdown = true;
-      if (list.length) this.especialidadIndex = (this.especialidadIndex + 1) % list.length;
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      if (list.length) this.especialidadIndex = (this.especialidadIndex - 1 + list.length) % list.length;
-    } else if (event.key === 'Enter') {
-      event.preventDefault();
-      if (this.showEspecialidadDropdown && list[this.especialidadIndex]) {
-        this.selectEspecialidad(list[this.especialidadIndex]);
-      }
-    } else if (event.key === 'Escape') {
-      this.showEspecialidadDropdown = false;
-    }
+    const items: AutocompleteItem[] = this.especialidadesFiltradas.map(s => ({ label: s.nombre || s.nombre_servicio, id: s.id_especialidad || s.id }));
+    this.ac.onKeydown(this.acEspecialidad, event, items, (item) => this.selectEspecialidad({ id_especialidad: item.id, nombre: item.label }));
+    this.showEspecialidadDropdown = this.acEspecialidad.showDropdown;
   }
 
   onMedicoInput(event: Event) {
-    this.medicoFiltro = (event.target as HTMLInputElement).value;
-    this.showMedicoDropdown = true;
-    this.medicoIndex = -1;
+    this.ac.onInput(this.acMedico, (event.target as HTMLInputElement).value);
+    this.showMedicoDropdown = this.acMedico.showDropdown;
   }
 
   onMedicoKeydown(event: KeyboardEvent) {
-    const list = this.medicosConFiltro;
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      this.showMedicoDropdown = true;
-      if (list.length) this.medicoIndex = (this.medicoIndex + 1) % list.length;
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      if (list.length) this.medicoIndex = (this.medicoIndex - 1 + list.length) % list.length;
-    } else if (event.key === 'Enter') {
-      event.preventDefault();
-      if (this.showMedicoDropdown && list[this.medicoIndex]) {
-        this.selectMedico(list[this.medicoIndex]);
-      }
-    } else if (event.key === 'Escape') {
-      this.showMedicoDropdown = false;
-    }
+    const items: AutocompleteItem[] = this.medicosConFiltro.map(m => ({ label: ((m.nombre || '') + ' ' + (m.apellido || '')).trim(), id: m.id_usuario || m.id }));
+    this.ac.onKeydown(this.acMedico, event, items, (item) => this.selectMedico({ id_usuario: item.id, nombre: item.label.split(' ')[0], apellido: item.label.split(' ').slice(1).join(' ') }));
+    this.showMedicoDropdown = this.acMedico.showDropdown;
   }
 
   isSaving: boolean = false;
@@ -319,6 +290,7 @@ nuevoPaciente: any = {
   private swal = inject(SwalService);
   private scrollService = inject(ScrollService);
   private auth = inject(AuthService);
+  private acService = inject(RecepcionAutocompleteService);
 
   tienePermiso(permiso: string): boolean {
     return this.auth.tienePermiso(permiso);

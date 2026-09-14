@@ -1,12 +1,13 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { LucideAngularModule, Bell, Volume2, Clock, Users, Stethoscope, FlaskConical, ScanLine, ClipboardList, ArrowLeft, LucideIconData } from 'lucide-angular';
+import { LucideAngularModule, Bell, Volume2, Clock, Stethoscope, FlaskConical, ScanLine, ClipboardList, ArrowLeft, LucideIconData } from 'lucide-angular';
 import { ApiService } from '../../core/services/api.service';
 import { TurnoDTO } from '../../core/models/dto.models';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription, interval } from 'rxjs';
 import { ApsScrollDirective } from './aps-scroll.directive';
 import { desbloquearVozNavegador, instalarGuardiaGlobalAntiDoble, limpiarGuardiaGlobalAntiDoble, isCapacitor, getBackendUrl } from './voz.util';
+import { TurneroDataService } from './turnero-data.service';
 import {
   aNombreNatural,
   calcularDestinoVisual,
@@ -18,7 +19,7 @@ import {
   retardoHastaSiguienteMarca,
 } from './turnero-formato.util';
 
-type SalaMode = 'aps' | 'aps-espera' | 'lab-espera' | 'lab-en-espera' | 'img-espera' | 'img-en-espera' | 'consulta';
+type SalaMode = 'aps' | 'lab' | 'img' | 'consulta';
 
 interface APSSeccion {
   id: number;
@@ -76,15 +77,7 @@ const SALAS: Record<SalaMode, SalaConfig> = {
     icon: ClipboardList,
     layout: 'aps',
   },
-  'aps-espera': {
-    titulo: 'APS EN ESPERA',
-    subtitulo: 'Pacientes de Consulta-Laboratorio-Imagenes en espera',
-    estados: [],
-    servicios: null,
-    icon: Users,
-    layout: 'aps',
-  },
-  'lab-espera': {
+  lab: {
     titulo: 'LABORATORIO',
     subtitulo: 'Pacientes de laboratorio',
     estados: [],
@@ -92,28 +85,12 @@ const SALAS: Record<SalaMode, SalaConfig> = {
     icon: FlaskConical,
     layout: 'lab',
   },
-  'lab-en-espera': {
-    titulo: 'LABORATORIO EN ESPERA',
-    subtitulo: 'Pacientes de laboratorio en espera',
-    estados: [],
-    servicios: null,
-    icon: Clock,
-    layout: 'lab',
-  },
-  'img-espera': {
+  img: {
     titulo: 'IMÁGENES',
     subtitulo: 'Pacientes de imágenes',
     estados: [],
     servicios: null,
     icon: ScanLine,
-    layout: 'img',
-  },
-  'img-en-espera': {
-    titulo: 'IMÁGENES EN ESPERA',
-    subtitulo: 'Pacientes de imágenes en espera',
-    estados: [],
-    servicios: null,
-    icon: Clock,
     layout: 'img',
   },
   consulta: {
@@ -168,11 +145,8 @@ export class TurneroComponent implements OnInit, OnDestroy {
   config!: SalaConfig;
   readonly salasDisponibles: { key: SalaMode; label: string; icon: LucideIconData }[] = [
     { key: 'aps', label: 'APS', icon: ClipboardList },
-    { key: 'aps-espera', label: 'APS en espera', icon: Users },
-    { key: 'lab-espera', label: 'Laboratorio', icon: FlaskConical },
-    { key: 'lab-en-espera', label: 'Laboratorio en espera', icon: Clock },
-    { key: 'img-espera', label: 'Imágenes', icon: ScanLine },
-    { key: 'img-en-espera', label: 'Imágenes en espera', icon: Clock },
+    { key: 'lab', label: 'Laboratorio', icon: FlaskConical },
+    { key: 'img', label: 'Imágenes', icon: ScanLine },
     { key: 'consulta', label: 'Consulta', icon: Stethoscope },
   ];
 
@@ -181,7 +155,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       id: 1,
       titulo: 'LABORATORIO / IMÁGENES (PARTICULARES Y ASEGURADORAS)',
       filtro: {
-        estados: [1, 2, 8],
+        estados: [1, 2, 3, 4, 5, 7, 8],
         servicios: [2, 3],
         responsable: [1, 2],
       }
@@ -190,28 +164,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       id: 2,
       titulo: 'CONSULTA (PARTICULARES Y ASEGURADORAS)',
       filtro: {
-        estados: [1, 2, 8],
-        servicios: [1],
-        responsable: [1, 2],
-      }
-    },
-  ];
-
-  readonly seccionesAPSEspera: APSSeccion[] = [
-    {
-      id: 1,
-      titulo: 'LABORATORIO / IMÁGENES (PARTICULARES Y ASEGURADORAS)',
-      filtro: {
-        estados: [3, 4, 5, 7],
-        servicios: [2, 3],
-        responsable: [1, 2],
-      }
-    },
-    {
-      id: 2,
-      titulo: 'CONSULTA (PARTICULARES Y ASEGURADORAS)',
-      filtro: {
-        estados: [3, 4, 5, 7],
+        estados: [1, 2, 3, 4, 5, 7, 8],
         servicios: [1],
         responsable: [1, 2],
       }
@@ -220,15 +173,13 @@ export class TurneroComponent implements OnInit, OnDestroy {
 
   apsData: TurnoDTO[][] = [];
   apsLoading: boolean[] = [];
-  apsEsperaData: TurnoDTO[][] = [];
-  apsEsperaLoading: boolean[] = [];
 
   readonly labSections: APSSeccion[] = [
     {
       id: 1,
       titulo: 'LABORATORIO (PARTICULARES Y ASEGURADORAS)',
       filtro: {
-        estados: [1, 2, 8],
+        estados: [1, 2, 3, 4, 5, 7, 8],
         servicios: [2],
         responsable: [1, 2],
       }
@@ -237,26 +188,12 @@ export class TurneroComponent implements OnInit, OnDestroy {
   labData: TurnoDTO[][] = [];
   labLoading: boolean[] = [];
 
-  readonly labEsperaSections: APSSeccion[] = [
-    {
-      id: 1,
-      titulo: 'LABORATORIO EN ESPERA (PARTICULARES Y ASEGURADORAS)',
-      filtro: {
-        estados: [3, 4, 5, 7],
-        servicios: [2],
-        responsable: [1, 2],
-      }
-    },
-  ];
-  labEsperaData: TurnoDTO[][] = [];
-  labEsperaLoading: boolean[] = [];
-
   readonly imgSections: APSSeccion[] = [
     {
       id: 1,
       titulo: 'IMÁGENES (PARTICULARES Y ASEGURADORAS)',
       filtro: {
-        estados: [1, 2, 8],
+        estados: [1, 2, 3, 4, 5, 7, 8],
         servicios: [3],
         responsable: [1, 2],
       }
@@ -264,20 +201,6 @@ export class TurneroComponent implements OnInit, OnDestroy {
   ];
   imgData: TurnoDTO[][] = [];
   imgLoading: boolean[] = [];
-
-  readonly imgEsperaSections: APSSeccion[] = [
-    {
-      id: 1,
-      titulo: 'IMÁGENES EN ESPERA (PARTICULARES Y ASEGURADORAS)',
-      filtro: {
-        estados: [3, 4, 5, 7],
-        servicios: [3],
-        responsable: [1, 2],
-      }
-    },
-  ];
-  imgEsperaData: TurnoDTO[][] = [];
-  imgEsperaLoading: boolean[] = [];
 
   readonly consultaSections: APSSeccion[] = [
     {
@@ -635,7 +558,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
     } else if (c.includes('imágenes') || c.includes('imagenes')) {
       texto = `Paciente ${nombreCompleto}, diríjase a la recepción de imágenes`;
     } else if (c.includes('consulta')) {
-      texto = `Paciente ${nombreCompleto}, diríjase a consulta`;
+      texto = `Paciente ${nombreCompleto}, diríjase al consultorio ${destinoConsultorio}`;
     } else if (c.startsWith('consultorio')) {
       texto = `Paciente ${nombreCompleto}, diríjase al ${destinoConsultorio}`;
     } else if (esAnuncioAPS(a.consultorio)) {
@@ -1324,6 +1247,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
     readonly route: ActivatedRoute,
     readonly router: Router,
     readonly cdr: ChangeDetectorRef,
+    private dataService: TurneroDataService,
   ) {}
 
   /** Inicializa: valida sede, carga voz femenina, suscribe a cambios y polling, inicia reloj. */
@@ -1510,16 +1434,10 @@ export class TurneroComponent implements OnInit, OnDestroy {
   private cargarDatosSala() {
       if (this.sala === 'aps') {
         this.cargarAPS();
-      } else if (this.sala === 'aps-espera') {
-        this.cargarAPSEspera();
-      } else if (this.sala === 'lab-espera') {
+      } else if (this.sala === 'lab') {
         this.cargarLab();
-      } else if (this.sala === 'lab-en-espera') {
-        this.cargarLabEspera();
-      } else if (this.sala === 'img-espera') {
+      } else if (this.sala === 'img') {
         this.cargarImg();
-      } else if (this.sala === 'img-en-espera') {
-        this.cargarImgEspera();
       } else if (this.sala === 'consulta') {
         this.cargarConsulta();
       }
@@ -1767,7 +1685,19 @@ export class TurneroComponent implements OnInit, OnDestroy {
    */
   mostrarModalLlamado(a: AnuncioActivo): void {
     const destino = calcularDestinoVisual(a.consultorio, a.piso);
-    
+    // La etiqueta depende del DESTINO del llamado, no de la sala en pantalla:
+    // los módulos (laboratorio, imágenes, APS) son "Diríjase a la", y los
+    // consultorios médicos (cuando el médico llama a su paciente) siempre son
+    // "Diríjase al consultorio".
+    const consultorioLower = (a.consultorio || '').toLowerCase();
+    const esModuloRecepcion = a.destinoInmediato ||
+      consultorioLower.includes('laboratorio') ||
+      consultorioLower.includes('imagenes') ||
+      consultorioLower.includes('imágenes') ||
+      consultorioLower.includes('imagen') ||
+      esAnuncioAPS(a.consultorio);
+    this.modalLlamadoEtiqueta = esModuloRecepcion ? 'Diríjase a la' : 'Diríjase al consultorio';
+
     this.modalLlamadoPaciente = a.paciente;
     this.modalLlamadoApellido = a.apellido;
     this.modalLlamadoDestino = destino;
@@ -1792,7 +1722,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       this.showModalLlamado = false;
       this.modalLlamadoClosing = false;
       this.cdr.detectChanges();
-    }, 300);
+    }, 350);
   }
 
   private addSede(params: URLSearchParams) {
@@ -1812,171 +1742,19 @@ export class TurneroComponent implements OnInit, OnDestroy {
   }
 
   cargarAPS() {
-    for (let i = 0; i < this.seccionesAPS.length; i++) {
-      const seccion = this.seccionesAPS[i];
-      const params = new URLSearchParams();
-      if (seccion.filtro.estados?.length) params.set('estados', seccion.filtro.estados.join(','));
-      if (seccion.filtro.servicios?.length) params.set('servicios', seccion.filtro.servicios.join(','));
-      if (seccion.filtro.responsable?.length) params.set('responsable', seccion.filtro.responsable.join(','));
-      this.addSede(params);
-
-      this.api.get<TurnoDTO[]>(`turnero/pacientes?${params.toString()}`).subscribe({
-        next: (data) => {
-          this.apsData[i] = data;
-          if (this.apsLoading[i]) this.apsLoading[i] = false;
-        },
-        error: () => {
-          if (!this.apsData[i]) {
-            this.apsData[i] = [];
-            this.apsLoading[i] = false;
-          }
-        },
-      });
-    }
-  }
-
-  cargarAPSEspera() {
-    for (let i = 0; i < this.seccionesAPSEspera.length; i++) {
-      const seccion = this.seccionesAPSEspera[i];
-      const params = new URLSearchParams();
-      if (seccion.filtro.estados?.length) params.set('estados', seccion.filtro.estados.join(','));
-      if (seccion.filtro.servicios?.length) params.set('servicios', seccion.filtro.servicios.join(','));
-      if (seccion.filtro.responsable?.length) params.set('responsable', seccion.filtro.responsable.join(','));
-      this.addSede(params);
-
-      this.api.get<TurnoDTO[]>(`turnero/pacientes?${params.toString()}`).subscribe({
-        next: (data) => {
-          this.apsEsperaData[i] = data;
-          if (this.apsEsperaLoading[i]) this.apsEsperaLoading[i] = false;
-        },
-        error: () => {
-          if (!this.apsEsperaData[i]) {
-            this.apsEsperaData[i] = [];
-            this.apsEsperaLoading[i] = false;
-          }
-        },
-      });
-    }
+    this.dataService.cargarSeccion(this.seccionesAPS, this.sede, { data: this.apsData, loading: this.apsLoading });
   }
 
   cargarLab() {
-    for (let i = 0; i < this.labSections.length; i++) {
-      const seccion = this.labSections[i];
-      const params = new URLSearchParams();
-      if (seccion.filtro.estados?.length) params.set('estados', seccion.filtro.estados.join(','));
-      if (seccion.filtro.servicios?.length) params.set('servicios', seccion.filtro.servicios.join(','));
-      if (seccion.filtro.responsable?.length) params.set('responsable', seccion.filtro.responsable.join(','));
-      this.addSede(params);
-
-      this.api.get<TurnoDTO[]>(`turnero/pacientes?${params.toString()}`).subscribe({
-        next: (data) => {
-          this.labData[i] = data;
-          if (this.labLoading[i]) this.labLoading[i] = false;
-        },
-        error: () => {
-          if (!this.labData[i]) {
-            this.labData[i] = [];
-            this.labLoading[i] = false;
-          }
-        },
-      });
-    }
+    this.dataService.cargarSeccion(this.labSections, this.sede, { data: this.labData, loading: this.labLoading });
   }
 
   cargarImg() {
-    for (let i = 0; i < this.imgSections.length; i++) {
-      const seccion = this.imgSections[i];
-      const params = new URLSearchParams();
-      if (seccion.filtro.estados?.length) params.set('estados', seccion.filtro.estados.join(','));
-      if (seccion.filtro.servicios?.length) params.set('servicios', seccion.filtro.servicios.join(','));
-      if (seccion.filtro.responsable?.length) params.set('responsable', seccion.filtro.responsable.join(','));
-      this.addSede(params);
-
-      this.api.get<TurnoDTO[]>(`turnero/pacientes?${params.toString()}`).subscribe({
-        next: (data) => {
-          this.imgData[i] = data;
-          if (this.imgLoading[i]) this.imgLoading[i] = false;
-        },
-        error: () => {
-          if (!this.imgData[i]) {
-            this.imgData[i] = [];
-            this.imgLoading[i] = false;
-          }
-        },
-      });
-    }
-  }
-
-  cargarLabEspera() {
-    for (let i = 0; i < this.labEsperaSections.length; i++) {
-      const seccion = this.labEsperaSections[i];
-      const params = new URLSearchParams();
-      if (seccion.filtro.estados?.length) params.set('estados', seccion.filtro.estados.join(','));
-      if (seccion.filtro.servicios?.length) params.set('servicios', seccion.filtro.servicios.join(','));
-      if (seccion.filtro.responsable?.length) params.set('responsable', seccion.filtro.responsable.join(','));
-      this.addSede(params);
-
-      this.api.get<TurnoDTO[]>(`turnero/pacientes?${params.toString()}`).subscribe({
-        next: (data) => {
-          this.labEsperaData[i] = data;
-          if (this.labEsperaLoading[i]) this.labEsperaLoading[i] = false;
-        },
-        error: () => {
-          if (!this.labEsperaData[i]) {
-            this.labEsperaData[i] = [];
-            this.labEsperaLoading[i] = false;
-          }
-        },
-      });
-    }
-  }
-
-  cargarImgEspera() {
-    for (let i = 0; i < this.imgEsperaSections.length; i++) {
-      const seccion = this.imgEsperaSections[i];
-      const params = new URLSearchParams();
-      if (seccion.filtro.estados?.length) params.set('estados', seccion.filtro.estados.join(','));
-      if (seccion.filtro.servicios?.length) params.set('servicios', seccion.filtro.servicios.join(','));
-      if (seccion.filtro.responsable?.length) params.set('responsable', seccion.filtro.responsable.join(','));
-      this.addSede(params);
-
-      this.api.get<TurnoDTO[]>(`turnero/pacientes?${params.toString()}`).subscribe({
-        next: (data) => {
-          this.imgEsperaData[i] = data;
-          if (this.imgEsperaLoading[i]) this.imgEsperaLoading[i] = false;
-        },
-        error: () => {
-          if (!this.imgEsperaData[i]) {
-            this.imgEsperaData[i] = [];
-            this.imgEsperaLoading[i] = false;
-          }
-        },
-      });
-    }
+    this.dataService.cargarSeccion(this.imgSections, this.sede, { data: this.imgData, loading: this.imgLoading });
   }
 
   cargarConsulta() {
-    for (let i = 0; i < this.consultaSections.length; i++) {
-      const seccion = this.consultaSections[i];
-      const params = new URLSearchParams();
-      if (seccion.filtro.estados?.length) params.set('estados', seccion.filtro.estados.join(','));
-      if (seccion.filtro.servicios?.length) params.set('servicios', seccion.filtro.servicios.join(','));
-      if (seccion.filtro.responsable?.length) params.set('responsable', seccion.filtro.responsable.join(','));
-      this.addSede(params);
-
-      this.api.get<TurnoDTO[]>(`turnero/pacientes?${params.toString()}`).subscribe({
-        next: (data) => {
-          this.consultaData[i] = data;
-          if (this.consultaLoading[i]) this.consultaLoading[i] = false;
-        },
-        error: () => {
-          if (!this.consultaData[i]) {
-            this.consultaData[i] = [];
-            this.consultaLoading[i] = false;
-          }
-        },
-      });
-    }
+    this.dataService.cargarSeccion(this.consultaSections, this.sede, { data: this.consultaData, loading: this.consultaLoading });
   }
 
   /**
@@ -2003,6 +1781,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
   modalLlamadoApellido = '';
   modalLlamadoDestino = '';
   modalLlamadoTurno = '';
+  modalLlamadoEtiqueta = 'Diríjase al consultorio';
   private modalLlamadoTimer: any = null;
 
 

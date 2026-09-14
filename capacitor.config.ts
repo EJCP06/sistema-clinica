@@ -1,7 +1,7 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.clinicanuevacaracas.turnero',
+  appId: 'com.siscol.turnero',
   appName: 'Turnero CNC',
   // OJO: la app Android se compila con una salida propia
   // (ver "outputPath" en la configuración "capacitor" de angular.json)

@@ -199,7 +199,7 @@ export function construirTextoAnuncio(a: TextoAnuncio): string {
   } else if (c.includes('imágenes') || c.includes('imagenes')) {
     texto = `Paciente ${nombreCompleto}, diríjase a la recepción de imágenes`;
   } else if (c.includes('consulta')) {
-    texto = `Paciente ${nombreCompleto}, diríjase a consulta`;
+    texto = `Paciente ${nombreCompleto}, diríjase al consultorio ${destinoConsultorio}`;
   } else if (c.startsWith('consultorio')) {
     texto = `Paciente ${nombreCompleto}, diríjase al ${destinoConsultorio}`;
   } else if (esAnuncioAPS(a.consultorio)) {

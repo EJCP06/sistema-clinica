@@ -46,7 +46,7 @@ const DICCIONARIO = {
   YEIMERSON: 'Yeimerson',
   YURIBIKSAIDA: 'Yuribiksaida',
   JHOENDIKSON: 'Yoendikson',
-  ADRIAN: 'A-dri-an',
+  ADRIAN: 'Adrian',
 };
 
 module.exports = DICCIONARIO;

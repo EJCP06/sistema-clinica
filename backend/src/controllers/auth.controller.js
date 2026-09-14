@@ -425,7 +425,7 @@ const cerrarSesion = async (req, res) => {
  * @returns {Promise<void>}
  */
 const refrescarToken = async (req, res) => {
-  const refreshToken = req.cookies?.refresh_token || req.body?.refreshToken;
+  const refreshToken = req.cookies?.refresh_token;
 
   if (!refreshToken) {
     return res.status(401).json({ mensaje: 'Refresh token requerido' });

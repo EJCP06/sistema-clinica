@@ -99,7 +99,7 @@
                       (keypress)="soloLetras($event)"
                       (blur)="trimCampo($event)"
                       placeholder="Ej: Juan"
-                      class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
+                      class="input-field-sm"
                     />
                   </div>
                   <div class="space-y-1.5">
@@ -113,7 +113,7 @@
                       (keypress)="soloLetras($event)"
                       (blur)="trimCampo($event)"
                       placeholder="Ej: Jose"
-                      class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
+                      class="input-field-sm"
                     />
                   </div>
                 </ng-container>
@@ -127,7 +127,7 @@
                       type="text"
                       [(ngModel)]="nuevoPaciente.nombre"
                       placeholder="Ej: Seguros Caracas"
-                      class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
+                      class="input-field-sm"
                     />
                   </div>
                 </ng-template>
@@ -145,7 +145,7 @@
                       (keypress)="soloLetras($event)"
                       (blur)="trimCampo($event)"
                       placeholder="Ej: Perez"
-                      class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
+                      class="input-field-sm"
                     />
                   </div>
                   <div class="space-y-1.5">
@@ -159,7 +159,7 @@
                       (keypress)="soloLetras($event)"
                       (blur)="trimCampo($event)"
                       placeholder="Ej: Rodriguez"
-                      class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
+                      class="input-field-sm"
                     />
                   </div>
                 </ng-container>
@@ -179,7 +179,7 @@
                         (ngModelChange)="onCedulaFormChange($event)"
                         (keypress)="soloNumeros($event)"
                         placeholder="Ej: 13894759"
-                        class="flex-1 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
+                        class="input-field-sm flex-1"
                       />
                     </div>
                   </div>
@@ -194,7 +194,7 @@
                       [value]="nuevoPaciente.fecha_nacimiento"
                       (input)="onFechaNacimientoInput($event)"
                       placeholder="DD/MM/YYYY"
-                      class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
+                      class="input-field-sm"
                     />
                   </div>
                   <div class="space-y-1.5">
@@ -208,7 +208,7 @@
                       [(ngModel)]="nuevoPaciente.telefono"
                       (keypress)="soloNumeros($event)"
                       placeholder="Ej: 04141118228"
-                      class="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white"
+                      class="input-field-sm"
                     />
                   </div>
                 </div>
@@ -238,7 +238,7 @@
                           [disabled]="filaEnEdicion && filaEnEdicion.id_estado_actual !== 1"
                           class="w-4 h-4 text-blue-600"
                         />
-                        <span class="text-sm font-bold text-slate-700 dark:text-white">Particular</span>
+                        <span class="text-sm font-bold text-black dark:text-white">Particular</span>
                       </label>
                       <label
                         class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border rounded-xl cursor-pointer transition-all"
@@ -257,7 +257,7 @@
                           [disabled]="filaEnEdicion && filaEnEdicion.id_estado_actual !== 1"
                           class="w-4 h-4 text-blue-600"
                         />
-                        <span class="text-sm font-bold text-slate-700 dark:text-white">Aseguradora</span>
+                        <span class="text-sm font-bold text-black dark:text-white">Aseguradora</span>
                       </label>
                     </div>
                   </div>
@@ -301,7 +301,7 @@
                             [class.bg-blue-100]="aseguradoraIndex === i"
                           >
                             <span
-                              class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
+                              class="lowercase first-letter:uppercase font-bold text-black dark:text-white"
                               >{{ asig.aseguradora }}</span
                             >
                             <lucide-icon
@@ -345,7 +345,7 @@
                           [disabled]="filaEnEdicion && filaEnEdicion.id_estado_actual !== 1"
                           class="w-4 h-4 text-blue-600"
                         />
-                        <span class="text-sm font-bold text-slate-700 dark:text-white">Consulta</span>
+                        <span class="text-sm font-bold text-black dark:text-white">Consulta</span>
                       </label>
                       <label
                         class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border rounded-xl cursor-pointer transition-all"
@@ -364,7 +364,7 @@
                           [disabled]="filaEnEdicion && filaEnEdicion.id_estado_actual !== 1"
                           class="w-4 h-4 text-blue-600"
                         />
-                        <span class="text-sm font-bold text-slate-700 dark:text-white">Laboratorio</span>
+                        <span class="text-sm font-bold text-black dark:text-white">Laboratorio</span>
                       </label>
                       <label
                         class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border rounded-xl cursor-pointer transition-all"
@@ -383,7 +383,7 @@
                           [disabled]="filaEnEdicion && filaEnEdicion.id_estado_actual !== 1"
                           class="w-4 h-4 text-blue-600"
                         />
-                        <span class="text-sm font-bold text-slate-700 dark:text-white">Imágenes</span>
+                        <span class="text-sm font-bold text-black dark:text-white">Imágenes</span>
                       </label>
                     </div>
                   </div>
@@ -435,7 +435,7 @@
                               [class.bg-blue-100]="especialidadIndex === i"
                             >
                               <span
-                                class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
+                                class="lowercase first-letter:uppercase font-bold text-black dark:text-white"
                                 >{{ s.nombre || s.nombre_servicio }}</span
                               >
                               <lucide-icon
@@ -501,7 +501,7 @@
                             >
                               <div class="flex flex-col">
                                 <span
-                                  class="lowercase first-letter:uppercase font-bold text-slate-700 dark:text-white"
+                                  class="lowercase first-letter:uppercase font-bold text-black dark:text-white"
                                   >{{ m.nombre }} {{ m.apellido }}</span
                                 >
                               </div>
@@ -609,16 +609,16 @@
               <table class="w-full text-left text-sm">
                 <thead>
                   <tr
-                    class="bg-slate-50 dark:bg-slate-800 text-slate-500 font-black text-[10px] uppercase tracking-[2px]"
+                    class="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-black text-[10px] uppercase tracking-[2px]"
                   >
                     <th class="px-4 py-3">Nombre de la Aseguradora</th>
                     <th class="px-4 py-3">Tipo</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-600">
                   <tr *ngFor="let row of previewData" class="hover:bg-slate-50 dark:hover:bg-slate-800">
-                    <td class="px-4 py-3 text-slate-700 dark:text-slate-200">{{ row.nombre || '' }}</td>
-                    <td class="px-4 py-3 text-slate-700 dark:text-slate-200">{{ row.tipo || '' }}</td>
+                    <td class="px-4 py-3 font-bold text-slate-500 dark:text-slate-400">{{ row.nombre || '' }}</td>
+                    <td class="px-4 py-3 font-bold text-slate-500 dark:text-slate-400">{{ row.tipo || '' }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -654,26 +654,26 @@
             <button (click)="showExcelFormat = false" class="p-2 hover:bg-white/10 rounded-lg transition-colors"><lucide-icon [name]="XCircle" class="w-5 h-5 text-white"></lucide-icon></button>
           </div>
           <div class="p-6 md:p-8">
-            <p class="text-slate-600 dark:text-slate-300 text-sm mb-6">El archivo Excel debe tener las siguientes columnas en este orden:</p>
+            <p class="text-slate-700 dark:text-slate-300 text-sm font-semibold mb-6">El archivo Excel debe tener las siguientes columnas en este orden:</p>
             <div class="overflow-x-auto">
               <table class="w-full text-left text-sm">
                 <thead>
-                  <tr class="bg-slate-50 dark:bg-slate-800 text-slate-500 font-black text-[10px] uppercase tracking-[2px]">
+                  <tr class="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-black text-[10px] uppercase tracking-[2px]">
                     <th class="px-4 py-3">Columna</th>
                     <th class="px-4 py-3">Descripción</th>
                     <th class="px-4 py-3">Requerido</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
+                <tbody class="divide-y divide-slate-200/60 dark:divide-slate-700">
                   <tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
-                    <td class="px-4 py-3 font-bold text-slate-800 dark:text-slate-400">Nombre de la Aseguradora</td>
-                    <td class="px-4 py-3 text-slate-600 dark:text-slate-400">Nombre de la aseguradora</td>
-                    <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400">Requerido</span></td>
+                    <td class="px-4 py-3 font-bold text-slate-500 dark:text-slate-400">Nombre de la Aseguradora</td>
+                    <td class="px-4 py-3 font-bold text-slate-500 dark:text-slate-400">Nombre de la aseguradora</td>
+                    <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400">Requerido</span></td>
                   </tr>
                   <tr class="hover:bg-slate-50 dark:hover:bg-slate-800">
-                    <td class="px-4 py-3 font-bold text-slate-800 dark:text-slate-400">Tipo</td>
-                    <td class="px-4 py-3 text-slate-600 dark:text-slate-400">Aseguradora</td>
-                    <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400">Requerido</span></td>
+                    <td class="px-4 py-3 font-bold text-slate-500 dark:text-slate-400">Tipo</td>
+                    <td class="px-4 py-3 font-bold text-slate-500 dark:text-slate-400">Aseguradora</td>
+                    <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400">Requerido</span></td>
                   </tr>
                 </tbody>
               </table>
@@ -709,12 +709,12 @@
         >
           <!-- BUSCADOR + BOTONES DENTRO DE LA TABLA -->
           <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-4 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-800">
-            <div class="flex items-center flex-1 min-w-0 gap-2">
+            <div class="flex items-center flex-1 min-w-0 gap-2 order-2 sm:order-1">
               <div class="relative search-filter-container shrink-0">
                 <button
                   type="button"
                   (click)="toggleSearchFilterDropdown()"
-                  class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-4 py-3 text-[10px] font-black uppercase tracking-wider text-slate-500 focus:outline-none rounded-2xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2"
+                  class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-4 py-3 text-[10px] font-black uppercase tracking-wider text-black dark:text-white focus:outline-none rounded-2xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2"
                 >
                   <span>{{ getSearchFilterLabel() }}</span>
                   <lucide-icon
@@ -726,14 +726,15 @@
 
                 <div
                   *ngIf="showSearchFilterDropdown"
-                  class="absolute z-[110] w-40 mt-3 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600 left-0"
+                  class="absolute z-[110] w-40 mt-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200 border-t-4 border-t-blue-600 dark:border-t-blue-600 left-0"
                 >
                   <div class="p-1 max-h-48 overflow-y-auto">
                     <div
                       (click)="selectSearchFilter('todo')"
-                      class="px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 cursor-pointer transition-colors rounded-lg flex items-center justify-between"
+                      class="px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors rounded-lg flex items-center justify-between"
                       [class.bg-blue-50]="searchFilter === 'todo'"
                       [class.text-blue-600]="searchFilter === 'todo'"
+                      [class.dark:text-blue-400]="searchFilter === 'todo'" [class.dark:bg-blue-500/10]="searchFilter === 'todo'"
                     >
                       <span>Todo</span>
                       <lucide-icon
@@ -744,9 +745,10 @@
                     </div>
                     <div
                       (click)="selectSearchFilter('nombre')"
-                      class="px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 cursor-pointer transition-colors rounded-lg flex items-center justify-between"
+                      class="px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors rounded-lg flex items-center justify-between"
                       [class.bg-blue-50]="searchFilter === 'nombre'"
                       [class.text-blue-600]="searchFilter === 'nombre'"
+                      [class.dark:text-blue-400]="searchFilter === 'nombre'" [class.dark:bg-blue-500/10]="searchFilter === 'nombre'"
                     >
                       <span>Nombres</span>
                       <lucide-icon
@@ -758,9 +760,10 @@
                     <div
                       *ngIf="!isAseguradorasView"
                       (click)="selectSearchFilter('apellido')"
-                      class="px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 cursor-pointer transition-colors rounded-lg flex items-center justify-between"
+                      class="px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors rounded-lg flex items-center justify-between"
                       [class.bg-blue-50]="searchFilter === 'apellido'"
                       [class.text-blue-600]="searchFilter === 'apellido'"
+                      [class.dark:text-blue-400]="searchFilter === 'apellido'" [class.dark:bg-blue-500/10]="searchFilter === 'apellido'"
                     >
                       <span>Apellidos</span>
                       <lucide-icon
@@ -772,9 +775,10 @@
                     <div
                       *ngIf="!isAseguradorasView"
                       (click)="selectSearchFilter('cedula')"
-                      class="px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 cursor-pointer transition-colors rounded-lg flex items-center justify-between"
+                      class="px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors rounded-lg flex items-center justify-between"
                       [class.bg-blue-50]="searchFilter === 'cedula'"
                       [class.text-blue-600]="searchFilter === 'cedula'"
+                      [class.dark:text-blue-400]="searchFilter === 'cedula'" [class.dark:bg-blue-500/10]="searchFilter === 'cedula'"
                     >
                       <span>Cédula</span>
                       <lucide-icon
@@ -815,7 +819,7 @@
                       class="px-4 py-4 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
                     >
                       <div class="flex flex-col">
-                        <span class="font-bold text-slate-800 dark:text-white uppercase"
+                        <span class="font-bold text-black dark:text-white uppercase"
                           >{{ p.nombre || 'Sin asignar' }} {{ p.apellido || '' }}</span
                         >
                         <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400"
@@ -833,7 +837,7 @@
             </div>
 
             <div
-              class="flex flex-col-reverse w-full gap-2 sm:flex-row sm:items-center sm:gap-2 sm:w-auto sm:shrink-0"
+              class="flex flex-col-reverse w-full gap-2 sm:flex-row sm:items-center sm:gap-2 sm:w-auto sm:shrink-0 order-1 sm:order-2"
             >
               <input
                 #excelInput
@@ -876,7 +880,7 @@
                   class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800"
                 >
                   <tr
-                    class="h-[52px] md:h-[64px] text-slate-500 font-black text-[9px] sm:text-[10px] uppercase tracking-[2px]"
+                    class="h-[52px] md:h-[64px] text-slate-500 dark:text-slate-400 font-black text-[9px] sm:text-[10px] uppercase tracking-[2px]"
                   >
                     <ng-container *ngIf="!isAseguradorasView; else aseguradoraHeaders">
                       <th class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-center">Nombres</th>
@@ -903,32 +907,32 @@
                     <tr class="h-[52px] md:h-[64px] hover:bg-slate-50 dark:hover:bg-slate-800">
                       <ng-container *ngIf="!isAseguradorasView; else aseguradoraRow">
                         <td
-                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-slate-400 uppercase text-center"
+                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-500 dark:text-slate-400 uppercase text-center"
                         >
                           {{ (a.nombre || '') + (a.segundo_nombre ? ' ' + a.segundo_nombre : '') || 'Sin asignar' }}
                         </td>
                         <td
-                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-slate-400 uppercase text-center"
+                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-500 dark:text-slate-400 uppercase text-center"
                         >
                           {{ (a.apellido || '') + (a.segundo_apellido ? ' ' + a.segundo_apellido : '') || '' }}
                         </td>
                         <td
-                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-600 dark:text-slate-400 font-bold uppercase tracking-tight text-center"
+                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap text-slate-500 dark:text-slate-400 font-bold uppercase tracking-tight text-center"
                         >
                           {{ a.cedula || 'Sin asignar' }}
                         </td>
                         <td
-                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-slate-400 uppercase text-center"
+                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-500 dark:text-slate-400 uppercase text-center"
                         >
                           {{ a.telefono || 'Sin asignar' }}
                         </td>
                         <td
-                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-slate-400 uppercase text-center"
+                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-500 dark:text-slate-400 uppercase text-center"
                         >
                           {{ getResponsableLabel(a.modalidad_pago) }}
                         </td>
                         <td
-                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-slate-400 uppercase text-center"
+                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-500 dark:text-slate-400 uppercase text-center"
                         >
                           {{
                             a.nombre_servicio !== 'SIN ASIGNAR'
@@ -938,12 +942,12 @@
                         </td>
                         <!-- Columna 'Mensaje' eliminada -->
                         <td
-                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-blue-600 dark:text-blue-400 uppercase text-center"
+                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-500 dark:text-slate-400 uppercase text-center"
                         >
                           {{ a.numero }}
                         </td>
                         <td
-                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-slate-400 uppercase text-center"
+                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-500 dark:text-slate-400 uppercase text-center"
                         >
                           {{ a.fecha_creacion | date: 'h:mm a' }}
                         </td>
@@ -975,12 +979,12 @@
                       </ng-container>
                       <ng-template #aseguradoraRow>
                         <td
-                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-slate-400 uppercase text-center"
+                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-500 dark:text-slate-400 uppercase text-center"
                         >
                           {{ a.aseguradora || 'Sin asignar' }}
                         </td>
                         <td
-                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-slate-400 uppercase text-center"
+                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-500 dark:text-slate-400 uppercase text-center"
                         >
                           {{ a.tipo || 'Aseguradora' }}
                         </td>

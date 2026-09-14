@@ -1,6 +1,6 @@
 import { LucideIconData } from 'lucide-angular';
 
-export type SalaMode = 'aps' | 'aps-espera' | 'lab-espera' | 'lab-en-espera' | 'img-espera' | 'img-en-espera' | 'consulta';
+export type SalaMode = 'aps' | 'lab' | 'img' | 'consulta';
 
 export interface APSSeccion {
   id: number;

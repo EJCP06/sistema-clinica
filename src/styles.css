@@ -94,7 +94,11 @@
 @layer components {
   /* Input estándar del sistema (login, formularios, etc.) */
   .input-field {
-    @apply w-full py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium;
+    @apply w-full py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 dark:focus:border-blue-500 transition-shadow font-medium;
+  }
+  /* Variante compacta para formularios internos */
+  .input-field-sm {
+    @apply w-full py-2.5 px-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-600 transition-all font-medium dark:text-white placeholder:text-slate-400;
   }
   /* Variante con icono a la izquierda */
   .input-field-with-icon {
@@ -117,8 +121,16 @@ button:focus:not(:focus-visible) {
    activa, así que no se rompe al añadir/cambiar un `z-*` (antes solo cubría
    z-50 y z-[100]: 5 de los 20 overlays de la app no bloqueaban el scroll).
    `body.modal-open` sigue disponible para bloquearlo manualmente desde TS. */
-body:has(.fixed.inset-0),
 body.modal-open {
+  overflow: hidden;
+}
+
+/* Bloquea scroll cuando hay un overlay modal abierto.
+   `fixed inset-0` es el patrón estándar de Tailwind para overlays
+   (modales, splash, visores). Es robusto porque TODOS los overlays
+   de la app lo usan consistentemente. Alternativa: un data-attribute
+   explícito en cada overlay, pero requeriría tocar ~20 archivos. */
+body:has(.fixed.inset-0) {
   overflow: hidden;
 }
 
@@ -346,10 +358,7 @@ aside nav::-webkit-scrollbar,
     transition: transform 160ms ease;
   }
 
-  .mobile-profile-card {
-    border: none !important;
-    box-shadow: none !important;
-  }
+
 }
 
 /* ============================================================
