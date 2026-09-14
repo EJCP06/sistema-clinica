@@ -903,12 +903,12 @@
                     <tr class="h-[52px] md:h-[64px] hover:bg-slate-50 dark:hover:bg-slate-800">
                       <ng-container *ngIf="!isAseguradorasView; else aseguradoraRow">
                         <td
-                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-white uppercase text-center"
+                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-slate-400 uppercase text-center"
                         >
                           {{ (a.nombre || '') + (a.segundo_nombre ? ' ' + a.segundo_nombre : '') || 'Sin asignar' }}
                         </td>
                         <td
-                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-white uppercase text-center"
+                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-slate-400 uppercase text-center"
                         >
                           {{ (a.apellido || '') + (a.segundo_apellido ? ' ' + a.segundo_apellido : '') || '' }}
                         </td>
@@ -918,17 +918,17 @@
                           {{ a.cedula || 'Sin asignar' }}
                         </td>
                         <td
-                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-white uppercase text-center"
+                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-slate-400 uppercase text-center"
                         >
                           {{ a.telefono || 'Sin asignar' }}
                         </td>
                         <td
-                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-white uppercase text-center"
+                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-slate-400 uppercase text-center"
                         >
                           {{ getResponsableLabel(a.modalidad_pago) }}
                         </td>
                         <td
-                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-white uppercase text-center"
+                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-slate-400 uppercase text-center"
                         >
                           {{
                             a.nombre_servicio !== 'SIN ASIGNAR'
@@ -943,7 +943,7 @@
                           {{ a.numero }}
                         </td>
                         <td
-                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-white uppercase text-center"
+                          class="px-1 sm:px-2 md:px-6 py-3 md:py-4 whitespace-nowrap font-bold text-slate-800 dark:text-slate-400 uppercase text-center"
                         >
                           {{ a.fecha_creacion | date: 'h:mm a' }}
                         </td>
