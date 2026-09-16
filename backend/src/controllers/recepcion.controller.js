@@ -228,6 +228,9 @@ const crearPaciente = async (req, res) => {
     if (error.code === '23505') {
       return res.status(400).json({ mensaje: 'Ya existe un paciente con esa cédula' });
     }
+    if (error.code === '22007' || error.code === '22008') {
+      return res.status(400).json({ mensaje: 'La fecha de nacimiento no es válida (formato AAAA-MM-DD)' });
+    }
     res.status(500).json({ mensaje: 'Error al crear paciente' });
   }
 };
@@ -267,6 +270,9 @@ const actualizarPaciente = async (req, res) => {
     logger.error(error);
     if (error.code === '23505') {
       return res.status(400).json({ mensaje: 'Ya existe otro paciente con esa cédula' });
+    }
+    if (error.code === '22007' || error.code === '22008') {
+      return res.status(400).json({ mensaje: 'La fecha de nacimiento no es válida (formato AAAA-MM-DD)' });
     }
     res.status(500).json({ mensaje: 'Error al actualizar paciente' });
   }

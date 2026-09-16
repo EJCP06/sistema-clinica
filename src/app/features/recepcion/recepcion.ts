@@ -14,6 +14,7 @@ import {
   fechaABackend,
   fechaADisplay,
   normalizeString,
+  validarFechaNacimiento,
 } from './recepcion-fechas.util';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -869,8 +870,9 @@ nuevoPaciente: any = {
     }
 
     const fechaNacimiento = (this.nuevoPaciente.fecha_nacimiento || '').toString().trim();
-    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(fechaNacimiento)) {
-      this.swal.warning('La fecha de nacimiento es obligatoria (formato DD/MM/YYYY)');
+    const errorFecha = validarFechaNacimiento(fechaNacimiento);
+    if (errorFecha) {
+      this.swal.warning(errorFecha);
       return;
     }
 
@@ -949,7 +951,7 @@ nuevoPaciente: any = {
           if (err.status === 409) {
             this.swal.error('El paciente con esta cédula ya está registrado en esta sede.');
           } else {
-            this.swal.error('Error al registrar paciente');
+            this.swal.error(err.error?.mensaje || 'Error al registrar paciente');
           }
         });
       },
@@ -998,8 +1000,8 @@ nuevoPaciente: any = {
           this.generarAtencionDirecta(id_paciente);
         }
       },
-      error: () =>
-        this.finalizarGuardado(() => this.swal.error('Error al actualizar datos del paciente')),
+      error: (err: any) =>
+        this.finalizarGuardado(() => this.swal.error(err.error?.mensaje || 'Error al actualizar datos del paciente')),
     });
   }
 
