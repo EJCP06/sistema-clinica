@@ -361,7 +361,7 @@ export interface ServicioReporteDTO {
   servicio: string;
   total: number;
   atendidos: number;
-  ausentes: number;
+  retirados: number;
   en_espera: number;
   en_atencion: number;
   registrados: number;

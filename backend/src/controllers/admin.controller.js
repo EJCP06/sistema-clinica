@@ -109,11 +109,11 @@ const getReporteDiario = async (req, res) => {
     turnos.forEach(t => {
       const key = t.servicio_nombre;
       if (!porServicio[key]) {
-        porServicio[key] = { servicio: key, total: 0, atendidos: 0, ausentes: 0, en_espera: 0, en_atencion: 0, registrados: 0 };
+        porServicio[key] = { servicio: key, total: 0, atendidos: 0, retirados: 0, en_espera: 0, en_atencion: 0, registrados: 0 };
       }
       porServicio[key].total++;
       if (t.estado === 'Atendido') porServicio[key].atendidos++;
-      else if (t.estado === 'Ausente') porServicio[key].ausentes++;
+      else if (t.estado === 'Retirado') porServicio[key].retirados++;
       else if (t.estado === 'Sala de Espera' || t.estado === 'Llamado') porServicio[key].en_espera++;
       else if (t.estado === 'En Atencion') porServicio[key].en_atencion++;
       else if (t.estado === 'Registrado') porServicio[key].registrados++;

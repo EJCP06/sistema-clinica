@@ -400,13 +400,13 @@ export class AdminReports implements OnInit, OnDestroy {
         s.servicio,
         String(s.total),
         String(s.atendidos),
-        String(s.ausentes),
+        String(s.retirados),
       ]);
 
       autoTable(doc, {
         ...sharedStyles,
         startY: currentY,
-        head: [['Servicio', 'Total', 'Atendidos', 'Ausentes']],
+        head: [['Servicio', 'Total', 'Atendidos', 'Retirados']],
         body: servData,
         columnStyles: {
           0: { cellWidth: tableWidth * 0.40 },

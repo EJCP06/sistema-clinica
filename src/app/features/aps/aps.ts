@@ -278,6 +278,9 @@ export class ApsComponent implements OnInit, OnDestroy {
             this.ultimasAdmisiones[idx] = a;
             this.ultimasAdmisiones = [...this.ultimasAdmisiones];
           }
+        } else if (event.tipo === 'ausente') {
+          // Lab/imag marcado como ausente desde su módulo: quitar de APS
+          this.ultimasAdmisiones = this.ultimasAdmisiones.filter(x => x.id_atencion !== a.id_atencion);
         } else if (event.tipo === 'estado-cambiado') {
           if ([6, 9].includes(Number(event.id_estado_nuevo))) {
             this.ultimasAdmisiones = this.ultimasAdmisiones.filter(x => x.id_atencion !== a.id_atencion);
@@ -354,7 +357,12 @@ export class ApsComponent implements OnInit, OnDestroy {
           const esSeguro = modalidadPagoLower === 'seguro';
           const esParticular = modalidadPagoLower === 'particular';
 
-          if (esLaboratorio || esImagenes) return esSeguro;
+          // Lab/imag: solo aparecen en APS en estados 1, 2, 8 (antes de sala de espera).
+          // En estado 3 (sala de espera) o 7 (ausente) ya pasaron a sus módulos.
+          if (esLaboratorio || esImagenes) {
+            if ([3, 7].includes(Number(a.id_estado_actual))) return false;
+            return esSeguro;
+          }
           if (esConsulta) return esSeguro || esParticular;
           return false;
         });

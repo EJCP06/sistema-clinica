@@ -711,7 +711,7 @@ const limpiarEstadosPendientes = async () => {
     const result = await client.query(
       `UPDATE "Atencion" SET id_estado_actual = 9
        WHERE hora_llegada::date < CURRENT_DATE
-         AND id_estado_actual IN (1, 2, 3, 4, 5, 8)
+         AND id_estado_actual IN (1, 2, 3, 4, 5, 7, 8)
        RETURNING id_atencion, numero, id_estado_actual`,
     );
 
