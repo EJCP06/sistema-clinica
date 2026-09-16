@@ -373,7 +373,7 @@ module.exports = {};
  * @property {string} servicio
  * @property {number} total
  * @property {number} atendidos
- * @property {number} ausentes
+ * @property {number} retirados
  * @property {number} en_espera
  * @property {number} en_atencion
  * @property {number} registrados
