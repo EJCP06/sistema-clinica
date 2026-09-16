@@ -196,21 +196,23 @@ const crearPaciente = async (req, res) => {
   if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
 
   try {
-    const { cedula, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, telefono, status } = req.body;
+    const { cedula, tipo_documento, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, telefono, status } = req.body;
     const pn = (primer_nombre || '').toString().toUpperCase().trim();
     const pa = (primer_apellido || '').toString().toUpperCase().trim();
+    const tipoDoc = tipo_documento || 'v';
 
     if (!cedula || !pn || !pa) {
       return res.status(400).json({ mensaje: 'Cédula, primer nombre y primer apellido son requeridos' });
     }
 
-    const existing = await pacienteRepo.findByCedula(cedula, sede);
+    const existing = await pacienteRepo.findByCedula(cedula, sede, tipoDoc);
     if (existing) {
       return res.status(409).json({ mensaje: 'Ya existe un paciente con esa cédula en esta sede' });
     }
 
     const paciente = await pacienteRepo.crearPaciente({
       cedula,
+      tipo_documento: tipoDoc,
       primer_nombre: pn,
       segundo_nombre: (segundo_nombre || '').toString().toUpperCase().trim() || null,
       primer_apellido: pa,
@@ -243,10 +245,11 @@ const actualizarPaciente = async (req, res) => {
 
   try {
     const { id } = req.params;
-    const { cedula, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, telefono } = req.body;
+    const { cedula, tipo_documento, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, telefono } = req.body;
 
     const paciente = await pacienteRepo.actualizarPaciente(id, sede, {
       cedula,
+      tipo_documento: tipo_documento || null,
       primer_nombre: (primer_nombre || '').toString().toUpperCase().trim() || null,
       segundo_nombre: (segundo_nombre || '').toString().toUpperCase().trim() || null,
       primer_apellido: (primer_apellido || '').toString().toUpperCase().trim() || null,

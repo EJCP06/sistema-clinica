@@ -377,6 +377,7 @@ const crearPersonal = async (req, res) => {
   try {
     const {
       cedula,
+      tipo_documento,
       primer_nombre,
       segundo_nombre,
       primer_apellido,
@@ -413,6 +414,7 @@ const crearPersonal = async (req, res) => {
 
     const result = await usuarioRepo.crearPersonal({
       cedula,
+      tipo_documento: tipo_documento || 'v',
       primer_nombre,
       segundo_nombre: segundo_nombre || null,
       primer_apellido: primer_apellido || '',

@@ -124,6 +124,7 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
 
   searchFilter: string = 'todo';
   showSearchFilterDropdown = false;
+  showDocTypeDropdown = false;
 
   ultimasAdmisiones: AdmisionDTO[] = [];
   cargando: boolean = true;
@@ -139,6 +140,7 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
   nuevoPaciente: any = {
     id_paciente: null,
     cedula: '',
+    tipo_documento: 'v',
     primer_nombre: '',
     segundo_nombre: '',
     primer_apellido: '',
@@ -335,6 +337,7 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
     } else {
       const target = event.target as HTMLElement;
       if (!target.closest('.search-filter-container')) this.showSearchFilterDropdown = false;
+      if (!target.closest('.doc-type-container')) this.showDocTypeDropdown = false;
       if (!target.closest('.payer-dropdown-container')) this.showPayerDropdown = false;
       if (!target.closest('.service-dropdown-container')) this.showServiceDropdown = false;
       if (!target.closest('.especialidad-dropdown-container'))
@@ -464,9 +467,24 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
       todo: 'TODO',
       nombre: 'NOMBRES',
       apellido: 'APELLIDOS',
-      cedula: 'CÉDULA',
+      cedula: 'Nº DOC',
     };
     return labels[this.searchFilter] || 'TODO';
+  }
+
+  toggleDocTypeDropdown() {
+    this.showDocTypeDropdown = !this.showDocTypeDropdown;
+  }
+
+  selectDocType(tipo: string) {
+    this.nuevoPaciente.tipo_documento = tipo;
+    this.showDocTypeDropdown = false;
+    this.onDocTypeChange();
+  }
+
+  getDocTypeLabel(): string {
+    const labels: Record<string, string> = { v: 'V', e: 'E', p: 'P' };
+    return labels[this.nuevoPaciente.tipo_documento] || 'V';
   }
 
   cargarUltimasAdmisiones() {
@@ -769,6 +787,7 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
     this.scrollService.unblock();
     this.isEditMode = false;
     this.filaEnEdicion = null;
+    this.showDocTypeDropdown = false;
   }
 
   /** Carga la admisión seleccionada (solo estado Registrado) en el modal de edición. */
@@ -778,6 +797,7 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
     this.nuevoPaciente = {
       id_paciente: fila.id_paciente,
       cedula: fila.cedula,
+      tipo_documento: fila.tipo_documento || 'v',
       primer_nombre: fila.nombre,
       segundo_nombre: fila.segundo_nombre,
       primer_apellido: fila.apellido,
@@ -837,11 +857,28 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const docLen = (this.nuevoPaciente.cedula || '').length;
+    const tipoDoc = this.nuevoPaciente.tipo_documento;
+    if (tipoDoc === 'p') {
+      if (docLen < 10) { this.swal.warning('El pasaporte debe tener entre 10 y 12 caracteres'); return; }
+    } else {
+      if (docLen < 7) { this.swal.warning('La cédula debe tener entre 7 y 8 dígitos'); return; }
+    }
+
+    const tel = (this.nuevoPaciente.telefono || '').replace(/\D/g, '');
+    if (tel.length > 0 && tel.length < 11) {
+      this.swal.warning('El teléfono debe tener entre 11 y 12 dígitos');
+      return;
+    }
+
     this.isSaving = true;
     this.inicioGuardado = Date.now();
 
     const datosPaciente = {
-      cedula: (this.nuevoPaciente.cedula || '').toString().replace(/\D/g, '').trim(),
+      cedula: (this.nuevoPaciente.tipo_documento !== 'p')
+        ? (this.nuevoPaciente.cedula || '').toString().replace(/\D/g, '').trim()
+        : (this.nuevoPaciente.cedula || '').toString().trim().toUpperCase(),
+      tipo_documento: this.nuevoPaciente.tipo_documento || 'v',
       primer_nombre: (this.nuevoPaciente.primer_nombre || '').toString().toUpperCase().trim(),
       segundo_nombre: (this.nuevoPaciente.segundo_nombre || '').toString().toUpperCase().trim(),
       primer_apellido: (this.nuevoPaciente.primer_apellido || '').toString().toUpperCase().trim(),
@@ -1118,6 +1155,37 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
     if (event.charCode !== 0 && !pattern.test(inputChar)) {
       event.preventDefault();
     }
+  }
+
+  onDocKeyPress(event: any) {
+    const tipo = this.nuevoPaciente.tipo_documento;
+    const input = event.target as HTMLInputElement;
+    const maxLen = tipo === 'p' ? 12 : 8;
+    let pattern: RegExp;
+    if (tipo === 'p') {
+      pattern = /[a-zA-Z0-9]/;
+    } else {
+      pattern = /[0-9]/;
+    }
+    const inputChar = String.fromCharCode(event.charCode);
+    if (event.charCode !== 0 && (!pattern.test(inputChar) || input.value.length >= maxLen)) {
+      event.preventDefault();
+    }
+  }
+
+  onDocTypeChange() {
+    const tipo = this.nuevoPaciente.tipo_documento;
+    const maxLen = tipo === 'p' ? 12 : 8;
+    const val = (this.nuevoPaciente.cedula || '').toString();
+    if (val.length > maxLen) {
+      this.nuevoPaciente.cedula = val.substring(0, maxLen);
+    }
+  }
+
+  getDocPlaceholder(): string {
+    const tipo = this.nuevoPaciente.tipo_documento;
+    if (tipo === 'p') return 'Ej: AB1234567';
+    return 'Ej: 13894759';
   }
 
   onFechaNacimientoInput(event: Event) {

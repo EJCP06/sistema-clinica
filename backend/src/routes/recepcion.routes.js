@@ -83,12 +83,14 @@ router.use(perm(
 router.get('/pacientes/:termino', ctrl.buscarPaciente);
 router.post('/pacientes', [
   body('cedula').trim().notEmpty().withMessage('La cédula del paciente es obligatoria'),
+  body('tipo_documento').optional().isIn(['v', 'e', 'p']).withMessage('Tipo de documento inválido'),
   body('primer_nombre').trim().notEmpty().withMessage('El primer nombre es obligatorio'),
   body('primer_apellido').trim().notEmpty().withMessage('El primer apellido es obligatorio'),
   validar,
 ], ctrl.crearPaciente);
 router.put('/pacientes/:id', [
   body('cedula').optional().trim().notEmpty().withMessage('La cédula no puede estar vacía'),
+  body('tipo_documento').optional().isIn(['v', 'e', 'p']).withMessage('Tipo de documento inválido'),
   validar,
 ], ctrl.actualizarPaciente);
 router.delete('/pacientes/:id', ctrl.eliminarPaciente);

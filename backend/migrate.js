@@ -396,6 +396,49 @@ const runMigrations = async () => {
     logger.warn('Aviso: no se pudo crear la tabla de especialidades por médico', { error: errEsp.message });
   }
 
+  // ====================================================================
+  // TIPO DE DOCUMENTO EN PACIENTES (cédula, pasaporte, RIF)
+  // ====================================================================
+  try {
+    await pool.query(`ALTER TABLE "Pacientes" ADD COLUMN IF NOT EXISTS "tipo_documento" varchar DEFAULT 'v'`);
+    await pool.query(`UPDATE "Pacientes" SET "tipo_documento" = 'v' WHERE "tipo_documento" IS NULL`);
+    // Drop the global UNIQUE on cedula if it exists (we want per-sede + tipo uniqueness)
+    const uniqConstraint = await pool.query(`
+      SELECT conname FROM pg_constraint c
+      JOIN pg_class t ON c.conrelid = t.oid
+      JOIN pg_namespace n ON t.relnamespace = n.oid
+      WHERE t.relname = 'Pacientes' AND n.nspname = 'public' AND c.contype = 'u'
+    `);
+    for (const row of uniqConstraint.rows) {
+      await pool.query(`ALTER TABLE "Pacientes" DROP CONSTRAINT IF EXISTS "${row.conname}"`);
+    }
+    // Unique per sede + tipo_documento + cedula
+    await pool.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint c
+          JOIN pg_class t ON c.conrelid = t.oid
+          WHERE t.relname = 'Pacientes' AND c.conname = 'pacientes_cedula_tipo_sede_unique'
+        ) THEN
+          ALTER TABLE "Pacientes" ADD CONSTRAINT "pacientes_cedula_tipo_sede_unique"
+            UNIQUE ("cedula", "tipo_documento", "id_sede");
+        END IF;
+      END $$;
+    `);
+  } catch (errTipoDoc) {
+    logger.warn('Aviso: no se pudo agregar tipo_documento a Pacientes', { error: errTipoDoc.message });
+  }
+
+  // ====================================================================
+  // TIPO DE DOCUMENTO EN USUARIOS (V, E, P)
+  // ====================================================================
+  try {
+    await pool.query(`ALTER TABLE "Usuarios" ADD COLUMN IF NOT EXISTS "tipo_documento" varchar DEFAULT 'v'`);
+    await pool.query(`UPDATE "Usuarios" SET "tipo_documento" = 'v' WHERE "tipo_documento" IS NULL`);
+  } catch (errTipoDocUsr) {
+    logger.warn('Aviso: no se pudo agregar tipo_documento a Usuarios', { error: errTipoDocUsr.message });
+  }
+
   // --- Roles múltiples por usuario ---
   try {
     await pool.query(`

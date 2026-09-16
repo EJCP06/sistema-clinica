@@ -120,6 +120,7 @@ export class AdminPersonal implements OnInit {
   showMedicoEspDropdown = false;
   showSedeDropdown = false;
   showSearchFilterDropdown = false;
+  showDocTypeDropdown = false;
   /** Modal "Asignar consultorios" (consultorio de CADA especialidad del médico). */
   showEspConModal = false;
   /** Botón "Listo" del modal de consultorios mostrando "guardando...". */
@@ -366,6 +367,7 @@ export class AdminPersonal implements OnInit {
     primer_apellido: string;
     segundo_apellido: string;
     cedula: string;
+    tipo_documento: string;
     telefono: string;
     email: string;
     activo: boolean;
@@ -383,6 +385,7 @@ export class AdminPersonal implements OnInit {
     primer_apellido: '',
     segundo_apellido: '',
     cedula: '',
+    tipo_documento: 'v',
     telefono: '',
     email: '',
     activo: true,
@@ -465,6 +468,7 @@ export class AdminPersonal implements OnInit {
         primer_apellido: (user.primer_apellido || user.apellido || '').toUpperCase(),
         segundo_apellido: (user.segundo_apellido || '').toUpperCase(),
         cedula: user.cedula || '',
+        tipo_documento: user.tipo_documento || 'v',
         telefono: user.telefono || '',
         email: user.email || '',
         activo: !!user.activo,
@@ -484,6 +488,7 @@ export class AdminPersonal implements OnInit {
         primer_apellido: '',
         segundo_apellido: '',
         cedula: '',
+        tipo_documento: 'v',
         telefono: '',
         email: '',
         activo: true,
@@ -550,11 +555,28 @@ export class AdminPersonal implements OnInit {
 
   guardarPersonal() {
     if (this.isSaving) return;
+
+    const docLen = (this.formPersonal.cedula || '').length;
+    const tipoDoc = this.formPersonal.tipo_documento;
+    if (tipoDoc === 'p') {
+      if (docLen < 10) { this.swal.warning('El pasaporte debe tener entre 10 y 12 caracteres'); return; }
+    } else {
+      if (docLen < 7) { this.swal.warning('La cédula debe tener entre 7 y 8 dígitos'); return; }
+    }
+
+    const tel = (this.formPersonal.telefono || '').replace(/\D/g, '');
+    if (tel.length > 0 && tel.length < 11) {
+      this.swal.warning('El teléfono debe tener entre 11 y 12 dígitos');
+      return;
+    }
+
     this.isSaving = true;
     this.inicioGuardado = Date.now();
     const rol = this.formPersonal.rol;
-    const cedulaFinal = (this.formPersonal.cedula || this.formPersonal.username || '')
-      .toString().replace(/\D/g, '');
+    const esNumerico = this.formPersonal.tipo_documento !== 'p';
+    const cedulaFinal = esNumerico
+      ? (this.formPersonal.cedula || this.formPersonal.username || '').toString().replace(/\D/g, '')
+      : (this.formPersonal.cedula || this.formPersonal.username || '').toString().trim().toUpperCase();
 
     const usuarioOriginal = this.isEditing && this.editingId !== null
       ? this.todoPersonal.find(p => (p.id || p.id_usuario) === this.editingId)
@@ -571,6 +593,7 @@ export class AdminPersonal implements OnInit {
       primer_apellido: (this.formPersonal.primer_apellido || '').toUpperCase().trim(),
       segundo_apellido: (this.formPersonal.segundo_apellido || '').toUpperCase().trim() || null,
       cedula: cedulaFinal,
+      tipo_documento: this.formPersonal.tipo_documento || 'v',
       username: cedulaFinal,
       telefono: (this.formPersonal.telefono || '').toString().replace(/\D/g, ''),
       email: this.formPersonal.email ? this.formPersonal.email.toLowerCase().trim() : null,
@@ -827,6 +850,7 @@ export class AdminPersonal implements OnInit {
   onDocumentClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
     if (!target.closest('.search-filter-container')) this.showSearchFilterDropdown = false;
+    if (!target.closest('.doc-type-container')) this.showDocTypeDropdown = false;
     if (!target.closest('.medico-esp-container')) this.showMedicoEspDropdown = false;
     if (!target.closest('.rol-dropdown-container')) this.showRolDropdown = false;
     if (!target.closest('.sede-dropdown-container')) this.showSedeDropdown = false;
@@ -854,6 +878,52 @@ export class AdminPersonal implements OnInit {
     const pattern = /[0-9]/;
     const inputChar = String.fromCharCode(event.charCode);
     if (event.charCode !== 0 && !pattern.test(inputChar)) event.preventDefault();
+  }
+
+  onDocKeyPress(event: any) {
+    const tipo = this.formPersonal.tipo_documento;
+    const input = event.target as HTMLInputElement;
+    const maxLen = tipo === 'p' ? 12 : 8;
+    let pattern: RegExp;
+    if (tipo === 'p') {
+      pattern = /[a-zA-Z0-9]/;
+    } else {
+      pattern = /[0-9]/;
+    }
+    const inputChar = String.fromCharCode(event.charCode);
+    if (event.charCode !== 0 && (!pattern.test(inputChar) || input.value.length >= maxLen)) {
+      event.preventDefault();
+    }
+  }
+
+  onDocTypeChange() {
+    const tipo = this.formPersonal.tipo_documento;
+    const maxLen = tipo === 'p' ? 12 : 8;
+    const val = (this.formPersonal.cedula || '').toString();
+    if (val.length > maxLen) {
+      this.formPersonal.cedula = val.substring(0, maxLen);
+    }
+  }
+
+  getDocPlaceholder(): string {
+    const tipo = this.formPersonal.tipo_documento;
+    if (tipo === 'p') return 'Ej: AB1234567';
+    return 'Ej: 13894759';
+  }
+
+  toggleDocTypeDropdown() {
+    this.showDocTypeDropdown = !this.showDocTypeDropdown;
+  }
+
+  selectDocType(tipo: string) {
+    this.formPersonal.tipo_documento = tipo;
+    this.showDocTypeDropdown = false;
+    this.onDocTypeChange();
+  }
+
+  getDocTypeLabel(): string {
+    const labels: Record<string, string> = { v: 'V', e: 'E', p: 'P' };
+    return labels[this.formPersonal.tipo_documento] || 'V';
   }
 
   trimCampo(event: Event) {

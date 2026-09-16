@@ -171,7 +171,7 @@ const insertAdmin = async (hash, rolKey, nombre, apellido, cedula, idSede, statu
 
 const getPersonal = async (sede, rolKey) => {
   let query = `SELECT
-      u.id_usuario, u.cedula, r.key as rol, u.id_rol,
+      u.id_usuario, u.cedula, u.tipo_documento, r.key as rol, u.id_rol,
       u.primer_nombre AS nombre, u.segundo_nombre, u.primer_apellido AS apellido, u.segundo_apellido,
       u.telefono, u.email,
       u.id_consultorio, u.id_servicio, u.id_especialidad, u.id_sede, u.status,
@@ -247,10 +247,10 @@ const crearPersonal = async (data) => {
   if (!idRol) throw new Error('Se requiere un rol válido');
 
   const result = await pool.query(
-    `INSERT INTO "Usuarios" (cedula, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, telefono, email, password_hash, id_rol, id_consultorio, id_servicio, id_especialidad, id_sede, status)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+    `INSERT INTO "Usuarios" (cedula, tipo_documento, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, telefono, email, password_hash, id_rol, id_consultorio, id_servicio, id_especialidad, id_sede, status)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
      RETURNING id_usuario`,
-    [data.cedula, data.primer_nombre, data.segundo_nombre, data.primer_apellido, data.segundo_apellido, data.telefono, data.email, data.password_hash, idRol, data.id_consultorio, data.id_servicio, data.id_especialidad, data.sede, data.status],
+    [data.cedula, data.tipo_documento || 'v', data.primer_nombre, data.segundo_nombre, data.primer_apellido, data.segundo_apellido, data.telefono, data.email, data.password_hash, idRol, data.id_consultorio, data.id_servicio, data.id_especialidad, data.sede, data.status],
   );
   const idUsuario = result.rows[0].id_usuario;
   await sincronizarEspecialidades(idUsuario, data.especialidades, data.especialidadesInactivas, data.especialidadesConsultorios);

@@ -55,6 +55,7 @@ router.post('/personal', permissionMiddleware('personal:crear'), [
   body('primer_nombre').trim().notEmpty().withMessage('El primer nombre es obligatorio'),
   body('primer_apellido').trim().notEmpty().withMessage('El primer apellido es obligatorio'),
   body('cedula').trim().notEmpty().withMessage('La cédula es obligatoria'),
+  body('tipo_documento').optional().isIn(['v', 'e', 'p']).withMessage('Tipo de documento inválido'),
   validar,
 ], adminController.crearPersonal);
 router.put('/personal/:id', permissionMiddleware('personal:editar'), adminController.actualizarPersonal);

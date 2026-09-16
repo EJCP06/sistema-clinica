@@ -106,6 +106,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
 
   searchFilter: string = 'todo'; // 'todo', 'nombre', 'apellido', 'cedula'
   showSearchFilterDropdown: boolean = false;
+  showDocTypeDropdown: boolean = false;
   showPayerDropdown: boolean = false;
   showServiceDropdown: boolean = false;
 
@@ -118,6 +119,7 @@ export class RecepcionComponent implements OnInit, OnDestroy {
   pacienteEncontrado: any = null;
 nuevoPaciente: any = {
     cedula: '',
+    tipo_documento: 'v',
     nombre: '',
     apellido: '',
     primer_nombre: '',
@@ -383,6 +385,7 @@ nuevoPaciente: any = {
     this.mostrarRegistro = false;
     this.modalTrigger = null;
     this.isEditMode = false;
+    this.showDocTypeDropdown = false;
   }
 
   @HostListener('document:click', ['$event'])
@@ -397,6 +400,7 @@ nuevoPaciente: any = {
     } else {
       const target = event.target as HTMLElement;
       if (!target.closest('.search-filter-container')) this.showSearchFilterDropdown = false;
+      if (!target.closest('.doc-type-container')) this.showDocTypeDropdown = false;
       if (!target.closest('.payer-dropdown-container')) this.showPayerDropdown = false;
       if (!target.closest('.service-dropdown-container')) this.showServiceDropdown = false;
       if (!target.closest('.especialidad-dropdown-container'))
@@ -497,9 +501,24 @@ nuevoPaciente: any = {
       todo: 'TODO',
       nombre: 'NOMBRES',
       apellido: 'APELLIDOS',
-      cedula: 'CÉDULA',
+      cedula: 'Nº DOC',
     };
     return labels[this.searchFilter] || 'TODO';
+  }
+
+  toggleDocTypeDropdown() {
+    this.showDocTypeDropdown = !this.showDocTypeDropdown;
+  }
+
+  selectDocType(tipo: string) {
+    this.nuevoPaciente.tipo_documento = tipo;
+    this.showDocTypeDropdown = false;
+    this.onDocTypeChange();
+  }
+
+  getDocTypeLabel(): string {
+    const labels: Record<string, string> = { v: 'V', e: 'E', p: 'P' };
+    return labels[this.nuevoPaciente.tipo_documento] || 'V';
   }
 
   /** Carga servicios, especialidades, aseguradoras, responsables, médicos y consultorios. */
@@ -722,6 +741,7 @@ nuevoPaciente: any = {
     this.nuevoPaciente = {
       id_paciente: null,
       cedula: '',
+      tipo_documento: 'v',
       nombre: '',
       apellido: '',
       telefono: '',
@@ -766,12 +786,13 @@ nuevoPaciente: any = {
     }
     this.api.get<any[]>(`recepcion/pacientes/${cedula}`).subscribe({
       next: (data) => {
-        const p = data ? data.find((paciente: any) => paciente.cedula === cedula) : null;
+        const p = data ? data.find((paciente: any) => paciente.cedula === cedula && paciente.tipo_documento === this.nuevoPaciente.tipo_documento) : null;
 
         if (p) {
           this.pacienteExistenteCargado = true;
           this.nuevoPaciente.id_paciente = p.id_paciente || p.id;
           this.nuevoPaciente.cedula = p.cedula;
+          this.nuevoPaciente.tipo_documento = p.tipo_documento || 'v';
           this.nuevoPaciente.primer_nombre = p.primer_nombre || p.nombre || '';
           this.nuevoPaciente.segundo_nombre = p.segundo_nombre || '';
           this.nuevoPaciente.primer_apellido = p.primer_apellido || p.apellido || '';
@@ -807,6 +828,7 @@ nuevoPaciente: any = {
     this.nuevoPaciente = {
       id_paciente: paciente.id_paciente || paciente.id,
       cedula: paciente.cedula,
+      tipo_documento: paciente.tipo_documento || 'v',
       primer_nombre: paciente.primer_nombre || paciente.nombre || '',
       segundo_nombre: paciente.segundo_nombre || '',
       primer_apellido: paciente.primer_apellido || paciente.apellido || '',
@@ -862,6 +884,20 @@ nuevoPaciente: any = {
       return;
     }
 
+    const docLen = (this.nuevoPaciente.cedula || '').length;
+    const tipoDoc = this.nuevoPaciente.tipo_documento;
+    if (tipoDoc === 'p') {
+      if (docLen < 10) { this.swal.warning('El pasaporte debe tener entre 10 y 12 caracteres'); return; }
+    } else {
+      if (docLen < 7) { this.swal.warning('La cédula debe tener entre 7 y 8 dígitos'); return; }
+    }
+
+    const tel = (this.nuevoPaciente.telefono || '').replace(/\D/g, '');
+    if (tel.length > 0 && tel.length < 11) {
+      this.swal.warning('El teléfono debe tener entre 11 y 12 dígitos');
+      return;
+    }
+
     this.isSaving = true;
     this.inicioGuardado = Date.now();
 
@@ -873,7 +909,7 @@ nuevoPaciente: any = {
       this.api.get<any[]>(`recepcion/pacientes/${this.nuevoPaciente.cedula}`).subscribe({
         next: (data) => {
           const p = data
-            ? data.find((paciente: any) => paciente.cedula === this.nuevoPaciente.cedula)
+            ? data.find((paciente: any) => paciente.cedula === this.nuevoPaciente.cedula && paciente.tipo_documento === this.nuevoPaciente.tipo_documento)
             : null;
           if (p) {
             this.actualizarPacienteExistente(p.id_paciente || p.id, false);
@@ -888,8 +924,12 @@ nuevoPaciente: any = {
 
   /** Crea un nuevo paciente en el sistema y luego genera la atención. */
   private crearNuevoPaciente() {
+    const esNumerico = this.nuevoPaciente.tipo_documento !== 'p';
     const datosPaciente = {
-      cedula: (this.nuevoPaciente.cedula || '').toString().replace(/\D/g, ''),
+      cedula: esNumerico
+        ? (this.nuevoPaciente.cedula || '').toString().replace(/\D/g, '')
+        : (this.nuevoPaciente.cedula || '').toString().trim().toUpperCase(),
+      tipo_documento: this.nuevoPaciente.tipo_documento || 'v',
       primer_nombre: (this.nuevoPaciente.primer_nombre || '').toUpperCase().trim(),
       segundo_nombre: (this.nuevoPaciente.segundo_nombre || '').toUpperCase().trim(),
       primer_apellido: (this.nuevoPaciente.primer_apellido || '').toUpperCase().trim(),
@@ -917,8 +957,12 @@ nuevoPaciente: any = {
   }
 
   private actualizarPacienteExistente(id_paciente: number, esEdicionTotal: boolean) {
+    const esNumerico = this.nuevoPaciente.tipo_documento !== 'p';
     const datosPaciente = {
-      cedula: (this.nuevoPaciente.cedula || '').toString().replace(/\D/g, '').trim(),
+      cedula: esNumerico
+        ? (this.nuevoPaciente.cedula || '').toString().replace(/\D/g, '').trim()
+        : (this.nuevoPaciente.cedula || '').toString().trim().toUpperCase(),
+      tipo_documento: this.nuevoPaciente.tipo_documento || 'v',
       primer_nombre: (this.nuevoPaciente.primer_nombre || '').toString().toUpperCase().trim(),
       segundo_nombre: (this.nuevoPaciente.segundo_nombre || '').toString().toUpperCase().trim(),
       primer_apellido: (this.nuevoPaciente.primer_apellido || '').toString().toUpperCase().trim(),
@@ -1319,6 +1363,7 @@ nuevoPaciente: any = {
       this.nuevoPaciente = {
         id_paciente: fila.id_paciente,
         cedula: fila.cedula,
+        tipo_documento: fila.tipo_documento || 'v',
         primer_nombre: fila.nombre,
         segundo_nombre: fila.segundo_nombre,
         primer_apellido: fila.apellido,
@@ -1444,6 +1489,37 @@ nuevoPaciente: any = {
     if (event.charCode !== 0 && !pattern.test(inputChar)) {
       event.preventDefault();
     }
+  }
+
+  onDocKeyPress(event: any) {
+    const tipo = this.nuevoPaciente.tipo_documento;
+    const input = event.target as HTMLInputElement;
+    const maxLen = tipo === 'p' ? 12 : 8;
+    let pattern: RegExp;
+    if (tipo === 'p') {
+      pattern = /[a-zA-Z0-9]/;
+    } else {
+      pattern = /[0-9]/;
+    }
+    const inputChar = String.fromCharCode(event.charCode);
+    if (event.charCode !== 0 && (!pattern.test(inputChar) || input.value.length >= maxLen)) {
+      event.preventDefault();
+    }
+  }
+
+  onDocTypeChange() {
+    const tipo = this.nuevoPaciente.tipo_documento;
+    const maxLen = tipo === 'p' ? 12 : 8;
+    const val = (this.nuevoPaciente.cedula || '').toString();
+    if (val.length > maxLen) {
+      this.nuevoPaciente.cedula = val.substring(0, maxLen);
+    }
+  }
+
+  getDocPlaceholder(): string {
+    const tipo = this.nuevoPaciente.tipo_documento;
+    if (tipo === 'p') return 'Ej: AB1234567';
+    return 'Ej: 13894759';
   }
 
   onFechaNacimientoInput(event: Event) {

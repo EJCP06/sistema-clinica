@@ -63,6 +63,7 @@ export interface AdmisionDTO {
 export interface PacienteDTO {
   id_paciente: number;
   cedula: string;
+  tipo_documento: 'v' | 'e' | 'p';
   nombre: string;
   apellido: string;
   primer_nombre: string;
@@ -79,6 +80,7 @@ export interface PacienteDTO {
 export interface CrearPacienteRequest {
   id_paciente?: number | null;
   cedula: string;
+  tipo_documento: 'v' | 'e' | 'p';
   primer_nombre: string;
   segundo_nombre?: string;
   primer_apellido: string;
@@ -195,6 +197,7 @@ export interface PersonalDTO {
   id_usuario: number;
   id?: number;
   cedula?: string;
+  tipo_documento?: 'v' | 'e' | 'p';
   username?: string;
   nombre: string;
   apellido?: string;
