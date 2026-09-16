@@ -1394,7 +1394,9 @@ export class TurneroComponent implements OnInit, OnDestroy {
       }
 
       // Liberación: Iniciar / Ausente / Retirado / estado-cambiado (no 4)
-      const esLiberacion = data.id_atencion && (data.tipo === 'liberacion' || data.tipo === 'retirado' ||
+      // 'eliminado': la atención fue borrada desde admisión — detener su ciclo
+      // de voz y quitarla de la lista (la recarga la hace cargarDatosSala abajo).
+      const esLiberacion = data.id_atencion && (data.tipo === 'liberacion' || data.tipo === 'retirado' || data.tipo === 'eliminado' ||
         (data.tipo === 'estado-cambiado' && data.id_estado_nuevo !== undefined && Number(data.id_estado_nuevo) !== 4));
 
       if (esLiberacion) {

@@ -294,6 +294,12 @@ export class ApsComponent implements OnInit, OnDestroy {
             }
           }
         }
+      } else if (event.tipo === 'eliminado') {
+        // Atención borrada desde admisión: quitar la fila al instante
+        const id = Number(event.id_atencion);
+        if (!isNaN(id)) {
+          this.ultimasAdmisiones = this.ultimasAdmisiones.filter(x => x.id_atencion !== id);
+        }
       } else if (event.tipo === 'liberacion' || event.tipo === 'retirado') {
         this.cargarUltimasAdmisiones();
       } else if (event.tipo === 'estado-cambiado') {

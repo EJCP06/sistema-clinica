@@ -304,6 +304,14 @@ const eliminarPaciente = async (req, res) => {
         return res.status(404).json({ mensaje: 'Paciente no encontrado' });
       }
 
+      // Avisar en tiempo real la eliminación de cada atención del paciente
+      // para que todas las pantallas las quiten al instante.
+      if (req.io) {
+        atenciones.forEach((a) => {
+          req.io.emit('estado-actualizado', { tipo: 'eliminado', id_atencion: Number(a.id_atencion), id_sede: sede });
+        });
+      }
+
       res.json({ mensaje: 'Paciente eliminado' });
     } catch (error) {
       await client.query('ROLLBACK');
@@ -413,6 +421,11 @@ const eliminarAtencion = async (req, res) => {
     await historialRepo.deleteByAtencion(client, id);
     await atencionRepo.eliminarAtencion(client, id, sede);
     await client.query('COMMIT');
+    // Avisar en tiempo real a todas las pantallas (turnero, APS, colas) para
+    // que quiten la fila al instante sin esperar su polling.
+    if (req.io) {
+      req.io.emit('estado-actualizado', { tipo: 'eliminado', id_atencion: Number(id), id_sede: sede });
+    }
     res.json({ mensaje: 'Atención eliminada' });
   } catch (error) {
     await client.query('ROLLBACK');
