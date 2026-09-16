@@ -87,7 +87,7 @@ module.exports = {};
  *
  * @property {number} id_paciente
  * @property {string} cedula
- * @property {string} tipo_documento
+ * @property {*|*|*} tipo_documento
  * @property {string} nombre
  * @property {string} apellido
  * @property {string} primer_nombre
@@ -105,7 +105,7 @@ module.exports = {};
  *
  * @property {number|null|undefined} id_paciente
  * @property {string} cedula
- * @property {string} tipo_documento
+ * @property {*|*|*} tipo_documento
  * @property {string} primer_nombre
  * @property {string|undefined} segundo_nombre
  * @property {string} primer_apellido
@@ -220,6 +220,7 @@ module.exports = {};
  * @property {number} id_usuario
  * @property {number|undefined} id
  * @property {string|undefined} cedula
+ * @property {*|*|*|undefined} tipo_documento
  * @property {string|undefined} username
  * @property {string} nombre
  * @property {string|undefined} apellido
