@@ -34,38 +34,6 @@ export function fechaABackend(fecha: string): string | null {
   return `${partes[2]}-${partes[1]}-${partes[0]}`;
 }
 
-/** Días máximos por mes en años no bisiestos (índice 0 sin uso). */
-const DIAS_POR_MES = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-
-function esBisiesto(anio: number): boolean {
-  return (anio % 4 === 0 && anio % 100 !== 0) || anio % 400 === 0;
-}
-
-/**
- * Valida que una fecha dd/mm/aaaa corresponda a un día real del calendario.
- * Devuelve null si es válida, o una cadena con el motivo del error.
- */
-export function validarFechaNacimiento(fecha: string): string | null {
-  if (!fecha) return null;
-  if (!/^\d{2}\/\d{2}\/\d{4}$/.test(fecha)) {
-    return 'La fecha de nacimiento debe tener el formato DD/MM/AAAA (ej: 15/03/1990)';
-  }
-  const [dd, mm, yyyy] = fecha.split('/').map(Number);
-  if (mm < 1 || mm > 12) {
-    return `El mes "${String(mm).padStart(2, '0')}" no existe: debe ser entre 01 y 12`;
-  }
-  const anioActual = new Date().getFullYear();
-  if (yyyy < 1900 || yyyy > anioActual) {
-    return `El año "${yyyy}" no es válido: debe estar entre 1900 y ${anioActual}`;
-  }
-  const maxDias = mm === 2 && esBisiesto(yyyy) ? 29 : DIAS_POR_MES[mm];
-  if (dd < 1 || dd > maxDias) {
-    const nombreMes = ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'][mm];
-    return `El mes ${nombreMes} no tiene ${dd} días: el día debe ser entre 01 y ${String(maxDias).padStart(2, '0')}`;
-  }
-  return null;
-}
-
 /** Extrae los 8 dígitos del display como slots (los vacíos quedan en ' '). */
 export function obtenerSlots(display: string): string[] {
   if (!display) return Array(8).fill(' ');
