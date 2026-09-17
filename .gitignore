@@ -49,6 +49,7 @@ Thumbs.db
 .aider*
 .env
 .env.capacitor
+backend/.env
 
 # Capacitor environment (generado por scripts/build-capacitor-env.js)
 src/environments/environment.capacitor.ts
