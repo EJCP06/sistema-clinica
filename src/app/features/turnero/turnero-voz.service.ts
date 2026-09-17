@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { isCapacitor, getBackendUrl, desbloquearVozNavegador, limpiarGuardiaGlobalAntiDoble } from './voz.util';
 import {
-  formatearConsultorioConPiso,
   esAnuncioAPS,
   construirTextoAnuncio,
   aNombreNatural,
