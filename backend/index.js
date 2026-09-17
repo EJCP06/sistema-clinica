@@ -183,6 +183,14 @@ const startServer = async () => {
       // Limpiar WAVs temporales del TTS pre-sintetizado cada 60s
       const ttsService = require('./src/services/tts.service');
       setInterval(() => ttsService.limpiarArchivosAntiguos(120000), 60000);
+      // Marcar como retirados los pacientes pendientes de días anteriores cada hora
+      setInterval(async () => {
+        try {
+          await limpiarEstadosPendientes();
+        } catch (err) {
+          logger.error('Error en limpieza automática de estados pendientes:', err.message);
+        }
+      }, 3600000); // cada hora (3,600,000 ms)
     });
 
   } catch (err) {
