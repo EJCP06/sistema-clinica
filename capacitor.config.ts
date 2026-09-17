@@ -24,7 +24,7 @@ const config: CapacitorConfig = {
       launchShowDuration: 0,
     },
     CapacitorHttp: {
-      enabled: false,
+      enabled: true,
     }
   }
 };

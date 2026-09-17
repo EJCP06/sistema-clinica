@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, Subject } from 'rxjs';
 import { environment } from '@env/environment';
 import { io, Socket } from 'socket.io-client';
+
 import {
   LoginResponse,
   TurnoDTO,
@@ -35,8 +36,6 @@ export class ApiService {
 
   constructor() {
     this.conectarSocket(sessionStorage.getItem('clinica_token'));
-    // Fallback background: si el socket no conecta en 5s con el dominio,
-    // probar la IP interna del servidor.
     this.iniciarFallbackBackground();
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', () => {
