@@ -6,6 +6,7 @@
   <main
     class="flex-1 flex flex-col min-w-0 overflow-hidden relative bg-slate-50 dark:bg-slate-950 lg:pl-80"
   >
+    <div [tourAnchor]="tipo === 'laboratorio' ? 'tour-laboratorio-content' : 'tour-imagenes-content'" class="flex flex-col flex-1 min-h-0">
     <!-- HEADER COMPONENT -->
     <app-header
       [title]="tituloPagina"
@@ -594,7 +595,7 @@
             class="flex flex-col gap-2 px-4 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-800 sm:flex-row sm:items-center"
           >
             <div class="flex items-center gap-2 flex-1 min-w-0">
-              <div class="relative search-filter-container shrink-0">
+              <div class="relative search-filter-container shrink-0" [tourAnchor]="tipo === 'laboratorio' ? 'tour-lab-buscador' : 'tour-img-buscador'">
                 <button
                   type="button"
                   (click)="toggleSearchFilterDropdown()"
@@ -707,7 +708,7 @@
           </div>
           <div *ngIf="!cargando" class="flex flex-col justify-between flex-1">
             <div class="overflow-x-auto flex-1">
-              <table class="w-full min-w-[1100px] text-left text-[11px] sm:text-sm">
+              <table class="w-full min-w-[1100px] text-left text-[11px] sm:text-sm" [tourAnchor]="tipo === 'laboratorio' ? 'tour-lab-tabla' : 'tour-img-tabla'">
                 <thead
                   class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800"
                 >
@@ -979,6 +980,7 @@
           </div>
         </div>
       </div>
+    </div>
     </div>
   </main>
 </div>

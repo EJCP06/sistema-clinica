@@ -26,11 +26,12 @@ import { RecepcionSeleccionService } from './recepcion-seleccion.service';
 import { RecepcionPacienteService } from './recepcion-paciente.service';
 import { RecepcionAtencionService, RecepcionState } from './recepcion-atencion.service';
 import { RecepcionAseguradoraService } from './recepcion-aseguradora.service';
+import { TourAnchorMatMenuDirective } from 'ngx-ui-tour-md-menu';
 
 @Component({
   selector: 'app-recepcion',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule, Sidebar, Header, PaginationComponent, PaginatePipe, FillersPipe],
+  imports: [CommonModule, FormsModule, LucideAngularModule, Sidebar, Header, PaginationComponent, PaginatePipe, FillersPipe, TourAnchorMatMenuDirective],
   templateUrl: './recepcion.html',
 })
 export class RecepcionComponent implements OnInit, OnDestroy, RecepcionState {

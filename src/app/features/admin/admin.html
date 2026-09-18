@@ -17,6 +17,7 @@
   <main
     class="flex-1 flex flex-col min-w-0 overflow-hidden relative bg-slate-50 dark:bg-slate-950 lg:pl-80"
   >
+    <div [tourAnchor]="activeTab === 'especialidades' ? 'tour-especialidades-content' : (activeTab === 'reports' || activeTab === 'stats' ? 'tour-dashboard-global' : '')" class="flex flex-col flex-1 min-h-0">
     <app-header
       [title]="
         activeTab === 'reports'
@@ -61,12 +62,13 @@
       <ng-container *ngIf="permisosListos">
         <app-admin-reports *ngIf="activeTab === 'reports' || activeTab === 'stats'" class="flex flex-col flex-1"></app-admin-reports>
 
-        <app-admin-personal *ngIf="activeTab === 'personal'" class="flex flex-col flex-1"></app-admin-personal>
+        <app-admin-personal *ngIf="activeTab === 'personal'" class="flex flex-col flex-1" tourAnchor="tour-admin-personal"></app-admin-personal>
 
         <app-admin-especialidades *ngIf="activeTab === 'especialidades'" class="flex flex-col flex-1"></app-admin-especialidades>
-        <app-admin-roles *ngIf="activeTab === 'roles'" class="flex flex-col flex-1"></app-admin-roles>
-        <app-admin-permisologia *ngIf="activeTab === 'permisologia'" class="flex flex-col flex-1"></app-admin-permisologia>
+        <app-admin-roles *ngIf="activeTab === 'roles'" class="flex flex-col flex-1" tourAnchor="tour-admin-roles"></app-admin-roles>
+        <app-admin-permisologia *ngIf="activeTab === 'permisologia'" class="flex flex-col flex-1" tourAnchor="tour-admin-permisos"></app-admin-permisologia>
       </ng-container>
+    </div>
     </div>
   </main>
 </div>

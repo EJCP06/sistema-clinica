@@ -7,6 +7,7 @@ import { authInterceptor } from '@core/interceptors/auth.interceptor';
 import { errorInterceptor } from '@core/interceptors/error.interceptor';
 import { retryInterceptor } from '@core/interceptors/retry.interceptor';
 import { zoneInterceptor } from '@core/interceptors/zone.interceptor';
+import { provideUiTour } from 'ngx-ui-tour-md-menu';
 
 import { routes } from './app.routes';
 
@@ -30,5 +31,12 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideHttpClient(withInterceptors([authInterceptor, retryInterceptor, zoneInterceptor, errorInterceptor])),
     { provide: LOCALE_ID, useValue: 'es' },
+    provideUiTour({
+      showProgress: true,
+      enableBackdrop: true,
+      nextBtnTitle: 'Siguiente',
+      prevBtnTitle: 'Anterior',
+      endBtnTitle: 'Finalizar',
+    }),
   ],
 };

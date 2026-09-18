@@ -43,6 +43,7 @@ import { FillersPipe } from '@shared/pipes/fillers.pipe';
 import { ColaAutocompleteService, AutocompleteState } from './cola-autocomplete.service';
 import { ColaDateMaskService } from './cola-date-mask.service';
 import { ColaCountdownService } from './cola-countdown.service';
+import { TourAnchorMatMenuDirective } from 'ngx-ui-tour-md-menu';
 
 export type TipoServicioCola = 'laboratorio' | 'imagenes';
 
@@ -58,6 +59,7 @@ export type TipoServicioCola = 'laboratorio' | 'imagenes';
     PaginationComponent,
     PaginatePipe,
     FillersPipe,
+    TourAnchorMatMenuDirective,
   ],
   templateUrl: './cola-servicio.html',
 })

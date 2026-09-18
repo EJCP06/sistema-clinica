@@ -15,12 +15,13 @@ import { Sidebar } from '../../shared/components/sidebar/sidebar';
 import { PaginationComponent } from '../../shared/components/pagination/pagination';
 import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
 import { FillersPipe } from '../../shared/pipes/fillers.pipe';
+import { TourAnchorMatMenuDirective } from 'ngx-ui-tour-md-menu';
 import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-atencion',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule, Header, Sidebar, PaginationComponent, PaginatePipe, FillersPipe],
+  imports: [CommonModule, FormsModule, LucideAngularModule, Header, Sidebar, PaginationComponent, PaginatePipe, FillersPipe, TourAnchorMatMenuDirective],
   templateUrl: './atencion.html',
 
 })

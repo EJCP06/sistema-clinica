@@ -13,11 +13,12 @@ import { AdminPersonal } from './admin-personal';
 import { AdminEspecialidades } from './admin-especialidades';
 import { AdminRoles } from './admin-roles';
 import { AdminPermisologia } from './admin-permisologia';
+import { TourAnchorMatMenuDirective } from 'ngx-ui-tour-md-menu';
 
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule, FormsModule, Sidebar, Header, AdminReports, AdminPersonal, AdminEspecialidades, AdminRoles, AdminPermisologia],
+  imports: [CommonModule, FormsModule, Sidebar, Header, AdminReports, AdminPersonal, AdminEspecialidades, AdminRoles, AdminPermisologia, TourAnchorMatMenuDirective],
   templateUrl: './admin.html',
 
 })

@@ -16,6 +16,7 @@ import { Header } from '../../shared/components/header/header';
 import { PaginationComponent } from '../../shared/components/pagination/pagination';
 import { PaginatePipe } from '../../shared/pipes/paginate.pipe';
 import { FillersPipe } from '../../shared/pipes/fillers.pipe';
+import { TourAnchorMatMenuDirective } from 'ngx-ui-tour-md-menu';
 
 import { ColaAutocompleteService, AutocompleteState } from '../../shared/features/cola-servicio/cola-autocomplete.service';
 import { ColaDateMaskService } from '../../shared/features/cola-servicio/cola-date-mask.service';
@@ -24,7 +25,7 @@ import { ApsAdmissionListService } from './aps-admission-list.service';
 @Component({
   selector: 'app-aps',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule, Sidebar, Header, PaginationComponent, PaginatePipe, FillersPipe],
+  imports: [CommonModule, FormsModule, LucideAngularModule, Sidebar, Header, PaginationComponent, PaginatePipe, FillersPipe, TourAnchorMatMenuDirective],
   templateUrl: './aps.html'
 })
 export class ApsComponent implements OnInit, OnDestroy {

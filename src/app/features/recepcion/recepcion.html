@@ -14,6 +14,7 @@
   <main
     class="flex-1 flex flex-col min-w-0 overflow-hidden relative bg-slate-50 dark:bg-slate-950 lg:pl-80"
   >
+    <div tourAnchor="tour-admision-content" class="flex flex-col flex-1 min-h-0">
     <app-header
       [title]="pageTitle"
       [subtitle]="pageSubtitle"
@@ -778,7 +779,7 @@
           <!-- BUSCADOR + BOTONES DENTRO DE LA TABLA -->
           <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-4 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-800">
             <div class="flex items-center flex-1 min-w-0 gap-2 order-2 sm:order-1">
-              <div class="relative search-filter-container shrink-0">
+              <div class="relative search-filter-container shrink-0" tourAnchor="tour-recepcion-buscador">
                 <button
                   type="button"
                   (click)="toggleSearchFilterDropdown()"
@@ -918,6 +919,7 @@
               <button
                 *ngIf="isAseguradorasView && tienePermiso('aseguradoras_importar_excel')"
                 (click)="showExcelFormat = true"
+                tourAnchor="tour-recepcion-importar"
                 class="px-4 py-3 sm:px-5 w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 group whitespace-normal sm:whitespace-nowrap font-bold text-sm"
               >
                 <lucide-icon [name]="Upload" class="w-4 h-4"></lucide-icon>
@@ -930,6 +932,7 @@
                     : tienePermiso('admision_crear')
                 "
                 (click)="abrirModalRegistro($event.target)"
+                tourAnchor="tour-recepcion-nuevo"
                 class="px-4 py-3 sm:px-5 w-full bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-lg shadow-blue-600/20 transition-all flex items-center justify-center gap-2 group whitespace-normal sm:whitespace-nowrap font-bold text-sm"
               >
                 <lucide-icon [name]="Plus" class="w-4 h-4"></lucide-icon>
@@ -943,7 +946,7 @@
           </div>
           <div *ngIf="!cargando" class="flex flex-col justify-between flex-1">
             <div class="overflow-x-auto flex-1">
-              <table class="w-full min-w-[800px] text-left text-[11px] sm:text-sm">
+              <table class="w-full min-w-[800px] text-left text-[11px] sm:text-sm" tourAnchor="tour-recepcion-tabla">
                 <thead
                   class="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800"
                 >
@@ -1116,6 +1119,7 @@
           </div>
         </div>
       </div>
+    </div>
     </div>
   </main>
 </div>

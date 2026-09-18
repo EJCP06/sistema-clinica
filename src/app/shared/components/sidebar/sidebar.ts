@@ -3,9 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
-import { ThemeService } from '../../../core/services/theme.service';
-import {
-  LucideAngularModule,
+import { ThemeService } from '../../../core/services/theme.service';import { LucideAngularModule,
   LayoutDashboard,
   BarChart3,
   UserCog,
@@ -28,11 +26,12 @@ import {
   Megaphone,
   Key
 } from 'lucide-angular';
+import { TourAnchorMatMenuDirective } from 'ngx-ui-tour-md-menu';
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterModule, LucideAngularModule],
+  imports: [CommonModule, RouterModule, LucideAngularModule, TourAnchorMatMenuDirective],
   templateUrl: './sidebar.html'
 })
 /**
