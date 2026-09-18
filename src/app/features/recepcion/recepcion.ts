@@ -72,7 +72,7 @@ export class RecepcionComponent implements OnInit, OnDestroy, RecepcionState {
   get medicos() { return this.sel.medicos; }
   get consultorios() { return this.sel.consultorios; }
   get mostrarRegistro() { return this._mostrarRegistro; }
-  set mostrarRegistro(v: boolean) { this._mostrarRegistro = v; v ? this.scrollService.block() : this.scrollService.unblock(); }
+  set mostrarRegistro(v: boolean) { this._mostrarRegistro = v; if (v) { this.scrollService.block(); } else { this.scrollService.unblock(); } }
   get categoriaServicio() { return this.sel.categoriaServicio; }
   set categoriaServicio(v: string) { this.sel.categoriaServicio = v; }
   get showPayerDropdown() { return this.sel.showPayerDropdown; }
@@ -157,12 +157,21 @@ export class RecepcionComponent implements OnInit, OnDestroy, RecepcionState {
     this.pageTitle = d['pageTitle'] || this.pageTitle; this.pageSubtitle = d['pageSubtitle'] || this.pageSubtitle;
     this.isAseguradorasView = !!d['aseguradorasMode'];
     this.sel.cargarDatosMaestros(() => this.cargarAseguradoras());
-    this.isAseguradorasView ? this.cargarAseguradoras() : this.cargarUltimasAdmisiones();
+    if (this.isAseguradorasView) { this.cargarAseguradoras(); } else { this.cargarUltimasAdmisiones(); }
     this.cambiosSub = this.api.cambios$.subscribe((ev: any) => {
       if (this.isAseguradorasView) { this.cargarAseguradoras(); return; }
-      if (ev?.admision) { if (ev.tipo === 'retirado') this.atencion.ultimasAdmisiones = this.atencion.ultimasAdmisiones.filter((a: any) => a.id_atencion !== ev.admision.id_atencion); else if (ev.tipo === 'estado-cambiado') { if ([6, 9].includes(Number(ev.id_estado_nuevo))) this.atencion.ultimasAdmisiones = this.atencion.ultimasAdmisiones.filter((a: any) => a.id_atencion !== ev.admision.id_atencion); else if (Number(ev.id_estado_nuevo) === 3) this.atencion.ultimasAdmisiones = [ev.admision, ...this.atencion.ultimasAdmisiones].slice(0, 50); } } else if (ev.tipo === 'retirado' || ev.tipo === 'liberacion') { const id = Number(ev.id_atencion); !isNaN(id) ? this.atencion.ultimasAdmisiones = this.atencion.ultimasAdmisiones.filter((a: any) => a.id_atencion !== id) : this.cargarUltimasAdmisiones(); } else if (ev.tipo === 'estado-cambiado') { if ([6, 9].includes(Number(ev.id_estado_nuevo))) { const id = Number(ev.id_atencion); !isNaN(id) ? this.atencion.ultimasAdmisiones = this.atencion.ultimasAdmisiones.filter((a: any) => a.id_atencion !== id) : this.cargarUltimasAdmisiones(); } } else this.cargarUltimasAdmisiones();
+      if (ev?.admision) {
+        if (ev.tipo === 'retirado') { this.atencion.ultimasAdmisiones = this.atencion.ultimasAdmisiones.filter((a: any) => a.id_atencion !== ev.admision.id_atencion); }
+        else if (ev.tipo === 'estado-cambiado') { if ([6, 9].includes(Number(ev.id_estado_nuevo))) { this.atencion.ultimasAdmisiones = this.atencion.ultimasAdmisiones.filter((a: any) => a.id_atencion !== ev.admision.id_atencion); } else if (Number(ev.id_estado_nuevo) === 3) { this.atencion.ultimasAdmisiones = [ev.admision, ...this.atencion.ultimasAdmisiones].slice(0, 50); } }
+      } else if (ev.tipo === 'retirado' || ev.tipo === 'liberacion') {
+        const id = Number(ev.id_atencion); if (!isNaN(id)) { this.atencion.ultimasAdmisiones = this.atencion.ultimasAdmisiones.filter((a: any) => a.id_atencion !== id); } else { this.cargarUltimasAdmisiones(); }
+      } else if (ev.tipo === 'estado-cambiado') {
+        if ([6, 9].includes(Number(ev.id_estado_nuevo))) { const id = Number(ev.id_atencion); if (!isNaN(id)) { this.atencion.ultimasAdmisiones = this.atencion.ultimasAdmisiones.filter((a: any) => a.id_atencion !== id); } else { this.cargarUltimasAdmisiones(); } }
+      } else { this.cargarUltimasAdmisiones(); }
     });
-    this.searchSubscription = this.searchSubject.pipe(debounceTime(80)).subscribe(v => { (!v || v.trim().length < 1) ? this.resetSearchOnly() : this.ejecutarBusqueda(v); });
+    this.searchSubscription = this.searchSubject.pipe(debounceTime(80)).subscribe(v => {
+      if (!v || v.trim().length < 1) { this.resetSearchOnly(); } else { this.ejecutarBusqueda(v); }
+    });
   }
 
   ngOnDestroy() { this.cambiosSub?.unsubscribe(); this.searchSubscription?.unsubscribe(); this.busquedaSubscription?.unsubscribe(); }
@@ -182,7 +191,7 @@ export class RecepcionComponent implements OnInit, OnDestroy, RecepcionState {
   cargarAseguradoras() { this.cargando = true; this.asegs.cargarAseguradoras(this.cdr, () => this.cargando = false); this.sel.setAseguradorasRef(this.asegs.aseguradoras); }
   abrirModalRegistro(trigger?: EventTarget | null) { if (!this.isEditMode) this.pac.prepararNuevoPaciente(this.isAseguradorasView, this.cedulaBusqueda, this.searchFilter); this.modalTrigger = trigger instanceof HTMLElement ? trigger : null; this.mostrarRegistro = true; }
   cerrarModalRegistro() { this.mostrarRegistro = false; this.modalTrigger = null; this.isEditMode = false; this.showDocTypeDropdown = false; }
-  onSearchChange(value: string) { (!value || value.trim().length < 1) ? this.resetSearchOnly() : this.searchSubject.next(value); }
+  onSearchChange(value: string) { if (!value || value.trim().length < 1) { this.resetSearchOnly(); } else { this.searchSubject.next(value); } }
   ejecutarBusqueda(value: string) { this.busquedaSubscription?.unsubscribe(); this.buscando = true; this.pacientesEncontrados = []; const f = this.searchFilter !== 'todo' ? `?filtro=${this.searchFilter}` : ''; this.busquedaSubscription = this.api.get<any[]>(`recepcion/pacientes/${value}${f}`).subscribe({ next: (d) => { if (!this.cedulaBusqueda?.trim()) return; this.pacientesEncontrados = d || []; this.mostrarResultadosBusqueda = !!(d && d.length); this.buscando = false; }, error: () => { this.buscando = false; this.pacientesEncontrados = []; this.mostrarResultadosBusqueda = false; } }); }
   resetSearchOnly() { this.busquedaSubscription?.unsubscribe(); this.busquedaSubscription = undefined; this.pacientesEncontrados = []; this.buscando = false; this.mostrarResultadosBusqueda = false; }
   onSearchFocus() { if (this.pacientesEncontrados.length > 0) this.mostrarResultadosBusqueda = true; }
@@ -205,7 +214,7 @@ export class RecepcionComponent implements OnInit, OnDestroy, RecepcionState {
     this.isSaving = true; this.inicioGuardado = Date.now();
     if (this.isEditMode) { this.atencion.actualizarPacienteExistente(this.nuevoPaciente.id_paciente!, true, this.nuevoPaciente, this, fn => this.finalizarGuardado(fn), () => this.cargarUltimasAdmisiones()); }
     else if (this.pacienteExistenteCargado && this.nuevoPaciente.id_paciente) { this.atencion.generarAtencionDirecta(this.nuevoPaciente.id_paciente, this, fn => this.finalizarGuardado(fn), () => this.cargarUltimasAdmisiones()); }
-    else { this.api.get<any[]>(`recepcion/pacientes/${this.nuevoPaciente.cedula}`).subscribe({ next: (d) => { const p = d?.find((x: any) => x.cedula === this.nuevoPaciente.cedula && x.tipo_documento === this.nuevoPaciente.tipo_documento);       p ? this.atencion.actualizarPacienteExistente(p.id_paciente || p.id, false, this.nuevoPaciente, this, fn => this.finalizarGuardado(fn), () => this.cargarUltimasAdmisiones()) : this.crearNuevoPaciente(); }, error: () => this.crearNuevoPaciente() }); }
+    else { this.api.get<any[]>(`recepcion/pacientes/${this.nuevoPaciente.cedula}`).subscribe({ next: (d) => { const p = d?.find((x: any) => x.cedula === this.nuevoPaciente.cedula && x.tipo_documento === this.nuevoPaciente.tipo_documento); if (p) { this.atencion.actualizarPacienteExistente(p.id_paciente || p.id, false, this.nuevoPaciente, this, fn => this.finalizarGuardado(fn), () => this.cargarUltimasAdmisiones()); } else { this.crearNuevoPaciente(); } }, error: () => this.crearNuevoPaciente() }); }
   }
 
   private crearNuevoPaciente() {
@@ -213,7 +222,7 @@ export class RecepcionComponent implements OnInit, OnDestroy, RecepcionState {
     import('./recepcion-fechas.util').then(({ fechaABackend }) => {
       this.api.post('recepcion/pacientes', { cedula: esN ? p.cedula.replace(/\D/g, '') : p.cedula.trim().toUpperCase(), tipo_documento: p.tipo_documento || 'v', primer_nombre: p.primer_nombre.toUpperCase().trim(), segundo_nombre: p.segundo_nombre.toUpperCase().trim(), primer_apellido: p.primer_apellido.toUpperCase().trim(), segundo_apellido: p.segundo_apellido.toUpperCase().trim(), fecha_nacimiento: fechaABackend(p.fecha_nacimiento), telefono: p.telefono.replace(/\D/g, ''), status: true }).subscribe({
         next: (pac: any) => this.atencion.generarAtencionDirecta(pac.id_paciente || pac.id, this, fn => this.finalizarGuardado(fn), () => this.cargarUltimasAdmisiones()),
-        error: (e: any) => { console.error('Error registrando:', e); this.finalizarGuardado(() => { e.status === 409 ? this.swal.error('El paciente con esta cedula ya esta registrado en esta sede.') : this.swal.error('Error al registrar paciente'); }); },
+        error: (e: any) => { console.error('Error registrando:', e); this.finalizarGuardado(() => { if (e.status === 409) { this.swal.error('El paciente con esta cedula ya esta registrado en esta sede.'); } else { this.swal.error('Error al registrar paciente'); } }); },
       });
     });
   }
@@ -240,7 +249,7 @@ export class RecepcionComponent implements OnInit, OnDestroy, RecepcionState {
     if (this.isAseguradorasView) { this.isSaving = false; this.abrirModalRegistro(trigger); this.pacienteExistenteCargado = false; this.nuevoPaciente.id_cliente = fila.id_cliente; (this.nuevoPaciente as any).nombre = fila.aseguradora; }
     else { this.pacienteExistenteCargado = true; this.abrirModalRegistro(trigger); this.pac.editarPaciente(fila); }
   }
-  async eliminarFila(fila: any) { this.isAseguradorasView ? this.asegs.eliminarAseguradora(fila, () => { this.cargarAseguradoras(); this.sel.setAseguradorasRef(this.asegs.aseguradoras); }) : this.atencion.eliminarAdmision(fila, () => this.cargarUltimasAdmisiones()); }
+  async eliminarFila(fila: any) { if (this.isAseguradorasView) { this.asegs.eliminarAseguradora(fila, () => { this.cargarAseguradoras(); this.sel.setAseguradorasRef(this.asegs.aseguradoras); }); } else { this.atencion.eliminarAdmision(fila, () => this.cargarUltimasAdmisiones()); } }
   async marcarAusente(fila: any) { this.atencion.marcarAusente(fila, () => this.cargarUltimasAdmisiones()); }
   confirmarImportacion() { this.asegs.confirmarImportacion(this, () => { this.cargarAseguradoras(); this.sel.setAseguradorasRef(this.asegs.aseguradoras); }); }
   importarAseguradorasExcel(fileInput: HTMLInputElement) { this.asegs.importarAseguradorasExcel(fileInput); }

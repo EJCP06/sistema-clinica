@@ -57,8 +57,6 @@ export class RecepcionAseguradoraService {
     const nombre = (nuevoPaciente.nombre || '').toString().trim();
     if (!nombre) { this.swal.warning('Debe ingresar el nombre de la aseguradora'); return; }
     state.isSaving = true;
-    const inicio = Date.now();
-    const ok = (fn?: () => void) => setTimeout(() => { fn?.(); }, Math.max(0, 800 - (Date.now() - inicio)));
     if (isEditMode && nuevoPaciente.id_cliente) {
       this.api.put(`admin/aseguradoras/${nuevoPaciente.id_cliente}`, { nombre }).subscribe({ next: () => finalizarCb(() => { onReload(); state.mostrarRegistro = false; this.swal.success('Aseguradora actualizada correctamente'); }), error: () => finalizarCb(() => this.swal.error('Error al actualizar aseguradora')) });
     } else {

@@ -3,7 +3,7 @@ import { ApiService } from '../../core/services/api.service';
 import { SwalService } from '../../core/services/swal.service';
 import { EspecialidadesService } from '../../core/services/especialidades.service';
 import { normalizeString } from './recepcion-fechas.util';
-import { RecepcionAutocompleteService, AutocompleteState, AutocompleteItem } from './recepcion-autocomplete.service';
+import { RecepcionAutocompleteService, AutocompleteState } from './recepcion-autocomplete.service';
 import { SedeDTO } from '@core/models/dto.models';
 
 export interface SeleccionModel {

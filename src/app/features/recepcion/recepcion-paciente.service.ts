@@ -1,8 +1,8 @@
-import { Injectable, inject, ChangeDetectorRef } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { ApiService } from '../../core/services/api.service';
 import { SwalService } from '../../core/services/swal.service';
 import { ScrollService } from '../../core/services/scroll.service';
-import { fechaABackend, fechaADisplay } from './recepcion-fechas.util';
+import { fechaADisplay } from './recepcion-fechas.util';
 import { RecepcionSeleccionService } from './recepcion-seleccion.service';
 
 export interface NuevoPaciente {
