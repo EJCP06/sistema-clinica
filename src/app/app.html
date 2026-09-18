@@ -5,3 +5,45 @@
   en app.ts.
 -->
 <router-outlet />
+
+<!-- Botón flotante de ayuda para el tour guiado -->
+<app-help-button />
+
+<!-- Componente del tour (renderiza los tooltips del tour) -->
+<ng-template #defaultStepTemplate let-step="step">
+  <!-- PASO MENÚ: 3 botones clickeables -->
+  <div *ngIf="step.isMenu" class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 w-80">
+    <h3 class="font-black text-sm text-slate-900 dark:text-white tracking-tight m-0 mb-2">{{ step.title }}</h3>
+    <p class="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed m-0 mb-4">{{ step.content }}</p>
+
+    <div class="space-y-2 mb-4">
+      <button *ngFor="let opt of step.menuOptions"
+        (click)="tourNavigateTo(opt.route, opt.expand)"
+        class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700 group">
+        <div class="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/40 transition-colors">
+          <lucide-icon *ngIf="opt.expand === 'panel'" [name]="LayoutDashboard" class="w-4 h-4 text-blue-600 dark:text-blue-400"></lucide-icon>
+          <lucide-icon *ngIf="opt.expand === 'operaciones'" [name]="Activity" class="w-4 h-4 text-blue-600 dark:text-blue-400"></lucide-icon>
+          <lucide-icon *ngIf="opt.expand === 'admin'" [name]="UsersIcon" class="w-4 h-4 text-blue-600 dark:text-blue-400"></lucide-icon>
+        </div>
+        <span class="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">{{ opt.label }}</span>
+      </button>
+    </div>
+
+    <div class="flex items-center justify-between">
+      <button (click)="tourPrev()" class="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">Anterior</button>
+    </div>
+  </div>
+
+  <!-- PASO NORMAL: tooltip estándar -->
+  <div *ngIf="!step.isMenu" class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 w-72">
+    <h3 class="font-black text-sm text-slate-900 dark:text-white tracking-tight m-0 mb-2">{{ step.title }}</h3>
+    <p class="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed m-0 mb-4">{{ step.content }}</p>
+    <div class="flex items-center justify-between">
+      <div class="flex gap-2">
+        <button (click)="tourPrev()" class="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">Anterior</button>
+        <button (click)="tourNext()" class="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Siguiente</button>
+      </div>
+    </div>
+  </div>
+</ng-template>
+<tour-step-template [stepTemplate]="defaultStepTemplate" />

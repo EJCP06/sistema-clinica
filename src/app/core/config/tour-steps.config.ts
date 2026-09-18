@@ -20,6 +20,10 @@ export interface TourStep extends IStepOption {
   route?: string;
   /** Sección del sidebar a expandir (sessionStorage key) */
   expandSection?: 'panel' | 'operaciones' | 'admin';
+  /** Marca este paso como menú interactivo (template especial con botones) */
+  isMenu?: boolean;
+  /** Opciones para el menú interactivo */
+  menuOptions?: { label: string; route: string; expand: 'panel' | 'operaciones' | 'admin' }[];
 }
 
 export interface TourModuleConfig {
@@ -36,15 +40,8 @@ export const TOUR_STEPS: TourStep[] = [
   {
     anchorId: 'tour-sidebar-logo',
     title: '¡Bienvenido al Sistema!',
-    content: 'Este tour le mostrará cómo navegar por el sistema. El menú lateral izquierdo es su principal herramienta de navegación.',
+    content: 'Este tour le mostrará cómo navegar por el sistema de colas.',
     route: '/recepcion',
-  },
-
-  // ─── 2. EL SIDEBAR ──────────────────────────────────────
-  {
-    anchorId: 'tour-sidebar-panel',
-    title: 'Menú de Navegación',
-    content: 'El sidebar tiene secciones colapsables. Haga click en cada una para ver los módulos disponibles según su rol.',
   },
 ];
 
@@ -55,6 +52,41 @@ export const TOUR_STEPS: TourStep[] = [
 export const buildSidebarSteps = (permisos: { tienePermiso: (p: string) => boolean; rol: string }): TourStep[] => {
   const steps: TourStep[] = [...TOUR_STEPS];
   const esAdmin = permisos.rol === 'administrador';
+
+  // ─── 2. MENÚ DE NAVEGACIÓN (interactivo) ────────────────
+  const menuOptions: TourStep['menuOptions'] = [];
+
+  if (esAdmin || permisos.tienePermiso('ver_reportes')) {
+    menuOptions.push({ label: 'Panel Control', route: '/administrador?tab=reports', expand: 'panel' });
+  }
+
+  const tieneOperaciones = permisos.tienePermiso('admision:ver') || permisos.tienePermiso('aps:ver')
+    || permisos.tienePermiso('laboratorio:ver') || permisos.tienePermiso('imagenes:ver')
+    || permisos.tienePermiso('atencion_medica:ver');
+  if (tieneOperaciones) {
+    // Navegar al primer módulo de operaciones que el usuario tenga
+    let opRoute = '/recepcion';
+    if (permisos.tienePermiso('admision:ver')) opRoute = '/recepcion';
+    else if (permisos.tienePermiso('aps:ver')) opRoute = '/aps';
+    else if (permisos.tienePermiso('laboratorio:ver')) opRoute = '/laboratorio';
+    else if (permisos.tienePermiso('imagenes:ver')) opRoute = '/imagenes';
+    else if (permisos.tienePermiso('atencion_medica:ver')) opRoute = '/atencion';
+    menuOptions.push({ label: 'Operaciones', route: opRoute, expand: 'operaciones' });
+  }
+
+  if (esAdmin || permisos.tienePermiso('personal:ver')) {
+    menuOptions.push({ label: 'Usuarios', route: '/administrador?tab=personal', expand: 'admin' });
+  }
+
+  if (menuOptions.length > 0) {
+    steps.push({
+      anchorId: 'tour-sidebar-panel',
+      title: 'Menú de Navegación',
+      content: 'El sidebar tiene secciones colapsables. Seleccione una sección para ver los módulos disponibles.',
+      isMenu: true,
+      menuOptions,
+    });
+  }
 
   // ─── 3. PANEL CONTROL (solo admin) ─────────────────────
   if (esAdmin || permisos.tienePermiso('ver_reportes')) {
