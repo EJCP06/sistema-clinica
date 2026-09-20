@@ -12,7 +12,7 @@
 <!-- Componente del tour (renderiza los tooltips del tour) -->
 <ng-template #defaultStepTemplate let-step="step">
   <!-- PASO CON ACCORDION: infoSections -->
-  <div *ngIf="step.infoSections?.length" class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 w-80" (click)="$event.stopPropagation()">
+  <div *ngIf="step.infoSections?.length" class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 w-96" (click)="$event.stopPropagation()">
     <div class="flex items-start justify-between mb-3">
       <h3 class="font-black text-sm text-slate-900 dark:text-white tracking-tight m-0">{{ step.title }}</h3>
       <button (click)="$event.stopPropagation(); tourEnd()" class="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" title="Cerrar tour">
@@ -41,13 +41,14 @@
     <div class="flex items-center justify-between">
       <div class="flex gap-2">
         <button (click)="$event.stopPropagation(); tourPrev()" class="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">Anterior</button>
-        <button (click)="$event.stopPropagation(); tourNext()" class="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Siguiente</button>
+        <button *ngIf="hasNext(step)" (click)="$event.stopPropagation(); tourNext()" class="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Siguiente</button>
+        <button *ngIf="!hasNext(step)" (click)="$event.stopPropagation(); tourEnd(true)" class="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Finalizar</button>
       </div>
     </div>
   </div>
 
   <!-- PASO NORMAL: tooltip estándar -->
-  <div *ngIf="!step.infoSections?.length" class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 w-72" (click)="$event.stopPropagation()">
+  <div *ngIf="!step.infoSections?.length" class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 w-96" (click)="$event.stopPropagation()">
     <div class="flex items-start justify-between mb-3">
       <h3 class="font-black text-sm text-slate-900 dark:text-white tracking-tight m-0">{{ step.title }}</h3>
       <button (click)="$event.stopPropagation(); tourEnd()" class="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" title="Cerrar tour">
@@ -58,7 +59,8 @@
     <div class="flex items-center justify-between">
       <div class="flex gap-2">
         <button (click)="$event.stopPropagation(); tourPrev()" class="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">Anterior</button>
-        <button (click)="$event.stopPropagation(); tourNext()" class="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Siguiente</button>
+        <button *ngIf="hasNext(step)" (click)="$event.stopPropagation(); tourNext()" class="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Siguiente</button>
+        <button *ngIf="!hasNext(step)" (click)="$event.stopPropagation(); tourEnd(true)" class="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Finalizar</button>
       </div>
     </div>
   </div>

@@ -63,7 +63,8 @@
       </div>
     </div>
 
-    <div *ngIf="tienePermiso('admision:ver') || tienePermiso('aps:ver') || tienePermiso('laboratorio:ver') || tienePermiso('imagenes:ver') || tienePermiso('atencion_medica:ver') || tienePermiso('aseguradoras:ver') || tienePermiso('especialidades:ver')" class="mb-4" tourAnchor="tour-sidebar-operaciones">
+    <div tourAnchor="tour-sidebar-operaciones" class="w-full relative block">
+      <div *ngIf="tienePermiso('admision:ver') || tienePermiso('aps:ver') || tienePermiso('laboratorio:ver') || tienePermiso('imagenes:ver') || tienePermiso('atencion_medica:ver') || tienePermiso('aseguradoras:ver') || tienePermiso('especialidades:ver')" class="mb-4">
       <button 
         (click)="toggleSection('operaciones')"
         class="w-full flex items-center justify-between gap-3 mb-1 px-5 py-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all duration-200 group text-left"
@@ -156,7 +157,8 @@
       </div>
     </div>
 
-    <div *ngIf="tienePermiso('personal:ver') || tienePermiso('roles:ver') || tienePermiso('permisologia:ver')" class="mb-4" tourAnchor="tour-sidebar-admin">
+    <div tourAnchor="tour-sidebar-admin" class="w-full relative block">
+      <div *ngIf="tienePermiso('personal:ver') || tienePermiso('roles:ver') || tienePermiso('permisologia:ver')" class="mb-4">
       <button 
         (click)="toggleSection('admin')"
         class="w-full flex items-center justify-between gap-3 mb-1 px-5 py-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all duration-200 group text-left"
@@ -202,6 +204,8 @@
           <span class="font-bold text-[13px] uppercase tracking-wider">Permisología</span>
         </button>
       </div>
+    </div>
+    </div>
     </div>
     </div>
   </nav>

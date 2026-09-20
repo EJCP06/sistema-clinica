@@ -8,6 +8,7 @@ import { Capacitor } from '@capacitor/core';
 import { HelpButtonComponent } from '@shared/components/help-button/help-button.component';
 import { TourMatMenu, TourService as NgxTourService } from 'ngx-ui-tour-md-menu';
 import { MatMenuModule } from '@angular/material/menu';
+import confetti from 'canvas-confetti';
 
 @Component({
   selector: 'app-root',
@@ -48,9 +49,54 @@ export class App implements OnInit, OnDestroy {
   toggleTourSection(index: number): void {
     this.tourSectionOpen = this.tourSectionOpen === index ? null : index;
   }
-  tourEnd(): void {
+  tourEnd(isLastStep = false): void {
+    if (isLastStep) {
+      this.fireConfetti();
+    }
     this.tourSectionOpen = null;
     this.tourService.end();
+  }
+
+  private fireConfetti(): void {
+    const duration = 3000;
+    const end = Date.now() + duration;
+
+    const colors = ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#ffffff'];
+
+    const frame = () => {
+      confetti({
+        particleCount: 3,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0, y: 0.7 },
+        colors,
+      });
+      confetti({
+        particleCount: 3,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1, y: 0.7 },
+        colors,
+      });
+
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    };
+
+    // Explosión inicial grande
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { x: 0.5, y: 0.6 },
+      colors,
+    });
+
+    frame();
+  }
+  
+  hasNext(step: any): boolean {
+    return this.tourService.hasNext(step);
   }
 
   ngOnInit() {
@@ -69,6 +115,8 @@ export class App implements OnInit, OnDestroy {
     if (this.auth.getToken()) {
       this.auth.verifySession().subscribe();
       this.auth.refreshTokenSiEsNuevoDia();
+      // Reanudar tour si estaba en curso antes de recargar
+      this.tourGuide.resumeIfInProgress();
     }
 
     this.intervalRefrescador = setInterval(() => {
