@@ -17,58 +17,126 @@
   <main
     class="flex-1 flex flex-col min-w-0 overflow-hidden relative bg-slate-50 dark:bg-slate-950 lg:pl-80"
   >
-    <div [tourAnchor]="activeTab === 'especialidades' ? 'tour-especialidades-content' : (activeTab === 'reports' || activeTab === 'stats' ? 'tour-dashboard-global' : '')" class="flex flex-col flex-1 min-h-0">
-    <app-header
-      [title]="
-        activeTab === 'reports'
-          ? 'Dashboard Global'
-          : activeTab === 'stats'
-            ? 'Análisis de Datos'
-            : activeTab === 'personal'
-              ? 'Gestión del Personal'
-              : activeTab === 'especialidades'
-                ? 'Gestión de Especialidades'
-                : activeTab === 'roles'
-                ? 'Gestión de Roles'
-                : activeTab === 'permisologia'
-                ? 'Permisología'
-                : 'Gestión de Consultorios'
-      "
-      [subtitle]="
-        activeTab === 'reports'
-          ? 'Resumen operativo en tiempo real'
-          : activeTab === 'stats'
-            ? 'Productividad y tendencias'
-            : activeTab === 'personal'
-              ? 'Administración de usuarios del sistema'
-              : activeTab === 'especialidades'
-                ? 'Configuración de servicios clínicos'
-                : activeTab === 'roles'
-                ? 'Administración de roles y permisos'
-                : activeTab === 'permisologia'
-                ? 'Matriz de permisos por rol'
-                : 'Gestión de consultorios and ubicaciones'
-      "
-      [showLogo]="false"
-      [showMenuButton]="true"
-      (toggleSidebar)="sidebarOpen = !sidebarOpen"
-    >
-    </app-header>
+    <!-- Dashboard / Stats: anchor cubre header + contenido -->
+    <ng-container *ngIf="activeTab === 'reports' || activeTab === 'stats'">
+      <div class="flex flex-col flex-1 min-h-0" tourAnchor="tour-dashboard-global">
+        <app-header
+          [title]="activeTab === 'reports' ? 'Dashboard Global' : 'Análisis de Datos'"
+          [subtitle]="activeTab === 'reports' ? 'Resumen operativo en tiempo real' : 'Productividad y tendencias'"
+          [showLogo]="false"
+          [showMenuButton]="true"
+          (toggleSidebar)="sidebarOpen = !sidebarOpen"
+        ></app-header>
+        <div
+          class="flex-1 overflow-y-auto px-4 pt-4 pb-4 md:px-8 md:pt-8 md:pb-8 flex flex-col"
+          style="scrollbar-width: none; -ms-overflow-style: none"
+        >
+          <ng-container *ngIf="permisosListos">
+            <app-admin-reports class="flex flex-col flex-1"></app-admin-reports>
+          </ng-container>
+        </div>
+      </div>
+    </ng-container>
 
-    <div class="flex-1 overflow-y-auto px-4 pt-4 pb-4 md:px-8 md:pt-8 md:pb-8 flex flex-col" style="scrollbar-width: none; -ms-overflow-style: none;">
-      <style>
-        .flex-1::-webkit-scrollbar { display: none; }
-      </style>
-      <ng-container *ngIf="permisosListos">
-        <app-admin-reports *ngIf="activeTab === 'reports' || activeTab === 'stats'" class="flex flex-col flex-1"></app-admin-reports>
+    <!-- Especialidades: anchor cubre header + contenido -->
+    <ng-container *ngIf="activeTab === 'especialidades'">
+      <div class="flex flex-col flex-1 min-h-0" tourAnchor="tour-especialidades-content">
+        <app-header
+          title="Gestión de Especialidades"
+          subtitle="Configuración de servicios clínicos"
+          [showLogo]="false"
+          [showMenuButton]="true"
+          (toggleSidebar)="sidebarOpen = !sidebarOpen"
+        ></app-header>
+        <div
+          class="flex-1 overflow-y-auto px-4 pt-4 pb-4 md:px-8 md:pt-8 md:pb-8 flex flex-col"
+          style="scrollbar-width: none; -ms-overflow-style: none"
+        >
+          <ng-container *ngIf="permisosListos">
+            <app-admin-especialidades class="flex flex-col flex-1"></app-admin-especialidades>
+          </ng-container>
+        </div>
+      </div>
+    </ng-container>
 
-        <app-admin-personal *ngIf="activeTab === 'personal'" class="flex flex-col flex-1" tourAnchor="tour-admin-personal"></app-admin-personal>
+    <!-- Personal: anchor cubre header + contenido -->
+    <ng-container *ngIf="activeTab === 'personal'">
+      <div class="flex flex-col flex-1 min-h-0" tourAnchor="tour-admin-personal">
+        <app-header
+          title="Gestión del Personal"
+          subtitle="Administración de usuarios del sistema"
+          [showLogo]="false"
+          [showMenuButton]="true"
+          (toggleSidebar)="sidebarOpen = !sidebarOpen"
+        ></app-header>
+        <div
+          class="flex-1 overflow-y-auto px-4 pt-4 pb-4 md:px-8 md:pt-8 md:pb-8 flex flex-col"
+          style="scrollbar-width: none; -ms-overflow-style: none"
+        >
+          <ng-container *ngIf="permisosListos">
+            <app-admin-personal class="flex flex-col flex-1"></app-admin-personal>
+          </ng-container>
+        </div>
+      </div>
+    </ng-container>
 
-        <app-admin-especialidades *ngIf="activeTab === 'especialidades'" class="flex flex-col flex-1"></app-admin-especialidades>
-        <app-admin-roles *ngIf="activeTab === 'roles'" class="flex flex-col flex-1" tourAnchor="tour-admin-roles"></app-admin-roles>
-        <app-admin-permisologia *ngIf="activeTab === 'permisologia'" class="flex flex-col flex-1" tourAnchor="tour-admin-permisos"></app-admin-permisologia>
-      </ng-container>
-    </div>
-    </div>
+    <!-- Roles: anchor cubre header + contenido -->
+    <ng-container *ngIf="activeTab === 'roles'">
+      <div class="flex flex-col flex-1 min-h-0" tourAnchor="tour-admin-roles">
+        <app-header
+          title="Gestión de Roles"
+          subtitle="Administración de roles y permisos"
+          [showLogo]="false"
+          [showMenuButton]="true"
+          (toggleSidebar)="sidebarOpen = !sidebarOpen"
+        ></app-header>
+        <div
+          class="flex-1 overflow-y-auto px-4 pt-4 pb-4 md:px-8 md:pt-8 md:pb-8 flex flex-col"
+          style="scrollbar-width: none; -ms-overflow-style: none"
+        >
+          <ng-container *ngIf="permisosListos">
+            <app-admin-roles class="flex flex-col flex-1"></app-admin-roles>
+          </ng-container>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- Permisología: anchor cubre header + contenido -->
+    <ng-container *ngIf="activeTab === 'permisologia'">
+      <div class="flex flex-col flex-1 min-h-0" tourAnchor="tour-admin-permisos">
+        <app-header
+          title="Permisología"
+          subtitle="Matriz de permisos por rol"
+          [showLogo]="false"
+          [showMenuButton]="true"
+          (toggleSidebar)="sidebarOpen = !sidebarOpen"
+        ></app-header>
+        <div
+          class="flex-1 overflow-y-auto px-4 pt-4 pb-4 md:px-8 md:pt-8 md:pb-8 flex flex-col"
+          style="scrollbar-width: none; -ms-overflow-style: none"
+        >
+          <ng-container *ngIf="permisosListos">
+            <app-admin-permisologia class="flex flex-col flex-1"></app-admin-permisologia>
+          </ng-container>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- Otras pestañas sin tour -->
+    <ng-container *ngIf="activeTab !== 'reports' && activeTab !== 'stats' && activeTab !== 'especialidades' && activeTab !== 'personal' && activeTab !== 'roles' && activeTab !== 'permisologia'">
+      <div class="flex flex-col flex-1 min-h-0">
+        <app-header
+          title="Gestión de Consultorios"
+          subtitle="Gestión de consultorios and ubicaciones"
+          [showLogo]="false"
+          [showMenuButton]="true"
+          (toggleSidebar)="sidebarOpen = !sidebarOpen"
+        ></app-header>
+        <div
+          class="flex-1 overflow-y-auto px-4 pt-4 pb-4 md:px-8 md:pt-8 md:pb-8 flex flex-col"
+          style="scrollbar-width: none; -ms-overflow-style: none"
+        ></div>
+      </div>
+    </ng-container>
   </main>
 </div>

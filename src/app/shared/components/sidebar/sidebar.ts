@@ -76,14 +76,14 @@ export class Sidebar implements OnInit, OnDestroy {
   readonly Megaphone = Megaphone;
   readonly Key = Key;
 
-  get expandedPanel() { return sessionStorage.getItem('sb_panel') === '1'; }
-  set expandedPanel(v: boolean) { sessionStorage.setItem('sb_panel', v ? '1' : '0'); }
+  get expandedPanel() { return localStorage.getItem('sb_panel') === '1'; }
+  set expandedPanel(v: boolean) { localStorage.setItem('sb_panel', v ? '1' : '0'); }
 
-  get expandedOperaciones() { return sessionStorage.getItem('sb_operaciones') === '1'; }
-  set expandedOperaciones(v: boolean) { sessionStorage.setItem('sb_operaciones', v ? '1' : '0'); }
+  get expandedOperaciones() { return localStorage.getItem('sb_operaciones') === '1'; }
+  set expandedOperaciones(v: boolean) { localStorage.setItem('sb_operaciones', v ? '1' : '0'); }
 
-  get expandedAdmin() { return sessionStorage.getItem('sb_admin') === '1'; }
-  set expandedAdmin(v: boolean) { sessionStorage.setItem('sb_admin', v ? '1' : '0'); }
+  get expandedAdmin() { return localStorage.getItem('sb_admin') === '1'; }
+  set expandedAdmin(v: boolean) { localStorage.setItem('sb_admin', v ? '1' : '0'); }
 
   toggleSection(section: string) {
     const isAlreadyOpen =

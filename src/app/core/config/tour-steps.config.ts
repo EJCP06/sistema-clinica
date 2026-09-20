@@ -213,12 +213,69 @@ if (permisos.tienePermiso('especialidades:ver') || esAdmin) {
   if (esAdmin || permisos.tienePermiso('personal:ver')) {
     steps.push({
       anchorId: 'tour-sidebar-admin',
-      title: 'Gestión de Usuarios',
-      content: 'Administre el personal, configure roles y asigne permisos de acceso a cada módulo del sistema.',
+      title: 'Usuarios',
+      content: 'Este modulo permite administrar los usuarios del sistema, con sus roles y permisos para cada uno.',
       route: '/administrador?tab=personal',
       expandSection: 'admin',
+      placement: { horizontal: true },
     });
+
+    // Personal
+    if (permisos.tienePermiso('personal:ver')) {
+      steps.push({
+        anchorId: 'tour-admin-personal',
+        title: 'Personal',
+        content: 'En esta vista se administran los usuarios del sistema, asignandoles sus roles especificos.',
+        route: '/administrador?tab=personal',
+        placement: { horizontal: true },
+        infoSections: [
+          { title: 'Buscador', content: 'Muestra una barra de búsqueda con filtro para encontrar personal rápidamente.' },
+          { title: 'Botón Nuevo Usuario', content: 'Muestra el formulario para registrar un nuevo usuario y esojer su rol en el sistema.' },
+          { title: 'Tabla de Personal', content: 'Muestra el listado de usuarios, permitiendo editar o eliminar cada uno.' },
+        ],
+      });
+    }
+
+    // Roles
+    if (permisos.tienePermiso('roles:ver')) {
+      steps.push({
+        anchorId: 'tour-admin-roles',
+        title: 'Roles',
+        content: 'En esta vista se configuran los roles del sistema, para que sean asignados a los usuarios.',
+        route: '/administrador?tab=roles',
+        placement: { horizontal: true },
+        infoSections: [
+          { title: 'Buscador', content: 'Muestra una barra de búsqueda con filtro para encontrar roles rápidamente.' },
+          { title: 'Botón Nuevo Rol', content: 'Muestra el formulario para crear un nuevo rol en el sistema.' },
+          { title: 'Tabla de Roles', content: 'Muestra el listado de roles, permitiendo editar o eliminar cada uno.' },
+        ],
+      });
+    }
+
+    // Permisología
+    if (permisos.tienePermiso('permisologia:ver')) {
+      steps.push({
+        anchorId: 'tour-admin-permisos',
+        title: 'Permisología',
+        content: 'En esta vista se asignan permisos específicos a cada rol para controlar el acceso a los módulos del sistema.',
+        route: '/administrador?tab=permisologia',
+        placement: { horizontal: true },
+        infoSections: [
+          { title: 'Buscador', content: 'Muestra una barra de búsqueda con filtro para encontrar permisos rápidamente.' },
+          { title: 'Botón Nuevo Permiso', content: 'Muestra el formulario para crear un nuevo permiso en el sistema, seleccionando el rol que se le va asignar el permiso, el módulo y la acción que permite el acceso.' },
+          { title: 'Tabla de Permisos', content: 'Muestra una tabla con todos los módulos y acciones, permitiendo activar o desactivar cada permiso para el rol seleccionado, y tambien editar o eliminar cada uno.' },
+        ],
+      });
+    }
   }
+
+  // ─── 6. DESPEDIDA ──────────────────────────────────────
+  steps.push({
+    anchorId: 'tour-sidebar-logo',
+    title: '¡Despedida!',
+    content: 'Gracias por realizar la guía rápida. Ahora puede comenzar a utilizar el sistema.',
+    placement: { horizontal: true },
+  });
 
   return steps;
 };

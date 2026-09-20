@@ -29,6 +29,16 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ============================================================
+   TOUR — Ancho del tooltip ngx-ui-tour-md-menu
+   ============================================================ */
+.ngx-ui-tour-md-menu .tour-step,
+.ngx-ui-tour-md-menu-step .mat-mdc-menu-panel {
+  max-width: none !important;
+  min-width: 384px !important;
+}
+@tailwind utilities;
 :root {
   /* Colores de texto */
   --color-text-primary: #0f172a;        /* slate-900 */
