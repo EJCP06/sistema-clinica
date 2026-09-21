@@ -8,7 +8,7 @@ import { IStepOption } from 'ngx-ui-tour-md-menu';
  *   2. Estructura del sidebar
  *   3. Panel Control (solo admin)
  *   4. Operaciones (cada módulo según permisos)
- *   5. Usuarios (solo admin)
+ *   5. Despedida
  *
  * Cada step puede tener una propiedad `route` para navegar antes de mostrar
  * el tooltip, y `expandSection` para abrir la sección del sidebar.
@@ -34,11 +34,14 @@ export interface TourModuleConfig {
 
 export const TOUR_STEPS: TourStep[] = [
   // ─── 1. BIENVENIDA ──────────────────────────────────────
+  // IMPORTANTE: este paso NO debe tener `route`. Si la ruta fuera de un
+  // módulo al que el usuario no tiene acceso, el guard la bloquearía,
+  // `navigateByUrl` devolvería false y la librería del tour terminaría
+  // el recorrido en seco (ver ngx-ui-tour-core: si !navigated -> end()).
   {
     anchorId: 'tour-sidebar-logo',
     title: '¡Bienvenido al Sistema!',
     content: 'Este tour le mostrará cómo navegar por el sistema de colas.',
-    route: '/administrador?tab=reports',
     placement: { horizontal: true },
   },
 ];
@@ -156,11 +159,18 @@ export const buildSidebarSteps = (permisos: { tienePermiso: (p: string) => boole
 
   if (permisos.tienePermiso('atencion_medica:ver')) {
     modulosOperaciones.push({
-      anchorId: 'tour-sidebar-atencion',
+      anchorId: 'tour-atencion-content',
       title: 'Atención Médica',
-      content: 'Panel del médico. Llame pacientes, registre diagnósticos y gestione la atención en su consultorio.',
+      content: 'En esta vista se observan los pacientes que esperan por la atención de su servicio, asi el médico tendrá encuenta el orden de los pacientes.',
       route: '/atencion',
       expandSection: 'operaciones',
+      placement: { horizontal: true },
+      infoSections: [
+        { title: 'Tabla de Pacientes en espera', content: 'Muestra una tabla con el listado de pacientes en cola.' },
+        { title: 'Tabla de Pacientes atendidos', content: 'Muestra una tabla con el historial de pacientes atendidos durante el día.' },
+        { title: 'Tarjetas', content: 'Muestra dos tarjetas, una con el número de pacientes en espera y la especialidad asignada al consultorio.' },
+        { title: 'Botones', content: 'Muestra unos botones. El botón principal para llamar al próximo paciente. Cuando hay turno activo, muestra opciones de Iniciar, Ausentar y Finalizar atención.' },
+      ],
     });
   }
 
@@ -202,7 +212,7 @@ if (permisos.tienePermiso('especialidades:ver') || esAdmin) {
     steps.push({
       anchorId: 'tour-sidebar-operaciones',
       title: 'Operaciones',
-      content: 'Este modulo permite acceder a la admisión de pacientes, atención de APS, laboratorio e imágenes, aseguradoras y especialidades de la clínica.',
+      content: 'Este modulo permite acceder a la admisión de pacientes, atención de APS, atención médica, laboratorio e imágenes, aseguradoras y especialidades de la clínica, dependiendo del permiso asignado.',
       expandSection: 'operaciones',
       placement: { horizontal: true },
     });
@@ -227,10 +237,11 @@ if (permisos.tienePermiso('especialidades:ver') || esAdmin) {
         title: 'Personal',
         content: 'En esta vista se administran los usuarios del sistema, asignandoles sus roles especificos.',
         route: '/administrador?tab=personal',
+        expandSection: 'admin',
         placement: { horizontal: true },
         infoSections: [
           { title: 'Buscador', content: 'Muestra una barra de búsqueda con filtro para encontrar personal rápidamente.' },
-          { title: 'Botón Nuevo Usuario', content: 'Muestra el formulario para registrar un nuevo usuario y esojer su rol en el sistema.' },
+          { title: 'Botón Nuevo Usuario', content: 'Muestra el formulario para registrar un nuevo usuario y escoger su rol en el sistema.' },
           { title: 'Tabla de Personal', content: 'Muestra el listado de usuarios, permitiendo editar o eliminar cada uno.' },
         ],
       });
@@ -243,6 +254,7 @@ if (permisos.tienePermiso('especialidades:ver') || esAdmin) {
         title: 'Roles',
         content: 'En esta vista se configuran los roles del sistema, para que sean asignados a los usuarios.',
         route: '/administrador?tab=roles',
+        expandSection: 'admin',
         placement: { horizontal: true },
         infoSections: [
           { title: 'Buscador', content: 'Muestra una barra de búsqueda con filtro para encontrar roles rápidamente.' },
@@ -259,6 +271,7 @@ if (permisos.tienePermiso('especialidades:ver') || esAdmin) {
         title: 'Permisología',
         content: 'En esta vista se asignan permisos específicos a cada rol para controlar el acceso a los módulos del sistema.',
         route: '/administrador?tab=permisologia',
+        expandSection: 'admin',
         placement: { horizontal: true },
         infoSections: [
           { title: 'Buscador', content: 'Muestra una barra de búsqueda con filtro para encontrar permisos rápidamente.' },

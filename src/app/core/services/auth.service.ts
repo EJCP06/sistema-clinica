@@ -189,6 +189,18 @@ export class AuthService implements OnDestroy {
     return sessionStorage.getItem(this.TOKEN_KEY);
   }
 
+  /** Retorna true solo si hay un token almacenado y aún no expiró. */
+  isTokenValid(): boolean {
+    const token = this.getToken();
+    if (!token) return false;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.exp * 1000 > Date.now();
+    } catch {
+      return false;
+    }
+  }
+
   login(username: string, password: string): Observable<any> {
     return this.http.post<{mensaje: string, token: string, usuario: any}>(`${environment.apiUrl}/auth/login`, { username, password }, { withCredentials: true })
       .pipe(

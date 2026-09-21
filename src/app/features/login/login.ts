@@ -80,19 +80,22 @@ export class Login implements OnDestroy {
   constructor() {
     setTimeout(() => this.initialTransitionDisabled = false, 100);
     // Guarda la recuperación en curso al recargar (F5) o salir de la página,
-    // para poder restaurarla al volver.
+    // para poder restaurarla al volver. Se usan ambos eventos para máxima
+    // compatibilidad entre navegadores.
+    window.addEventListener('beforeunload', this.guardarAlSalir);
     window.addEventListener('pagehide', this.guardarAlSalir);
     this.restaurarRecuperacion();
   }
 
   ngOnDestroy() {
     this.detenerTemporizador();
+    window.removeEventListener('beforeunload', this.guardarAlSalir);
     window.removeEventListener('pagehide', this.guardarAlSalir);
   }
 
   /** Guarda la recuperación en curso al recargar/cerrar la página (F5 incluido). */
   private readonly guardarAlSalir = () => {
-    if (this.mostrarResetPassword && this.paso > 1) {
+    if (this.mostrarResetPassword) {
       this.guardarRecuperacion();
     }
   };
@@ -137,7 +140,13 @@ export class Login implements OnDestroy {
       // Restaurar solo si hay una recuperación en curso con datos válidos.
       // Se restaura cualquier paso (1 a 3): así el usuario vuelve exactamente
       // a donde estaba antes de recargar la página.
-      if (!s || !s.email || !s.cedula || !s.paso || s.paso < 1 || s.paso > 3) {
+      if (!s || !s.paso || s.paso < 1 || s.paso > 3) {
+        this.limpiarRecuperacionGuardada();
+        return;
+      }
+      // Para pasos 2 y 3 se requieren email y cédula; en paso 1 pueden estar vacíos
+      // (el usuario apenas abrió la vista y aún no escribió nada).
+      if (s.paso >= 2 && (!s.email || !s.cedula)) {
         this.limpiarRecuperacionGuardada();
         return;
       }
@@ -180,6 +189,7 @@ export class Login implements OnDestroy {
     this.mostrarResetPassword = !this.mostrarResetPassword;
     if (this.mostrarResetPassword) {
       this.paso = 1;
+      this.guardarRecuperacion();
     } else {
       this.resetearRecuperacion();
       this.limpiarRecuperacionGuardada();

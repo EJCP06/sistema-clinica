@@ -6,8 +6,8 @@
 -->
 <router-outlet />
 
-<!-- Botón flotante de ayuda para el tour guiado -->
-<app-help-button />
+<!-- Botón flotante de ayuda para el tour guiado (solo dentro del sistema) -->
+<app-help-button *ngIf="auth.isTokenValid() && !isPublicRoute" />
 
 <!-- Componente del tour (renderiza los tooltips del tour) -->
 <ng-template #defaultStepTemplate let-step="step">

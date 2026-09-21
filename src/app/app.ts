@@ -27,7 +27,7 @@ import confetti from 'canvas-confetti';
  * 4. En APK nativa (Capacitor), ir directo al turnero sin login.
  */
 export class App implements OnInit, OnDestroy {
-  private readonly auth = inject(AuthService);
+  readonly auth = inject(AuthService);
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
@@ -37,10 +37,23 @@ export class App implements OnInit, OnDestroy {
 
   tourSectionOpen: number | null = null;
 
+  /** Rutas públicas donde NO debe mostrarse el botón de ayuda. */
+  private readonly publicRoutes = ['/login', '/turnero', '/kiosk'];
+
+  get isPublicRoute(): boolean {
+    const url = this.router.url;
+    return this.publicRoutes.some(r => url === r || url.startsWith(r + '/'));
+  }
+
   tourNext(): void {
-    this.tourGuide.expandNextSection();
+    const isTransition = this.tourGuide.prepareSectionTransition();
     this.tourSectionOpen = null;
-    this.tourService.next();
+    if (isTransition) {
+      setTimeout(() => this.tourService.next(), 0);
+    } else {
+      this.tourGuide.expandNextSection();
+      this.tourService.next();
+    }
   }
   tourPrev(): void {
     this.tourSectionOpen = null;

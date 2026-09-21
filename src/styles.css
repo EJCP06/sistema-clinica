@@ -38,6 +38,44 @@
   max-width: none !important;
   min-width: 384px !important;
 }
+
+/* ── TOUR: Desactivar transiciones del acordeón del sidebar
+      mientras el tour está activo, para que ngx-ui-tour calcule
+      el highlight con las dimensiones correctas (sin animación).
+
+      El CDK overlay de Angular Material usa z-index: 1000 (overlay-prebuilt.css).
+      El backdrop del tour debe quedar por encima de las capas internas
+      de los módulos (z-index: 110-115), pero por debajo del tooltip.
+
+      z-index: 50 → conserva el nivel normal del sidebar para que el
+      backdrop pueda oscurecerlo; el recorte del spotlight mantiene visible
+      el elemento que se está destacando. */
+.sidebar-tour-mode {
+  z-index: 50 !important;
+}
+
+.sidebar-tour-mode nav * {
+  transition-duration: 0ms !important;
+}
+
+/* ── TOUR: Asegura que el backdrop cubra el contenido de los módulos.
+      El backdrop genera 4 divs position:absolute en el body. La capa 200
+      cubre también los dropdowns internos de APS, Laboratorio e Imágenes. */
+.ngx-ui-tour_backdrop {
+  z-index: 200 !important;
+}
+
+/* ── TOUR: Oculta el backdrop mientras se navega entre pasos.
+      Al cambiar de paso la librería cierra el spotlight
+      (backdrop.closeSpotlight) y toda la pantalla queda oscura
+      durante la carga de la ruta siguiente (chunk lazy + render).
+      tour.service.ts añade la clase `tour-navigating` al body cuando
+      un paso se oculta y la quita cuando el siguiente ya está anclado,
+      evitando el "flash" negro de pantalla completa. */
+body.tour-navigating .ngx-ui-tour_backdrop {
+  visibility: hidden !important;
+}
+
 @tailwind utilities;
 :root {
   /* Colores de texto */

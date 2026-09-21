@@ -3,7 +3,9 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
-import { ThemeService } from '../../../core/services/theme.service';import { LucideAngularModule,
+import { ThemeService } from '../../../core/services/theme.service';
+import { SidebarStateService } from '../../../core/services/sidebar-state.service';
+import { LucideAngularModule,
   LayoutDashboard,
   BarChart3,
   UserCog,
@@ -27,6 +29,7 @@ import { ThemeService } from '../../../core/services/theme.service';import { Luc
   Key
 } from 'lucide-angular';
 import { TourAnchorMatMenuDirective } from 'ngx-ui-tour-md-menu';
+import { TourGuideService } from '../../../core/services/tour.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -49,7 +52,9 @@ export class Sidebar implements OnInit, OnDestroy {
   private themeService = inject(ThemeService);
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
+  private sidebarState = inject(SidebarStateService);
   private usuarioSub?: Subscription;
+  private sidebarSub?: Subscription;
   
   cargando = false;
   initialTransitionDisabled = true;
@@ -75,6 +80,22 @@ export class Sidebar implements OnInit, OnDestroy {
   readonly Image = Image;
   readonly Megaphone = Megaphone;
   readonly Key = Key;
+
+  /** Indica si el tour guiado está activo (para desactivar transiciones CSS). */
+  get tourActive() { return TourGuideService.tourActive; }
+
+  /** Sección del sidebar que está siendo destacada por el tour. */
+  get activeTourSection() { return TourGuideService.activeTourSection; }
+
+  /** Retorna true si una sección debe verse oscurecida durante el tour. */
+  isDimmed(section: 'panel' | 'operaciones' | 'admin'): boolean {
+    if (!this.tourActive) return false;
+    // Si no hay sección activa (paso "Bienvenido", "Menú de Navegación")
+    // oscurecer todas las secciones del sidebar.
+    if (this.activeTourSection === null) return true;
+    // Si hay una sección activa, oscurecer las que no coinciden.
+    return this.activeTourSection !== section;
+  }
 
   get expandedPanel() { return localStorage.getItem('sb_panel') === '1'; }
   set expandedPanel(v: boolean) { localStorage.setItem('sb_panel', v ? '1' : '0'); }
@@ -163,10 +184,14 @@ export class Sidebar implements OnInit, OnDestroy {
     this.usuarioSub = this.auth.usuario$.subscribe(() => {
       this.cdr.detectChanges();
     });
+    this.sidebarSub = this.sidebarState.sectionsChanged.subscribe(() => {
+      this.cdr.detectChanges();
+    });
   }
 
   ngOnDestroy() {
     this.usuarioSub?.unsubscribe();
+    this.sidebarSub?.unsubscribe();
   }
 
   logout() {

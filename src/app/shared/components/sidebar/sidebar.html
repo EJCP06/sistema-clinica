@@ -9,9 +9,9 @@
   (click)="closeSidebar.emit()"
 ></div>
 
-<aside class="w-80 h-[100dvh] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col fixed left-0 top-0 z-50 transition-transform duration-300"
+<aside [class.sidebar-tour-mode]="tourActive" class="w-80 h-[100dvh] bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col fixed left-0 top-0 z-50 transition-transform duration-300"
   [ngClass]="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'">
-  <div class="p-8 flex items-center justify-start relative overflow-hidden" tourAnchor="tour-sidebar-logo">
+  <div class="p-8 flex items-center justify-start relative overflow-hidden" [class.tour-dimmed]="tourActive && activeTourSection !== null" tourAnchor="tour-sidebar-logo">
     <div class="flex items-center gap-4 relative z-10">
       <div class="w-14 h-14 bg-[#ffffff] p-2 rounded-2xl flex items-center justify-center border border-slate-100 dark:border-slate-800 flex-shrink-0">
         <img src="/logo-cnc.png" alt="Logo" class="w-full h-full object-contain" />
@@ -63,8 +63,8 @@
       </div>
     </div>
 
-    <div tourAnchor="tour-sidebar-operaciones" class="w-full relative block">
-      <div *ngIf="tienePermiso('admision:ver') || tienePermiso('aps:ver') || tienePermiso('laboratorio:ver') || tienePermiso('imagenes:ver') || tienePermiso('atencion_medica:ver') || tienePermiso('aseguradoras:ver') || tienePermiso('especialidades:ver')" class="mb-4">
+    <div class="w-full relative block">
+      <div *ngIf="tienePermiso('admision:ver') || tienePermiso('aps:ver') || tienePermiso('laboratorio:ver') || tienePermiso('imagenes:ver') || tienePermiso('atencion_medica:ver') || tienePermiso('aseguradoras:ver') || tienePermiso('especialidades:ver')" class="mb-4" tourAnchor="tour-sidebar-operaciones">
       <button 
         (click)="toggleSection('operaciones')"
         class="w-full flex items-center justify-between gap-3 mb-1 px-5 py-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all duration-200 group text-left"
@@ -157,8 +157,8 @@
       </div>
     </div>
 
-    <div tourAnchor="tour-sidebar-admin" class="w-full relative block">
-      <div *ngIf="tienePermiso('personal:ver') || tienePermiso('roles:ver') || tienePermiso('permisologia:ver')" class="mb-4">
+    <div class="w-full relative block">
+      <div *ngIf="tienePermiso('personal:ver') || tienePermiso('roles:ver') || tienePermiso('permisologia:ver')" class="mb-4" tourAnchor="tour-sidebar-admin">
       <button 
         (click)="toggleSection('admin')"
         class="w-full flex items-center justify-between gap-3 mb-1 px-5 py-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all duration-200 group text-left"
