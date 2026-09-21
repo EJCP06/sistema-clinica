@@ -52,7 +52,9 @@ export class HelpButtonComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    let previousUserId: number | null = null;
+    // Conservar el cierre del botón durante una recarga. Si ya existe una
+    // sesión al crear el componente, no es un inicio de sesión nuevo.
+    let previousUserId: number | null = this.auth.usuarioActual?.id ?? null;
 
     this.auth.usuario$.subscribe(usuario => {
       const currentId = usuario?.id ?? null;
