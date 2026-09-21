@@ -243,6 +243,7 @@ if (permisos.tienePermiso('especialidades:ver') || esAdmin) {
           { title: 'Buscador', content: 'Muestra una barra de búsqueda con filtro para encontrar personal rápidamente.' },
           { title: 'Botón Nuevo Usuario', content: 'Muestra el formulario para registrar un nuevo usuario y escoger su rol en el sistema.' },
           { title: 'Tabla de Personal', content: 'Muestra el listado de usuarios, permitiendo editar o eliminar cada uno.' },
+          { title: 'Importar Excel', content: 'Muestra un botón para importar el personal masivamente desde un archivo Excel.' },
         ],
       });
     }
