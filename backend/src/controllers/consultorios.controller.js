@@ -267,7 +267,7 @@ const iniciarAtencion = async (req, res) => {
   try {
     if (rol === 'laboratorio' || rol === 'imagenes') {
       servicioId = await resolverServicioId(rol, servicioId);
-      if (!servicioId) { await client.query('ROLLBACK'); return res.status(400).json({ mensaje: 'Servicio no encontrado' }); }
+      if (!servicioId) { return res.status(400).json({ mensaje: 'Servicio no encontrado' }); }
     } else if (!consultorioId) {
       return res.status(400).json({ mensaje: 'Usuario sin consultorio' });
     }
@@ -322,7 +322,7 @@ const finalizarAtencion = async (req, res) => {
   try {
     if (rol === 'laboratorio' || rol === 'imagenes') {
       servicioId = await resolverServicioId(rol, servicioId);
-      if (!servicioId) { await client.query('ROLLBACK'); return res.status(400).json({ mensaje: 'Servicio no encontrado' }); }
+      if (!servicioId) { return res.status(400).json({ mensaje: 'Servicio no encontrado' }); }
     } else if (!consultorioId) {
       return res.status(400).json({ mensaje: 'Usuario sin consultorio' });
     }

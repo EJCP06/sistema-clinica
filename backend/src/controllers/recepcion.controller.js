@@ -409,33 +409,36 @@ const eliminarAtencion = async (req, res) => {
 
   const { id } = req.params;
 
-  const atencion = await atencionRepo.getAtencionEstado(id, sede);
-  if (!atencion) {
-    return res.status(404).json({ mensaje: 'Atención no encontrada' });
-  }
-
-  if (Number(atencion.id_estado_actual) !== 1) {
-    return res.status(400).json({ mensaje: 'Solo se puede eliminar una atención en estado Registrado' });
-  }
-
-  const client = await pool.connect();
   try {
-    await client.query('BEGIN');
-    await historialRepo.deleteByAtencion(client, id);
-    await atencionRepo.eliminarAtencion(client, id, sede);
-    await client.query('COMMIT');
-    // Avisar en tiempo real a todas las pantallas (turnero, APS, colas) para
-    // que quiten la fila al instante sin esperar su polling.
-    if (req.io) {
-      req.io.emit('estado-actualizado', { tipo: 'eliminado', id_atencion: Number(id), id_sede: sede });
+    const atencion = await atencionRepo.getAtencionEstado(id, sede);
+    if (!atencion) {
+      return res.status(404).json({ mensaje: 'Atención no encontrada' });
     }
-    res.json({ mensaje: 'Atención eliminada' });
+
+    if (Number(atencion.id_estado_actual) !== 1) {
+      return res.status(400).json({ mensaje: 'Solo se puede eliminar una atención en estado Registrado' });
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await historialRepo.deleteByAtencion(client, id);
+      await atencionRepo.eliminarAtencion(client, id, sede);
+      await client.query('COMMIT');
+      if (req.io) {
+        req.io.emit('estado-actualizado', { tipo: 'eliminado', id_atencion: Number(id), id_sede: sede });
+      }
+      res.json({ mensaje: 'Atención eliminada' });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      logger.error(error);
+      res.status(500).json({ mensaje: 'Error al eliminar atención' });
+    } finally {
+      client.release();
+    }
   } catch (error) {
-    await client.query('ROLLBACK');
     logger.error(error);
     res.status(500).json({ mensaje: 'Error al eliminar atención' });
-  } finally {
-    client.release();
   }
 };
 

@@ -66,7 +66,7 @@
                     <button #btnEdit (click)="abrirModalEditar(rol, btnEdit)" aria-label="Editar permisos" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all">
                       <lucide-icon [name]="Edit2" class="w-4 h-4"></lucide-icon>
                     </button>
-                    <button (click)="eliminarPermisos(rol.id, rol.nombre)" aria-label="Eliminar permisos" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all">
+                    <button (click)="vaciarPermisos(rol.id, rol.nombre)" aria-label="Vaciar permisos" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all">
                       <lucide-icon [name]="Trash2" class="w-4 h-4"></lucide-icon>
                     </button>
                   </div>

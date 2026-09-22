@@ -65,6 +65,8 @@ export class RecepcionAtencionService {
         if (esEdicionTotal) {
           const ba = { id_servicio: this.sel.seleccion.id_servicio, id_responsable: this.sel.seleccion.id_responsable, id_cliente: this.sel.seleccion.id_cliente, id_especialidad: this.sel.seleccion.id_especialidad || null, id_medico: this.sel.seleccion.id_medico || null, id_consultorio: this.sel.seleccion.id_consultorio || null };
           this.api.put(`recepcion/atencion/${this.sel.seleccion.id_atencion}`, ba).subscribe({ next: () => finalizarCb(() => { state.mostrarRegistro = false; this.swal.success('Cambios guardados con exito'); onReload(); this.api.cambios$.next({ tipo: 'atencion-actualizada', id_atencion: this.sel.seleccion.id_atencion ?? undefined }); }), error: () => finalizarCb(() => this.swal.error('Error al actualizar la atencion')) });
+        } else {
+          this.generarAtencionDirecta(id_paciente, state, finalizarCb, onReload);
         }
       },
       error: () => finalizarCb(() => this.swal.error('Error al actualizar datos del paciente')),

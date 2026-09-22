@@ -225,7 +225,7 @@ export class RecepcionComponent implements OnInit, OnDestroy, RecepcionState {
         next: (pac: any) => this.atencion.generarAtencionDirecta(pac.id_paciente || pac.id, this, fn => this.finalizarGuardado(fn), () => this.cargarUltimasAdmisiones()),
         error: (e: any) => { console.error('Error registrando:', e); this.finalizarGuardado(() => { if (e.status === 409) { this.swal.error('El paciente con esta cedula ya esta registrado en esta sede.'); } else { this.swal.error('Error al registrar paciente'); } }); },
       });
-    });
+    }).catch((err) => { console.error('Error cargando modulo:', err); this.finalizarGuardado(() => this.swal.error('Error al cargar modulo. Intente de nuevo.')); });
   }
 
   togglePayerDropdown() { this.showPayerDropdown = !this.showPayerDropdown; }

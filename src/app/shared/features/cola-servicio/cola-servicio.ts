@@ -396,7 +396,7 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
 
   // --- Actions ---
   llamarPaciente(paciente: any) {
-    this.api.post(`recepcion/atencion/${paciente.id_atencion}/llamar-${this.tipo}`, {}).subscribe({ next: () => {}, error: () => {} });
+    this.api.post(`recepcion/atencion/${paciente.id_atencion}/llamar-${this.tipo}`, {}).subscribe({ next: () => {}, error: (err) => this.swal.error(err.error?.mensaje || 'Error al llamar paciente') });
   }
 
   llamarPacienteSalaEspera(paciente: any) {
@@ -410,7 +410,7 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
           onTick: () => {},
         });
       },
-      error: () => {},
+      error: (err) => this.swal.error(err.error?.mensaje || 'Error al llamar paciente'),
     });
   }
 
@@ -477,29 +477,32 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
 
   iniciarAtencion(admision: any) {
     this.countdown.stopCountdown(admision.id_atencion);
+    const prevEstado = admision.id_estado_actual;
+    const prevNombre = admision.nombre_estado;
     admision.id_estado_actual = 5;
     admision.nombre_estado = 'EN ATENCION';
     this.api.put(`recepcion/atencion/${admision.id_atencion}/estado`, { id_estado_nuevo: 5 }).subscribe({
-      error: (err) => this.swal.error(err.error?.mensaje || 'Error al iniciar atención'),
+      error: (err) => { admision.id_estado_actual = prevEstado; admision.nombre_estado = prevNombre; this.swal.error(err.error?.mensaje || 'Error al iniciar atención'); },
     });
   }
 
   finalizarAtencion(admision: any) {
     this.countdown.stopCountdown(admision.id_atencion);
+    const idx = this.ultimasAdmisiones.findIndex((a) => a.id_atencion === admision.id_atencion);
     this.ultimasAdmisiones = this.ultimasAdmisiones.filter((a) => a.id_atencion !== admision.id_atencion);
     this.api.put(`recepcion/atencion/${admision.id_atencion}/estado`, { id_estado_nuevo: 6 }).subscribe({
-      error: (err) => this.swal.error(err.error?.mensaje || 'Error al finalizar atención'),
+      error: (err) => { if (idx >= 0) this.ultimasAdmisiones.splice(idx, 0, admision); this.swal.error(err.error?.mensaje || 'Error al finalizar atención'); },
     });
   }
 
   // --- Modal ---
   cargarDatosMaestros() {
-    this.api.getServicios().subscribe({ next: (data: any) => (this.servicios = data || []), error: () => {} });
-    this.espService.getAllEspecialidades().subscribe({ next: (data: any) => (this.especialidades = data || []), error: () => {} });
-    this.api.getAseguradoras().subscribe({ next: (data: any) => (this.aseguradoras = data || []), error: () => {} });
-    this.api.get('recepcion/responsables-pago').subscribe({ next: (data: any) => (this.responsables = data || []), error: () => {} });
-    this.api.getPersonal('medico').subscribe({ next: (data: any) => (this.medicos = data || []), error: () => {} });
-    this.api.getConsultorios().subscribe({ next: (data: any) => (this.consultorios = data || []), error: () => {} });
+    this.api.getServicios().subscribe({ next: (data: any) => (this.servicios = data || []), error: (e) => console.error('Error cargando servicios:', e) });
+    this.espService.getAllEspecialidades().subscribe({ next: (data: any) => (this.especialidades = data || []), error: (e) => console.error('Error cargando especialidades:', e) });
+    this.api.getAseguradoras().subscribe({ next: (data: any) => (this.aseguradoras = data || []), error: (e) => console.error('Error cargando aseguradoras:', e) });
+    this.api.get('recepcion/responsables-pago').subscribe({ next: (data: any) => (this.responsables = data || []), error: (e) => console.error('Error cargando responsables:', e) });
+    this.api.getPersonal('medico').subscribe({ next: (data: any) => (this.medicos = data || []), error: (e) => console.error('Error cargando medicos:', e) });
+    this.api.getConsultorios().subscribe({ next: (data: any) => (this.consultorios = data || []), error: (e) => console.error('Error cargando consultorios:', e) });
   }
 
   abrirModalRegistro() { this.mostrarRegistro = true; this.scrollService.block(); }
