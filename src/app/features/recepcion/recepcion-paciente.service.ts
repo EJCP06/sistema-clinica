@@ -86,7 +86,7 @@ export class RecepcionPacienteService {
           this.nuevoPaciente.primer_apellido = p.primer_apellido || p.apellido || '';
           this.nuevoPaciente.segundo_apellido = p.segundo_apellido || '';
           this.nuevoPaciente.fecha_nacimiento = fechaADisplay(p.fecha_nacimiento);
-          this.nuevoPaciente.telefono = p.telefono;
+          this.nuevoPaciente.telefono = p.telefono || '';
         } else {
           if (this.nuevoPaciente.id_paciente) {
             this.nuevoPaciente.primer_nombre = '';
@@ -119,7 +119,7 @@ export class RecepcionPacienteService {
       primer_apellido: paciente.primer_apellido || paciente.apellido || '',
       segundo_apellido: paciente.segundo_apellido || '',
       fecha_nacimiento: fechaADisplay(paciente.fecha_nacimiento),
-      telefono: paciente.telefono, status: true,
+      telefono: paciente.telefono || '', status: true,
     };
     this.seleccionSvc.resetSeleccion();
   }
@@ -129,9 +129,9 @@ export class RecepcionPacienteService {
     this.nuevoPaciente = {
       id_paciente: fila.id_paciente, cedula: fila.cedula,
       tipo_documento: fila.tipo_documento || 'v',
-      primer_nombre: fila.nombre, segundo_nombre: fila.segundo_nombre || '',
-      primer_apellido: fila.apellido, segundo_apellido: fila.segundo_apellido || '',
-      fecha_nacimiento: fechaADisplay(fila.fecha_nacimiento), telefono: fila.telefono, status: true,
+      primer_nombre: fila.nombre || '', segundo_nombre: fila.segundo_nombre || '',
+      primer_apellido: fila.apellido || '', segundo_apellido: fila.segundo_apellido || '',
+      fecha_nacimiento: fechaADisplay(fila.fecha_nacimiento), telefono: fila.telefono || '', status: true,
     };
     this.seleccionSvc.seleccion = {
       id_servicio: fila.id_servicio, id_responsable: fila.id_responsable,

@@ -59,7 +59,7 @@ export class RecepcionAtencionService {
 
   actualizarPacienteExistente(id_paciente: number, esEdicionTotal: boolean, nuevoPaciente: PacienteData, state: RecepcionState, finalizarCb: (fn?: () => void) => void, onReload: () => void) {
     const esNum = nuevoPaciente.tipo_documento !== 'p';
-    const d = { cedula: esNum ? nuevoPaciente.cedula.replace(/\D/g, '').trim() : nuevoPaciente.cedula.trim().toUpperCase(), tipo_documento: nuevoPaciente.tipo_documento || 'v', primer_nombre: nuevoPaciente.primer_nombre.toUpperCase().trim(), segundo_nombre: nuevoPaciente.segundo_nombre.toUpperCase().trim(), primer_apellido: nuevoPaciente.primer_apellido.toUpperCase().trim(), segundo_apellido: nuevoPaciente.segundo_apellido.toUpperCase().trim(), fecha_nacimiento: fechaABackend(nuevoPaciente.fecha_nacimiento), telefono: nuevoPaciente.telefono.replace(/\D/g, '').trim() };
+    const d = { cedula: esNum ? (nuevoPaciente.cedula || '').replace(/\D/g, '').trim() : (nuevoPaciente.cedula || '').trim().toUpperCase(), tipo_documento: nuevoPaciente.tipo_documento || 'v', primer_nombre: (nuevoPaciente.primer_nombre || '').toUpperCase().trim(), segundo_nombre: (nuevoPaciente.segundo_nombre || '').toUpperCase().trim(), primer_apellido: (nuevoPaciente.primer_apellido || '').toUpperCase().trim(), segundo_apellido: (nuevoPaciente.segundo_apellido || '').toUpperCase().trim(), fecha_nacimiento: fechaABackend(nuevoPaciente.fecha_nacimiento), telefono: (nuevoPaciente.telefono || '').replace(/\D/g, '').trim() };
     this.api.put(`recepcion/pacientes/${id_paciente}`, d).subscribe({
       next: () => {
         if (esEdicionTotal) {
