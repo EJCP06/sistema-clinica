@@ -318,7 +318,9 @@
                       (click)="selectAseguradora(asig.id_cliente)"
                       class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
                       [class.bg-blue-50]="seleccion.id_cliente === asig.id_cliente"
+                      [class.dark:bg-blue-950]="seleccion.id_cliente === asig.id_cliente"
                       [class.bg-blue-100]="aseguradoraState.index === i"
+                      [class.dark:bg-blue-900]="aseguradoraState.index === i"
                     >
                       <span
                         class="lowercase first-letter:uppercase font-bold text-black dark:text-white"
@@ -450,7 +452,13 @@
                             ? seleccion.id_especialidad
                             : seleccion.id_servicio) === (s.id_especialidad || s.id)
                         "
+                        [class.dark:bg-blue-950]="
+                          (categoriaServicio === 'Consulta'
+                            ? seleccion.id_especialidad
+                            : seleccion.id_servicio) === (s.id_especialidad || s.id)
+                        "
                         [class.bg-blue-100]="especialidadState.index === i"
+                        [class.dark:bg-blue-900]="especialidadState.index === i"
                       >
                         <span
                           class="lowercase first-letter:uppercase font-bold text-black dark:text-white"
@@ -513,7 +521,9 @@
                         (click)="selectMedico(m)"
                         class="px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors rounded-lg flex items-center justify-between group"
                         [class.bg-blue-50]="seleccion.id_medico === (m.id_usuario || m.id)"
+                        [class.dark:bg-blue-950]="seleccion.id_medico === (m.id_usuario || m.id)"
                         [class.bg-blue-100]="medicoState.index === i"
+                        [class.dark:bg-blue-900]="medicoState.index === i"
                       >
                         <div class="flex flex-col">
                           <span
