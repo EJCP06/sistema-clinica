@@ -176,7 +176,9 @@ export class Login implements OnDestroy {
   }
 
   soloNumeros(event: KeyboardEvent) {
-    if (!/^\d$/.test(event.key) && event.key !== 'Backspace' && event.key !== 'Delete' && event.key !== 'Tab' && event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+    const key = event?.key;
+    if (typeof key !== 'string' || event.ctrlKey || event.metaKey) return;
+    if (!/^\d$/.test(key) && key !== 'Backspace' && key !== 'Delete' && key !== 'Tab' && key !== 'ArrowLeft' && key !== 'ArrowRight') {
       event.preventDefault();
     }
   }

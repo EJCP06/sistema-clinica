@@ -196,13 +196,13 @@ const crearPaciente = async (req, res) => {
   if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
 
   try {
-    const { cedula, tipo_documento, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, telefono, status } = req.body;
+    const { cedula, tipo_documento, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, telefono, email, direccion, status } = req.body;
     const pn = (primer_nombre || '').toString().toUpperCase().trim();
     const pa = (primer_apellido || '').toString().toUpperCase().trim();
     const tipoDoc = tipo_documento || 'v';
 
-    if (!cedula || !pn || !pa) {
-      return res.status(400).json({ mensaje: 'Cédula, primer nombre y primer apellido son requeridos' });
+    if (!cedula || !pn || !pa || !direccion) {
+      return res.status(400).json({ mensaje: 'Cédula, primer nombre, primer apellido y dirección son requeridos' });
     }
 
     const existing = await pacienteRepo.findByCedula(cedula, sede, tipoDoc);
@@ -219,6 +219,8 @@ const crearPaciente = async (req, res) => {
       segundo_apellido: (segundo_apellido || '').toString().toUpperCase().trim() || null,
       fecha_nacimiento: fecha_nacimiento || null,
       telefono,
+      email,
+      direccion,
       status,
       sede,
     });
@@ -245,7 +247,7 @@ const actualizarPaciente = async (req, res) => {
 
   try {
     const { id } = req.params;
-    const { cedula, tipo_documento, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, telefono } = req.body;
+    const { cedula, tipo_documento, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, telefono, email, direccion } = req.body;
 
     const paciente = await pacienteRepo.actualizarPaciente(id, sede, {
       cedula,
@@ -256,6 +258,8 @@ const actualizarPaciente = async (req, res) => {
       segundo_apellido: (segundo_apellido || '').toString().toUpperCase().trim() || null,
       fecha_nacimiento: fecha_nacimiento || null,
       telefono,
+      email,
+      direccion,
     });
 
     if (!paciente) {
@@ -702,6 +706,55 @@ const llamarImagenesSalaEspera = async (req, res) => {
 };
 
 /**
+ * Texto del anuncio general de SILENCIO que se locuta en el turnero.
+ * Se pre-sintetiza con Piper para que todas las pantallas reproduzcan
+ * el mismo WAV en sincronía (igual que los llamados de pacientes).
+ */
+const TEXTO_ANUNCIO_SILENCIO = 'Estimados pacientes para mantener la tranquilidad en el área solicitamos guardar silencio.';
+
+/**
+ * Emite por Socket.IO un anuncio GENERAL de voz hacia el turnero
+ * (sin paciente asociado). Actualmente solo se usa para el recordatorio
+ * de silencio lanzado desde el botón del módulo APS.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
+const anunciarSilencio = async (req, res) => {
+  const sede = getSede(req);
+  if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
+
+  try {
+    const ahoraServidor = Date.now();
+    const payload = {
+      tipo: 'anuncio-general',
+      texto: TEXTO_ANUNCIO_SILENCIO,
+      id_sede: sede,
+      server_now: ahoraServidor,
+      inicio_ms: ahoraServidor,
+    };
+
+    // Pre-sintetizar audio con Piper para que todos los turneros
+    // reproduzcan el mismo WAV al recibir el evento.
+    try {
+      const nombreArchivo = `tts_${Date.now()}`;
+      await ttsService.generarAudio(TEXTO_ANUNCIO_SILENCIO, nombreArchivo);
+      payload.audio_url = `/api/tts/audio/${nombreArchivo}.wav`;
+    } catch (err) {
+      logger.warn(`TTS pre-síntesis falló (anuncio de silencio, el turnero usará fallback): ${err.message}`);
+    }
+
+    if (req.io) req.io.emit('anuncio-general', payload);
+
+    res.json({ mensaje: 'Anuncio de silencio emitido en el turnero' });
+  } catch (error) {
+    logger.error(error);
+    res.status(500).json({ mensaje: 'Error al emitir el anuncio' });
+  }
+};
+
+/**
  * Genera un nuevo turno (atención) para un paciente y servicio dados.
  * El número de turno sale de una secuencia atómica por día (sede + servicio)
  * dentro de la misma transacción: es imposible que dos turnos repitan número.
@@ -782,5 +835,6 @@ module.exports = {
   llamarImagenes,
   llamarLaboratorioSalaEspera,
   llamarImagenesSalaEspera,
+  anunciarSilencio,
   marcarAusente7,
 };

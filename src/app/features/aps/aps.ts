@@ -112,6 +112,8 @@ export class ApsComponent implements OnInit, OnDestroy {
     this.api.cambios$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((event: any) => {
       if (this.marcandoAusente) return;
       if (event?.tipo === 'llamado') return;
+      // El anuncio general de silencio no altera la cola de admisiones.
+      if (event?.tipo === 'anuncio-general') return;
       if (event?.admision) {
         const a = event.admision;
         const servicioLower = (a.nombre_servicio || '').toLowerCase();
@@ -168,6 +170,20 @@ export class ApsComponent implements OnInit, OnDestroy {
 
   llamarPaciente(paciente: any) { this.api.post(`recepcion/atencion/${paciente.id_atencion}/llamar-aps`, {}).subscribe({ next: () => {}, error: (err) => this.swal.error(err.error?.mensaje || 'Error al llamar paciente') }); }
   llamarClave(admision: any) { this.api.post(`recepcion/atencion/${admision.id_atencion}/llamar-clave`, {}).subscribe({ next: () => {}, error: (err) => this.swal.error(err.error?.mensaje || 'Error al llamar paciente') }); }
+
+  anunciandoSilencio = false;
+  /**
+   * Emite el anuncio general de SILENCIO por voz en el turnero de la sede
+   * (botón rojo con megáfono junto al buscador).
+   */
+  anunciarSilencio() {
+    if (this.anunciandoSilencio) return;
+    this.anunciandoSilencio = true;
+    this.api.post('recepcion/anuncio-silencio', {}).pipe(finalize(() => this.anunciandoSilencio = false)).subscribe({
+      next: () => {},
+      error: (err) => this.swal.error(err.error?.mensaje || 'Error al emitir el anuncio'),
+    });
+  }
 
   async enviarAPresupuesto(admision: any) { const r = await this.swal.confirm('¿Ya se creó el presupuesto al paciente?'); if (!r.isConfirmed) return; this.api.actualizarEstadoAtencion(admision.id_atencion, this.apsList.esAseguradora(admision) ? 8 : 2).subscribe({ next: () => this.cargarUltimasAdmisiones(), error: (err) => this.swal.error(err.error?.mensaje || 'Error al cambiar estado') }); }
   async solicitarClave(admision: any) { const r = await this.swal.confirm('¿Deseas solicitar la clave de aseguradora?'); if (!r.isConfirmed) return; this.api.actualizarEstadoAtencion(admision.id_atencion, 8).subscribe({ next: () => this.cargarUltimasAdmisiones(), error: (err) => this.swal.error(err.error?.mensaje || 'Error al cambiar estado') }); }

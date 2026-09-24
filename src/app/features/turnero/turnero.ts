@@ -258,6 +258,13 @@ export class TurneroComponent implements OnInit, OnDestroy {
         this.voz.detenerRepeticion(data.id_atencion);
       }
 
+      // Anuncio general por megáfono (p. ej. recordatorio de silencio
+      // disparado desde APS): se locuta una sola vez por voz.
+      if (data.tipo === 'anuncio-general') {
+        this.voz.reproducirAnuncioGeneral(data);
+        return;
+      }
+
       const esLlamado = data.tipo === 'llamado' && data.paciente && data.consultorio;
       if (esLlamado) {
         this.voz.procesarLlamado(data);

@@ -104,7 +104,9 @@ export class AdminReports implements OnInit, OnDestroy {
     this.fechaHastaDisplay = this.fechaADisplay(this.fechaHasta);
     this.cargarReporte();
     this.apiService.getSedes().subscribe(sedes => this.sedes = sedes);
-    this.apiService.cambios$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+    this.apiService.cambios$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((event: any) => {
+      // Anuncio general por megáfono (silencio): no altera los reportes.
+      if (event?.tipo === 'anuncio-general') return;
       if (this.esRangoHoy()) {
         this.cargarReporte();
       }

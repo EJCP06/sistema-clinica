@@ -163,7 +163,9 @@ export class Atencion implements OnInit, OnDestroy {
       this.cargarHistorial();
     });
     
-    this.apiService.cambios$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+    this.apiService.cambios$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((event: any) => {
+      // Anuncio general por megáfono (silencio): no requiere recargar.
+      if (event?.tipo === 'anuncio-general') return;
       this.cargarEstadoConsultorio();
       this.cargarHistorial();
     });

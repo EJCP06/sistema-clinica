@@ -225,6 +225,8 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
     this.cargarUltimasAdmisiones();
 
     this.api.cambios$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((event: any) => {
+      // Anuncio general por megáfono (silencio): no altera la cola.
+      if (event?.tipo === 'anuncio-general') return;
       if (event?.admision) {
         const a = event.admision;
         const esDelServicio = this.esDelServicio(a.nombre_servicio);

@@ -630,6 +630,20 @@
               />
               </div>
             </div>
+
+            <!-- BOTÓN SILENCIO (anuncia por voz en el turnero) -->
+            <button
+              *ngIf="auth.tieneRol(['analista', 'coordinador', 'administrador'])"
+              type="button"
+              (click)="anunciarSilencio()"
+              [disabled]="anunciandoSilencio"
+              aria-label="Anunciar silencio en el turnero"
+              title="Anunciar silencio en el turnero"
+              class="shrink-0 px-4 md:px-5 py-3 bg-red-600 hover:bg-red-700 text-white text-[10px] font-black uppercase tracking-wider rounded-2xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-red-600/20 cursor-pointer"
+            >
+              <lucide-icon [name]="Megaphone" class="w-4 h-4"></lucide-icon>
+              <span>Silencio</span>
+            </button>
           </div>
           <div *ngIf="cargando" class="flex flex-col items-center justify-center py-16 bg-white dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800/80 rounded-[32px]">
             <div class="w-8 h-8 border-[3px] border-blue-600/30 border-t-blue-600 rounded-full animate-spin"></div>

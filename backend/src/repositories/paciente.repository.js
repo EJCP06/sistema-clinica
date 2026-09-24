@@ -31,7 +31,7 @@ const buscarPaciente = async (termino, filtro, sede) => {
   }
 
   const result = await pool.query(
-    `SELECT id_paciente, cedula, tipo_documento, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, primer_nombre AS nombre, primer_apellido AS apellido, telefono, status, id_sede
+    `SELECT id_paciente, cedula, tipo_documento, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, primer_nombre AS nombre, primer_apellido AS apellido, telefono, email, direccion, status, id_sede
      FROM "Pacientes"
      WHERE ${whereColumna} AND id_sede = $2
      ORDER BY id_paciente DESC
@@ -43,10 +43,10 @@ const buscarPaciente = async (termino, filtro, sede) => {
 
 const crearPaciente = async (data) => {
   const result = await pool.query(
-    `INSERT INTO "Pacientes" (cedula, tipo_documento, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, telefono, status, id_sede)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-     RETURNING id_paciente, cedula, tipo_documento, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, primer_nombre AS nombre, primer_apellido AS apellido, telefono, status`,
-    [data.cedula, data.tipo_documento || 'v', data.primer_nombre, data.segundo_nombre || null, data.primer_apellido, data.segundo_apellido || null, data.fecha_nacimiento || null, data.telefono || null, data.status !== false, data.sede],
+    `INSERT INTO "Pacientes" (cedula, tipo_documento, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, telefono, email, direccion, status, id_sede)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+     RETURNING id_paciente, cedula, tipo_documento, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, primer_nombre AS nombre, primer_apellido AS apellido, telefono, email, direccion, status`,
+    [data.cedula, data.tipo_documento || 'v', data.primer_nombre, data.segundo_nombre || null, data.primer_apellido, data.segundo_apellido || null, data.fecha_nacimiento || null, data.telefono || null, data.email || null, data.direccion || null, data.status !== false, data.sede],
   );
   return result.rows[0];
 };
@@ -61,10 +61,12 @@ const actualizarPaciente = async (id, sede, data) => {
          primer_apellido = COALESCE($5, primer_apellido),
          segundo_apellido = COALESCE($6, segundo_apellido),
          fecha_nacimiento = COALESCE($7, fecha_nacimiento),
-         telefono = COALESCE($8, telefono)
-     WHERE id_paciente = $9 AND id_sede = $10
-     RETURNING id_paciente, cedula, tipo_documento, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, primer_nombre AS nombre, primer_apellido AS apellido, telefono`,
-    [data.cedula, data.tipo_documento, data.primer_nombre, data.segundo_nombre || null, data.primer_apellido, data.segundo_apellido || null, data.fecha_nacimiento || null, data.telefono, id, sede],
+         telefono = COALESCE($8, telefono),
+         email = COALESCE($9, email),
+         direccion = COALESCE($10, direccion)
+     WHERE id_paciente = $11 AND id_sede = $12
+     RETURNING id_paciente, cedula, tipo_documento, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, primer_nombre AS nombre, primer_apellido AS apellido, telefono, email, direccion`,
+    [data.cedula, data.tipo_documento, data.primer_nombre, data.segundo_nombre || null, data.primer_apellido, data.segundo_apellido || null, data.fecha_nacimiento || null, data.telefono, data.email, data.direccion, id, sede],
   );
   return (result.rows && result.rows[0]) || null;
 };

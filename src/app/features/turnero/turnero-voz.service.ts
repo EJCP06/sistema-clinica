@@ -87,6 +87,12 @@ export class TurneroVozService {
   // -- Modal timer (gestionado internamente) --
   private modalLlamadoTimer: any = null;
 
+  // -- Anuncio general por megáfono (p. ej. recordatorio de silencio) --
+  private anuncioGeneralTimer: any = null;
+  private anuncioGeneralIntentos = 0;
+  private ultimoAnuncioGeneralTexto = '';
+  private ultimoAnuncioGeneralTs = 0;
+
   // -- Audio unlock listeners --
   private unlockHandlerClick: (() => void) | null = null;
   private unlockHandlerKeydown: (() => void) | null = null;
@@ -278,11 +284,66 @@ export class TurneroVozService {
   }
 
   /**
+   * Reproduce un anuncio GENERAL por el megáfono del turnero (sin paciente
+   * asociado), p. ej. el recordatorio de silencio lanzado desde APS.
+   * Se locuta UNA sola vez, sin el ciclo de repetición de 10 s de los
+   * llamados de pacientes. Si el motor de voz está ocupado o el turnero
+   * aún está en la pantalla de inicio, reintenta a los pocos segundos.
+   */
+  reproducirAnuncioGeneral(data: any): void {
+    const texto = String(data?.texto || '').trim();
+    if (!texto) return;
+
+    // Anti-doble: no repetir el mismo texto en una ventana corta.
+    const ahora = Date.now();
+    if (this.ultimoAnuncioGeneralTexto === texto && ahora - this.ultimoAnuncioGeneralTs < 8000) return;
+
+    // Esperar a que el turnero esté iniciado y el motor de voz esté libre.
+    if (this.motorVozOcupado() || !!this.ui?.isSplashVisible()) {
+      if (this.anuncioGeneralTimer) return;
+      if (this.anuncioGeneralIntentos >= 10) { this.anuncioGeneralIntentos = 0; return; }
+      this.anuncioGeneralIntentos++;
+      this.anuncioGeneralTimer = setTimeout(() => {
+        this.anuncioGeneralTimer = null;
+        this.reproducirAnuncioGeneral(data);
+      }, 3000);
+      return;
+    }
+    this.anuncioGeneralIntentos = 0;
+    this.ultimoAnuncioGeneralTexto = texto;
+    this.ultimoAnuncioGeneralTs = ahora;
+
+    ultimoAnuncioGlobal = { texto, ts: ahora, sonado: false };
+    this.sintetizandoTTS = true;
+
+    const onExito = () => {
+      this.sonidoConfirmado = true;
+      if (ultimoAnuncioGlobal) ultimoAnuncioGlobal.sonado = true;
+      this.quitarListenersDesbloqueo();
+      this.sintetizandoTTS = false;
+      this.procesarColaVoz();
+    };
+
+    const onError = () => {
+      this.sintetizandoTTS = false;
+      this.procesarColaVoz();
+    };
+
+    // Usa el WAV pre-sintetizado si llega; si no, TTS del servidor/navegador.
+    this.reproducirTexto(texto, onExito, onError, data.audio_url || undefined);
+  }
+
+  /**
    * Detiene la repetición de un anuncio específico o de todos.
    * `preservarSesion`: true solo en recarga de página (F5).
    */
   detenerRepeticion(idAtencion?: number, preservarSesion = false): void {
     const motorActivoAntes = this.sintetizandoTTS;
+    if (this.anuncioGeneralTimer) {
+      clearTimeout(this.anuncioGeneralTimer);
+      this.anuncioGeneralTimer = null;
+      this.anuncioGeneralIntentos = 0;
+    }
     if (idAtencion !== undefined) {
       const a = this.anunciosActivos.get(idAtencion);
       if (a) {

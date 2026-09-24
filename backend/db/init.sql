@@ -170,6 +170,8 @@ CREATE TABLE "Pacientes" (
   "segundo_apellido" varchar,
   "fecha_nacimiento" date,
   "telefono" varchar,
+  "email" varchar,
+  "direccion" text,
   "status" boolean DEFAULT true,
   "id_sede" integer REFERENCES "Sedes"("id_sede"),
   "fecha_creacion" timestamp DEFAULT (now())

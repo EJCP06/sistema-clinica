@@ -161,6 +161,8 @@ export class RecepcionComponent implements OnInit, OnDestroy, RecepcionState {
     if (this.isAseguradorasView) { this.cargarAseguradoras(); } else { this.cargarUltimasAdmisiones(); }
     this.cambiosSub = this.api.cambios$.subscribe((ev: any) => {
       if (this.isAseguradorasView) { this.cargarAseguradoras(); return; }
+      // El anuncio general de silencio (megáfono) no altera la cola.
+      if (ev?.tipo === 'anuncio-general') { return; }
       if (ev?.admision) {
         if (ev.tipo === 'retirado') { this.atencion.ultimasAdmisiones = this.atencion.ultimasAdmisiones.filter((a: any) => a.id_atencion !== ev.admision.id_atencion); }
         else if (ev.tipo === 'estado-cambiado') { if ([6, 9].includes(Number(ev.id_estado_nuevo))) { this.atencion.ultimasAdmisiones = this.atencion.ultimasAdmisiones.filter((a: any) => a.id_atencion !== ev.admision.id_atencion); } else if (Number(ev.id_estado_nuevo) === 3) { this.atencion.ultimasAdmisiones = [ev.admision, ...this.atencion.ultimasAdmisiones].slice(0, 50); } }

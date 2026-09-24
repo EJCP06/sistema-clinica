@@ -282,6 +282,33 @@
                   </div>
                 </div>
 
+                <div *ngIf="!isAseguradorasView" class="col-span-full grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
+                  <div class="space-y-1.5">
+                    <label
+                      class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                      >Correo Electrónico</label
+                    >
+                    <input
+                      type="email"
+                      [(ngModel)]="nuevoPaciente.email"
+                      placeholder="Ej: correo@ejemplo.com"
+                      class="input-field-sm"
+                    />
+                  </div>
+                  <div class="space-y-1.5">
+                    <label
+                      class="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1"
+                      >Dirección <span class="text-rose-500">*</span></label
+                    >
+                    <input
+                      type="text"
+                      [(ngModel)]="nuevoPaciente.direccion"
+                      placeholder="Ej: Av. Principal, Edif. A"
+                      class="input-field-sm"
+                    />
+                  </div>
+                </div>
+
                 <!-- FILA 4: RESPONSABLE DE PAGO -->
                 <ng-container *ngIf="!isAseguradorasView">
                   <div class="col-span-full space-y-1.5">

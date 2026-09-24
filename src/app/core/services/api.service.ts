@@ -88,6 +88,13 @@ export class ApiService {
           this.cambios$.next(data as { tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; id_sede?: number });
         });
       });
+      // Anuncio general por megáfono (p. ej. recordatorio de silencio
+      // lanzado desde APS): el turnero lo locuta por voz.
+      this.socket.on('anuncio-general', (data: unknown) => {
+        this.zone.run(() => {
+          this.cambios$.next(data as { tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; id_sede?: number });
+        });
+      });
       this.socket.on('permisos-actualizados', (data: unknown) => {
         this.zone.run(() => {
           this.cambios$.next({ tipo: 'permisos', ...(data as Record<string, any>) } as { tipo?: string; id_atencion?: number; turno?: string; consultorio?: string; paciente?: string; id_sede?: number });

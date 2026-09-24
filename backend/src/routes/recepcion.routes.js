@@ -70,6 +70,10 @@ router.post('/atencion/:id/llamar-imagenes', permitirLlamado([...rolesModulos, '
 router.post('/atencion/:id/llamar-laboratorio-se', permitirLlamado([...rolesModulos, 'laboratorio']), ctrl.llamarLaboratorioSalaEspera);
 router.post('/atencion/:id/llamar-imagenes-se', permitirLlamado([...rolesModulos, 'imagenes']), ctrl.llamarImagenesSalaEspera);
 
+// Anuncio general por voz en el turnero (megáfono): recordatorio de
+// silencio lanzado desde el módulo APS. No cambia estados.
+router.post('/anuncio-silencio', permitirLlamado(rolesModulos), ctrl.anunciarSilencio);
+
 router.use(perm(
   'ADMISION_TOTAL',
   'LABORATORIO_TOTAL',

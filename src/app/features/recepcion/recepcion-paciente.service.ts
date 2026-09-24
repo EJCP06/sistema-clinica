@@ -17,6 +17,8 @@ export interface NuevoPaciente {
   segundo_apellido: string;
   fecha_nacimiento: string;
   telefono: string;
+  email: string;
+  direccion: string;
   status: boolean;
 }
 
@@ -29,7 +31,7 @@ export class RecepcionPacienteService {
 
   nuevoPaciente: NuevoPaciente = {
     cedula: '', tipo_documento: 'v', primer_nombre: '', segundo_nombre: '',
-    primer_apellido: '', segundo_apellido: '', fecha_nacimiento: '', telefono: '', status: true,
+    primer_apellido: '', segundo_apellido: '', fecha_nacimiento: '', telefono: '', email: '', direccion: '', status: true,
   };
 
   pacienteExistenteCargado = false;
@@ -49,7 +51,7 @@ export class RecepcionPacienteService {
     this.isEditMode = false;
     this.nuevoPaciente = {
       id_paciente: null, cedula: '', tipo_documento: 'v', primer_nombre: '', segundo_nombre: '',
-      primer_apellido: '', segundo_apellido: '', fecha_nacimiento: '', telefono: '', status: true,
+      primer_apellido: '', segundo_apellido: '', fecha_nacimiento: '', telefono: '', email: '', direccion: '', status: true,
     };
     this.seleccionSvc.resetSeleccion();
     this.seleccionSvc.seleccion.id_responsable = isAseguradorasView ? 2 : null;
@@ -87,6 +89,8 @@ export class RecepcionPacienteService {
           this.nuevoPaciente.segundo_apellido = p.segundo_apellido || '';
           this.nuevoPaciente.fecha_nacimiento = fechaADisplay(p.fecha_nacimiento);
           this.nuevoPaciente.telefono = p.telefono || '';
+          this.nuevoPaciente.email = p.email || '';
+          this.nuevoPaciente.direccion = p.direccion || '';
         } else {
           if (this.nuevoPaciente.id_paciente) {
             this.nuevoPaciente.primer_nombre = '';
@@ -95,6 +99,8 @@ export class RecepcionPacienteService {
             this.nuevoPaciente.segundo_apellido = '';
             this.nuevoPaciente.fecha_nacimiento = '';
             this.nuevoPaciente.telefono = '';
+            this.nuevoPaciente.email = '';
+            this.nuevoPaciente.direccion = '';
           }
           this.pacienteExistenteCargado = false;
           this.nuevoPaciente.id_paciente = null;
@@ -119,7 +125,7 @@ export class RecepcionPacienteService {
       primer_apellido: paciente.primer_apellido || paciente.apellido || '',
       segundo_apellido: paciente.segundo_apellido || '',
       fecha_nacimiento: fechaADisplay(paciente.fecha_nacimiento),
-      telefono: paciente.telefono || '', status: true,
+      telefono: paciente.telefono || '', email: paciente.email || '', direccion: paciente.direccion || '', status: true,
     };
     this.seleccionSvc.resetSeleccion();
   }
@@ -131,7 +137,7 @@ export class RecepcionPacienteService {
       tipo_documento: fila.tipo_documento || 'v',
       primer_nombre: fila.nombre || '', segundo_nombre: fila.segundo_nombre || '',
       primer_apellido: fila.apellido || '', segundo_apellido: fila.segundo_apellido || '',
-      fecha_nacimiento: fechaADisplay(fila.fecha_nacimiento), telefono: fila.telefono || '', status: true,
+      fecha_nacimiento: fechaADisplay(fila.fecha_nacimiento), telefono: fila.telefono || '', email: fila.email || '', direccion: fila.direccion || '', status: true,
     };
     this.seleccionSvc.seleccion = {
       id_servicio: fila.id_servicio, id_responsable: fila.id_responsable,
