@@ -76,7 +76,7 @@ export interface AdmisionDTO {
   fecha_creacion: string;
   hora_llegada?: string;
   hora_salida?: string;
-  hora_llamado?: string;
+  hora_llamado?: string | number;
 }
 
 /** Datos del paciente (incluye ambos nombres y apellidos). */
@@ -225,7 +225,7 @@ export interface MiEstadoDTO {
   apellido_paciente?: string;
   documento_paciente?: string;
   turno_hora_llegada?: string;
-  hora_llamado?: string;
+  hora_llamado?: string | number;
 }
 
 /** Datos de un consultorio físico. */

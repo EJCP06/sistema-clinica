@@ -1,13 +1,30 @@
 # ============================================================
-# Dockerfile del BACKEND (Node.js 20 + Express)
+# Dockerfile del BACKEND (Node.js 20 + Express + Piper TTS Linux)
 # ------------------------------------------------------------
 # Imagen de producción: instala SOLO dependencias de producción
-# (npm ci --only=production) y ejecuta el punto de entrada backend/index.js
-# (que valida variables de entorno, corre migraciones y levanta el servidor).
+# (npm ci --only=production), un entorno Python Linux con piper-tts
+# para la síntesis de voz TTS, y ejecuta backend/index.js.
+# NOTA: usa node:20-slim (Debian) en vez de alpine porque piper-tts
+# requiere ruedas GLIBC (onnxruntime no publica binarios musl).
 # ============================================================
-FROM node:20-alpine
+FROM node:20-slim
 
 WORKDIR /usr/src/app
+
+# Python + venv para Piper TTS (el modelo ONNX es multiplataforma).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 python3-pip python3-venv tzdata \
+    && rm -rf /var/lib/apt/lists/* \
+    && python3 -m venv /opt/piper-env \
+    && /opt/piper-env/bin/pip install --no-cache-dir --upgrade pip \
+    && /opt/piper-env/bin/pip install --no-cache-dir piper-tts \
+    && rm -rf /root/.cache/pip
+
+# La BD corre en America/Caracas (UTC-4) y guarda timestamps SIN zona horaria.
+# El driver pg de Node los interpreta con la zona del contenedor: si Node quedara
+# en UTC, toda fecha de la BD saldría corrida 4 horas (contador a 0, ausente
+# automático y voz que muere tras el primer anuncio). Se alinea la zona.
+ENV TZ=America/Caracas
 
 # package*.json primero para aprovechar la caché de capas de Docker:
 # si las dependencias no cambian, esta capa no se reconstruye.
@@ -17,6 +34,9 @@ RUN npm ci --only=production && npm cache clean --force
 
 # Solo se copia la carpeta backend/ (el frontend va en la otra imagen).
 COPY backend/ ./backend/
+
+# Ruta al Python Linux de Piper (se anula con PIPER_PYTHON en compose si existe).
+ENV PIPER_PYTHON=/opt/piper-env/bin/python
 
 EXPOSE 3000
 

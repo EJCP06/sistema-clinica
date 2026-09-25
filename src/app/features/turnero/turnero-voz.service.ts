@@ -199,6 +199,7 @@ export class TurneroVozService {
   procesarLlamado(data: any): void {
     const id = data.id_atencion;
     if (!id) return;
+    console.log('[Voz] procesarLlamado', { id, forzar: !!data.forzar, inicio_ms: data.inicio_ms, audio_url: data.audio_url || null, yaActivo: this.anunciosActivos.has(id) });
     if (data.forzar) {
       this.reanunciarInmediato(data);
       return;
@@ -449,6 +450,7 @@ export class TurneroVozService {
       this.ultimoAnuncioInicioMs !== null && Number.isFinite(this.ultimoAnuncioInicioMs) &&
       Math.abs(a.inicioMs - this.ultimoAnuncioInicioMs) < 2000;
     if (this.sonidoConfirmado && a.idAtencion === this.ultimoIdAnunciado && esMismoLlamadoLocal && ahora - this.ultimaVezAnunciado < 9000) {
+      console.log('[Voz] bloqueado por dedup local (mismo llamado <9s)', a.idAtencion);
       return false;
     }
 
@@ -464,16 +466,21 @@ export class TurneroVozService {
     const bloqueaDoble = !!ultimoAnuncioGlobal && ultimoAnuncioGlobal.texto === texto && (
       hablandoAhora || (ultimoAnuncioGlobal.sonado && ahora - ultimoAnuncioGlobal.ts < VENTANA_ANTIDOBLE_MS)
     );
-    if (bloqueaDoble) return false;
+    if (bloqueaDoble) {
+      console.log('[Voz] bloqueado por guardia global anti-doble', { id: a.idAtencion, hablandoAhora });
+      return false;
+    }
 
     // Si el motor está ocupado, encolar
     if (hablandoAhora) {
+      console.log('[Voz] motor ocupado, encolando anuncio', a.idAtencion);
       if (!this.colaVoz.some(x => x.idAtencion === a.idAtencion)) {
         this.colaVoz.push(a);
       }
       return true;
     }
 
+    console.log('[Voz] reproduciendo anuncio directo', a.idAtencion);
     ultimoAnuncioGlobal = { texto, ts: ahora, sonado: false };
 
     if (a.speakTimerId) { clearTimeout(a.speakTimerId); a.speakTimerId = null; }
@@ -529,6 +536,7 @@ export class TurneroVozService {
    * Saca el siguiente anuncio de la cola y lo reproduce.
    */
   procesarColaVoz(): void {
+    console.log('[Voz] procesarColaVoz, cola=', this.colaVoz.length, 'motorOcupado=', this.motorVozOcupado());
     while (this.colaVoz.length > 0) {
       const next = this.colaVoz.shift()!;
       if (this.anunciosActivos.has(next.idAtencion)) {
@@ -538,8 +546,12 @@ export class TurneroVozService {
         const bloqueaDoble = !!ultimoAnuncioGlobal && ultimoAnuncioGlobal.texto === texto && (
           estaHablando || (ultimoAnuncioGlobal.sonado && ahora - ultimoAnuncioGlobal.ts < VENTANA_ANTIDOBLE_MS)
         );
-        if (bloqueaDoble) continue;
+        if (bloqueaDoble) {
+          console.log('[Voz] cola: bloqueado anti-doble', next.idAtencion);
+          continue;
+        }
 
+        console.log('[Voz] cola: reproduciendo', next.idAtencion);
         ultimoAnuncioGlobal = { texto, ts: ahora, sonado: false };
         this.sintetizandoTTS = true;
         const esAnuncioUnico = next.destinoInmediato || esAnuncioAPS(next.consultorio);
@@ -584,6 +596,7 @@ export class TurneroVozService {
    * Reproduce texto usando servidor TTS con fallback a Web Speech API.
    */
   async reproducirTexto(texto: string, onExito: () => void, onError: (msg?: string) => void, audioUrl?: string): Promise<void> {
+    console.log('[Voz] reproducirTexto', { tieneUrl: !!audioUrl, ttsDisponible: this.ttsServidorDisponible });
     if (audioUrl) {
       this.reproducirAudioURL(audioUrl, onExito, async () => {
         let fallbackLlamado = false;
@@ -615,6 +628,7 @@ export class TurneroVozService {
   }
 
   async reproducirConServidor(texto: string, onEnd: () => void, _onError?: () => void): Promise<boolean> {
+    console.log('[Voz] reforzando con servidor TTS (Piper)');
     this.sintetizandoTTS = true;
     try {
       const ttsUrl = getBackendUrl('/api/tts');
@@ -688,6 +702,7 @@ export class TurneroVozService {
   }
 
   async reproducirAudioURL(url: string, onEnd: () => void, onError: () => void): Promise<void> {
+    console.log('[Voz] reproduciendo WAV pre-sintetizado', url);
     try {
       if (this.audioServidor) {
         this.audioServidor.pause();
@@ -706,7 +721,18 @@ export class TurneroVozService {
         onEnd();
       };
       audio.onerror = () => {
-        if (this.audioServidor === audio) this.audioServidor = null;
+        // Si el WAV falla al cargar y NO llamamos onError(), el anuncio se
+        // queda "colgado": ni onEnd ni onError disparan, `sintetizandoTTS`
+        // queda en true para siempre y el motor quedaba bloqueado => la voz
+        // del médico solo sonaba la primera vez y nunca se repetía. Ahora se
+        // resetea el motor y se cae al fallback (servidor Piper -> navegador).
+        if (this.audioServidor === audio) {
+          this.audioServidor = null;
+          this.sintetizandoTTS = false;
+        }
+        console.warn('[Voz] error reproduciendo WAV, usando fallback', audioUrl);
+        if (generacion !== this.generacionVoz) return;
+        onError();
       };
       this.ultimoDisparoVozMs = Date.now();
       try {
@@ -773,6 +799,7 @@ export class TurneroVozService {
    * Auto-selecciona la mejor voz española si no se provee una.
    */
   reproducirTextoNavegador(texto: string, onExito: () => void, onError: (msg?: string) => void, voz?: SpeechSynthesisVoice | null): void {
+    console.log('[Voz] reproduciendo con SpeechSynthesis del navegador');
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
       onError('SpeechSynthesis no soportado');
       return;

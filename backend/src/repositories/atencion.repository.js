@@ -48,7 +48,8 @@ const getUltimasAdmisiones = async (sede) => {
       a.id_responsable,
       esp.nombre as nombre_especialidad,
       u.primer_nombre || ' ' || u.primer_apellido as nombre_medico,
-      (SELECT h.fecha_hora FROM "Historial_Atencion" h WHERE h.id_atencion = a.id_atencion AND h.id_estado = 4 ORDER BY h.fecha_hora DESC LIMIT 1) as hora_llamado
+      (SELECT round(EXTRACT(EPOCH FROM (h.fecha_hora AT TIME ZONE current_setting('TimeZone'))) * 1000)::double precision
+       FROM "Historial_Atencion" h WHERE h.id_atencion = a.id_atencion AND h.id_estado = 4 ORDER BY h.fecha_hora DESC LIMIT 1) as hora_llamado
     FROM "Atencion" a
     JOIN "Pacientes" p ON a.id_paciente = p.id_paciente
     JOIN "Servicio" s ON a.id_servicio = s.id_servicio
@@ -516,7 +517,8 @@ const getEstadoDeAtencionPorServicio = async (servicioId) => {
       a.id_atencion as turno_id, a.numero as turno_numero,
       CASE WHEN e.nombre_estado = 'En Atencion' THEN 'EN_ATENCION' WHEN e.nombre_estado = 'Llamado' THEN 'LLAMADO' ELSE UPPER(e.nombre_estado) END as turno_estado,
       p.primer_nombre as nombre_paciente, p.primer_apellido as apellido_paciente, p.cedula as documento_paciente, a.hora_llegada as turno_hora_llegada,
-      (SELECT h.fecha_hora FROM "Historial_Atencion" h WHERE h.id_atencion = a.id_atencion AND h.id_estado = 4 ORDER BY h.fecha_hora DESC LIMIT 1) as hora_llamado
+      (SELECT round(EXTRACT(EPOCH FROM (h.fecha_hora AT TIME ZONE current_setting('TimeZone'))) * 1000)::double precision
+       FROM "Historial_Atencion" h WHERE h.id_atencion = a.id_atencion AND h.id_estado = 4 ORDER BY h.fecha_hora DESC LIMIT 1) as hora_llamado
     FROM "Servicio" s
     LEFT JOIN "Atencion" a ON a.id_servicio = s.id_servicio AND a.id_estado_actual IN (5, 4) AND a.hora_salida IS NULL
     LEFT JOIN "Estado" e ON a.id_estado_actual = e.id_estado
@@ -532,7 +534,8 @@ const getEstadoDeAtencionPorConsultorio = async (consultorioId) => {
       a.id_atencion as turno_id, a.numero as turno_numero,
       CASE WHEN e.nombre_estado = 'En Atencion' THEN 'EN_ATENCION' WHEN e.nombre_estado = 'Llamado' THEN 'LLAMADO' ELSE UPPER(e.nombre_estado) END as turno_estado,
       p.primer_nombre as nombre_paciente, p.primer_apellido as apellido_paciente, p.cedula as documento_paciente, a.hora_llegada as turno_hora_llegada,
-      (SELECT h.fecha_hora FROM "Historial_Atencion" h WHERE h.id_atencion = a.id_atencion AND h.id_estado = 4 ORDER BY h.fecha_hora DESC LIMIT 1) as hora_llamado
+      (SELECT round(EXTRACT(EPOCH FROM (h.fecha_hora AT TIME ZONE current_setting('TimeZone'))) * 1000)::double precision
+       FROM "Historial_Atencion" h WHERE h.id_atencion = a.id_atencion AND h.id_estado = 4 ORDER BY h.fecha_hora DESC LIMIT 1) as hora_llamado
     FROM "Consultorios" c
     LEFT JOIN "Servicio" s ON c.id_servicio = s.id_servicio
     LEFT JOIN "Atencion" a ON a.id_consultorio = c.id_consultorio AND a.id_estado_actual IN (5, 4) AND a.hora_salida IS NULL
@@ -752,7 +755,8 @@ const getUltimoLlamado = async (sede) => {
             c.piso as consultorio_piso,
             esp.piso as especialidad_piso,
             s.nombre_servicio,
-            (SELECT h.fecha_hora FROM "Historial_Atencion" h
+            (SELECT round(EXTRACT(EPOCH FROM (h.fecha_hora AT TIME ZONE current_setting('TimeZone'))) * 1000)::double precision
+             FROM "Historial_Atencion" h
              WHERE h.id_atencion = a.id_atencion AND h.id_estado = 4
              ORDER BY h.fecha_hora DESC LIMIT 1) as hora_llamado
      FROM "Atencion" a

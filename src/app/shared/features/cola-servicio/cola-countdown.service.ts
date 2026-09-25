@@ -1,5 +1,5 @@
 import { Injectable, OnDestroy } from '@angular/core';
-import { interval, timer, Subscription } from 'rxjs';
+import { interval, Subscription } from 'rxjs';
 import { ApiService } from '@core/services/api.service';
 
 export interface CountdownCallbacks {
@@ -10,11 +10,9 @@ export interface CountdownCallbacks {
 @Injectable({ providedIn: 'root' })
 export class ColaCountdownService implements OnDestroy {
   readonly COUNTDOWN_TOTAL = 60;
-  readonly VOZ_INTERVALO = 10000;
 
   private countdowns = new Map<number, number>();
   private countdownSubs = new Map<number, Subscription>();
-  private voiceSubs = new Map<number, Subscription>();
   private countdownStarts = new Map<number, number>();
   private admisionCountdown = new Map<number, any>();
   private _tick = 0;
@@ -30,6 +28,10 @@ export class ColaCountdownService implements OnDestroy {
     return this.countdowns.get(idAtencion) ?? 0;
   }
 
+  hasCountdown(idAtencion: number): boolean {
+    return this.countdownSubs.has(idAtencion);
+  }
+
   startCountdown(admision: any, tipo: string, callbacks?: CountdownCallbacks, forceSeconds?: number): void {
     const id = Number(admision.id_atencion);
     if (this.countdownSubs.has(id)) return;
@@ -38,8 +40,12 @@ export class ColaCountdownService implements OnDestroy {
     const total = forceSeconds ?? this.COUNTDOWN_TOTAL;
     let offsetSec = 0;
     if (!forceSeconds && admision.hora_llamado) {
-      offsetSec = Math.floor((nowMs - new Date(admision.hora_llamado).getTime()) / 1000);
-      offsetSec = Math.min(offsetSec, total);
+      const llamadoMs = new Date(admision.hora_llamado).getTime();
+      // Blindaje: si hora_llamado es inválido (NaN), no aplicar offset
+      if (!Number.isNaN(llamadoMs)) {
+        offsetSec = Math.floor((nowMs - llamadoMs) / 1000);
+        offsetSec = Math.min(offsetSec, total);
+      }
     }
     const startMs = nowMs - offsetSec * 1000;
     this.countdownStarts.set(id, startMs);
@@ -58,27 +64,17 @@ export class ColaCountdownService implements OnDestroy {
         if (adm) {
           this.api.put(`recepcion/atencion/${id}/marcar-ausente-real`, {}).subscribe({
             next: () => callbacks?.onExpire(id),
-            error: () => {},
+            error: () => callbacks?.onExpire(id),
           });
         }
       }
     });
     this.countdownSubs.set(id, sub);
-
-    const voiceSub = timer(this.VOZ_INTERVALO - 2000, this.VOZ_INTERVALO).subscribe(() => {
-      this.api.post(`recepcion/atencion/${id}/llamar-${tipo}-se`, {}).subscribe({
-        next: () => {},
-        error: () => {},
-      });
-    });
-    this.voiceSubs.set(id, voiceSub);
   }
 
   stopCountdown(idAtencion: number): void {
     const s1 = this.countdownSubs.get(idAtencion);
     if (s1) { s1.unsubscribe(); this.countdownSubs.delete(idAtencion); }
-    const s2 = this.voiceSubs.get(idAtencion);
-    if (s2) { s2.unsubscribe(); this.voiceSubs.delete(idAtencion); }
     this.countdowns.delete(idAtencion);
     this.countdownStarts.delete(idAtencion);
     this.admisionCountdown.delete(idAtencion);

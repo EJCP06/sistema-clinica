@@ -82,9 +82,15 @@ router.post('/', async (req, res) => {
 router.get('/health', (req, res) => {
   const fs = require('fs');
   const path = require('path');
-  const rutaModelo = process.env.PIPER_MODEL || path.resolve(__dirname, '..', '..', '..', 'piper', 'models', 'es_MX-claude-high.onnx');
+  // ROOT del proyecto: probar 3 niveles (backend/src/routes → raíz) y
+  // 2 niveles (src/routes → raíz). Se queda con el que tenga piper/.
+  let ROOT = path.resolve(__dirname, '..', '..', '..');
+  if (!fs.existsSync(path.join(ROOT, 'piper'))) {
+    ROOT = path.resolve(__dirname, '..', '..');
+  }
+  const rutaModelo = process.env.PIPER_MODEL || path.join(ROOT, 'piper', 'models', 'es_MX-claude-high.onnx');
   // Las rutas relativas (p. ej. "./piper/...") se resuelven contra la raíz
-  const rutaResuelta = path.isAbsolute(rutaModelo) ? rutaModelo : path.resolve(__dirname, '..', '..', '..', rutaModelo);
+  const rutaResuelta = path.isAbsolute(rutaModelo) ? rutaModelo : path.resolve(ROOT, rutaModelo);
   const modeloExiste = fs.existsSync(rutaResuelta);
   res.json({ status: modeloExiste ? 'ok' : 'error', servicio: 'piper-tts', modelo: 'es_MX-claude-high', disponible: modeloExiste });
 });

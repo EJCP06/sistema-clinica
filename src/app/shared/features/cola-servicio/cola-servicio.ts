@@ -312,6 +312,10 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
           if (adm) {
             adm.id_estado_actual = 4;
             adm.nombre_estado = 'LLAMADO';
+            // El llamado acaba de ocurrir en este instante (evento de socket): el
+            // countdown siempre arranca en 60 s y no debe calcular offset contra
+            // un hora_llamado viejo de un ciclo anterior.
+            adm.hora_llamado = new Date().toISOString();
             this.countdown.stopCountdown(idAtencion);
             this.countdown.startCountdown(adm, this.tipo, {
               onExpire: (id) => {
@@ -417,6 +421,12 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
         });
         for (const a of this.ultimasAdmisiones) {
           if (Number(a.id_estado_actual) === 4) {
+            // Reforzar el countdown si ya existe uno: en una recarga de página el
+            // motor vuelve desde cero, así que se reinicia para que el paciente en
+            // LLAMADO siempre recupere su contador (offset desde hora_llamado).
+            if (this.countdown.hasCountdown(a.id_atencion)) {
+              this.countdown.stopCountdown(a.id_atencion);
+            }
             this.countdown.startCountdown(a, this.tipo, {
               onExpire: (id) => {
                 this.ultimasAdmisiones = this.ultimasAdmisiones.filter((x) => x.id_atencion !== id);
@@ -440,6 +450,10 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
   llamarPacienteSalaEspera(paciente: any) {
     this.api.post(`recepcion/atencion/${paciente.id_atencion}/llamar-${this.tipo}-se`, {}).subscribe({
       next: () => {
+        // Reiniciar SIEMPRE desde 60s al volver a llamar: si quedó un countdown
+        // zombie de un estado previo (p.ej. tras "reincorporar"), el guard de
+        // startCountdown lo ignoraría. Se detiene antes para forzar el reinicio.
+        this.countdown.stopCountdown(paciente.id_atencion);
         paciente.id_estado_actual = 4;
         paciente.nombre_estado = 'LLAMADO';
         paciente.hora_llamado = new Date().toISOString();
@@ -482,6 +496,7 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
   async reincorporar(id_atencion: number) {
     const result = await this.swal.confirm('¿Deseas reincorporar este paciente a la Sala de Espera?');
     if (!result.isConfirmed) return;
+    this.countdown.stopCountdown(id_atencion);
     this.api.reincorporarPaciente(id_atencion).subscribe({
       next: () => this.cargarUltimasAdmisiones(),
       error: (err) => this.swal.error(err.error?.mensaje || 'Error al reincorporar paciente'),
@@ -493,6 +508,7 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
     if (!result.isConfirmed) return;
     this.api.put(`recepcion/atencion/${admision.id_atencion}/marcar_ausente`, {}).subscribe({
       next: () => {
+        this.countdown.stopCountdown(admision.id_atencion);
         this.ultimasAdmisiones = this.ultimasAdmisiones.filter((a) => a.id_atencion !== admision.id_atencion);
         this.api.cambios$.next({ id_atencion: admision.id_atencion });
         this.swal.success('Paciente retirado correctamente');
@@ -506,6 +522,7 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
     if (!result.isConfirmed) return;
     this.api.put(`recepcion/atencion/${admision.id_atencion}/marcar-ausente-real`, {}).subscribe({
       next: () => {
+        this.countdown.stopCountdown(admision.id_atencion);
         this.ultimasAdmisiones = this.ultimasAdmisiones.filter((a) => a.id_atencion !== admision.id_atencion);
         this.api.cambios$.next({ id_atencion: admision.id_atencion });
       },

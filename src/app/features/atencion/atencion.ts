@@ -413,21 +413,27 @@ export class Atencion implements OnInit, OnDestroy {
     });
   }
 
-  iniciarTemporizador(horaLlamado?: string) {
+  iniciarTemporizador(horaLlamado?: string | number) {
     this.detenerTemporizador();
 
     if (horaLlamado) {
       const llamadoAt = new Date(horaLlamado).getTime();
       const ahora = Date.now();
       const segundosPasados = Math.floor((ahora - llamadoAt) / 1000);
-      this.tiempoRestante = Math.max(0, 120 - segundosPasados);
+      // Blindaje: limitar segundosPasados para que no inicie en 0 o negativo
+      // por desfase de reloj/hora (máx 120s + pequeño margen = 130s)
+      const maxSegundos = 130;
+      const segundosPasadosSeguros = Math.min(segundosPasados, maxSegundos);
+      this.tiempoRestante = Math.max(0, 120 - segundosPasadosSeguros);
     } else {
       this.tiempoRestante = 120;
     }
 
     this.timerSub = interval(1000).subscribe(() => {
       this.tiempoRestante--;
-      if (this.tiempoRestante <= 0) {
+      // Blindaje (Causa 7): solo auto-ausentar si el turno SIGUE en LLAMADO.
+      // Si ya está EN_ATENCION (atendiendo) o no hay turno, no marcar ausente.
+      if (this.tiempoRestante <= 0 && this.turnoActual?.estado === 'LLAMADO') {
         this.detenerTemporizador();
         this.marcarAusenteAuto();
       }
