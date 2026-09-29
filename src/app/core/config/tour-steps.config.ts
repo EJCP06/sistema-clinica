@@ -123,6 +123,7 @@ export const buildSidebarSteps = (permisos: { tienePermiso: (p: string) => boole
       infoSections: [
         { title: 'Buscador', content: 'Muestra una barra de búsqueda con filtro para encontrar pacientes en la cola de APS rápidamente' },
         { title: 'Tabla de Pacientes', content: 'Muestra un listado de pacientes en espera del llamado para atender su servicio o autorizar los cambios de estado.' },
+        { title: 'Botón Silencio', content: 'Muestra un botón para bajar el volumen de los pacientes que hagan ruido.' },
       ],
     });
   }
@@ -138,6 +139,7 @@ export const buildSidebarSteps = (permisos: { tienePermiso: (p: string) => boole
       infoSections: [
         { title: 'Buscador', content: 'Muestra una barra de búsqueda con filtro para encontrar pacientes en la cola de laboratorio rápidamente.' },
         { title: 'Tabla de Pacientes', content: 'Muestra un listado de pacientes en espera del llamado para atender su servicio o autorizar los cambios de estado.' },
+        { title: 'Botón Silencio', content: 'Muestra un botón para bajar el volumen de los pacientes que hagan ruido.' },
       ],
     });
   }
@@ -153,6 +155,7 @@ export const buildSidebarSteps = (permisos: { tienePermiso: (p: string) => boole
       infoSections: [
         { title: 'Buscador', content: 'Muestra una barra de búsqueda con filtro para encontrar pacientes en la cola de imágenes rápidamente.' },
         { title: 'Tabla de Pacientes', content: 'Muestra un listado de pacientes en espera del llamado para atender su servicio o autorizar los cambios de estado.' },
+        { title: 'Botón Silencio', content: 'Muestra un botón para bajar el volumen de los pacientes que hagan ruido.' },
       ],
     });
   }
