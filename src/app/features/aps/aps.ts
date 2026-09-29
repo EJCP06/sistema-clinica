@@ -9,7 +9,7 @@ import { AuthService } from '@core/services/auth.service';
 import { SwalService } from '../../core/services/swal.service';
 import { EspecialidadesService } from '../../core/services/especialidades.service';
 import { ScrollService } from '../../core/services/scroll.service';
-import { AdmisionDTO } from '@core/models/dto.models';
+import { AdmisionDTO, SexoDTO, EstadoCivilDTO, ParentescoDTO } from '@core/models/dto.models';
 
 import { Sidebar } from '../../shared/components/sidebar/sidebar';
 import { Header } from '../../shared/components/header/header';
@@ -41,16 +41,23 @@ export class ApsComponent implements OnInit, OnDestroy {
   mostrarRegistro = false; isEditMode = false; filaEnEdicion: any = null; isSaving = false;
   private inicioGuardado = 0; private readonly MIN_GUARDADO = 800;
 
-  nuevoPaciente: any = { id_paciente: null, cedula: '', primer_nombre: '', segundo_nombre: '', primer_apellido: '', segundo_apellido: '', fecha_nacimiento: '', telefono: '' };
+  nuevoPaciente: any = { id_paciente: null, cedula: '', tipo_documento: 'v', primer_nombre: '', segundo_nombre: '', primer_apellido: '', segundo_apellido: '', fecha_nacimiento: '', telefono: '', email: '', direccion: '', sexo: '', estado_civil: '', con_representante: false, cedula_representante: '', numero_hijo: '', nombre_representante: '', parentesco_representante: '' };
   seleccion: any = { id_servicio: null, id_responsable: null, id_cliente: null, id_atencion: null, id_especialidad: null, id_medico: null, id_consultorio: null, nombre_servicio_label: '', nombre_medico_label: '', nombre_especialidad_label: '' };
 
   categoriaServicio = ''; showPayerDropdown = false; showServiceDropdown = false;
   showEspecialidadDropdown = false; showMedicoDropdown = false; showAseguradoraDropdown = false;
+  showDocTypeDropdown = false; showSexoDropdown = false; showEstadoCivilDropdown = false;
+  showNumeroHijoDropdown = false; showParentescoDropdown = false;
 
   aseguradoraState: AutocompleteState; especialidadState: AutocompleteState; medicoState: AutocompleteState;
 
   servicios: any[] = []; especialidades: any[] = []; aseguradoras: any[] = [];
   responsables: any[] = []; medicos: any[] = []; consultorios: any[] = [];
+
+  /** Catálogos que alimentan los selects del modal (tablas Sexo/Estado_Civil/Parentesco). */
+  sexos: SexoDTO[] = []; estadosCiviles: EstadoCivilDTO[] = []; parentescos: ParentescoDTO[] = [];
+  /** Opciones del select "Numero de Hijo": del 1 al 12. */
+  readonly numerosHijo: string[] = Array.from({ length: 12 }, (_, i) => String(i + 1));
 
   get admisionesFiltradas(): AdmisionDTO[] {
     return this.ultimasAdmisiones.filter(a => {
@@ -94,9 +101,16 @@ export class ApsComponent implements OnInit, OnDestroy {
     if (!this.el.nativeElement.contains(event.target)) {
       this.showSearchFilterDropdown = false; this.showPayerDropdown = false; this.showServiceDropdown = false;
       this.showEspecialidadDropdown = false; this.showMedicoDropdown = false; this.showAseguradoraDropdown = false;
+      this.showDocTypeDropdown = false; this.showSexoDropdown = false; this.showEstadoCivilDropdown = false;
+      this.showNumeroHijoDropdown = false; this.showParentescoDropdown = false;
     } else {
       const t = event.target as HTMLElement;
       if (!t.closest('.search-filter-container')) this.showSearchFilterDropdown = false;
+      if (!t.closest('.doc-type-container')) this.showDocTypeDropdown = false;
+      if (!t.closest('.sexo-dropdown-container')) this.showSexoDropdown = false;
+      if (!t.closest('.estado-civil-dropdown-container')) this.showEstadoCivilDropdown = false;
+      if (!t.closest('.numero-hijo-dropdown-container')) this.showNumeroHijoDropdown = false;
+      if (!t.closest('.parentesco-dropdown-container')) this.showParentescoDropdown = false;
       if (!t.closest('.payer-dropdown-container')) this.showPayerDropdown = false;
       if (!t.closest('.service-dropdown-container')) this.showServiceDropdown = false;
       if (!t.closest('.especialidad-dropdown-container')) this.showEspecialidadDropdown = false;
@@ -224,14 +238,29 @@ export class ApsComponent implements OnInit, OnDestroy {
     this.api.get('recepcion/responsables-pago').subscribe({ next: (d: any) => (this.responsables = d || []), error: () => {} });
     this.api.getPersonal('medico').subscribe({ next: (d: any) => (this.medicos = d || []), error: () => {} });
     this.api.getConsultorios().subscribe({ next: (d: any) => (this.consultorios = d || []), error: () => {} });
+    this.api.get<SexoDTO[]>('shared/sexos').subscribe({ next: (d) => (this.sexos = d || []), error: () => {} });
+    this.api.get<EstadoCivilDTO[]>('shared/estados-civiles').subscribe({ next: (d) => (this.estadosCiviles = d || []), error: () => {} });
+    this.api.get<ParentescoDTO[]>('shared/parentescos').subscribe({ next: (d) => (this.parentescos = d || []), error: () => {} });
   }
 
   abrirModalRegistro() { this.mostrarRegistro = true; this.scrollService.block(); }
-  cerrarModalRegistro() { this.mostrarRegistro = false; this.scrollService.unblock(); this.isEditMode = false; this.filaEnEdicion = null; }
+  cerrarModalRegistro() {
+    this.mostrarRegistro = false; this.scrollService.unblock(); this.isEditMode = false; this.filaEnEdicion = null;
+    this.showDocTypeDropdown = false; this.showSexoDropdown = false; this.showEstadoCivilDropdown = false;
+    this.showNumeroHijoDropdown = false; this.showParentescoDropdown = false;
+  }
 
   editarFila(fila: any, _trigger?: EventTarget | null) {
     this.filaEnEdicion = fila; this.isEditMode = true;
-    this.nuevoPaciente = { id_paciente: fila.id_paciente, cedula: fila.cedula, primer_nombre: fila.nombre, segundo_nombre: fila.segundo_nombre, primer_apellido: fila.apellido, segundo_apellido: fila.segundo_apellido, fecha_nacimiento: this.dateMask.fechaADisplay(fila.fecha_nacimiento), telefono: fila.telefono };
+    this.nuevoPaciente = {
+      id_paciente: fila.id_paciente, cedula: fila.cedula, tipo_documento: fila.tipo_documento || 'v',
+      primer_nombre: fila.nombre, segundo_nombre: fila.segundo_nombre,
+      primer_apellido: fila.apellido, segundo_apellido: fila.segundo_apellido,
+      fecha_nacimiento: this.dateMask.fechaADisplay(fila.fecha_nacimiento), telefono: fila.telefono,
+      email: fila.email || '', direccion: fila.direccion || '', sexo: fila.sexo || '', estado_civil: fila.estado_civil || '',
+      con_representante: false, cedula_representante: '', numero_hijo: '', nombre_representante: '', parentesco_representante: '',
+    };
+    this.cargarRepresentante(fila);
     this.seleccion = { id_servicio: fila.id_servicio, id_responsable: fila.id_responsable, id_cliente: fila.id_cliente, id_atencion: fila.id_atencion, id_especialidad: fila.id_especialidad, id_medico: fila.id_medico || null, id_consultorio: fila.id_consultorio || null, nombre_medico_label: fila.nombre_medico || '', nombre_servicio_label: '', nombre_especialidad_label: '' };
     this.categoriaServicio = this.getServicioCategoria(fila.nombre_servicio);
     if (fila.id_especialidad) { const esp = this.especialidades.find((e: any) => (e.id_especialidad || e.id) === fila.id_especialidad); if (esp) { this.seleccion.nombre_especialidad_label = esp.nombre; this.especialidadState.filtro = esp.nombre; } }
@@ -243,12 +272,73 @@ export class ApsComponent implements OnInit, OnDestroy {
 
   guardarPaciente() {
     if (this.isSaving) return;
+    const p = this.nuevoPaciente;
+    const vacio = (v: string | null | undefined) => !(v || '').trim();
+    if (vacio(p.primer_nombre)) { this.swal.warning('El primer nombre es obligatorio'); return; }
+    if (vacio(p.segundo_nombre)) { this.swal.warning('El segundo nombre es obligatorio'); return; }
+    if (vacio(p.primer_apellido)) { this.swal.warning('El primer apellido es obligatorio'); return; }
+    if (vacio(p.segundo_apellido)) { this.swal.warning('El segundo apellido es obligatorio'); return; }
+    if (!/^\d{2}\/\d{2}\/\d{4}$/.test((p.fecha_nacimiento || '').trim())) { this.swal.warning('La fecha de nacimiento es obligatoria (formato DD/MM/YYYY)'); return; }
+    if (!p.sexo) { this.swal.warning('Debe seleccionar el sexo'); return; }
+    if (!p.estado_civil) { this.swal.warning('Debe seleccionar el estado civil'); return; }
+    if (p.con_representante) {
+      // Menor de edad: se validan los datos del representante y la cédula del
+      // niño se arma como '<cedula_representante>-<numero_hijo>' (ej: 31693727-1).
+      const esPasaporte = p.tipo_documento === 'p';
+      const cedulaRepCruda = (p.cedula_representante || '').trim();
+      const cedRep = esPasaporte ? cedulaRepCruda : cedulaRepCruda.replace(/\D/g, '');
+      const hijo = parseInt((p.numero_hijo || '').replace(/\D/g, ''), 10);
+      if (esPasaporte) {
+        if (cedulaRepCruda.length < 10 || cedulaRepCruda.length > 12) { this.swal.warning('El pasaporte del representante debe tener entre 10 y 12 caracteres'); return; }
+      } else if (cedRep.length < 6 || cedRep.length > 8) { this.swal.warning('La cedula del representante debe tener entre 6 y 8 digitos'); return; }
+      if (!hijo || hijo < 1) { this.swal.warning('El numero de hijo debe ser 1 o mayor (ej: 1 para el primer hijo)'); return; }
+      if (vacio(p.nombre_representante)) { this.swal.warning('El nombre del representante es obligatorio'); return; }
+      if (!p.parentesco_representante) { this.swal.warning('Debe seleccionar el parentesco del representante'); return; }
+      p.cedula = `${cedRep}-${hijo}`;
+    } else {
+      const cedula = (p.cedula || '').trim();
+      if (p.tipo_documento === 'p') {
+        if (cedula.length < 10 || cedula.length > 12) { this.swal.warning('El pasaporte debe tener entre 10 y 12 caracteres'); return; }
+      } else if (!/^\d{7,8}$/.test(cedula) && !/^\d{6,8}-\d{1,2}$/.test(cedula)) {
+        // Se acepta la cédula armada de un menor ya registrado ('31693727-1')
+        // aunque el checkbox del representante esté desmarcado: se conserva
+        // tal cual al guardar, hasta que se edite por la cédula nueva.
+        this.swal.warning('La cedula debe tener entre 7 y 8 digitos');
+        return;
+      }
+    }
+    const tel = (p.telefono || '').replace(/\D/g, '');
+    if (tel.length < 11 || tel.length > 12) { this.swal.warning('El telefono es obligatorio y debe tener entre 11 y 12 digitos'); return; }
+    const email = (p.email || '').trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { this.swal.warning('El correo electronico no es valido'); return; }
+    if (vacio(p.direccion)) { this.swal.warning('La direccion es obligatoria'); return; }
     if (!this.seleccion.id_responsable || !this.seleccion.id_servicio) { this.swal.warning('Debe seleccionar Responsable de Pago y el Servicio'); return; }
     if (this.seleccion.id_responsable === 2 && !this.seleccion.id_cliente) { this.swal.warning('Debe seleccionar el nombre de la aseguradora'); return; }
-    const fn = (this.nuevoPaciente.fecha_nacimiento || '').toString().trim();
-    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(fn)) { this.swal.warning('La fecha de nacimiento es obligatoria (formato DD/MM/YYYY)'); return; }
     this.isSaving = true; this.inicioGuardado = Date.now();
-    const datosPaciente = { cedula: (this.nuevoPaciente.cedula || '').toString().replace(/\D/g, '').trim(), primer_nombre: (this.nuevoPaciente.primer_nombre || '').toString().toUpperCase().trim(), segundo_nombre: (this.nuevoPaciente.segundo_nombre || '').toString().toUpperCase().trim(), primer_apellido: (this.nuevoPaciente.primer_apellido || '').toString().toUpperCase().trim(), segundo_apellido: (this.nuevoPaciente.segundo_apellido || '').toString().toUpperCase().trim(), fecha_nacimiento: this.dateMask.fechaABackend(this.nuevoPaciente.fecha_nacimiento), telefono: (this.nuevoPaciente.telefono || '').toString().replace(/\D/g, '').trim() };
+    // Se conserva la cédula armada de menor ('31693727-1'); en adultos solo quedan los dígitos.
+    const conRep = !!p.con_representante;
+    const cedulaPaciente = (p.cedula || '').toString().trim();
+    const cedulaNormalizada = conRep ? cedulaPaciente : (/^\d{6,8}-\d{1,2}$/.test(cedulaPaciente) ? cedulaPaciente : cedulaPaciente.replace(/\D/g, ''));
+    const datosPaciente = {
+      cedula: p.tipo_documento === 'p' ? cedulaNormalizada.toUpperCase() : cedulaNormalizada,
+      tipo_documento: p.tipo_documento || 'v',
+      primer_nombre: (p.primer_nombre || '').toString().toUpperCase().trim(),
+      segundo_nombre: (p.segundo_nombre || '').toString().toUpperCase().trim(),
+      primer_apellido: (p.primer_apellido || '').toString().toUpperCase().trim(),
+      segundo_apellido: (p.segundo_apellido || '').toString().toUpperCase().trim(),
+      fecha_nacimiento: this.dateMask.fechaABackend(p.fecha_nacimiento),
+      telefono: (p.telefono || '').toString().replace(/\D/g, '').trim(),
+      email: (p.email || '').trim().toLowerCase() || null,
+      direccion: (p.direccion || '').trim() || null,
+      sexo: p.sexo || null,
+      estado_civil: p.estado_civil || null,
+      // Con el check desmarcado vienen en null: el COALESCE del backend conserva
+      // el histórico del representante (el niño ya tiene su propia cédula).
+      cedula_representante: conRep ? (p.tipo_documento === 'p' ? (p.cedula_representante || '').trim().toUpperCase() : (p.cedula_representante || '').replace(/\D/g, '')) : null,
+      numero_hijo: conRep ? parseInt((p.numero_hijo || '').replace(/\D/g, ''), 10) || null : null,
+      nombre_representante: conRep ? (p.nombre_representante || '').toUpperCase().trim() : null,
+      parentesco_representante: conRep ? (p.parentesco_representante || '').trim() : null,
+    };
     this.api.put(`recepcion/pacientes/${this.nuevoPaciente.id_paciente}`, datosPaciente).subscribe({
       next: () => { this.api.put(`recepcion/atencion/${this.seleccion.id_atencion}`, { id_servicio: this.seleccion.id_servicio, id_responsable: this.seleccion.id_responsable, id_cliente: this.seleccion.id_cliente, id_especialidad: this.seleccion.id_especialidad || null, id_medico: this.seleccion.id_medico || null, id_consultorio: this.seleccion.id_consultorio || null }).subscribe({ next: () => this.finalizarGuardado(() => { this.mostrarRegistro = false; this.scrollService.unblock(); this.isEditMode = false; this.filaEnEdicion = null; this.swal.success('Cambios guardados con éxito'); this.cargarUltimasAdmisiones(); this.api.cambios$.next({ tipo: 'atencion-actualizada', id_atencion: this.seleccion.id_atencion }); }), error: () => this.finalizarGuardado(() => this.swal.error('Error al actualizar la atención')) }); },
       error: (err: any) => this.finalizarGuardado(() => { if (err.status === 409) this.swal.error('Ya existe otro paciente con esa cédula'); else this.swal.error(err.error?.mensaje || 'Error al actualizar datos del paciente'); }),
@@ -316,6 +406,84 @@ export class ApsComponent implements OnInit, OnDestroy {
   soloLetras(event: any) { const p = /[a-zA-ZáéíóúÁÉÍÓÚñÑ ]/; const c = String.fromCharCode(event.charCode); if (event.charCode !== 0 && !p.test(c)) event.preventDefault(); else { const i = event.target as HTMLInputElement; if (c === ' ' && i.value.length === 0) event.preventDefault(); } }
   trimCampo(event: Event) { const i = event.target as HTMLInputElement; i.value = i.value.trim(); i.dispatchEvent(new Event('input')); }
   soloNumeros(event: any) { if (event.charCode !== 0 && !/[0-9]/.test(String.fromCharCode(event.charCode))) event.preventDefault(); }
+
+  // --- Documento (V/E/P) ---
+  toggleDocTypeDropdown() { this.showDocTypeDropdown = !this.showDocTypeDropdown; }
+  selectDocType(tipo: string) { this.nuevoPaciente.tipo_documento = tipo; this.showDocTypeDropdown = false; this.onDocTypeChange(); }
+  getDocTypeLabel(): string { const labels: Record<string, string> = { v: 'V', e: 'E', p: 'P' }; return labels[this.nuevoPaciente.tipo_documento] || 'V'; }
+  getDocPlaceholder(): string { return this.nuevoPaciente.tipo_documento === 'p' ? 'Ej: AB1234567' : 'Ej: 13894759'; }
+  onDocKeyPress(event: any) {
+    const input = event.target as HTMLInputElement;
+    const tipo = this.nuevoPaciente.tipo_documento;
+    const maxLen = tipo === 'p' ? 12 : 8;
+    const pattern = tipo === 'p' ? /[a-zA-Z0-9]/ : /[0-9]/;
+    const inputChar = String.fromCharCode(event.charCode);
+    if (event.charCode !== 0 && (!pattern.test(inputChar) || input.value.length >= maxLen)) event.preventDefault();
+  }
+  onDocTypeChange() {
+    const maxLen = this.nuevoPaciente.tipo_documento === 'p' ? 12 : 8;
+    const val = (this.nuevoPaciente.cedula || '').toString();
+    if (val.length > maxLen) this.nuevoPaciente.cedula = val.substring(0, maxLen);
+  }
+
+  // --- Sexo / Estado Civil ---
+  toggleSexoDropdown() { this.showSexoDropdown = !this.showSexoDropdown; }
+  selectSexo(codigo: string) { this.nuevoPaciente.sexo = codigo; this.showSexoDropdown = false; }
+  getSexoLabel(): string { return this.sexos.find((s) => s.codigo === this.nuevoPaciente.sexo)?.nombre || ''; }
+  toggleEstadoCivilDropdown() { this.showEstadoCivilDropdown = !this.showEstadoCivilDropdown; }
+  selectEstadoCivil(codigo: string) { this.nuevoPaciente.estado_civil = codigo; this.showEstadoCivilDropdown = false; }
+  getEstadoCivilLabel(): string { return this.estadosCiviles.find((e) => e.codigo === this.nuevoPaciente.estado_civil)?.nombre || ''; }
+
+  // --- Menor de edad / representante ---
+  /**
+   * Carga los datos del representante de un paciente ya registrado.
+   * Si es niño (cédula armada '31693727-1' o con representante guardado) el
+   * checkbox "Es niño(a)" queda MARCADO al abrir el modal de edición.
+   */
+  cargarRepresentante(p: any) {
+    const cedula = (p?.cedula || '').toString();
+    const esMenor = /^\d{6,8}-\d{1,2}$/.test(cedula);
+    const partes = esMenor ? cedula.split('-') : [];
+    const tieneRep = !!(p?.cedula_representante || p?.nombre_representante || p?.numero_hijo);
+    this.nuevoPaciente.con_representante = esMenor || tieneRep;
+    this.nuevoPaciente.cedula_representante = p?.cedula_representante || (esMenor ? partes[0] : '');
+    this.nuevoPaciente.numero_hijo = p?.numero_hijo ? String(p.numero_hijo) : (esMenor ? partes[1] || '' : '');
+    this.nuevoPaciente.nombre_representante = p?.nombre_representante || '';
+    this.nuevoPaciente.parentesco_representante = p?.parentesco_representante || '';
+  }
+
+  /** Cambio del checkbox "Es niño(a)": al desmarcarlo NO se borra la cédula. */
+  onConRepresentanteChange(con: boolean) {
+    this.nuevoPaciente.con_representante = con;
+    if (!con && !(this.nuevoPaciente.cedula || '').trim()) this.nuevoPaciente.cedula = this.cedulaArmada;
+  }
+
+  /** Cédula armada del menor: '31693727-1' (cédula del representante + número de hijo). */
+  get cedulaArmada(): string {
+    const rep = (this.nuevoPaciente.cedula_representante || '').replace(/\D/g, '');
+    const hijo = (this.nuevoPaciente.numero_hijo || '').replace(/\D/g, '');
+    return rep && hijo ? `${rep}-${hijo}` : '';
+  }
+
+  toggleNumeroHijoDropdown() { this.showNumeroHijoDropdown = !this.showNumeroHijoDropdown; }
+  selectNumeroHijo(numero: string) { this.nuevoPaciente.numero_hijo = numero; this.showNumeroHijoDropdown = false; }
+  getNumeroHijoLabel(): string { return (this.nuevoPaciente.numero_hijo || '').replace(/\D/g, ''); }
+
+  toggleParentescoDropdown() { this.showParentescoDropdown = !this.showParentescoDropdown; }
+  selectParentesco(nombre: string) { this.nuevoPaciente.parentesco_representante = nombre; this.showParentescoDropdown = false; }
+  esParentescoSeleccionado(nombre: string): boolean {
+    const seleccionado = (this.nuevoPaciente.parentesco_representante || '').trim();
+    return !!seleccionado && this.mismaClave(nombre, seleccionado);
+  }
+  getParentescoLabel(): string {
+    const seleccionado = (this.nuevoPaciente.parentesco_representante || '').trim();
+    if (!seleccionado) return '';
+    return this.parentescos.find((x) => this.mismaClave(x.nombre, seleccionado))?.nombre || seleccionado;
+  }
+  private mismaClave(a: string, b: string): boolean {
+    const norm = (v: string) => (v || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toUpperCase();
+    return norm(a) === norm(b);
+  }
 
   onFechaNacimientoInput(event: Event) {
     const input = event.target as HTMLInputElement; const cursorPos = input.selectionStart || 0;

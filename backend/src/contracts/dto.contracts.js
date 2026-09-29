@@ -66,16 +66,31 @@ module.exports = {};
  * @property {number} id_paciente
  * @property {number|undefined} id_especialidad
  * @property {number|undefined} id_responsable
+ * @property {number|null|undefined} id_cliente
+ * @property {number|null|undefined} id_medico
+ * @property {number|null|undefined} id_consultorio
  * @property {string} nombre
  * @property {string|undefined} segundo_nombre
  * @property {string} apellido
  * @property {string|undefined} segundo_apellido
  * @property {string} cedula
  * @property {string|undefined} telefono
+ * @property {string|undefined} fecha_nacimiento
+ * @property {string|null|undefined} email
+ * @property {string|null|undefined} direccion
+ * @property {*|*|*|undefined} tipo_documento
+ * @property {*|*|undefined} sexo
+ * @property {*|*|*|*|undefined} estado_civil
+ * @property {string|null|undefined} cedula_representante
+ * @property {number|null|undefined} numero_hijo
+ * @property {string|null|undefined} nombre_representante
+ * @property {string|null|undefined} parentesco_representante
  * @property {string} nombre_estado
  * @property {string} nombre_servicio
  * @property {string|undefined} prefijo
  * @property {string|undefined} modalidad_pago
+ * @property {string|undefined} nombre_especialidad
+ * @property {string|undefined} nombre_medico
  * @property {string} fecha_creacion
  * @property {string|undefined} hora_llegada
  * @property {string|undefined} hora_salida
@@ -98,6 +113,12 @@ module.exports = {};
  * @property {string|undefined} telefono
  * @property {boolean|undefined} status
  * @property {number|undefined} id_sede
+ * @property {*|*|undefined} sexo
+ * @property {*|*|*|*|undefined} estado_civil
+ * @property {string|undefined} cedula_representante
+ * @property {number|undefined} numero_hijo
+ * @property {string|undefined} nombre_representante
+ * @property {string|undefined} parentesco_representante
  */
 
 /**
@@ -107,12 +128,43 @@ module.exports = {};
  * @property {string} cedula
  * @property {*|*|*} tipo_documento
  * @property {string} primer_nombre
- * @property {string|undefined} segundo_nombre
+ * @property {string} segundo_nombre
  * @property {string} primer_apellido
- * @property {string|undefined} segundo_apellido
+ * @property {string} segundo_apellido
  * @property {string|undefined} fecha_nacimiento
- * @property {string|undefined} telefono
+ * @property {string} telefono
+ * @property {string} email
+ * @property {string} direccion
  * @property {boolean|undefined} status
+ * @property {*|*} sexo
+ * @property {*|*|*|*} estado_civil
+ * @property {string|null|undefined} cedula_representante
+ * @property {number|null|undefined} numero_hijo
+ * @property {string|null|undefined} nombre_representante
+ * @property {string|null|undefined} parentesco_representante
+ */
+
+/**
+ * SexoDTO
+ *
+ * @property {number} id_sexo
+ * @property {string} nombre
+ * @property {*|*} codigo
+ */
+
+/**
+ * EstadoCivilDTO
+ *
+ * @property {number} id_estado_civil
+ * @property {string} nombre
+ * @property {*|*|*|*} codigo
+ */
+
+/**
+ * ParentescoDTO
+ *
+ * @property {number} id_parentesco
+ * @property {string} nombre
  */
 
 /**

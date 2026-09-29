@@ -4,6 +4,7 @@ import { SwalService } from '../../core/services/swal.service';
 import { ScrollService } from '../../core/services/scroll.service';
 import { fechaADisplay } from './recepcion-fechas.util';
 import { RecepcionSeleccionService } from './recepcion-seleccion.service';
+import { SexoDTO, EstadoCivilDTO, ParentescoDTO } from '../../core/models/dto.models';
 
 export interface NuevoPaciente {
   id_paciente?: number | null;
@@ -19,6 +20,20 @@ export interface NuevoPaciente {
   telefono: string;
   email: string;
   direccion: string;
+  /** Sexo: código 'M'/'F' (el select muestra Masculino/Femenino). */
+  sexo: string;
+  /** Estado civil: código 'S'/'C'/'V'/'D' (el select muestra Soltero(a)...). */
+  estado_civil: string;
+  /** Checkbox "menor de edad": true = se registra con representante. */
+  con_representante: boolean;
+  /** Cédula PELADA del representante (ej: 31693727). */
+  cedula_representante: string;
+  /** Número de hijo (1, 2, 3...); viaja dentro de la cédula armada '31693727-1'. */
+  numero_hijo: string;
+  /** Nombre del representante. */
+  nombre_representante: string;
+  /** Parentesco del representante (nombre del catálogo "Parentesco"). */
+  parentesco_representante: string;
   status: boolean;
 }
 
@@ -31,8 +46,21 @@ export class RecepcionPacienteService {
 
   nuevoPaciente: NuevoPaciente = {
     cedula: '', tipo_documento: 'v', primer_nombre: '', segundo_nombre: '',
-    primer_apellido: '', segundo_apellido: '', fecha_nacimiento: '', telefono: '', email: '', direccion: '', status: true,
+    primer_apellido: '', segundo_apellido: '', fecha_nacimiento: '', telefono: '', email: '', direccion: '',
+    sexo: '', estado_civil: '', con_representante: false, cedula_representante: '', numero_hijo: '',
+    nombre_representante: '', parentesco_representante: '', status: true,
   };
+
+  /** Catálogos que alimentan los selects del modal (tablas Sexo/Estado_Civil/Parentesco). */
+  sexos: SexoDTO[] = [];
+  estadosCiviles: EstadoCivilDTO[] = [];
+  parentescos: ParentescoDTO[] = [];
+
+  constructor() {
+    this.api.get<SexoDTO[]>('shared/sexos').subscribe({ next: (d) => (this.sexos = d || []), error: () => {} });
+    this.api.get<EstadoCivilDTO[]>('shared/estados-civiles').subscribe({ next: (d) => (this.estadosCiviles = d || []), error: () => {} });
+    this.api.get<ParentescoDTO[]>('shared/parentescos').subscribe({ next: (d) => (this.parentescos = d || []), error: () => {} });
+  }
 
   pacienteExistenteCargado = false;
   esRegistroDirecto = false;
@@ -51,7 +79,9 @@ export class RecepcionPacienteService {
     this.isEditMode = false;
     this.nuevoPaciente = {
       id_paciente: null, cedula: '', tipo_documento: 'v', primer_nombre: '', segundo_nombre: '',
-      primer_apellido: '', segundo_apellido: '', fecha_nacimiento: '', telefono: '', email: '', direccion: '', status: true,
+      primer_apellido: '', segundo_apellido: '', fecha_nacimiento: '', telefono: '', email: '', direccion: '',
+      sexo: '', estado_civil: '', con_representante: false, cedula_representante: '', numero_hijo: '',
+      nombre_representante: '', parentesco_representante: '', status: true,
     };
     this.seleccionSvc.resetSeleccion();
     this.seleccionSvc.seleccion.id_responsable = isAseguradorasView ? 2 : null;
@@ -91,6 +121,9 @@ export class RecepcionPacienteService {
           this.nuevoPaciente.telefono = p.telefono || '';
           this.nuevoPaciente.email = p.email || '';
           this.nuevoPaciente.direccion = p.direccion || '';
+          this.nuevoPaciente.sexo = p.sexo || '';
+          this.nuevoPaciente.estado_civil = p.estado_civil || '';
+          this.cargarRepresentante(p);
         } else {
           if (this.nuevoPaciente.id_paciente) {
             this.nuevoPaciente.primer_nombre = '';
@@ -101,6 +134,13 @@ export class RecepcionPacienteService {
             this.nuevoPaciente.telefono = '';
             this.nuevoPaciente.email = '';
             this.nuevoPaciente.direccion = '';
+            this.nuevoPaciente.sexo = '';
+            this.nuevoPaciente.estado_civil = '';
+            this.nuevoPaciente.con_representante = false;
+            this.nuevoPaciente.cedula_representante = '';
+            this.nuevoPaciente.numero_hijo = '';
+            this.nuevoPaciente.nombre_representante = '';
+            this.nuevoPaciente.parentesco_representante = '';
           }
           this.pacienteExistenteCargado = false;
           this.nuevoPaciente.id_paciente = null;
@@ -125,8 +165,12 @@ export class RecepcionPacienteService {
       primer_apellido: paciente.primer_apellido || paciente.apellido || '',
       segundo_apellido: paciente.segundo_apellido || '',
       fecha_nacimiento: fechaADisplay(paciente.fecha_nacimiento),
-      telefono: paciente.telefono || '', email: paciente.email || '', direccion: paciente.direccion || '', status: true,
+      telefono: paciente.telefono || '', email: paciente.email || '', direccion: paciente.direccion || '',
+      sexo: paciente.sexo || '', estado_civil: paciente.estado_civil || '',
+      con_representante: false, cedula_representante: '', numero_hijo: '', nombre_representante: '',
+      parentesco_representante: '', status: true,
     };
+    this.cargarRepresentante(paciente);
     this.seleccionSvc.resetSeleccion();
   }
 
@@ -137,8 +181,12 @@ export class RecepcionPacienteService {
       tipo_documento: fila.tipo_documento || 'v',
       primer_nombre: fila.nombre || '', segundo_nombre: fila.segundo_nombre || '',
       primer_apellido: fila.apellido || '', segundo_apellido: fila.segundo_apellido || '',
-      fecha_nacimiento: fechaADisplay(fila.fecha_nacimiento), telefono: fila.telefono || '', email: fila.email || '', direccion: fila.direccion || '', status: true,
+      fecha_nacimiento: fechaADisplay(fila.fecha_nacimiento), telefono: fila.telefono || '', email: fila.email || '', direccion: fila.direccion || '',
+      sexo: fila.sexo || '', estado_civil: fila.estado_civil || '',
+      con_representante: false, cedula_representante: '', numero_hijo: '', nombre_representante: '',
+      parentesco_representante: '', status: true,
     };
+    this.cargarRepresentante(fila);
     this.seleccionSvc.seleccion = {
       id_servicio: fila.id_servicio, id_responsable: fila.id_responsable,
       id_cliente: fila.id_cliente, id_atencion: fila.id_atencion,
@@ -207,5 +255,100 @@ export class RecepcionPacienteService {
   seleccionarDocType(tipo: string) {
     this.nuevoPaciente.tipo_documento = tipo;
     this.onDocTypeChange();
+  }
+
+  /**
+   * Carga los datos del representante de un paciente ya registrado.
+   *
+   * Si el paciente es niño (cédula armada '31693727-1' o con representante
+   * guardado) el checkbox "Es niño(a)" queda MARCADO al abrir el modal. Los
+   * datos del representante se cargan en cualquier caso.
+   */
+  private cargarRepresentante(p: any) {
+    const cedula = (p?.cedula || '').toString();
+    const esMenor = /^\d{6,8}-\d{1,2}$/.test(cedula);
+    const partes = esMenor ? cedula.split('-') : [];
+    const tieneRep = !!(p?.cedula_representante || p?.nombre_representante || p?.numero_hijo);
+    this.nuevoPaciente.con_representante = esMenor || tieneRep;
+    this.nuevoPaciente.cedula_representante = p?.cedula_representante || (esMenor ? partes[0] : '');
+    // "numero_hijo" viene de la BD; si es un registro antiguo sin columna se
+    // recupera del trozo después del guion de la cédula armada.
+    this.nuevoPaciente.numero_hijo = p?.numero_hijo ? String(p.numero_hijo) : (esMenor ? partes[1] || '' : '');
+    this.nuevoPaciente.nombre_representante = p?.nombre_representante || '';
+    this.nuevoPaciente.parentesco_representante = p?.parentesco_representante || '';
+  }
+
+  /**
+   * Cambio del checkbox "menor de edad".
+   *  - Al marcarlo: el paciente se registrará con la cédula armada del representante.
+   *  - Al desmarcarlo (p. ej. el niño ya tiene cédula propia): NO se borra la
+   *    cédula, para que siga viéndose la que tenía y pueda editarse por la
+   *    nueva; solo se rellena con la armada si el campo estaba vacío.
+   *    Los datos del representante NO se borran de la BD al guardar: el backend
+   *    usa COALESCE y conserva el histórico si no se envían.
+   */
+  onConRepresentanteChange(con: boolean) {
+    this.nuevoPaciente.con_representante = con;
+    if (!con && !(this.nuevoPaciente.cedula || '').trim()) {
+      // El tipo de documento (V/E/P) seleccionado en el representante se
+      // conserva: es el mismo campo "tipo_documento" del paciente.
+      this.nuevoPaciente.cedula = this.cedulaArmada;
+    }
+  }
+
+  /** Cédula armada del menor: '31693727-1' (cédula del representante + número de hijo). */
+  get cedulaArmada(): string {
+    const rep = (this.nuevoPaciente.cedula_representante || '').replace(/\D/g, '');
+    const hijo = (this.nuevoPaciente.numero_hijo || '').replace(/\D/g, '');
+    return rep && hijo ? `${rep}-${hijo}` : '';
+  }
+
+  getSexoLabel(): string {
+    return this.sexos.find((s) => s.codigo === this.nuevoPaciente.sexo)?.nombre || '';
+  }
+
+  getEstadoCivilLabel(): string {
+    return this.estadosCiviles.find((e) => e.codigo === this.nuevoPaciente.estado_civil)?.nombre || '';
+  }
+
+  getParentescoLabel(): string {
+    const seleccionado = (this.nuevoPaciente.parentesco_representante || '').trim();
+    if (!seleccionado) return '';
+    // Coincidencia sin importar mayúsculas/acentos; si no está en el catálogo
+    // se muestra el valor guardado tal cual (registros antiguos o personalizados).
+    return this.parentescos.find((p) => this.mismaClave(p.nombre, seleccionado))?.nombre || seleccionado;
+  }
+
+  esParentescoSeleccionado(nombre: string): boolean {
+    const seleccionado = (this.nuevoPaciente.parentesco_representante || '').trim();
+    return !!seleccionado && this.mismaClave(nombre, seleccionado);
+  }
+
+  private mismaClave(a: string, b: string): boolean {
+    const norm = (v: string) => (v || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toUpperCase();
+    return norm(a) === norm(b);
+  }
+
+  seleccionarSexo(codigo: string) {
+    this.nuevoPaciente.sexo = codigo;
+  }
+
+  seleccionarEstadoCivil(codigo: string) {
+    this.nuevoPaciente.estado_civil = codigo;
+  }
+
+  seleccionarParentesco(nombre: string) {
+    this.nuevoPaciente.parentesco_representante = nombre;
+  }
+
+  /** Opciones del select "Numero de Hijo": del 1 al 12 (se guardan como texto). */
+  readonly numerosHijo: string[] = Array.from({ length: 12 }, (_, i) => String(i + 1));
+
+  seleccionarNumeroHijo(numero: string) {
+    this.nuevoPaciente.numero_hijo = numero;
+  }
+
+  getNumeroHijoLabel(): string {
+    return (this.nuevoPaciente.numero_hijo || '').replace(/\D/g, '');
   }
 }

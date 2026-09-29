@@ -310,8 +310,8 @@ body:has(.fixed.inset-0) {
 }
 
 /* Ocultar scrollbar en la navegación del sidebar y en los contenedores que
-   usan .custom-scrollbar (única utilidad para ocultarla; se eliminó
-   `.hide-scrollbar` porque no se usaba en ninguna plantilla).
+   usan .custom-scrollbar (utilidad para ocultarla; su contrario es
+   .modal-scrollbar, que la muestra SIEMPRE en los cuerpos de los modales).
    Sin !important: estas reglas ya son más específicas que las globales de `*`. */
 aside nav,
 .custom-scrollbar {
@@ -321,6 +321,22 @@ aside nav,
 aside nav::-webkit-scrollbar,
 .custom-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* Scrollbar SIEMPRE visible: utilidad para los cuerpos de los modales y sus
+   listas con scroll. Misma estética que la global (6px, tokens de color y
+   modo oscuro), pero no depende del hover: se ve en cuanto hay contenido
+   desplazado. Debe declararse DESPUÉS de las reglas globales para ganar
+   el empate de especificidad con `*:hover`. */
+.modal-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-text-muted) transparent;
+}
+.modal-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-text-muted);
+}
+.modal-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-tertiary);
 }
 
 /* ============================================================

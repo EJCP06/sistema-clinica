@@ -4,7 +4,14 @@ import { SwalService } from '../../core/services/swal.service';
 import { fechaABackend } from './recepcion-fechas.util';
 import { RecepcionSeleccionService } from './recepcion-seleccion.service';
 
-export interface PacienteData { id_paciente?: number | null; cedula: string; tipo_documento: string; primer_nombre: string; segundo_nombre: string; primer_apellido: string; segundo_apellido: string; fecha_nacimiento: string; telefono: string; }
+export interface PacienteData { id_paciente?: number | null; cedula: string; tipo_documento: string; primer_nombre: string; segundo_nombre: string; primer_apellido: string; segundo_apellido: string; fecha_nacimiento: string; telefono: string; email: string; direccion: string;
+  /** Sexo: código 'M'/'F'. */ sexo?: string;
+  /** Estado civil: código 'S'/'C'/'V'/'D'. */ estado_civil?: string;
+  /** Checkbox "menor de edad": si es true la cédula viene armada ('31693727-1'). */ con_representante?: boolean;
+  /** Cédula pelada del representante. */ cedula_representante?: string;
+  /** Número de hijo (va dentro de la cédula armada). */ numero_hijo?: string;
+  /** Nombre del representante. */ nombre_representante?: string;
+  /** Parentesco del representante. */ parentesco_representante?: string; }
 
 export interface RecepcionState {
   mostrarRegistro: boolean; pacienteEncontrado: any; cedulaBusqueda: string; isSaving: boolean;
@@ -59,7 +66,33 @@ export class RecepcionAtencionService {
 
   actualizarPacienteExistente(id_paciente: number, esEdicionTotal: boolean, nuevoPaciente: PacienteData, state: RecepcionState, finalizarCb: (fn?: () => void) => void, onReload: () => void) {
     const esNum = nuevoPaciente.tipo_documento !== 'p';
-    const d = { cedula: esNum ? (nuevoPaciente.cedula || '').replace(/\D/g, '').trim() : (nuevoPaciente.cedula || '').trim().toUpperCase(), tipo_documento: nuevoPaciente.tipo_documento || 'v', primer_nombre: (nuevoPaciente.primer_nombre || '').toUpperCase().trim(), segundo_nombre: (nuevoPaciente.segundo_nombre || '').toUpperCase().trim(), primer_apellido: (nuevoPaciente.primer_apellido || '').toUpperCase().trim(), segundo_apellido: (nuevoPaciente.segundo_apellido || '').toUpperCase().trim(), fecha_nacimiento: fechaABackend(nuevoPaciente.fecha_nacimiento), telefono: (nuevoPaciente.telefono || '').replace(/\D/g, '').trim() };
+    const conRep = !!nuevoPaciente.con_representante;
+    const cedulaCruda = (nuevoPaciente.cedula || '').trim();
+    const d = {
+      // Con el check de "menor de edad" marcado, la cédula viene armada
+      // ('31693727-1') y NO se le quita el guion; con el check desmarcado
+      // también se conserva la armada (el niño ya tiene cédula y se está
+      // editando) y en adultos solo quedan los dígitos.
+      cedula: conRep ? cedulaCruda : (esNum ? (/^\d{6,8}-\d{1,2}$/.test(cedulaCruda) ? cedulaCruda : cedulaCruda.replace(/\D/g, '')) : cedulaCruda.toUpperCase()),
+      tipo_documento: nuevoPaciente.tipo_documento || 'v',
+      primer_nombre: (nuevoPaciente.primer_nombre || '').toUpperCase().trim(),
+      segundo_nombre: (nuevoPaciente.segundo_nombre || '').toUpperCase().trim(),
+      primer_apellido: (nuevoPaciente.primer_apellido || '').toUpperCase().trim(),
+      segundo_apellido: (nuevoPaciente.segundo_apellido || '').toUpperCase().trim(),
+      fecha_nacimiento: fechaABackend(nuevoPaciente.fecha_nacimiento),
+      telefono: (nuevoPaciente.telefono || '').replace(/\D/g, '').trim(),
+      email: (nuevoPaciente.email || '').trim().toLowerCase() || null,
+      direccion: (nuevoPaciente.direccion || '').trim() || null,
+      sexo: nuevoPaciente.sexo || null,
+      estado_civil: nuevoPaciente.estado_civil || null,
+      // Si el check está desmarcado vienen en null: el COALESCE del backend
+      // conserva el histórico del representante (caso: el niño ya creció y
+      // ahora tiene su propia cédula).
+      cedula_representante: conRep ? (nuevoPaciente.tipo_documento === 'p' ? (nuevoPaciente.cedula_representante || '').trim().toUpperCase() : (nuevoPaciente.cedula_representante || '').replace(/\D/g, '')) : null,
+      numero_hijo: conRep ? parseInt((nuevoPaciente.numero_hijo || '').replace(/\D/g, ''), 10) || null : null,
+      nombre_representante: conRep ? (nuevoPaciente.nombre_representante || '').toUpperCase().trim() : null,
+      parentesco_representante: conRep ? (nuevoPaciente.parentesco_representante || '').trim() : null,
+    };
     this.api.put(`recepcion/pacientes/${id_paciente}`, d).subscribe({
       next: () => {
         if (esEdicionTotal) {

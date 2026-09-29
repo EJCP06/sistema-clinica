@@ -109,9 +109,60 @@ const importarAseguradoras = async (req, res) => {
   }
 };
 
+/**
+ * Catálogo de sexo (M/F) para los selects del registro de pacientes.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
+const getSexos = async (req, res) => {
+  try {
+    res.json(await sharedRepo.getSexos());
+  } catch (error) {
+    logger.error(error);
+    res.status(500).json({ mensaje: 'Error al obtener el catálogo de sexo' });
+  }
+};
+
+/**
+ * Catálogo de estado civil (S/C/V/D) para los selects del registro de pacientes.
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
+const getEstadosCiviles = async (req, res) => {
+  try {
+    res.json(await sharedRepo.getEstadosCiviles());
+  } catch (error) {
+    logger.error(error);
+    res.status(500).json({ mensaje: 'Error al obtener el catálogo de estado civil' });
+  }
+};
+
+/**
+ * Catálogo de parentescos del representante (vacío hasta sembrar la lista).
+ *
+ * @param {import('express').Request} req - Petición HTTP
+ * @param {import('express').Response} res - Respuesta HTTP
+ * @returns {Promise<void>}
+ */
+const getParentescos = async (req, res) => {
+  try {
+    res.json(await sharedRepo.getParentescos());
+  } catch (error) {
+    logger.error(error);
+    res.status(500).json({ mensaje: 'Error al obtener el catálogo de parentescos' });
+  }
+};
+
 module.exports = {
   getAseguradoras,
   crearAseguradora,
   eliminarAseguradora,
   importarAseguradoras,
+  getSexos,
+  getEstadosCiviles,
+  getParentescos,
 };

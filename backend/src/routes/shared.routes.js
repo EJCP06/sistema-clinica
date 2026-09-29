@@ -20,6 +20,12 @@ const validar = (req, res, next) => {
 
 router.use(auth);
 
+// Catálogos del registro de pacientes (solo lectura, con sesión activa):
+// sexo (M/F), estado civil (S/C/V/D) y parentescos del representante.
+router.get('/sexos', sharedController.getSexos);
+router.get('/estados-civiles', sharedController.getEstadosCiviles);
+router.get('/parentescos', sharedController.getParentescos);
+
 router.get('/aseguradoras', perm('aseguradoras:ver', 'aseguradoras:crear', 'aseguradoras:editar', 'aseguradoras:eliminar', 'aseguradoras:importar_excel', 'admision:*', 'admision:crear', 'aps:ver'), sharedController.getAseguradoras);
 
 router.use(perm('admision:crear', 'aseguradoras:crear', 'aseguradoras:editar', 'aseguradoras:eliminar', 'aseguradoras:importar_excel'));

@@ -66,6 +66,23 @@ const importarAseguradoras = async (nombres, sede) => {
   return { importados, omitidos };
 };
 
+const getSexos = async () => {
+  const result = await pool.query('SELECT id_sexo, nombre, codigo FROM "Sexo" ORDER BY id_sexo');
+  return result.rows;
+};
+
+const getEstadosCiviles = async () => {
+  const result = await pool.query('SELECT id_estado_civil, nombre, codigo FROM "Estado_Civil" ORDER BY id_estado_civil');
+  return result.rows;
+};
+
+const getParentescos = async () => {
+  // Orden de carga del catálogo (CONYUGE, HIJO, HIJA, PADRE, MADRE...),
+  // igual que Sexo y Estado_Civil: por id, no alfabético.
+  const result = await pool.query('SELECT id_parentesco, nombre FROM "Parentesco" ORDER BY id_parentesco');
+  return result.rows;
+};
+
 const getSedes = async () => {
   const result = await pool.query(`SELECT id_sede, nombre FROM "Sedes" ORDER BY id_sede`);
   return result.rows;
@@ -82,6 +99,9 @@ module.exports = {
   crearAseguradora,
   eliminarAseguradora,
   importarAseguradoras,
+  getSexos,
+  getEstadosCiviles,
+  getParentescos,
   getSedes,
   getSedeById,
 };

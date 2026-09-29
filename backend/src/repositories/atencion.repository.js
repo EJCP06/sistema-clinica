@@ -40,6 +40,8 @@ const getUltimasAdmisiones = async (sede) => {
       a.id_estado_actual, a.id_servicio, a.id_paciente, a.id_especialidad, a.id_cliente,
       a.id_medico, a.id_consultorio,
       p.id_paciente, p.cedula, p.primer_nombre as nombre, p.segundo_nombre, p.primer_apellido as apellido, p.segundo_apellido, p.fecha_nacimiento, p.telefono,
+      p.email, p.direccion, LOWER(p.tipo_documento) AS tipo_documento,
+      p.sexo, p.estado_civil, p.cedula_representante, p.numero_hijo, p.nombre_representante, p.parentesco_representante,
       s.nombre_servicio, s.prefijo,
       e.nombre_estado,
       rp.nombre as modalidad_pago,

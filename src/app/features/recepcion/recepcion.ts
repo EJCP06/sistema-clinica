@@ -45,6 +45,7 @@ export class RecepcionComponent implements OnInit, OnDestroy, RecepcionState {
   pageSize = 9; currentPage = 1;
   sidebarOpen = false; cedulaBusqueda = ''; buscando = false; cargando = true; filaEnEdicion: any = null;
   searchFilter = 'todo'; showSearchFilterDropdown = false; showDocTypeDropdown = false;
+  showSexoDropdown = false; showEstadoCivilDropdown = false; showParentescoDropdown = false; showNumeroHijoDropdown = false;
   mostrarResultadosBusqueda = false; pacientesEncontrados: any[] = []; pacienteEncontrado: any = null;
   isSaving = false; private inicioGuardado = 0; private readonly MIN_GUARDADO = 800;
   _mostrarRegistro = false; isEditMode = false; modalTrigger: HTMLElement | null = null;
@@ -145,6 +146,10 @@ export class RecepcionComponent implements OnInit, OnDestroy, RecepcionState {
   getEspecialidades() { return this.sel.getEspecialidades(); }
   getDocPlaceholder() { return this.pac.getDocPlaceholder(); }
   getDocTypeLabel() { return this.pac.getDocTypeLabel(); }
+  get sexos() { return this.pac.sexos; }
+  get estadosCiviles() { return this.pac.estadosCiviles; }
+  get parentescos() { return this.pac.parentescos; }
+  get cedulaArmada() { return this.pac.cedulaArmada; }
   getSearchFilterLabel() { return ({ todo: 'TODO', nombre: 'NOMBRES', apellido: 'APELLIDOS', cedula: 'Nº DOC' } as Record<string, string>)[this.searchFilter] || 'TODO'; }
   soloLetras(e: any) { this.pac.soloLetras(e); }
   trimCampo(e: Event) { this.pac.trimCampo(e); }
@@ -182,18 +187,33 @@ export class RecepcionComponent implements OnInit, OnDestroy, RecepcionState {
 
   @HostListener('document:click', ['$event'])
   onClick(event: MouseEvent) {
-    if (!this.el.nativeElement.contains(event.target)) { this.showSearchFilterDropdown = false; this.showPayerDropdown = false; this.showServiceDropdown = false; this.showEspecialidadDropdown = false; this.showAseguradoraDropdown = false; this.mostrarResultadosBusqueda = false; }
-    else { const t = event.target as HTMLElement; if (!t.closest('.search-filter-container')) this.showSearchFilterDropdown = false; if (!t.closest('.doc-type-container')) this.showDocTypeDropdown = false; if (!t.closest('.payer-dropdown-container')) this.showPayerDropdown = false; if (!t.closest('.service-dropdown-container')) this.showServiceDropdown = false; if (!t.closest('.especialidad-dropdown-container')) this.showEspecialidadDropdown = false; if (!t.closest('.medico-dropdown-container')) this.showMedicoDropdown = false; if (!t.closest('.aseguradora-dropdown-container')) this.showAseguradoraDropdown = false; }
+    if (!this.el.nativeElement.contains(event.target)) { this.showSearchFilterDropdown = false; this.showPayerDropdown = false; this.showServiceDropdown = false; this.showEspecialidadDropdown = false; this.showAseguradoraDropdown = false; this.mostrarResultadosBusqueda = false; this.showSexoDropdown = false; this.showEstadoCivilDropdown = false; this.showParentescoDropdown = false; this.showNumeroHijoDropdown = false; }
+    else { const t = event.target as HTMLElement; if (!t.closest('.search-filter-container')) this.showSearchFilterDropdown = false; if (!t.closest('.doc-type-container')) this.showDocTypeDropdown = false; if (!t.closest('.sexo-dropdown-container')) this.showSexoDropdown = false; if (!t.closest('.estado-civil-dropdown-container')) this.showEstadoCivilDropdown = false; if (!t.closest('.parentesco-dropdown-container')) this.showParentescoDropdown = false; if (!t.closest('.numero-hijo-dropdown-container')) this.showNumeroHijoDropdown = false; if (!t.closest('.payer-dropdown-container')) this.showPayerDropdown = false; if (!t.closest('.service-dropdown-container')) this.showServiceDropdown = false; if (!t.closest('.especialidad-dropdown-container')) this.showEspecialidadDropdown = false; if (!t.closest('.medico-dropdown-container')) this.showMedicoDropdown = false; if (!t.closest('.aseguradora-dropdown-container')) this.showAseguradoraDropdown = false; }
   }
 
   toggleSearchFilterDropdown() { this.showSearchFilterDropdown = !this.showSearchFilterDropdown; }
   selectSearchFilter(f: string) { this.searchFilter = f; this.showSearchFilterDropdown = false; if (this.cedulaBusqueda.trim()) this.onSearchChange(this.cedulaBusqueda); }
   toggleDocTypeDropdown() { this.showDocTypeDropdown = !this.showDocTypeDropdown; }
   selectDocType(t: string) { this.pac.seleccionarDocType(t); this.showDocTypeDropdown = false; }
+  toggleSexoDropdown() { this.showSexoDropdown = !this.showSexoDropdown; }
+  selectSexo(c: string) { this.pac.seleccionarSexo(c); this.showSexoDropdown = false; }
+  getSexoLabel() { return this.pac.getSexoLabel(); }
+  toggleEstadoCivilDropdown() { this.showEstadoCivilDropdown = !this.showEstadoCivilDropdown; }
+  selectEstadoCivil(c: string) { this.pac.seleccionarEstadoCivil(c); this.showEstadoCivilDropdown = false; }
+  getEstadoCivilLabel() { return this.pac.getEstadoCivilLabel(); }
+  toggleParentescoDropdown() { this.showParentescoDropdown = !this.showParentescoDropdown; }
+  selectParentesco(n: string) { this.pac.seleccionarParentesco(n); this.showParentescoDropdown = false; }
+  getParentescoLabel() { return this.pac.getParentescoLabel(); }
+  get numerosHijo() { return this.pac.numerosHijo; }
+  toggleNumeroHijoDropdown() { this.showNumeroHijoDropdown = !this.showNumeroHijoDropdown; }
+  selectNumeroHijo(n: string) { this.pac.seleccionarNumeroHijo(n); this.showNumeroHijoDropdown = false; }
+  getNumeroHijoLabel() { return this.pac.getNumeroHijoLabel(); }
+  esParentescoSeleccionado(nombre: string) { return this.pac.esParentescoSeleccionado(nombre); }
+  onConRepresentanteChange(v: boolean) { this.showDocTypeDropdown = false; this.pac.onConRepresentanteChange(v); }
   cargarUltimasAdmisiones() { this.cargando = true; this.atencion.cargarUltimasAdmisiones(() => this.cargando = false); }
   cargarAseguradoras() { this.cargando = true; this.asegs.cargarAseguradoras(this.cdr, () => this.cargando = false); this.sel.setAseguradorasRef(this.asegs.aseguradoras); }
   abrirModalRegistro(trigger?: EventTarget | null) { if (!this.isEditMode) this.pac.prepararNuevoPaciente(this.isAseguradorasView, this.cedulaBusqueda, this.searchFilter); this.modalTrigger = trigger instanceof HTMLElement ? trigger : null; this.mostrarRegistro = true; }
-  cerrarModalRegistro() { this.mostrarRegistro = false; this.modalTrigger = null; this.isEditMode = false; this.showDocTypeDropdown = false; }
+  cerrarModalRegistro() { this.mostrarRegistro = false; this.modalTrigger = null; this.isEditMode = false; this.showDocTypeDropdown = false; this.showSexoDropdown = false; this.showEstadoCivilDropdown = false; this.showParentescoDropdown = false; this.showNumeroHijoDropdown = false; }
   onSearchChange(value: string) { if (!value || value.trim().length < 1) { this.resetSearchOnly(); } else { this.searchSubject.next(value); } }
   ejecutarBusqueda(value: string) { this.busquedaSubscription?.unsubscribe(); this.buscando = true; this.pacientesEncontrados = []; const f = this.searchFilter !== 'todo' ? `?filtro=${this.searchFilter}` : ''; this.busquedaSubscription = this.api.get<any[]>(`recepcion/pacientes/${value}${f}`).subscribe({ next: (d) => { if (!this.cedulaBusqueda?.trim()) return; this.pacientesEncontrados = d || []; this.mostrarResultadosBusqueda = !!(d && d.length); this.buscando = false; }, error: () => { this.buscando = false; this.pacientesEncontrados = []; this.mostrarResultadosBusqueda = false; } }); }
   resetSearchOnly() { this.busquedaSubscription?.unsubscribe(); this.busquedaSubscription = undefined; this.pacientesEncontrados = []; this.buscando = false; this.mostrarResultadosBusqueda = false; }
@@ -206,14 +226,58 @@ export class RecepcionComponent implements OnInit, OnDestroy, RecepcionState {
 
   registrarYContinuar() {
     if (this.isAseguradorasView) { this.asegs.procesarAseguradora(this.nuevoPaciente, this.isEditMode, this, () => { this.cargarAseguradoras(); this.sel.setAseguradorasRef(this.asegs.aseguradoras); }, (fn?) => this.finalizarGuardado(fn)); return; }
-    const f = (this.nuevoPaciente.fecha_nacimiento || '').trim();
+    // Todos los campos del modal son obligatorios: si falta alguno no se guarda.
+    const p = this.nuevoPaciente;
+    const vacio = (v: string | null | undefined) => !(v || '').trim();
+    if (vacio(p.primer_nombre)) { this.swal.warning('El primer nombre es obligatorio'); return; }
+    if (vacio(p.segundo_nombre)) { this.swal.warning('El segundo nombre es obligatorio'); return; }
+    if (vacio(p.primer_apellido)) { this.swal.warning('El primer apellido es obligatorio'); return; }
+    if (vacio(p.segundo_apellido)) { this.swal.warning('El segundo apellido es obligatorio'); return; }
+    const f = (p.fecha_nacimiento || '').trim();
     if (!/^\d{2}\/\d{2}\/\d{4}$/.test(f)) { this.swal.warning('La fecha de nacimiento es obligatoria (formato DD/MM/YYYY)'); return; }
+    if (!p.sexo) { this.swal.warning('Debe seleccionar el sexo'); return; }
+    if (!p.estado_civil) { this.swal.warning('Debe seleccionar el estado civil'); return; }
+    if (this.nuevoPaciente.con_representante) {
+      // Menor de edad: se validan los datos del representante y la cédula del
+      // niño se arma como '<cedula_representante>-<numero_hijo>' (ej: 31693727-1).
+      // El tipo de documento (V/E/P) que se elige en el representante es el que
+      // se guarda en "tipo_documento" del paciente.
+      const esPasaporte = this.nuevoPaciente.tipo_documento === 'p';
+      const cedulaRepCruda = (this.nuevoPaciente.cedula_representante || '').trim();
+      const cedRep = esPasaporte ? cedulaRepCruda : cedulaRepCruda.replace(/\D/g, '');
+      const hijo = parseInt((this.nuevoPaciente.numero_hijo || '').replace(/\D/g, ''), 10);
+      if (esPasaporte) {
+        if (cedulaRepCruda.length < 10 || cedulaRepCruda.length > 12) { this.swal.warning('El pasaporte del representante debe tener entre 10 y 12 caracteres'); return; }
+      } else if (cedRep.length < 6 || cedRep.length > 8) { this.swal.warning('La cedula del representante debe tener entre 6 y 8 digitos'); return; }
+      if (!hijo || hijo < 1) { this.swal.warning('El numero de hijo debe ser 1 o mayor (ej: 1 para el primer hijo)'); return; }
+      if (!(this.nuevoPaciente.nombre_representante || '').trim()) { this.swal.warning('El nombre del representante es obligatorio'); return; }
+      if (!this.nuevoPaciente.parentesco_representante) { this.swal.warning('Debe seleccionar el parentesco del representante'); return; }
+      this.nuevoPaciente.cedula = `${cedRep}-${hijo}`;
+    } else {
+      const cedula = (this.nuevoPaciente.cedula || '').trim();
+      if (this.nuevoPaciente.tipo_documento === 'p') {
+        if (cedula.length < 10 || cedula.length > 12) { this.swal.warning('El pasaporte debe tener entre 10 y 12 caracteres'); return; }
+      } else if (!/^\d{7,8}$/.test(cedula) && !/^\d{6,8}-\d{1,2}$/.test(cedula)) {
+        // Se acepta la cédula armada de un menor ya registrado ('31693727-1')
+        // aunque el checkbox del representante esté desmarcado: se conserva
+        // tal cual al guardar, hasta que se edite por la cédula nueva.
+        this.swal.warning('La cedula debe tener entre 7 y 8 digitos');
+        return;
+      }
+    }
+    const tel = (p.telefono || '').replace(/\D/g, '');
+    if (tel.length < 11 || tel.length > 12) { this.swal.warning('El telefono es obligatorio y debe tener entre 11 y 12 digitos'); return; }
+    const email = (p.email || '').trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { this.swal.warning('El correo electronico no es valido'); return; }
+    if (vacio(p.direccion)) { this.swal.warning('La direccion es obligatoria'); return; }
     if (!this.seleccion.id_responsable || !this.seleccion.id_servicio) { this.swal.warning('Debe seleccionar Responsable de Pago y el Servicio'); return; }
     if (this.seleccion.id_responsable === 2 && !this.seleccion.id_cliente) { this.swal.warning('Debe seleccionar el nombre de la aseguradora'); return; }
-    const dl = (this.nuevoPaciente.cedula || '').length;
-    if (this.nuevoPaciente.tipo_documento === 'p' ? dl < 10 : dl < 7) { this.swal.warning(this.nuevoPaciente.tipo_documento === 'p' ? 'El pasaporte debe tener entre 10 y 12 caracteres' : 'La cedula debe tener entre 7 y 8 digitos'); return; }
-    const tel = (this.nuevoPaciente.telefono || '').replace(/\D/g, '');
-    if (tel.length > 0 && tel.length < 11) { this.swal.warning('El telefono debe tener entre 11 y 12 digitos'); return; }
+    // En Consulta se muestran Especialidad y Medico: la especialidad es
+    // obligatoria y el medico es OPCIONAL (puede asignarse despues).
+    // (Si la atencion se edita con los campos bloqueados no se exige, para no
+    // dejar el formulario sin salida.)
+    const camposServicioEditables = !this.filaEnEdicion || this.filaEnEdicion.id_estado_actual === 1;
+    if (this.categoriaServicio === 'Consulta' && camposServicioEditables && !this.seleccion.id_especialidad) { this.swal.warning('Debe seleccionar la especialidad'); return; }
     this.isSaving = true; this.inicioGuardado = Date.now();
     if (this.isEditMode) { this.atencion.actualizarPacienteExistente(this.nuevoPaciente.id_paciente!, true, this.nuevoPaciente, this, fn => this.finalizarGuardado(fn), () => this.cargarUltimasAdmisiones()); }
     else if (this.pacienteExistenteCargado && this.nuevoPaciente.id_paciente) { this.atencion.generarAtencionDirecta(this.nuevoPaciente.id_paciente, this, fn => this.finalizarGuardado(fn), () => this.cargarUltimasAdmisiones()); }
@@ -221,9 +285,17 @@ export class RecepcionComponent implements OnInit, OnDestroy, RecepcionState {
   }
 
   private crearNuevoPaciente() {
-    const p = this.nuevoPaciente; const esN = p.tipo_documento !== 'p';
+    const p = this.nuevoPaciente; const esN = p.tipo_documento !== 'p'; const conRep = p.con_representante;
+    // Documento del representante: se respeta el tipo elegido (V/E/P) y solo
+    // se le quitan espacios (los pasaportes llevan letras y no se depuran).
+    const cedulaRepFinal = conRep ? (esN ? (p.cedula_representante || '').replace(/\D/g, '') : (p.cedula_representante || '').trim().toUpperCase()) : null;
+    // Cédula del paciente: con el check marcado viene armada y se respeta; sin
+    // el check se conserva también la armada de un menor ya registrado (el
+    // usuario puede estar editándola por la nueva) y en adultos solo quedan dígitos.
+    const cedulaCruda = (p.cedula || '').trim();
+    const cedulaFinal = conRep ? cedulaCruda : (esN ? (/^\d{6,8}-\d{1,2}$/.test(cedulaCruda) ? cedulaCruda : cedulaCruda.replace(/\D/g, '')) : cedulaCruda.toUpperCase());
     import('./recepcion-fechas.util').then(({ fechaABackend }) => {
-      this.api.post('recepcion/pacientes', { cedula: esN ? (p.cedula || '').replace(/\D/g, '') : (p.cedula || '').trim().toUpperCase(), tipo_documento: p.tipo_documento || 'v', primer_nombre: (p.primer_nombre || '').toUpperCase().trim(), segundo_nombre: (p.segundo_nombre || '').toUpperCase().trim(), primer_apellido: (p.primer_apellido || '').toUpperCase().trim(), segundo_apellido: (p.segundo_apellido || '').toUpperCase().trim(), fecha_nacimiento: fechaABackend(p.fecha_nacimiento), telefono: (p.telefono || '').replace(/\D/g, ''), status: true }).subscribe({
+      this.api.post('recepcion/pacientes', { cedula: cedulaFinal, tipo_documento: p.tipo_documento || 'v', primer_nombre: (p.primer_nombre || '').toUpperCase().trim(), segundo_nombre: (p.segundo_nombre || '').toUpperCase().trim(), primer_apellido: (p.primer_apellido || '').toUpperCase().trim(), segundo_apellido: (p.segundo_apellido || '').toUpperCase().trim(), fecha_nacimiento: fechaABackend(p.fecha_nacimiento), telefono: (p.telefono || '').replace(/\D/g, ''), email: (p.email || '').trim().toLowerCase() || null, direccion: (p.direccion || '').trim() || null, sexo: p.sexo || null, estado_civil: p.estado_civil || null, cedula_representante: cedulaRepFinal, numero_hijo: conRep ? parseInt((p.numero_hijo || '').replace(/\D/g, ''), 10) || null : null, nombre_representante: conRep ? (p.nombre_representante || '').toUpperCase().trim() : null, parentesco_representante: conRep ? (p.parentesco_representante || '').trim() : null, status: true }).subscribe({
         next: (pac: any) => this.atencion.generarAtencionDirecta(pac.id_paciente || pac.id, this, fn => this.finalizarGuardado(fn), () => this.cargarUltimasAdmisiones()),
         error: (e: any) => { console.error('Error registrando:', e); this.finalizarGuardado(() => { if (e.status === 409) { this.swal.error('El paciente con esta cedula ya esta registrado en esta sede.'); } else { this.swal.error('Error al registrar paciente'); } }); },
       });

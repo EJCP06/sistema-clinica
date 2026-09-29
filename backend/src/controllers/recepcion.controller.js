@@ -185,6 +185,20 @@ const buscarPaciente = async (req, res) => {
 };
 
 /**
+ * Parentesco del representante en MAYÚSCULAS y sin acentos ('Cónyuge' ->
+ * 'CONYUGE'), igual que el catálogo "Parentesco"; evita depender de la
+ * colación al comparar y al resaltar en el frontend.
+ *
+ * @param {*} valor - Valor recibido del cliente
+ * @returns {string|null} Valor normalizado o null si está vacío
+ */
+const normalizarParentesco = (valor) => {
+  const texto = (valor || '').toString().trim();
+  if (!texto) return null;
+  return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+};
+
+/**
  * Crea un nuevo paciente validando unicidad de cédula por sede.
  *
  * @param {import('express').Request} req - Petición HTTP
@@ -196,10 +210,11 @@ const crearPaciente = async (req, res) => {
   if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
 
   try {
-    const { cedula, tipo_documento, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, telefono, email, direccion, status } = req.body;
+    const { cedula, tipo_documento, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, telefono, email, direccion, status, sexo, estado_civil, cedula_representante, numero_hijo, nombre_representante, parentesco_representante } = req.body;
     const pn = (primer_nombre || '').toString().toUpperCase().trim();
     const pa = (primer_apellido || '').toString().toUpperCase().trim();
     const tipoDoc = tipo_documento || 'v';
+    const numHijo = numero_hijo === undefined || numero_hijo === null || `${numero_hijo}`.trim() === '' ? null : parseInt(numero_hijo, 10);
 
     if (!cedula || !pn || !pa || !direccion) {
       return res.status(400).json({ mensaje: 'Cédula, primer nombre, primer apellido y dirección son requeridos' });
@@ -223,6 +238,15 @@ const crearPaciente = async (req, res) => {
       direccion,
       status,
       sede,
+      sexo: sexo || null,
+      estado_civil: estado_civil || null,
+      // En menores de edad la cédula del niño llega armada ('31693727-1');
+      // el representante se guarda por separado (cédula pelada del adulto) y
+      // "numero_hijo" guarda el número que va después del guion.
+      cedula_representante: cedula_representante || null,
+      numero_hijo: numHijo,
+      nombre_representante: (nombre_representante || '').toString().toUpperCase().trim() || null,
+      parentesco_representante: normalizarParentesco(parentesco_representante),
     });
     res.status(201).json(paciente);
   } catch (error) {
@@ -247,7 +271,7 @@ const actualizarPaciente = async (req, res) => {
 
   try {
     const { id } = req.params;
-    const { cedula, tipo_documento, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, telefono, email, direccion } = req.body;
+    const { cedula, tipo_documento, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, telefono, email, direccion, sexo, estado_civil, cedula_representante, numero_hijo, nombre_representante, parentesco_representante } = req.body;
 
     const paciente = await pacienteRepo.actualizarPaciente(id, sede, {
       cedula,
@@ -260,6 +284,15 @@ const actualizarPaciente = async (req, res) => {
       telefono,
       email,
       direccion,
+      // COALESCE en el repositorio: si estos vienen en null/omitidos (p. ej.
+      // el check de representante está desmarcado o edita otro módulo) se
+      // conservan los valores ya guardados (histórico del representante).
+      sexo: sexo || null,
+      estado_civil: estado_civil || null,
+      cedula_representante: cedula_representante || null,
+      numero_hijo: numero_hijo === undefined || numero_hijo === null || `${numero_hijo}`.trim() === '' ? null : parseInt(numero_hijo, 10),
+      nombre_representante: (nombre_representante || '').toString().toUpperCase().trim() || null,
+      parentesco_representante: normalizarParentesco(parentesco_representante),
     });
 
     if (!paciente) {
@@ -714,8 +747,8 @@ const TEXTO_ANUNCIO_SILENCIO = 'Estimados pacientes para mantener la tranquilida
 
 /**
  * Emite por Socket.IO un anuncio GENERAL de voz hacia el turnero
- * (sin paciente asociado). Actualmente solo se usa para el recordatorio
- * de silencio lanzado desde el botón del módulo APS.
+ * (sin paciente asociado). Se usa para el recordatorio de silencio
+ * lanzado desde los botones de los módulos APS, Laboratorio e Imágenes.
  *
  * @param {import('express').Request} req - Petición HTTP
  * @param {import('express').Response} res - Respuesta HTTP

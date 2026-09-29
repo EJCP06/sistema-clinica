@@ -43,16 +43,36 @@ export interface AdmisionDTO {
   id_paciente: number;
   id_especialidad?: number;
   id_responsable?: number;
+  id_cliente?: number | null;
+  id_medico?: number | null;
+  id_consultorio?: number | null;
   nombre: string;
   segundo_nombre?: string;
   apellido: string;
   segundo_apellido?: string;
   cedula: string;
   telefono?: string;
+  fecha_nacimiento?: string;
+  email?: string | null;
+  direccion?: string | null;
+  /** Tipo de documento del paciente (V/E/P), en minúsculas. */
+  tipo_documento?: 'v' | 'e' | 'p';
+  /** Sexo: código M/F (FK a la tabla "Sexo"). */
+  sexo?: 'M' | 'F';
+  /** Estado civil: código S/C/V/D (FK a "Estado_Civil"). */
+  estado_civil?: 'S' | 'C' | 'V' | 'D';
+  /** Cédula del representante (pacientes menores de edad). */
+  cedula_representante?: string | null;
+  /** Número de hijo dentro del representante (va después del guion en "cedula"). */
+  numero_hijo?: number | null;
+  nombre_representante?: string | null;
+  parentesco_representante?: string | null;
   nombre_estado: string;
   nombre_servicio: string;
   prefijo?: string;
   modalidad_pago?: string;
+  nombre_especialidad?: string;
+  nombre_medico?: string;
   fecha_creacion: string;
   hora_llegada?: string;
   hora_salida?: string;
@@ -74,20 +94,67 @@ export interface PacienteDTO {
   telefono?: string;
   status?: boolean;
   id_sede?: number;
+  /** Sexo: en la BD se guarda el CÓDIGO (M/F) con FK a la tabla "Sexo". */
+  sexo?: 'M' | 'F';
+  /** Estado civil: en la BD se guarda el CÓDIGO (S/C/V/D), FK a "Estado_Civil". */
+  estado_civil?: 'S' | 'C' | 'V' | 'D';
+  /** Cédula del representante (solo pacientes menores de edad). */
+  cedula_representante?: string;
+  /** Número de hijo dentro del representante; va después del guion en "cedula" (ej: 1). */
+  numero_hijo?: number;
+  /** Nombre completo del representante (solo pacientes menores de edad). */
+  nombre_representante?: string;
+  /** Parentesco del representante con el paciente. */
+  parentesco_representante?: string;
 }
 
 /** Cuerpo para crear o actualizar un paciente. */
 export interface CrearPacienteRequest {
   id_paciente?: number | null;
+  /** Cédula propia, o armada como '31693727-1' si es menor con representante. */
   cedula: string;
   tipo_documento: 'v' | 'e' | 'p';
   primer_nombre: string;
-  segundo_nombre?: string;
+  segundo_nombre: string;
   primer_apellido: string;
-  segundo_apellido?: string;
+  segundo_apellido: string;
   fecha_nacimiento?: string;
-  telefono?: string;
+  telefono: string;
+  email: string;
+  direccion: string;
   status?: boolean;
+  /** Sexo del paciente (obligatorio al crear: M/F). */
+  sexo: 'M' | 'F';
+  /** Estado civil (S/C/V/D); obligatorio al crear. */
+  estado_civil: 'S' | 'C' | 'V' | 'D';
+  /** Cédula del representante PELADA (ej: 31693727); solo con checkbox de menor marcado. */
+  cedula_representante?: string | null;
+  /** Número de hijo (1 = primer hijo); se guarda junto a la cédula del representante. */
+  numero_hijo?: number | null;
+  /** Nombre del representante; solo con checkbox de menor marcado. */
+  nombre_representante?: string | null;
+  /** Parentesco del representante; solo con checkbox de menor marcado. */
+  parentesco_representante?: string | null;
+}
+
+/** Catálogo de sexo (tabla "Sexo"), alimenta el select del registro. */
+export interface SexoDTO {
+  id_sexo: number;
+  nombre: string;
+  codigo: 'M' | 'F';
+}
+
+/** Catálogo de estado civil (tabla "Estado_Civil"), alimenta el select del registro. */
+export interface EstadoCivilDTO {
+  id_estado_civil: number;
+  nombre: string;
+  codigo: 'S' | 'C' | 'V' | 'D';
+}
+
+/** Catálogo de parentescos del representante (tabla "Parentesco"). */
+export interface ParentescoDTO {
+  id_parentesco: number;
+  nombre: string;
 }
 
 /** Cuerpo para generar un nuevo turno. */

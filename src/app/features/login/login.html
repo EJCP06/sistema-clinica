@@ -308,7 +308,7 @@
         <!-- Lista de especialidades con altura fija y scroll (como el modal de
              Excel): si el médico tiene muchas especialidades activas, se hace
              scroll en la lista y el botón Entrar queda fijo abajo. -->
-        <div class="max-h-[280px] overflow-y-auto custom-scrollbar space-y-3 pr-1">
+        <div class="max-h-[280px] overflow-y-auto modal-scrollbar space-y-3 pr-1">
           <label
             *ngFor="let esp of especialidadesParaElegir"
             class="flex items-center gap-3 px-5 py-4 rounded-xl border-2 cursor-pointer transition-all"
@@ -357,7 +357,7 @@
         </div>
       </div>
       <div class="p-6 flex flex-col">
-        <div class="max-h-[280px] overflow-y-auto custom-scrollbar space-y-3 pr-1">
+        <div class="max-h-[280px] overflow-y-auto modal-scrollbar space-y-3 pr-1">
           <label
             *ngFor="let rol of rolesParaElegir"
             class="flex items-center gap-3 px-5 py-4 rounded-xl border-2 cursor-pointer transition-all"
