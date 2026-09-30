@@ -649,6 +649,7 @@ export class TurneroVozService {
       }
       const audio = new Audio(url);
       audio.preload = 'auto';
+      audio.crossOrigin = 'anonymous';
       this.audioServidor = audio;
       const generacion = this.generacionVoz;
       audio.onended = () => {
@@ -668,16 +669,7 @@ export class TurneroVozService {
         if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
           window.speechSynthesis.cancel();
         }
-        if (isCapacitor()) {
-          audio.load();
-          await new Promise<void>((resolve, reject) => {
-            audio.oncanplaythrough = () => resolve();
-            audio.onerror = () => reject(new Error('Error cargando audio'));
-          });
-          await audio.play();
-        } else {
-          await audio.play();
-        }
+        await audio.play();
         return true;
       } catch {
         try {
@@ -713,6 +705,7 @@ export class TurneroVozService {
       const audioUrl = (url.startsWith('http') || url.startsWith('blob:')) ? url : getBackendUrl(url);
       const audio = new Audio(audioUrl);
       audio.preload = 'auto';
+      audio.crossOrigin = 'anonymous';
       this.audioServidor = audio;
       const generacion = this.generacionVoz;
       audio.onended = () => {
@@ -721,11 +714,6 @@ export class TurneroVozService {
         onEnd();
       };
       audio.onerror = () => {
-        // Si el WAV falla al cargar y NO llamamos onError(), el anuncio se
-        // queda "colgado": ni onEnd ni onError disparan, `sintetizandoTTS`
-        // queda en true para siempre y el motor quedaba bloqueado => la voz
-        // del médico solo sonaba la primera vez y nunca se repetía. Ahora se
-        // resetea el motor y se cae al fallback (servidor Piper -> navegador).
         if (this.audioServidor === audio) {
           this.audioServidor = null;
           this.sintetizandoTTS = false;
@@ -739,8 +727,16 @@ export class TurneroVozService {
         if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
           window.speechSynthesis.cancel();
         }
-        await audio.play();
+        // Asegurar AudioContext activo (autoplay policy)
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx && audio.srcObject === undefined) {
+          // Intentar play directo primero (más rápido)
+          await audio.play();
+        } else {
+          await audio.play();
+        }
       } catch {
+        // Fallback robusto: decodificar con AudioContext y reproducir
         try {
           audio.onended = null;
           audio.onerror = null;
@@ -758,12 +754,11 @@ export class TurneroVozService {
   }
 
   async reproducirConAudioContext(url: string, generacion: number, onEnd: () => void): Promise<void> {
-    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioCtx) throw new Error('AudioContext no disponible');
+    const ctx = this.getAudioContext();
+    if (ctx.state === 'suspended') await ctx.resume();
     const resp = await fetch(url);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const arrayBuffer = await resp.arrayBuffer();
-    const ctx = new AudioCtx();
     const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
     const source = ctx.createBufferSource();
     source.buffer = audioBuffer;
@@ -771,16 +766,14 @@ export class TurneroVozService {
     source.onended = () => {
       this.sintetizandoTTS = false;
       if (generacion !== this.generacionVoz) return;
-      ctx.close();
       onEnd();
     };
     source.start();
   }
 
   async reproducirBlobConAudioContext(arrayBuffer: ArrayBuffer, generacion: number, onEnd: () => void): Promise<void> {
-    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioCtx) throw new Error('AudioContext no disponible');
-    const ctx = new AudioCtx();
+    const ctx = this.getAudioContext();
+    if (ctx.state === 'suspended') await ctx.resume();
     const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
     const source = ctx.createBufferSource();
     source.buffer = audioBuffer;
@@ -788,7 +781,6 @@ export class TurneroVozService {
     source.onended = () => {
       this.sintetizandoTTS = false;
       if (generacion !== this.generacionVoz) return;
-      ctx.close();
       onEnd();
     };
     source.start();
@@ -926,6 +918,13 @@ export class TurneroVozService {
       if ('speechSynthesis' in window && window.speechSynthesis.paused) {
         window.speechSynthesis.resume();
       }
+      // Asegurar AudioContext activo (autoplay policy)
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx && this.audioContext) {
+        if (this.audioContext.state === 'suspended') {
+          this.audioContext.resume();
+        }
+      }
     };
     document.addEventListener('click', this.resumeHandler);
 
@@ -933,6 +932,10 @@ export class TurneroVozService {
       if (document.visibilityState === 'visible' && 'speechSynthesis' in window) {
         if (window.speechSynthesis.paused) {
           window.speechSynthesis.resume();
+        }
+        // Reanudar AudioContext al volver a la pestaña
+        if (this.audioContext && this.audioContext.state === 'suspended') {
+          this.audioContext.resume();
         }
       }
     };
@@ -943,9 +946,25 @@ export class TurneroVozService {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
+      if (this.audioContext) {
+        this.audioContext.close();
+        this.audioContext = null;
+      }
     };
     window.addEventListener('beforeunload', this.beforeUnloadHandler);
     window.addEventListener('pagehide', this.beforeUnloadHandler);
+  }
+
+  private audioContext: AudioContext | null = null;
+
+  private getAudioContext(): AudioContext {
+    if (!this.audioContext) {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        this.audioContext = new AudioCtx();
+      }
+    }
+    return this.audioContext!;
   }
 
   quitarListenersVoz(): void {

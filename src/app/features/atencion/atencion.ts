@@ -116,6 +116,7 @@ export class Atencion implements OnInit, OnDestroy {
 
   tiempoRestante: number = 120;
   private timerSub: Subscription | null = null;
+  private miEstadoSub: Subscription | null = null;
 
 
   mensajeInfo = '';
@@ -173,6 +174,10 @@ export class Atencion implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.detenerTemporizador();
+    if (this.miEstadoSub) {
+      this.miEstadoSub.unsubscribe();
+      this.miEstadoSub = null;
+    }
   }
 
   /** Consulta el estado actual del consultorio/turno activo del médico autenticado. */
@@ -180,12 +185,18 @@ export class Atencion implements OnInit, OnDestroy {
     const usuario = this.authService.usuarioActual;
     if (!usuario || this.atendiendoLocalmente) return;
 
+    // Cancelar suscripción anterior a getMiEstado para evitar duplicados
+    if (this.miEstadoSub) {
+      this.miEstadoSub.unsubscribe();
+      this.miEstadoSub = null;
+    }
+
     if (this.tipo === 'laboratorio' || this.tipo === 'imagenes') {
       this.consultorioNombre = this.tipo === 'laboratorio' ? 'Laboratorio' : 'Imágenes';
       this.servicioId = usuario.servicio_id || 0;
       this.mensajeInfo = '';
 
-      this.apiService.getMiEstado().subscribe({
+      this.miEstadoSub = this.apiService.getMiEstado().subscribe({
         next: (estado: MiEstadoDTO) => {
           this.consultorioEstado = estado.estado || 'LIBRE';
 
@@ -234,7 +245,7 @@ export class Atencion implements OnInit, OnDestroy {
       return;
     }
 
-    this.apiService.getMiEstado().subscribe({
+this.miEstadoSub = this.apiService.getMiEstado().subscribe({
       next: (estado: MiEstadoDTO) => {
         this.consultorioEstado = estado.estado || 'LIBRE';
         this.servicioId = estado.servicio_id;

@@ -406,8 +406,9 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
     this.cargando = true;
     this.api.get<AdmisionDTO[]>('recepcion/ultimas-admisiones').subscribe({
       next: (data) => {
-        const items = data || [];
+        const items = Array.isArray(data) ? data : [];
         this.ultimasAdmisiones = items.filter((a) => {
+          if (!a || !a.id_atencion || !Number.isFinite(Number(a.id_atencion))) return false;
           if ([6, 9].includes(Number(a.id_estado_actual))) return false;
           const esDelServicio = this.esDelServicio(a.nombre_servicio);
           const modalidadPagoLower = (a.modalidad_pago || '').toLowerCase();
@@ -421,9 +422,6 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
         });
         for (const a of this.ultimasAdmisiones) {
           if (Number(a.id_estado_actual) === 4) {
-            // Reforzar el countdown si ya existe uno: en una recarga de página el
-            // motor vuelve desde cero, así que se reinicia para que el paciente en
-            // LLAMADO siempre recupere su contador (offset desde hora_llamado).
             if (this.countdown.hasCountdown(a.id_atencion)) {
               this.countdown.stopCountdown(a.id_atencion);
             }

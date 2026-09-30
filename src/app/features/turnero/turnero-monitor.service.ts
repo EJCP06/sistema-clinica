@@ -97,6 +97,11 @@ export class TurneroMonitorService implements OnDestroy {
             terminar();
             return;
           }
+          if (typeof data.id_atencion !== 'number' || !Number.isFinite(data.id_atencion)) {
+            console.warn('[Turnero] ultimo-llamado id_atencion inválido:', data.id_atencion);
+            terminar();
+            return;
+          }
 
           this.voz.actualizarDeltaReloj(data.server_now);
           if (data.inicio_ms) {

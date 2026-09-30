@@ -93,6 +93,13 @@ export class Login implements OnDestroy {
     window.removeEventListener('pagehide', this.guardarAlSalir);
   }
 
+  /** Permite solo dígitos + teclas de navegación/borrado en el input de cédula. */
+  onCedulaKeydown(ev: KeyboardEvent) {
+    const k = ev.key;
+    const permitidas = ['Tab', 'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight'];
+    if (!/^[0-9]$/.test(k) && !permitidas.includes(k)) ev.preventDefault();
+  }
+
   /** Guarda la recuperación en curso al recargar/cerrar la página (F5 incluido). */
   private readonly guardarAlSalir = () => {
     if (this.mostrarResetPassword) {
