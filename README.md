@@ -22,6 +22,7 @@ Sistema integral de gestión clínica para centros de salud con **turnero electr
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Variables de entorno](#variables-de-entorno)
 - [Scripts](#scripts)
+- [Integración con el sistema de cola MQ](#-integración-con-el-sistema-de-cola-mq)
 - [Documentación de la API](#documentación-de-la-api)
 - [Seguridad](#seguridad)
 - [Verificación y CI](#verificación-y-ci)
@@ -344,6 +345,10 @@ Plantillas completas y comentadas en `.env.example` (raíz) y `backend/.env.exam
 | `RATE_LIMIT_WINDOW_MS` / `RATE_LIMIT_MAX` | Ventana y máximo de peticiones por IP | `60000` / `60` |
 | `PIPER_PYTHON` / `PIPER_MODEL` | Ejecutable de Python y modelo ONNX de Piper (opcionales, con defaults) | `./piper/piper-env/Scripts/python.exe` |
 | `PIPER_SENTENCE_SILENCE` | Silencio entre frases del anuncio (segundos) | `0.5` |
+| `INTEGRACION_COLA_URL` | Endpoint externo que recibe la ficha de cada paciente | `https://integracion-cola-mq-cat.clinicanuevacaracas.net/api/v1/pacientes` |
+| `INTEGRACION_COLA_API_KEY` | Header `X-Api-Key` en formato `<keyId>:<secret>` (**secreto, no commitear**) | *(secreto)* |
+| `INTEGRACION_COLA_TIMEOUT_MS` | Timeout del envío saliente (ms) | `5000` |
+| `INTEGRACION_COLA_HABILITADA` | `true`/`false` — apaga el envío sin tocar código | `true` |
 | `NGINX_DOMAIN` | Dominio para Nginx (solo Docker) | `clinica.midominio.com` |
 
 ---
@@ -357,6 +362,7 @@ Plantillas completas y comentadas en `.env.example` (raíz) y `backend/.env.exam
 | `npm run build` | Build de producción del frontend (Angular) |
 | `npm run watch` | Build en modo watch (desarrollo) |
 | `npm run migrate` | Ejecuta las migraciones idempotentes (`backend/migrate.js`) |
+| `npm run test:integracion` | Prueba manual del envío al sistema externo de cola MQ |
 | `npm run build:capacitor` | Genera el entorno desde `.env.capacitor` y compila la app Android (Capacitor) |
 | `npm run build:capacitor:dev` | Igual que el anterior, pero apuntando al backend local/emulador |
 | `npm run contratos` | Regenera los contratos DTO del backend desde `src/app/core/models/dto.models.ts` |
@@ -370,6 +376,28 @@ Plantillas completas y comentadas en `.env.example` (raíz) y `backend/.env.exam
 | `ssl-init.ps1` | Genera certificados SSL para desarrollo |
 | `iniciar-turnero.bat` / `.sh` | Lanza el turnero en modo kiosco |
 | `habilitar-autoplay-turnero.reg` | Habilita autoplay de audio en Windows para el turnero |
+
+---
+
+## 🔌 Integración con el sistema de cola MQ
+
+Al dar de alta un paciente en recepción, el backend envía su ficha al sistema externo:
+
+```http
+POST https://integracion-cola-mq-cat.clinicanuevacaracas.net/api/v1/pacientes
+Content-Type: application/json
+X-Api-Key: <keyId>:<secret>
+
+{ "nroCedula", "nombre", "nacionalidad", "fechaNacimiento", "sexo",
+  "estadoCivil", "direccion", "telefono", "correo", "parentezco",
+  "nroCedulaRepresentante", "nombreRepresentante" }
+```
+
+- **Disparo**: `backend/src/controllers/recepcion.controller.js` → `crearPaciente`, **sin `await`** (el alta local responde en ~40 ms y no depende del sistema externo).
+- **Fallo silencioso**: si el externo no responde, falla la credencial o faltan campos obligatorios, solo se loguea con Winston; el paciente se guarda igualmente (`backend/src/services/integracionCola.service.js`).
+- **Mapeo**: `nombre` se arma como `"APELLIDO1 APELLIDO2, NOMBRE1 NOMBRE2"` y `nacionalidad` se deriva de `tipo_documento` (`v→V`, `e→E`), ya que la BD local no almacena nacionalidad.
+- **Upsert en el externo**: responde `201` + `created: true` si creó la ficha y `200` + `created: false` si actualizó una existente (la cédula tiene índice único).
+- **Prueba manual**: `npm run test:integracion` (opcional: `--cedula 12345678` para usar un paciente real de la BD).
 
 ---
 

@@ -5,6 +5,7 @@
     "ng": "ng",
     "start": "concurrently -n \"WEB,API\" -c \"blue,green\" \"ng serve --proxy-config proxy.conf.js\" \"npm run start:backend\"",
     "migrate": "node backend/migrate.js",
+    "test:integracion": "node backend/scripts/test-integracion-cola.js",
     "contratos": "node scripts/gen-contratos.js",
     "contratos:check": "node scripts/gen-contratos.js --check",
     "start:backend": "nodemon backend/index.js",

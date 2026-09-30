@@ -6,6 +6,7 @@ const historialRepo = require('../repositories/historial.repository');
 const espRepo = require('../repositories/especialidad.repository');
 const pool = require('../config/db');
 const ttsService = require('../services/tts.service');
+const integracionCola = require('../services/integracionCola.service');
 
 const getSede = (req) => {
   const sede = req.usuario?.id_sede;
@@ -249,6 +250,10 @@ const crearPaciente = async (req, res) => {
       parentesco_representante: normalizarParentesco(parentesco_representante),
     });
     res.status(201).json(paciente);
+    // Integración con el sistema externo de cola MQ: se dispara SIN await para
+    // no sumar latencia a recepción. Falla silenciosa (solo loguea), así que el
+    // alta local nunca depende del sistema externo.
+    integracionCola.notificarPacienteCreado(paciente);
   } catch (error) {
     logger.error(error);
     if (error.code === '23505') {

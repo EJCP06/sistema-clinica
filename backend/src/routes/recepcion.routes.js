@@ -136,6 +136,10 @@ router.post('/pacientes', [
   body('segundo_nombre').trim().notEmpty().withMessage('El segundo nombre es obligatorio'),
   body('primer_apellido').trim().notEmpty().withMessage('El primer apellido es obligatorio'),
   body('segundo_apellido').trim().notEmpty().withMessage('El segundo apellido es obligatorio'),
+  // Obligatoria porque el sistema externo de cola MQ la exige en el contrato de
+  // integración (si faltara, la ficha no se enviaría y quedaría sin sincronizar).
+  // El frontend ya valida el formato dd/mm/aaaa y envía aaaa-mm-dd.
+  body('fecha_nacimiento').trim().notEmpty().withMessage('La fecha de nacimiento es obligatoria (formato aaaa-mm-dd)').isISO8601().withMessage('La fecha de nacimiento no es válida'),
   body('sexo').isIn(['M', 'F']).withMessage('Debe seleccionar el sexo'),
   body('estado_civil').isIn(['S', 'C', 'V', 'D']).withMessage('Debe seleccionar el estado civil'),
   body('telefono').trim().matches(/^\d{11,12}$/).withMessage('El teléfono debe tener entre 11 y 12 dígitos'),
