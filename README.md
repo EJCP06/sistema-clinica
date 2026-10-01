@@ -206,7 +206,7 @@ La APK queda en `android/app/build/outputs/apk/debug/app-debug.apk`. Para instal
 |------|------------|
 | Frontend | Angular 21 (standalone, lazy loading), Tailwind CSS, Lucide (lucide-angular), SweetAlert2, jsPDF + jspdf-autotable, SheetJS (xlsx), Capacitor 8 + text-to-speech |
 | Backend | Node.js 20+, Express 5, Socket.io, bcryptjs, jsonwebtoken, express-validator, express-rate-limit, helmet, winston, prom-client, nodemailer, swagger-jsdoc + swagger-ui-express |
-| Base de datos | PostgreSQL 15, `pg` (node-postgres); migraciones idempotentes automáticas (`backend/migrate.js`) + esquema semilla (`backend/db/init.sql`) |
+| Base de datos | PostgreSQL 15, `pg` (node-postgres); migraciones idempotentes automáticas (`backend/migrate.js`) + esquema semilla (`backend/db/init.sql`) + auditoría estándar en todas las tablas (`backend/db/auditoria.sql`) |
 | Voz | Piper TTS (modelos ONNX en español) + worker Python persistente |
 | Infraestructura | Nginx (proxy inverso + HTTPS + rate limiting), Docker Compose, GitHub Actions (CI) |
 
@@ -292,6 +292,7 @@ CORS_ORIGIN=https://midominio.com,https://admin.midominio.com docker compose up 
 ├── backend/                        # API REST + WebSocket
 │   ├── db/
 │   │   ├── init.sql                # Esquema base + datos semilla (sedes, roles, estados…)
+│   │   ├── auditoria.sql           # Auditoría estándar de TODAS las tablas (UUID, fechas, usuarios)
 │   │   └── test_full_flow.js       # Prueba de integración del flujo del turnero
 │   ├── scripts/
 │   │   ├── piper_worker.py         # Worker persistente de Piper TTS
@@ -436,6 +437,7 @@ X-Api-Key: <keyId>:<secret>
 - **CORS** dinámico desde `CORS_ORIGIN`.
 - **Sanitización** de entradas en logs (`backend/src/utils/sanitize.js`) y validación con `express-validator`.
 - **Auditoría** de acciones sensibles (`middleware/audit.js`).
+- **Auditoría de registros (todas las tablas)**: `id_origen` (UUID único de la fila), `id` entero, `fecha_creacion`, `usuario_creacion`, `fecha_modificacion` y `usuario_modificacion`. El trigger `fn_auditoria_registro` los rellena con el usuario autenticado de la petición (variable de sesión `app.usuario`), y los datos de creación + `id_origen` son inmutables. Definido en `backend/db/auditoria.sql`; lo aplican `init.sql` (instalación nueva) y `migrate.js` (cada arranque).
 - **Logs estructurados** con Winston, ID de request para trazabilidad y apagado *graceful*.
 
 ---

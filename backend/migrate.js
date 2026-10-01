@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const pool = require('./src/config/db');
 const logger = require('./src/config/logger');
 
@@ -635,6 +637,23 @@ const runMigrations = async () => {
     }
   } catch (errRol) {
     logger.warn('Aviso: no se pudo crear la tabla Usuario_Rol', { error: errRol.message });
+  }
+
+  // ====================================================================
+  // AUDITORÍA ESTÁNDAR (todas las tablas)
+  // --------------------------------------------------------------------
+  // Garantiza en cada arranque que TODAS las tablas tengan: id_origen (UUID),
+  // id entero, fecha/usuario de creación y de modificación, más el trigger
+  // que rellena esos campos. Es el mismo archivo que usa init.sql en una
+  // instalación nueva, así que el esquema queda idéntico en ambos caminos.
+  // ====================================================================
+  try {
+    const rutaAuditoria = path.join(__dirname, 'db', 'auditoria.sql');
+    await pool.query(fs.readFileSync(rutaAuditoria, 'utf8'));
+    logger.info('Auditoría estándar aplicada (id_origen, fechas y usuarios en todas las tablas)');
+  } catch (err) {
+    logger.error('No se pudo aplicar la auditoría estándar', { error: err.message });
+    throw err;
   }
 
   logger.info('Base de datos inicializada correctamente');

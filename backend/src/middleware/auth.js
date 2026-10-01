@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../config/db');
+const { setUsuarioActual } = require('../config/contexto-usuario');
 
 /**
  * Compara dos cadenas en tiempo constante para evitar ataques de
@@ -97,6 +98,13 @@ const authMiddleware = async (req, res, next) => {
     }
 
     req.usuario = { ...decoded, permisos: result.rows[0].permisos };
+    // Auditoría: deja constancia de QUIÉN hace los cambios en la base de datos
+    // (usuario_creacion / usuario_modificacion en todas las tablas).
+    setUsuarioActual(
+      [req.usuario.nombre, req.usuario.apellido].filter(Boolean).join(' ').trim() ||
+        req.usuario.cedula ||
+        ''
+    );
     next();
   } catch (err) {
     return res.status(401).json({ mensaje: 'Token inválido' });

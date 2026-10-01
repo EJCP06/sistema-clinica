@@ -3,7 +3,9 @@
 -- Generado desde la base de datos actual
 -- ======================================================
 
-CREATE DATABASE IF NOT EXISTS "clinica_colas";
+-- NOTA: la base de datos la crea Docker (variable POSTGRES_DB) o el propio
+-- administrador. PostgreSQL NO admite "CREATE DATABASE IF NOT EXISTS", por lo
+-- que esa línea se eliminaba con error en cada ejecución.
 
 -- ELIMINAR TABLAS EXISTENTES (orden inverso de dependencias)
 DROP TABLE IF EXISTS "Historial_Atencion" CASCADE;
@@ -574,3 +576,13 @@ SELECT pg_catalog.setval('public."Roles_id_rol_seq"', 16, true);
 SELECT pg_catalog.setval('public."Servicio_id_servicio_seq"', 7, true);
 SELECT pg_catalog.setval('public.cliente_id_cliente_seq', 2, true);
 SELECT pg_catalog.setval('public.tipo_cliente_id_tipo_cliente_seq', 2, true);
+
+-- ======================================================
+-- AUDITORÍA ESTÁNDAR (al final: los datos semilla de arriba
+-- quedan con usuario_creacion = 'MIGRACION', igual que en una
+-- base existente que se audita por primera vez).
+-- Agrega a TODAS las tablas: id_origen (UUID), id entero,
+-- fecha/usuario de creación y de modificación + trigger.
+-- El mismo archivo lo ejecuta backend/migrate.js en cada arranque.
+-- ======================================================
+\ir auditoria.sql

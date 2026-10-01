@@ -32,6 +32,7 @@ const cookieParser = require('cookie-parser');
 const pool = require('./src/config/db');
 const logger = require('./src/config/logger');
 const requestId = require('./src/middleware/requestId');
+const { enContextoUsuario } = require('./src/config/contexto-usuario');
 const { apiLimiter } = require('./src/middleware/rateLimiter');
 // Nota: el middleware de auditoría (audit.js) usa el pool compartido de
 // PostgreSQL, así que no necesita cerrarse por separado: pool.end() en
@@ -124,6 +125,10 @@ app.use((req, res, next) => {
   next();
 });
 app.use(requestId);          // ID único por request (trazabilidad en logs)
+// Contexto de auditoría: todo lo que la petición escriba en la base de datos
+// queda asociado al usuario autenticado (ver src/config/contexto-usuario.js y
+// fn_auditoria_registro en backend/db/auditoria.sql).
+app.use((req, res, next) => enContextoUsuario(null, next));
 app.use(metricsMiddleware);  // Métricas Prometheus
 app.use('/api', apiLimiter); // Rate limit general de la API
 
