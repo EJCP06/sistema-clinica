@@ -115,9 +115,11 @@ export interface CrearPacienteRequest {
   cedula: string;
   tipo_documento: 'v' | 'e' | 'p';
   primer_nombre: string;
-  segundo_nombre: string;
+  /** Segundo nombre: opcional (puede ir vacío o ausente). */
+  segundo_nombre?: string;
   primer_apellido: string;
-  segundo_apellido: string;
+  /** Segundo apellido: opcional (puede ir vacío o ausente). */
+  segundo_apellido?: string;
   fecha_nacimiento?: string;
   telefono: string;
   email: string;

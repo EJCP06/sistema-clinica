@@ -226,13 +226,12 @@ export class RecepcionComponent implements OnInit, OnDestroy, RecepcionState {
 
   registrarYContinuar() {
     if (this.isAseguradorasView) { this.asegs.procesarAseguradora(this.nuevoPaciente, this.isEditMode, this, () => { this.cargarAseguradoras(); this.sel.setAseguradorasRef(this.asegs.aseguradoras); }, (fn?) => this.finalizarGuardado(fn)); return; }
-    // Todos los campos del modal son obligatorios: si falta alguno no se guarda.
+    // Campos obligatorios del modal: el segundo nombre y el segundo apellido
+    // son opcionales.
     const p = this.nuevoPaciente;
     const vacio = (v: string | null | undefined) => !(v || '').trim();
     if (vacio(p.primer_nombre)) { this.swal.warning('El primer nombre es obligatorio'); return; }
-    if (vacio(p.segundo_nombre)) { this.swal.warning('El segundo nombre es obligatorio'); return; }
     if (vacio(p.primer_apellido)) { this.swal.warning('El primer apellido es obligatorio'); return; }
-    if (vacio(p.segundo_apellido)) { this.swal.warning('El segundo apellido es obligatorio'); return; }
     const f = (p.fecha_nacimiento || '').trim();
     if (!/^\d{2}\/\d{2}\/\d{4}$/.test(f)) { this.swal.warning('La fecha de nacimiento es obligatoria (formato DD/MM/YYYY)'); return; }
     if (!p.sexo) { this.swal.warning('Debe seleccionar el sexo'); return; }

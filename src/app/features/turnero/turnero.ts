@@ -252,6 +252,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       if (data.id_sede && this.sede && Number(data.id_sede) !== Number(this.sede)) return;
 
       const esLiberacion = data.id_atencion && (data.tipo === 'liberacion' || data.tipo === 'retirado' || data.tipo === 'eliminado' ||
+        data.tipo === 'ausente' ||
         (data.tipo === 'estado-cambiado' && data.id_estado_nuevo !== undefined && Number(data.id_estado_nuevo) !== 4));
 
       if (esLiberacion) {
@@ -266,7 +267,7 @@ export class TurneroComponent implements OnInit, OnDestroy {
       }
 
       const esLlamado = data.tipo === 'llamado' && data.paciente && data.consultorio;
-      if (esLlamado) {
+      if (esLlamado && !this.voz.esLlamadoDuplicado(data)) {
         this.voz.procesarLlamado(data);
       }
 

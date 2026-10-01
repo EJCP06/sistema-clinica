@@ -94,7 +94,7 @@ module.exports = {};
  * @property {string} fecha_creacion
  * @property {string|undefined} hora_llegada
  * @property {string|undefined} hora_salida
- * @property {string|undefined} hora_llamado
+ * @property {string|number|undefined} hora_llamado
  */
 
 /**
@@ -128,9 +128,9 @@ module.exports = {};
  * @property {string} cedula
  * @property {*|*|*} tipo_documento
  * @property {string} primer_nombre
- * @property {string} segundo_nombre
+ * @property {string|undefined} segundo_nombre
  * @property {string} primer_apellido
- * @property {string} segundo_apellido
+ * @property {string|undefined} segundo_apellido
  * @property {string|undefined} fecha_nacimiento
  * @property {string} telefono
  * @property {string} email
@@ -230,7 +230,7 @@ module.exports = {};
  * @property {string|undefined} apellido_paciente
  * @property {string|undefined} documento_paciente
  * @property {string|undefined} turno_hora_llegada
- * @property {string|undefined} hora_llamado
+ * @property {string|number|undefined} hora_llamado
  */
 
 /**

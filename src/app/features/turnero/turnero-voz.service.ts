@@ -15,6 +15,17 @@ import {
 let ultimoAnuncioGlobal: { texto: string; ts: number; sonado: boolean } | null = null;
 const VENTANA_ANTIDOBLE_MS = 9000;
 
+/** ¿El destino es la recepción de Laboratorio o Imágenes (sala de espera)? */
+export function esSalaEsperaLaboratorio(consultorio: string | null | undefined): boolean {
+  const c = (consultorio || '').toLowerCase();
+  return c === 'laboratorio' || c.includes('imagen');
+}
+
+/** Vida máxima de repetición de un llamado de sala de espera (lab/imágenes).
+ * Coincide con el contador de recepción (60 s): al llegar a 0 la voz debe
+ * callar aunque ningún evento externo (socket/polling) llegue al turnero. */
+const VIDA_REPETICION_SALA_ESPERA_MS = 60000;
+
 // ---------------------------------------------------------------------------
 // Interfaces
 // ---------------------------------------------------------------------------
@@ -177,11 +188,22 @@ export class TurneroVozService {
       } catch (e) {
         console.error('[Turnero v7] Error en anuncio repetido:', e);
       }
+      // Red de seguridad: un llamado de sala de espera (lab/imágenes) repite
+      // como máximo durante el contador de recepción (60 s). Al expirar se
+      // detiene SOLO, sin depender de socket ni polling.
+      const salaEsperaExpirado = !a.destinoInmediato &&
+        esSalaEsperaLaboratorio(a.consultorio) &&
+        Date.now() - a.baseLocal >= VIDA_REPETICION_SALA_ESPERA_MS;
       if (esDestino) {
         if (this.colaVoz.some(x => x.idAtencion === a.idAtencion)) {
           // encolado, esperando motor
         } else {
           this.anunciosActivos.delete(a.idAtencion);
+        }
+      } else if (salaEsperaExpirado) {
+        if (this.anunciosActivos.has(a.idAtencion)) {
+          console.log('[Voz] Contador de sala de espera expirado (60s), deteniendo', a.idAtencion);
+          this.detenerRepeticion(a.idAtencion);
         }
       } else if (this.anunciosActivos.has(a.idAtencion) && !a.pausado) {
         this.iniciarRepeticionAnuncio(a);
@@ -194,13 +216,40 @@ export class TurneroVozService {
   }
 
   /**
+   * Detecta si un evento de llamado (normalmente el del socket) es una
+   * duplicación del último llamado ya procesado: mismo id y hora dentro de
+   * una ventana corta. El socket puede entregar el evento DESPUÉS de que el
+   * polling ya lo anunció (p. ej. primer llamado tras recargar el turnero,
+   * con la conexión aún estableciéndose), y como el megáfono de APS se
+   * auto-destruye tras sonar, el guardián de `anunciosActivos` no bastaba:
+   * el llamado se volvía a crear y se oía dos veces.
+   * Devuelve true si debe descartarse.
+   */
+  esLlamadoDuplicado(data: any): boolean {
+    const id = data.id_atencion;
+    const hora = data.inicio_ms || data.server_now || 0;
+    if (!id || !hora) return false;
+    if (id !== this.ultimoLlamadoProcesadoId) return false;
+    const diff = hora - this.ultimoLlamadoProcesadoHora;
+    const esMismoLlamado = diff >= -1000 && diff < 3000;
+    if (esMismoLlamado) {
+      console.log('[Voz] Llamado duplicado descartado (socket tardío)', { id, hora, prev: this.ultimoLlamadoProcesadoHora, diff });
+    }
+    return esMismoLlamado;
+  }
+
+  /**
    * Procesa un llamado (socket o polling): crea el anuncio si no existe y arranca su ciclo.
    */
   procesarLlamado(data: any): void {
     const id = data.id_atencion;
     if (!id) return;
-    console.log('[Voz] procesarLlamado', { id, forzar: !!data.forzar, inicio_ms: data.inicio_ms, audio_url: data.audio_url || null, yaActivo: this.anunciosActivos.has(id) });
-    if (data.forzar) {
+    const consultorioLower = (data.consultorio || '').toLowerCase();
+    const esSalaEspera = consultorioLower === 'laboratorio' || consultorioLower.includes('imagen');
+    console.log('[Voz] procesarLlamado', { id, forzar: !!data.forzar, esSalaEspera, inicio_ms: data.inicio_ms, audio_url: data.audio_url || null, yaActivo: this.anunciosActivos.has(id) });
+    // Sala de espera (lab/imágenes): NO tratar como forzar aunque el backend lo envíe.
+    // Queremos comportamiento normal: repetir cada 10s durante el contador.
+    if (data.forzar && !esSalaEspera) {
       this.reanunciarInmediato(data);
       return;
     }
@@ -219,6 +268,9 @@ export class TurneroVozService {
     if (data.inicio_ms) {
       this.inicioMsActual = data.inicio_ms;
     }
+    const consultorioLower = (data.consultorio || '').toLowerCase();
+    const esSalaEspera = consultorioLower === 'laboratorio' || consultorioLower.includes('imagen');
+
     const anuncio: AnuncioActivo = {
       idAtencion: id,
       numeroTurno: data.turno || null,
@@ -226,8 +278,11 @@ export class TurneroVozService {
       apellido: aNombreNatural(data.apellido || ''),
       consultorio: data.consultorio,
       piso: data.piso || null,
-      destinoInmediato: data.forzar === true,
-      primerTickInmediato: data.inicio_inmediato === true,
+      // Sala de espera (lab/imágenes): NO es destinoInmediato (para que repita cada 10s),
+      // PERO sí primerTickInmediato (para que suene YA).
+      // APS/consultorios normales: destinoInmediato = true (suena una vez y se detiene al atender).
+      destinoInmediato: data.forzar === true && !esSalaEspera,
+      primerTickInmediato: data.inicio_inmediato === true || esSalaEspera,
       inicioMs: data.inicio_ms ?? this.inicioMsActual,
       baseLocal: (data.inicio_ms ?? this.inicioMsActual) - this.deltaRelojMs,
       timerId: null,
@@ -354,6 +409,14 @@ export class TurneroVozService {
         const idx = this.colaVoz.findIndex(x => x.idAtencion === idAtencion);
         if (idx >= 0) this.colaVoz.splice(idx, 1);
         this.sintetizandoTTS = false;
+        // Detener audio si es el que está sonando actualmente
+        this.detenerAudioServidor();
+        // Invalidar TTS en vuelo: un WAV que terminó de sintetizarse ANTES de
+        // este stop no debe reproducirse DESPUÉS (guarda por generación).
+        this.generacionVoz++;
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
       }
     } else {
       for (const a of this.anunciosActivos.values()) {

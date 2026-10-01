@@ -43,6 +43,7 @@ import { FillersPipe } from '@shared/pipes/fillers.pipe';
 import { ColaAutocompleteService, AutocompleteState } from './cola-autocomplete.service';
 import { ColaDateMaskService } from './cola-date-mask.service';
 import { ColaCountdownService } from './cola-countdown.service';
+import { TurneroVozService } from '@features/turnero/turnero-voz.service';
 import { TourAnchorMatMenuDirective } from 'ngx-ui-tour-md-menu';
 
 export type TipoServicioCola = 'laboratorio' | 'imagenes';
@@ -216,6 +217,7 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
   private ac = inject(ColaAutocompleteService);
   private dateMask = inject(ColaDateMaskService);
   private countdown = inject(ColaCountdownService);
+  private voz = inject(TurneroVozService);
 
   constructor(private api: ApiService) {
     this.aseguradoraState = this.ac.create();
@@ -319,8 +321,12 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
             this.countdown.stopCountdown(idAtencion);
             this.countdown.startCountdown(adm, this.tipo, {
               onExpire: (id) => {
+                console.log('[COLA] onExpire fired, stopping voice for', id);
                 this.ultimasAdmisiones = this.ultimasAdmisiones.filter((x) => x.id_atencion !== id);
                 this.api.cambios$.next({ id_atencion: id });
+                // Forzar llamada que Terser no pueda eliminar
+                const _voz = this.voz;
+                if (_voz) _voz.detenerRepeticion(id);
               },
               onTick: () => {},
             });
@@ -427,8 +433,11 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
             }
             this.countdown.startCountdown(a, this.tipo, {
               onExpire: (id) => {
+                console.log('[COLA] onExpire fired, stopping voice for', id);
                 this.ultimasAdmisiones = this.ultimasAdmisiones.filter((x) => x.id_atencion !== id);
                 this.api.cambios$.next({ id_atencion: id });
+                const _voz = this.voz;
+                if (_voz) _voz.detenerRepeticion(id);
               },
               onTick: () => {},
             });
@@ -456,7 +465,13 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
         paciente.nombre_estado = 'LLAMADO';
         paciente.hora_llamado = new Date().toISOString();
         this.countdown.startCountdown(paciente, this.tipo, {
-          onExpire: (id) => { this.ultimasAdmisiones = this.ultimasAdmisiones.filter((x) => x.id_atencion !== id); this.api.cambios$.next({ id_atencion: id }); },
+          onExpire: (id) => {
+            console.log('[COLA] onExpire fired, stopping voice for', id);
+            this.ultimasAdmisiones = this.ultimasAdmisiones.filter((x) => x.id_atencion !== id);
+            this.api.cambios$.next({ id_atencion: id });
+            const _voz = this.voz;
+            if (_voz) _voz.detenerRepeticion(id);
+          },
           onTick: () => {},
         });
       },
@@ -609,9 +624,7 @@ export class ColaServicioComponent implements OnInit, OnDestroy {
     const p = this.nuevoPaciente;
     const vacio = (v: string | null | undefined) => !(v || '').trim();
     if (vacio(p.primer_nombre)) { this.swal.warning('El primer nombre es obligatorio'); return; }
-    if (vacio(p.segundo_nombre)) { this.swal.warning('El segundo nombre es obligatorio'); return; }
     if (vacio(p.primer_apellido)) { this.swal.warning('El primer apellido es obligatorio'); return; }
-    if (vacio(p.segundo_apellido)) { this.swal.warning('El segundo apellido es obligatorio'); return; }
     if (!/^\d{2}\/\d{2}\/\d{4}$/.test((p.fecha_nacimiento || '').trim())) { this.swal.warning('La fecha de nacimiento es obligatoria (formato DD/MM/YYYY)'); return; }
     if (!p.sexo) { this.swal.warning('Debe seleccionar el sexo'); return; }
     if (!p.estado_civil) { this.swal.warning('Debe seleccionar el estado civil'); return; }

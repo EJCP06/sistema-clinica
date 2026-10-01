@@ -210,6 +210,8 @@ const crearPaciente = async (req, res) => {
   const sede = getSede(req);
   if (!sede) return res.status(401).json({ mensaje: 'Sin sede' });
 
+  console.log('[CREAR PACIENTE] Request body:', JSON.stringify(req.body, null, 2));
+
   try {
     const { cedula, tipo_documento, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, fecha_nacimiento, telefono, email, direccion, status, sexo, estado_civil, cedula_representante, numero_hijo, nombre_representante, parentesco_representante } = req.body;
     const pn = (primer_nombre || '').toString().toUpperCase().trim();
@@ -255,6 +257,7 @@ const crearPaciente = async (req, res) => {
     // alta local nunca depende del sistema externo.
     integracionCola.notificarPacienteCreado(paciente);
   } catch (error) {
+    console.error('[CREAR PACIENTE] Error:', error);
     logger.error(error);
     if (error.code === '23505') {
       return res.status(400).json({ mensaje: 'Ya existe un paciente con esa cédula' });
