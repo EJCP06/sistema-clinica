@@ -275,9 +275,7 @@ export class ApsComponent implements OnInit, OnDestroy {
     const p = this.nuevoPaciente;
     const vacio = (v: string | null | undefined) => !(v || '').trim();
     if (vacio(p.primer_nombre)) { this.swal.warning('El primer nombre es obligatorio'); return; }
-    if (vacio(p.segundo_nombre)) { this.swal.warning('El segundo nombre es obligatorio'); return; }
     if (vacio(p.primer_apellido)) { this.swal.warning('El primer apellido es obligatorio'); return; }
-    if (vacio(p.segundo_apellido)) { this.swal.warning('El segundo apellido es obligatorio'); return; }
     if (!/^\d{2}\/\d{2}\/\d{4}$/.test((p.fecha_nacimiento || '').trim())) { this.swal.warning('La fecha de nacimiento es obligatoria (formato DD/MM/YYYY)'); return; }
     if (!p.sexo) { this.swal.warning('Debe seleccionar el sexo'); return; }
     if (!p.estado_civil) { this.swal.warning('Debe seleccionar el estado civil'); return; }

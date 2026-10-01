@@ -82,6 +82,29 @@ export class TurneroMonitorService implements OnDestroy {
   }
 
   /**
+   * Detiene los anuncios de sala de espera (lab/imágenes) cuyo paciente ya no
+   * corresponde al llamado activo: fue marcado ausente, atendido, liberado o
+   * reemplazado por otro turno. El endpoint `ultimo-llamado` solo devuelve
+   * pacientes en estado "Llamado" (4), así que si la respuesta ya no trae al
+   * paciente que estamos anunciando, su repetición debe detenerse.
+   * `edadMinimaMs` evita cortar un anuncio recién creado por un polling que
+   * viajaba cuando el llamado se emitió (carrera contra el socket).
+   */
+  private detenerSalaEsperaObsoletos(idActual: number | null, edadMinimaMs = 0): void {
+    const ahora = Date.now();
+    for (const a of Array.from(this.voz.anunciosActivos.values())) {
+      if (a.destinoInmediato) continue;
+      const c = (a.consultorio || '').toLowerCase();
+      const esSalaEspera = c === 'laboratorio' || c.includes('imagen');
+      if (!esSalaEspera) continue;
+      if (idActual !== null && a.idAtencion === idActual) continue;
+      if (edadMinimaMs > 0 && ahora - a.baseLocal < edadMinimaMs) continue;
+      console.log('[Turnero] Repetición de sala de espera sin llamado activo, deteniendo', a.idAtencion);
+      this.voz.detenerRepeticion(a.idAtencion);
+    }
+  }
+
+  /**
    * Verifica periódicamente si hay un llamado nuevo (respaldo del socket).
    * Si detecta uno, lo procesa directamente vía TurneroVozService.
    */
@@ -94,9 +117,22 @@ export class TurneroMonitorService implements OnDestroy {
       this.verificarFetchSub = this.api.get<any>(`turnero/ultimo-llamado?sede=${this.sede}`).subscribe({
         next: (data) => {
           if (!data || !data.id_atencion || !data.paciente || !data.consultorio) {
+            // Sin llamado activo: detener repeticiones de sala de espera huérfanas
+            // (p. ej. paciente recién marcado ausente). Con margen de edad para no
+            // cortar un anuncio que acaba de nacer por un polling en tránsito.
+            this.detenerSalaEsperaObsoletos(null, 15000);
             terminar();
             return;
           }
+          if (typeof data.id_atencion !== 'number' || !Number.isFinite(data.id_atencion)) {
+            console.warn('[Turnero] ultimo-llamado id_atencion inválido:', data.id_atencion);
+            terminar();
+            return;
+          }
+
+          // Si el último llamado activo ya no es el paciente de un anuncio de
+          // sala de espera, ese turno terminó: detener su repetición.
+          this.detenerSalaEsperaObsoletos(data.id_atencion);
 
           this.voz.actualizarDeltaReloj(data.server_now);
           if (data.inicio_ms) {

@@ -178,7 +178,12 @@ async function generarAudio(texto, nombrePersonalizado, opts = {}) {
           }
           resolve();
         });
-        child.stdin.end(textoFinal);
+        // Capturar errores del subproceso (p. ej. EPIPE/EACCES) para que no
+        // se propaguen como excepción no capturada y tumben el proceso Node.
+        child.on('error', () => {});
+        try {
+          child.stdin.end(textoFinal);
+        } catch { /* subproceso ya terminado */ }
       });
     }
 

@@ -8,9 +8,9 @@
  *   Content-Type: application/json
  *   X-Api-Key: <keyId>:<secret>        (INTEGRACION_COLA_API_KEY)
  *
- *   { nroCedula, nombre, nacionalidad, fechaNacimiento, sexo, estadoCivil,
- *     direccion, telefono, correo, parentezco, nroCedulaRepresentante,
- *     nombreRepresentante }
+ *   { nroCedula, nombre, nombres, apellidos, nacionalidad, fechaNacimiento,
+ *     sexo, estadoCivil, direccion, telefono, correo, parentezco,
+ *     nroCedulaRepresentante, nombreRepresentante }
  *
  * El externo hace upsert por cédula: responde 201 + created:true si creó el
  * registro y 200 + created:false si actualizó uno existente.
@@ -40,6 +40,8 @@ const HABILITADA = (process.env.INTEGRACION_COLA_HABILITADA || 'true').toLowerCa
 const OBLIGATORIOS = [
   'nroCedula',
   'nombre',
+  'nombres',
+  'apellidos',
   'nacionalidad',
   'fechaNacimiento',
   'sexo',
@@ -89,10 +91,30 @@ const formatearFecha = (valor) => {
  * @returns {string} Nombre formateado
  */
 const armarNombre = (paciente) => {
-  const apellidos = [paciente.primer_apellido, paciente.segundo_apellido].map(limpiar).filter(Boolean).join(' ');
-  const nombres = [paciente.primer_nombre, paciente.segundo_nombre].map(limpiar).filter(Boolean).join(' ');
+  const apellidos = armarApellidos(paciente);
+  const nombres = armarNombres(paciente);
   return `${apellidos}, ${nombres}`.replace(/\s+/g, ' ').trim();
 };
+
+/**
+ * Concatena los nombres del contrato: 'NOMBRE1 NOMBRE2' (ej. 'JUAN CARLOS').
+ * Requiere que el sistema externo reciba la concatenación de los dos nombres.
+ *
+ * @param {object} paciente - Registro de la tabla "Pacientes"
+ * @returns {string} Nombres concatenados
+ */
+const armarNombres = (paciente) =>
+  [paciente.primer_nombre, paciente.segundo_nombre].map(limpiar).filter(Boolean).join(' ');
+
+/**
+ * Concatena los apellidos del contrato: 'APELLIDO1 APELLIDO2' (ej. 'PEREZ GOMEZ').
+ * Requiere que el sistema externo reciba la concatenación de los dos apellidos.
+ *
+ * @param {object} paciente - Registro de la tabla "Pacientes"
+ * @returns {string} Apellidos concatenados
+ */
+const armarApellidos = (paciente) =>
+  [paciente.primer_apellido, paciente.segundo_apellido].map(limpiar).filter(Boolean).join(' ');
 
 /**
  * Nacionalidad del contrato a partir de "tipo_documento" (v/e/p).
@@ -117,6 +139,8 @@ const armarPayload = (paciente) => {
   const payload = {
     nroCedula: limpiar(paciente.cedula),
     nombre: armarNombre(paciente),
+    nombres: armarNombres(paciente),
+    apellidos: armarApellidos(paciente),
     nacionalidad: armarNacionalidad(paciente.tipo_documento),
     fechaNacimiento: formatearFecha(paciente.fecha_nacimiento),
     sexo: limpiar(paciente.sexo).toUpperCase(),
@@ -193,6 +217,7 @@ const enviarPaciente = async (payload) => {
  */
 const notificarPacienteCreado = async (paciente) => {
   try {
+    console.log('[INTEGRACION MQ] Iniciando notificación', { cedula: paciente?.cedula, habilitada: HABILITADA, url: URL_COLA, hasApiKey: !!API_KEY });
     if (!HABILITADA) return { enviado: false, motivo: 'integracion deshabilitada', status: null };
     if (!paciente) return { enviado: false, motivo: 'sin paciente', status: null };
 
@@ -202,6 +227,7 @@ const notificarPacienteCreado = async (paciente) => {
     }
 
     const { payload, faltantes } = armarPayload(paciente);
+    console.log('[INTEGRACION MQ] Payload armado', { payload, faltantes });
     if (faltantes.length > 0) {
       logger.warn('Integración cola MQ: ficha incompleta, no se envía', {
         cedula: payload.nroCedula,

@@ -185,11 +185,23 @@ class PiperWorker {
     if (!pendiente) return;
     pendiente.enviado = true;
     this.enVuelo = true;
-    this.proceso.stdin.write(JSON.stringify({
-      id: pendiente.id,
-      texto: pendiente.texto,
-      ruta: pendiente.ruta,
-    }) + '\n');
+    try {
+      this.proceso.stdin.write(JSON.stringify({
+        id: pendiente.id,
+        texto: pendiente.texto,
+        ruta: pendiente.ruta,
+      }) + '\n');
+    } catch (errPipe) {
+      // El worker murió en el ínterin: marcar como error para que el llamador
+      // use el fallback y reiniciar en la siguiente petición.
+      this.proceso = null;
+      this.ready = false;
+      this.enVuelo = false;
+      pendiente.enviado = false;
+      this.cola = this.cola.filter((p) => p.id !== pendiente.id);
+      clearTimeout(pendiente.timer);
+      pendiente.reject(new Error(`No se pudo enviar a Piper: ${errPipe.message}`));
+    }
   }
 
   /**

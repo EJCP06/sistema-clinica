@@ -12,15 +12,9 @@ dist
 README.md
 .vscode
 .angular
-src
 proxy.conf.js
-angular.json
-tailwind.config.js
-tsconfig.json
-tsconfig.app.json
-.eslintrc.json
-.prettierrc
-.editorconfig
+# angular.json, tsconfig.json, tsconfig.app.json, .eslintrc.json, .prettierrc, .editorconfig
+# SON necesarios para el build de Angular (ng build)
 .env
 backend/logs
 backend/.env

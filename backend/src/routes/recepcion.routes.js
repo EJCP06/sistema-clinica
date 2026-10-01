@@ -128,14 +128,16 @@ const cedulaVenezolana = (cedula, { req }) => {
 };
 
 router.get('/pacientes/:termino', ctrl.buscarPaciente);
-// Alta de paciente desde recepción: TODOS los campos del modal son obligatorios.
+// Alta de paciente desde recepción: primer nombre, primer apellido y el resto
+// de la cédula/ficha son obligatorios; el segundo nombre y el segundo apellido
+// son opcionales (se guardan como NULL cuando vienen vacíos).
 router.post('/pacientes', [
   body('cedula').trim().notEmpty().withMessage('La cédula del paciente es obligatoria').custom(cedulaVenezolana),
   body('tipo_documento').optional().isIn(['v', 'e', 'p', 'V', 'E', 'P']).withMessage('Tipo de documento inválido'),
   body('primer_nombre').trim().notEmpty().withMessage('El primer nombre es obligatorio'),
-  body('segundo_nombre').trim().notEmpty().withMessage('El segundo nombre es obligatorio'),
+  body('segundo_nombre').optional({ values: 'falsy' }).trim(),
   body('primer_apellido').trim().notEmpty().withMessage('El primer apellido es obligatorio'),
-  body('segundo_apellido').trim().notEmpty().withMessage('El segundo apellido es obligatorio'),
+  body('segundo_apellido').optional({ values: 'falsy' }).trim(),
   // Obligatoria porque el sistema externo de cola MQ la exige en el contrato de
   // integración (si faltara, la ficha no se enviaría y quedaría sin sincronizar).
   // El frontend ya valida el formato dd/mm/aaaa y envía aaaa-mm-dd.

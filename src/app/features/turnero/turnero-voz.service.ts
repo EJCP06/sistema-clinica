@@ -15,6 +15,17 @@ import {
 let ultimoAnuncioGlobal: { texto: string; ts: number; sonado: boolean } | null = null;
 const VENTANA_ANTIDOBLE_MS = 9000;
 
+/** ¿El destino es la recepción de Laboratorio o Imágenes (sala de espera)? */
+export function esSalaEsperaLaboratorio(consultorio: string | null | undefined): boolean {
+  const c = (consultorio || '').toLowerCase();
+  return c === 'laboratorio' || c.includes('imagen');
+}
+
+/** Vida máxima de repetición de un llamado de sala de espera (lab/imágenes).
+ * Coincide con el contador de recepción (60 s): al llegar a 0 la voz debe
+ * callar aunque ningún evento externo (socket/polling) llegue al turnero. */
+const VIDA_REPETICION_SALA_ESPERA_MS = 60000;
+
 // ---------------------------------------------------------------------------
 // Interfaces
 // ---------------------------------------------------------------------------
@@ -177,11 +188,22 @@ export class TurneroVozService {
       } catch (e) {
         console.error('[Turnero v7] Error en anuncio repetido:', e);
       }
+      // Red de seguridad: un llamado de sala de espera (lab/imágenes) repite
+      // como máximo durante el contador de recepción (60 s). Al expirar se
+      // detiene SOLO, sin depender de socket ni polling.
+      const salaEsperaExpirado = !a.destinoInmediato &&
+        esSalaEsperaLaboratorio(a.consultorio) &&
+        Date.now() - a.baseLocal >= VIDA_REPETICION_SALA_ESPERA_MS;
       if (esDestino) {
         if (this.colaVoz.some(x => x.idAtencion === a.idAtencion)) {
           // encolado, esperando motor
         } else {
           this.anunciosActivos.delete(a.idAtencion);
+        }
+      } else if (salaEsperaExpirado) {
+        if (this.anunciosActivos.has(a.idAtencion)) {
+          console.log('[Voz] Contador de sala de espera expirado (60s), deteniendo', a.idAtencion);
+          this.detenerRepeticion(a.idAtencion);
         }
       } else if (this.anunciosActivos.has(a.idAtencion) && !a.pausado) {
         this.iniciarRepeticionAnuncio(a);
@@ -194,12 +216,40 @@ export class TurneroVozService {
   }
 
   /**
+   * Detecta si un evento de llamado (normalmente el del socket) es una
+   * duplicación del último llamado ya procesado: mismo id y hora dentro de
+   * una ventana corta. El socket puede entregar el evento DESPUÉS de que el
+   * polling ya lo anunció (p. ej. primer llamado tras recargar el turnero,
+   * con la conexión aún estableciéndose), y como el megáfono de APS se
+   * auto-destruye tras sonar, el guardián de `anunciosActivos` no bastaba:
+   * el llamado se volvía a crear y se oía dos veces.
+   * Devuelve true si debe descartarse.
+   */
+  esLlamadoDuplicado(data: any): boolean {
+    const id = data.id_atencion;
+    const hora = data.inicio_ms || data.server_now || 0;
+    if (!id || !hora) return false;
+    if (id !== this.ultimoLlamadoProcesadoId) return false;
+    const diff = hora - this.ultimoLlamadoProcesadoHora;
+    const esMismoLlamado = diff >= -1000 && diff < 3000;
+    if (esMismoLlamado) {
+      console.log('[Voz] Llamado duplicado descartado (socket tardío)', { id, hora, prev: this.ultimoLlamadoProcesadoHora, diff });
+    }
+    return esMismoLlamado;
+  }
+
+  /**
    * Procesa un llamado (socket o polling): crea el anuncio si no existe y arranca su ciclo.
    */
   procesarLlamado(data: any): void {
     const id = data.id_atencion;
     if (!id) return;
-    if (data.forzar) {
+    const consultorioLower = (data.consultorio || '').toLowerCase();
+    const esSalaEspera = consultorioLower === 'laboratorio' || consultorioLower.includes('imagen');
+    console.log('[Voz] procesarLlamado', { id, forzar: !!data.forzar, esSalaEspera, inicio_ms: data.inicio_ms, audio_url: data.audio_url || null, yaActivo: this.anunciosActivos.has(id) });
+    // Sala de espera (lab/imágenes): NO tratar como forzar aunque el backend lo envíe.
+    // Queremos comportamiento normal: repetir cada 10s durante el contador.
+    if (data.forzar && !esSalaEspera) {
       this.reanunciarInmediato(data);
       return;
     }
@@ -218,6 +268,9 @@ export class TurneroVozService {
     if (data.inicio_ms) {
       this.inicioMsActual = data.inicio_ms;
     }
+    const consultorioLower = (data.consultorio || '').toLowerCase();
+    const esSalaEspera = consultorioLower === 'laboratorio' || consultorioLower.includes('imagen');
+
     const anuncio: AnuncioActivo = {
       idAtencion: id,
       numeroTurno: data.turno || null,
@@ -225,8 +278,11 @@ export class TurneroVozService {
       apellido: aNombreNatural(data.apellido || ''),
       consultorio: data.consultorio,
       piso: data.piso || null,
-      destinoInmediato: data.forzar === true,
-      primerTickInmediato: data.inicio_inmediato === true,
+      // Sala de espera (lab/imágenes): NO es destinoInmediato (para que repita cada 10s),
+      // PERO sí primerTickInmediato (para que suene YA).
+      // APS/consultorios normales: destinoInmediato = true (suena una vez y se detiene al atender).
+      destinoInmediato: data.forzar === true && !esSalaEspera,
+      primerTickInmediato: data.inicio_inmediato === true || esSalaEspera,
       inicioMs: data.inicio_ms ?? this.inicioMsActual,
       baseLocal: (data.inicio_ms ?? this.inicioMsActual) - this.deltaRelojMs,
       timerId: null,
@@ -353,6 +409,14 @@ export class TurneroVozService {
         const idx = this.colaVoz.findIndex(x => x.idAtencion === idAtencion);
         if (idx >= 0) this.colaVoz.splice(idx, 1);
         this.sintetizandoTTS = false;
+        // Detener audio si es el que está sonando actualmente
+        this.detenerAudioServidor();
+        // Invalidar TTS en vuelo: un WAV que terminó de sintetizarse ANTES de
+        // este stop no debe reproducirse DESPUÉS (guarda por generación).
+        this.generacionVoz++;
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
       }
     } else {
       for (const a of this.anunciosActivos.values()) {
@@ -449,6 +513,7 @@ export class TurneroVozService {
       this.ultimoAnuncioInicioMs !== null && Number.isFinite(this.ultimoAnuncioInicioMs) &&
       Math.abs(a.inicioMs - this.ultimoAnuncioInicioMs) < 2000;
     if (this.sonidoConfirmado && a.idAtencion === this.ultimoIdAnunciado && esMismoLlamadoLocal && ahora - this.ultimaVezAnunciado < 9000) {
+      console.log('[Voz] bloqueado por dedup local (mismo llamado <9s)', a.idAtencion);
       return false;
     }
 
@@ -464,16 +529,21 @@ export class TurneroVozService {
     const bloqueaDoble = !!ultimoAnuncioGlobal && ultimoAnuncioGlobal.texto === texto && (
       hablandoAhora || (ultimoAnuncioGlobal.sonado && ahora - ultimoAnuncioGlobal.ts < VENTANA_ANTIDOBLE_MS)
     );
-    if (bloqueaDoble) return false;
+    if (bloqueaDoble) {
+      console.log('[Voz] bloqueado por guardia global anti-doble', { id: a.idAtencion, hablandoAhora });
+      return false;
+    }
 
     // Si el motor está ocupado, encolar
     if (hablandoAhora) {
+      console.log('[Voz] motor ocupado, encolando anuncio', a.idAtencion);
       if (!this.colaVoz.some(x => x.idAtencion === a.idAtencion)) {
         this.colaVoz.push(a);
       }
       return true;
     }
 
+    console.log('[Voz] reproduciendo anuncio directo', a.idAtencion);
     ultimoAnuncioGlobal = { texto, ts: ahora, sonado: false };
 
     if (a.speakTimerId) { clearTimeout(a.speakTimerId); a.speakTimerId = null; }
@@ -529,6 +599,7 @@ export class TurneroVozService {
    * Saca el siguiente anuncio de la cola y lo reproduce.
    */
   procesarColaVoz(): void {
+    console.log('[Voz] procesarColaVoz, cola=', this.colaVoz.length, 'motorOcupado=', this.motorVozOcupado());
     while (this.colaVoz.length > 0) {
       const next = this.colaVoz.shift()!;
       if (this.anunciosActivos.has(next.idAtencion)) {
@@ -538,8 +609,12 @@ export class TurneroVozService {
         const bloqueaDoble = !!ultimoAnuncioGlobal && ultimoAnuncioGlobal.texto === texto && (
           estaHablando || (ultimoAnuncioGlobal.sonado && ahora - ultimoAnuncioGlobal.ts < VENTANA_ANTIDOBLE_MS)
         );
-        if (bloqueaDoble) continue;
+        if (bloqueaDoble) {
+          console.log('[Voz] cola: bloqueado anti-doble', next.idAtencion);
+          continue;
+        }
 
+        console.log('[Voz] cola: reproduciendo', next.idAtencion);
         ultimoAnuncioGlobal = { texto, ts: ahora, sonado: false };
         this.sintetizandoTTS = true;
         const esAnuncioUnico = next.destinoInmediato || esAnuncioAPS(next.consultorio);
@@ -584,6 +659,7 @@ export class TurneroVozService {
    * Reproduce texto usando servidor TTS con fallback a Web Speech API.
    */
   async reproducirTexto(texto: string, onExito: () => void, onError: (msg?: string) => void, audioUrl?: string): Promise<void> {
+    console.log('[Voz] reproducirTexto', { tieneUrl: !!audioUrl, ttsDisponible: this.ttsServidorDisponible });
     if (audioUrl) {
       this.reproducirAudioURL(audioUrl, onExito, async () => {
         let fallbackLlamado = false;
@@ -615,6 +691,7 @@ export class TurneroVozService {
   }
 
   async reproducirConServidor(texto: string, onEnd: () => void, _onError?: () => void): Promise<boolean> {
+    console.log('[Voz] reforzando con servidor TTS (Piper)');
     this.sintetizandoTTS = true;
     try {
       const ttsUrl = getBackendUrl('/api/tts');
@@ -635,6 +712,7 @@ export class TurneroVozService {
       }
       const audio = new Audio(url);
       audio.preload = 'auto';
+      audio.crossOrigin = 'anonymous';
       this.audioServidor = audio;
       const generacion = this.generacionVoz;
       audio.onended = () => {
@@ -654,16 +732,7 @@ export class TurneroVozService {
         if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
           window.speechSynthesis.cancel();
         }
-        if (isCapacitor()) {
-          audio.load();
-          await new Promise<void>((resolve, reject) => {
-            audio.oncanplaythrough = () => resolve();
-            audio.onerror = () => reject(new Error('Error cargando audio'));
-          });
-          await audio.play();
-        } else {
-          await audio.play();
-        }
+        await audio.play();
         return true;
       } catch {
         try {
@@ -688,6 +757,7 @@ export class TurneroVozService {
   }
 
   async reproducirAudioURL(url: string, onEnd: () => void, onError: () => void): Promise<void> {
+    console.log('[Voz] reproduciendo WAV pre-sintetizado', url);
     try {
       if (this.audioServidor) {
         this.audioServidor.pause();
@@ -698,6 +768,7 @@ export class TurneroVozService {
       const audioUrl = (url.startsWith('http') || url.startsWith('blob:')) ? url : getBackendUrl(url);
       const audio = new Audio(audioUrl);
       audio.preload = 'auto';
+      audio.crossOrigin = 'anonymous';
       this.audioServidor = audio;
       const generacion = this.generacionVoz;
       audio.onended = () => {
@@ -706,15 +777,29 @@ export class TurneroVozService {
         onEnd();
       };
       audio.onerror = () => {
-        if (this.audioServidor === audio) this.audioServidor = null;
+        if (this.audioServidor === audio) {
+          this.audioServidor = null;
+          this.sintetizandoTTS = false;
+        }
+        console.warn('[Voz] error reproduciendo WAV, usando fallback', audioUrl);
+        if (generacion !== this.generacionVoz) return;
+        onError();
       };
       this.ultimoDisparoVozMs = Date.now();
       try {
         if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
           window.speechSynthesis.cancel();
         }
-        await audio.play();
+        // Asegurar AudioContext activo (autoplay policy)
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx && audio.srcObject === undefined) {
+          // Intentar play directo primero (más rápido)
+          await audio.play();
+        } else {
+          await audio.play();
+        }
       } catch {
+        // Fallback robusto: decodificar con AudioContext y reproducir
         try {
           audio.onended = null;
           audio.onerror = null;
@@ -732,12 +817,11 @@ export class TurneroVozService {
   }
 
   async reproducirConAudioContext(url: string, generacion: number, onEnd: () => void): Promise<void> {
-    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioCtx) throw new Error('AudioContext no disponible');
+    const ctx = this.getAudioContext();
+    if (ctx.state === 'suspended') await ctx.resume();
     const resp = await fetch(url);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const arrayBuffer = await resp.arrayBuffer();
-    const ctx = new AudioCtx();
     const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
     const source = ctx.createBufferSource();
     source.buffer = audioBuffer;
@@ -745,16 +829,14 @@ export class TurneroVozService {
     source.onended = () => {
       this.sintetizandoTTS = false;
       if (generacion !== this.generacionVoz) return;
-      ctx.close();
       onEnd();
     };
     source.start();
   }
 
   async reproducirBlobConAudioContext(arrayBuffer: ArrayBuffer, generacion: number, onEnd: () => void): Promise<void> {
-    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioCtx) throw new Error('AudioContext no disponible');
-    const ctx = new AudioCtx();
+    const ctx = this.getAudioContext();
+    if (ctx.state === 'suspended') await ctx.resume();
     const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
     const source = ctx.createBufferSource();
     source.buffer = audioBuffer;
@@ -762,7 +844,6 @@ export class TurneroVozService {
     source.onended = () => {
       this.sintetizandoTTS = false;
       if (generacion !== this.generacionVoz) return;
-      ctx.close();
       onEnd();
     };
     source.start();
@@ -773,6 +854,7 @@ export class TurneroVozService {
    * Auto-selecciona la mejor voz española si no se provee una.
    */
   reproducirTextoNavegador(texto: string, onExito: () => void, onError: (msg?: string) => void, voz?: SpeechSynthesisVoice | null): void {
+    console.log('[Voz] reproduciendo con SpeechSynthesis del navegador');
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
       onError('SpeechSynthesis no soportado');
       return;
@@ -899,6 +981,13 @@ export class TurneroVozService {
       if ('speechSynthesis' in window && window.speechSynthesis.paused) {
         window.speechSynthesis.resume();
       }
+      // Asegurar AudioContext activo (autoplay policy)
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx && this.audioContext) {
+        if (this.audioContext.state === 'suspended') {
+          this.audioContext.resume();
+        }
+      }
     };
     document.addEventListener('click', this.resumeHandler);
 
@@ -906,6 +995,10 @@ export class TurneroVozService {
       if (document.visibilityState === 'visible' && 'speechSynthesis' in window) {
         if (window.speechSynthesis.paused) {
           window.speechSynthesis.resume();
+        }
+        // Reanudar AudioContext al volver a la pestaña
+        if (this.audioContext && this.audioContext.state === 'suspended') {
+          this.audioContext.resume();
         }
       }
     };
@@ -916,9 +1009,25 @@ export class TurneroVozService {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
+      if (this.audioContext) {
+        this.audioContext.close();
+        this.audioContext = null;
+      }
     };
     window.addEventListener('beforeunload', this.beforeUnloadHandler);
     window.addEventListener('pagehide', this.beforeUnloadHandler);
+  }
+
+  private audioContext: AudioContext | null = null;
+
+  private getAudioContext(): AudioContext {
+    if (!this.audioContext) {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        this.audioContext = new AudioCtx();
+      }
+    }
+    return this.audioContext!;
   }
 
   quitarListenersVoz(): void {

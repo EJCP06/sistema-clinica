@@ -65,7 +65,11 @@ router.get('/ultimo-llamado', async (req, res) => {
       return res.json({});
     }
 
-    const horaLlamadoMs = llamado.hora_llamado ? new Date(llamado.hora_llamado).getTime() : null;
+    // hora_llamado llega del repositorio como epoch ms (número): se reenvía
+    // tal cual para que el frontend no dependa del parseo de strings de fecha
+    // (el timestamp de la BD es sin zona horaria y la interpretación depende
+    // del TZ del contenedor).
+    const horaLlamadoMs = Number(llamado.hora_llamado) || null;
 
     res.json({
       id_atencion: llamado.id_atencion,

@@ -76,7 +76,7 @@ export interface AdmisionDTO {
   fecha_creacion: string;
   hora_llegada?: string;
   hora_salida?: string;
-  hora_llamado?: string;
+  hora_llamado?: string | number;
 }
 
 /** Datos del paciente (incluye ambos nombres y apellidos). */
@@ -115,9 +115,11 @@ export interface CrearPacienteRequest {
   cedula: string;
   tipo_documento: 'v' | 'e' | 'p';
   primer_nombre: string;
-  segundo_nombre: string;
+  /** Segundo nombre: opcional (puede ir vacío o ausente). */
+  segundo_nombre?: string;
   primer_apellido: string;
-  segundo_apellido: string;
+  /** Segundo apellido: opcional (puede ir vacío o ausente). */
+  segundo_apellido?: string;
   fecha_nacimiento?: string;
   telefono: string;
   email: string;
@@ -225,7 +227,7 @@ export interface MiEstadoDTO {
   apellido_paciente?: string;
   documento_paciente?: string;
   turno_hora_llegada?: string;
-  hora_llamado?: string;
+  hora_llamado?: string | number;
 }
 
 /** Datos de un consultorio físico. */
